@@ -4,6 +4,7 @@ import HomePage from '@/views/home/HomePage.vue'
 import MainPage from '@/views/main/MainPage.vue'
 import Math from '@/views/score/ScorePage.vue'
 import Comment from '@/views/evaluation/EvaluationPage.vue'
+import Setting from '@/views/setting/SettingPage.vue'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -31,6 +32,11 @@ const router = createRouter({
               path: '/comment',
               name: 'Comment',
               component: Comment
+            },
+            {
+              path: '/setting',
+              name: 'Setting',
+              component: Setting
             }
           ]
         }

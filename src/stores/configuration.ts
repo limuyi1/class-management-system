@@ -17,7 +17,7 @@ export const useConfigurationStore = defineStore('configuration', {
         pageType: PagesEnum.A4, // 页面类型
         pageTypeList: [PagesEnum.A3, PagesEnum.A4, PagesEnum.B3, PagesEnum.B4],
         inputScoreTab: null // 录入成绩页签
-      } as ConfigurationType
+      } as unknown as ConfigurationType
     }
   },
   actions: {

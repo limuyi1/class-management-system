@@ -16,6 +16,12 @@ const menu = [
     icon: 'comment-dots',
     path: '/comment',
     disabled: true
+  },
+  {
+    name: '设置',
+    icon: 'gear',
+    path: '/setting',
+    disabled: true
   }
 ]
 

@@ -2,14 +2,18 @@
 import { ref } from 'vue'
 
 import LeftMenu from '@/views/main/components/LeftMenu.vue'
+import { dayjs } from 'element-plus'
+
+import logo from '@/assets/main/logo.png'
 
 const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
 </script>
 
 <template>
   <el-container class="h-dvh">
-    <el-header class="bg-primary text-white items-center" height="70px">
-      <div class="h-full px-4 py-3 flex justify-between items-center">
+    <el-header class="bg-primary text-white items-center" height="60px">
+      <div class="h-full px-4 py-3 flex items-center">
+        <img class="header-logo" :src="logo" alt="" />
         <h1 class="text-xl md:text-2xl font-bold">{{ title }}</h1>
       </div>
     </el-header>
@@ -17,7 +21,7 @@ const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
       <el-aside class="contents">
         <left-menu />
       </el-aside>
-      <el-main class="flex-1! h-[calc(100vh-102px)] bg-(--el-color-info-light-9)">
+      <el-main class="flex-1! h-[calc(100vh-92px)] p-0!">
         <router-view v-slot="{ Component }">
           <keep-alive>
             <component :is="Component" />
@@ -26,9 +30,15 @@ const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
       </el-main>
     </el-container>
     <el-footer class="bg-dark text-white flex items-center justify-center" height="auto">
-      <div>&copy; 2025 {{ title }} - 李木一版权所有</div>
+      <div>&copy; {{ dayjs().format('YYYY') }} {{ title }} - 李木一版权所有</div>
     </el-footer>
   </el-container>
 </template>
 
-<style lang="scss"></style>
+<style lang="scss">
+.header-logo {
+  height: 40px;
+  width: 40px;
+  margin-right: 16px;
+}
+</style>

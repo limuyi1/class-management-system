@@ -1,63 +1,175 @@
 <script setup lang="ts">
-import { computed, type ComputedRef, nextTick, onMounted, ref } from 'vue'
-
-import router from '@/router'
-
+import { computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import data from '@/config/menu'
 import { useDataSourceStore } from '@/stores/data-source'
 
+const router = useRouter()
 const store = useDataSourceStore()
 
 const isCollapse = ref(false)
-const defaultActive = ref()
+const activePath = ref('')
 
-const menuData: ComputedRef<any[]> = computed(() => {
-  const isEmpty = computed(() => store.data?.length)
+const menuData = computed(() => {
+  const isEmpty = store.data?.length
   return data.map((item) => {
     if (item.path !== '/home') {
-      item.disabled = !isEmpty.value
+      item.disabled = !isEmpty
     }
     return item
   })
 })
 
 onMounted(() => {
-  defaultActive.value = data[0].path
+  activePath.value = router.currentRoute.value?.path || data[0].path
 })
+
+const handleMenuClick = (item: any) => {
+  if (item.disabled) return
+  activePath.value = item.path
+  router.push(item.path)
+}
 </script>
 
 <template>
-  <el-menu
-    class="left-menu__wrapper h-full relative"
-    :default-active="defaultActive"
-    :collapse="isCollapse"
-    :collapse-transition="false"
-    router
-  >
-    <el-menu-item
+  <div class="left-menu" :class="{ collapsed: isCollapse }">
+    <div
       v-for="item in menuData"
       :key="item.name"
-      :index="item.path"
-      :disabled="item.disabled"
+      class="menu-item"
+      :class="{
+        active: activePath === item.path,
+        disabled: item.disabled
+      }"
+      @click="handleMenuClick(item)"
     >
-      <el-icon><font-awesome-icon :icon="['solid', item.icon]" /></el-icon>
-      <template #title>{{ item.name }}</template>
-    </el-menu-item>
+      <div class="menu-icon">
+        <font-awesome-icon :icon="['solid', item.icon]" />
+      </div>
+      <span class="menu-title">{{ item.name }}</span>
+    </div>
 
-    <font-awesome-icon
-      class="absolute z-10 -right-[12px] top-1/2 hover:cursor-pointer text-[rgba(24,26,27,0.20)] hover:text-[rgba(24,26,27,0.55)]"
-      :icon="['solid', isCollapse ? 'circle-chevron-right' : 'circle-chevron-left']"
-      @click="isCollapse = !isCollapse"
-    />
-  </el-menu>
+    <div class="collapse-button" @click="isCollapse = !isCollapse">
+      <font-awesome-icon :icon="['solid', isCollapse ? 'chevron-right' : 'chevron-left']" />
+    </div>
+  </div>
 </template>
 
 <style scoped>
-.left-menu__wrapper {
-  border-right: 0;
+.left-menu {
+  width: 150px;
+  height: 100%;
+  background-color: #fff;
+  border-right: 1px solid #e6e6e6;
+  transition: width 0.3s ease;
+  position: relative;
 }
 
-.left-menu__wrapper:not(.el-menu--collapse) {
-  width: 150px;
+.left-menu.collapsed {
+  width: 64px;
+}
+
+.menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding-left: 16px;
+  cursor: pointer;
+  color: #333;
+  transition:
+    background-color 0.2s,
+    color 0.2s,
+    padding-left 0.3s ease;
+  white-space: nowrap;
+  line-height: 56px;
+}
+
+.left-menu.collapsed .menu-item {
+  padding-left: 20px; /* 折叠时图标居中 */
+}
+
+.menu-item:hover {
+  background-color: #f5f5f5;
+}
+
+.menu-item.active {
+  background-color: #ecf5ff;
+  color: var(--el-color-primary);
+}
+
+.menu-item.active:before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background-color: var(--el-color-primary);
+}
+
+.menu-item.disabled {
+  color: #c0c4cc;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.menu-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: margin-right 0.3s ease;
+}
+
+.left-menu.collapsed .menu-icon {
+  margin-right: 0;
+}
+
+.menu-title {
+  font-size: 14px;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 200px; /* 足够大以便过渡 */
+  opacity: 1;
+  transition:
+    max-width 0.3s ease,
+    opacity 0.2s ease;
+}
+
+.left-menu.collapsed .menu-title {
+  max-width: 0;
+  opacity: 0;
+}
+
+.collapse-button {
+  position: absolute;
+  z-index: 10;
+  right: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  font-size: 15px;
+  background-color: #fff;
+  border: 1px solid #e6e6e6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(24, 26, 27, 0.2);
+  cursor: pointer;
+  transition:
+    color 0.2s,
+    background-color 0.2s;
+}
+
+.collapse-button:hover {
+  color: rgba(24, 26, 27, 0.55);
+  background-color: #f5f5f5;
 }
 </style>
