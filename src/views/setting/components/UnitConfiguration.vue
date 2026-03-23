@@ -18,7 +18,7 @@ const editing = ref(false)
 
 const add = () => {
   list.value.push({
-    prop: pinyin(text.value),
+    prop: pinyin(text.value, { toneType: 'num', type: 'array' }).join('_'),
     label: text.value
   })
   text.value = ''
@@ -75,7 +75,6 @@ const remove = (item: SettingType) => {
           v-model="text"
           size="large"
           placeholder="请输入新的表头名称"
-          autofocus
           @keyup.enter="add"
         />
         <div class="flex items-center">

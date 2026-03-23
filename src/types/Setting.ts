@@ -9,6 +9,5 @@ export interface TagCategoryType {
 }
 
 export interface TagType {
-  category: string
-  tags: Array<string>
+  [category: string]: Array<string>
 }

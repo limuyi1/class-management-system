@@ -8,15 +8,6 @@ import UnitConfiguration from '@/views/setting/components/UnitConfiguration.vue'
     <el-tab-pane>
       <template #label>
         <span class="custom-tabs-label">
-          <font-awesome-icon :icon="['solid', 'database']" />
-          <span>详细信息</span>
-        </span>
-      </template>
-      详细信息
-    </el-tab-pane>
-    <el-tab-pane>
-      <template #label>
-        <span class="custom-tabs-label">
           <font-awesome-icon :icon="['solid', 'wrench']" />
           <span>标签维护</span>
         </span>
