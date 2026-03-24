@@ -3,15 +3,20 @@ import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import { ElMessageBox } from 'element-plus'
+import { pinyin } from 'pinyin-pro'
 
 import EmptyTableView from '@/views/home/components/EmptyTableView.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
+import { useSettingStore } from '@/stores/setting'
 
 import type { VxeTableEvents, VxeTablePropTypes } from 'vxe-table'
+import type { SettingType } from '@/types/Setting'
 
 const store = useDataSourceStore()
-const { header: headers, data: tableData } = storeToRefs(store)
+const settingStore = useSettingStore()
+const { data: tableData } = storeToRefs(store)
+const { tableHeaders: headers } = storeToRefs(settingStore)
 
 const tableRef = ref()
 const editConfig = ref<VxeTablePropTypes.EditConfig>({
@@ -43,23 +48,29 @@ const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
         }
       ]
     ]
-  }
+  },
+  visibleMethod: ({ columnIndex }) => !isNameColumn(columnIndex as number)
 })
 
 const isNotEmpty = computed(() => store.data?.length)
-const nameIndex = computed(() => {
-  return headers.value?.findIndex((e: string) => e === '姓名')
-})
 
 // 重置数据
 const repeatIcon = () => <font-awesome-icon icon={['solid', 'repeat']} />
+
+// 判断是否为姓名列（第一列是序号，第二列是姓名）
+const isNameColumn = (columnIndex: number) => {
+  return columnIndex <= 1
+}
 
 // 列拖拽结束
 const columnDragendHandle = () => {
   const $table = tableRef.value
   if ($table) {
     const tableColumn = $table.getFullColumns()
-    store.header = tableColumn.map((e: any) => e.field)
+    headers.value = tableColumn.splice(2).map((e: any) => ({
+      prop: e.field,
+      label: e.title
+    }))
   }
 }
 
@@ -73,7 +84,10 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
         inputPlaceholder: '请输入列名'
       }).then(({ value }) => {
         if (value) {
-          store.header?.splice(columnIndex + 1, 0, value)
+          headers.value?.splice(columnIndex - 1, 0, {
+            prop: pinyin(value, { toneType: 'num', type: 'array' }).join('_'),
+            label: value
+          })
         }
       })
       break
@@ -84,7 +98,10 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
         inputPlaceholder: '请输入列名'
       }).then(({ value }) => {
         if (value) {
-          store.header?.splice(columnIndex, 0, value)
+          headers.value?.splice(columnIndex - 2, 0, {
+            prop: pinyin(value, { toneType: 'num', type: 'array' }).join('_'),
+            label: value
+          })
         }
       })
       break
@@ -94,7 +111,7 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        store.header?.splice(columnIndex, 1)
+        headers.value?.splice(columnIndex - 2, 1)
         tableData.value.forEach((e) => {
           delete e[column.field]
         })
@@ -112,6 +129,7 @@ const resetStuInfo = () => {
   }).then(() => {
     // 重置数据
     store.$reset()
+    settingStore.$reset()
   })
 }
 </script>
@@ -139,17 +157,29 @@ const resetStuInfo = () => {
       @column-dragend="columnDragendHandle"
       @menu-click="menuClickEvent"
     >
+      <!-- 序号列：不可编辑、不可删除、自动生成 -->
+      <vxe-column type="seq" title="序号" width="60" fixed="left" :resizable="false" />
+      <!-- 姓名列：不可删除、不可排序、可编辑 -->
       <vxe-column
-        v-for="(item, index) in headers"
-        :key="item"
-        :field="item"
-        :title="item"
-        :fixed="index <= nameIndex ? 'left' : ''"
+        field="xing4_ming2"
+        title="姓名"
+        width="100"
+        fixed="left"
         sortable
         resizable
-        :min-width="index <= nameIndex ? '100' : '150'"
         :edit-render="{ name: 'input' }"
-      ></vxe-column>
+      />
+      <!-- 其他数据列 -->
+      <vxe-column
+        v-for="item in headers"
+        :key="item.prop"
+        :field="item.prop"
+        :title="item.label"
+        sortable
+        resizable
+        min-width="150"
+        :edit-render="{ name: 'input' }"
+      />
     </vxe-table>
   </div>
 

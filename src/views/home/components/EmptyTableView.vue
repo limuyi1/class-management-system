@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useDataSourceStore } from '@/stores/data-source'
+import { useSettingStore } from '@/stores/setting'
 
 import { ElMessage } from 'element-plus'
+import { pinyin } from 'pinyin-pro'
 
 import { storeToRefs } from 'pinia'
 
@@ -9,8 +11,10 @@ import { parseExcel } from '@/untils/xlsxUntil'
 import { useConfigurationStore } from '@/stores/configuration'
 
 const store = useDataSourceStore()
+const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
 const { data: config } = storeToRefs(configuration)
+const { tableHeaders } = storeToRefs(settingStore)
 
 const uploadFile = async (file: any) => {
   try {
@@ -20,24 +24,38 @@ const uploadFile = async (file: any) => {
         return
       }
 
-      const headerObj = header.reduce((acc: any, cur: any) => {
-        acc[cur] = null
+      // 过滤掉序号列，姓名列固定为 xing4_ming2
+      const filteredHeader = header.filter((label: string) => label !== '序号' && label !== '姓名')
+
+      // 将 header 转换为 SettingType[] 格式（不含姓名）
+      const headerArray = filteredHeader.map((label: string) => ({
+        prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
+        label
+      }))
+
+      const headerObj = headerArray.reduce((acc: any, cur: any) => {
+        acc[cur.prop] = null
         return acc
       }, {})
 
       const result = data.map((e: any) => {
-        const _headerObj = Object.assign({}, headerObj)
-        Object.keys(_headerObj).forEach((key: any) => {
-          _headerObj[key] = e[key] || null
+        const _headerObj = Object.assign({ xing4_ming2: null }, headerObj)
+        // 设置姓名
+        _headerObj.xing4_ming2 = e['姓名'] || null
+        // 设置其他列
+        headerArray.forEach((headerItem) => {
+          _headerObj[headerItem.prop] = e[headerItem.label] || null
         })
         return _headerObj
       })
 
-      store.header = header
+      // 姓名列始终在第一位，其他列在后面
+      tableHeaders.value = headerArray
+
       store.data = result
 
-      // 添加默认的录入成绩页签
-      config.value.inputScoreTab = store.tagTypeList[0]
+      // 添加默认的录入成绩页签（跳过姓名列）
+      config.value.inputScoreTab = headerArray[0]?.prop
 
       ElMessage.success('导入成功！')
     })

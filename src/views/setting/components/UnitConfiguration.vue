@@ -16,6 +16,11 @@ const { tableHeaders: list } = storeToRefs(store)
 const text = ref('')
 const editing = ref(false)
 
+// 姓名是固定的，不能编辑和删除
+const isNameHeader = (item: SettingType) => {
+  return item.prop === 'xing4_ming2'
+}
+
 const add = () => {
   list.value.push({
     prop: pinyin(text.value, { toneType: 'num', type: 'array' }).join('_'),
@@ -26,6 +31,9 @@ const add = () => {
 }
 
 const edit = (item: SettingType) => {
+  if (isNameHeader(item)) {
+    return
+  }
   ElMessageBox.prompt('', '请输入新的表头名称', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -38,6 +46,9 @@ const edit = (item: SettingType) => {
 }
 
 const remove = (item: SettingType) => {
+  if (isNameHeader(item)) {
+    return
+  }
   list.value.splice(list.value.indexOf(item), 1)
 }
 </script>
@@ -53,9 +64,9 @@ const remove = (item: SettingType) => {
         handle=".unit-configuration-item"
       >
         <template #item="{ element, index }">
-          <div class="unit-configuration-item">
+          <div :class="['unit-configuration-item', { 'is-name': isNameHeader(element) }]">
             <span>{{ index + 1 }}. {{ element.label }}</span>
-            <div class="flex items-center">
+            <div class="flex items-center" v-if="!isNameHeader(element)">
               <font-awesome-icon class="btn" :icon="['solid', 'edit']" @click="edit(element)" />
               <el-popconfirm title="确认要删除吗？" placement="top" @confirm="remove(element)">
                 <template #reference>
@@ -125,6 +136,12 @@ const remove = (item: SettingType) => {
       line-height: 24px;
       color: rgba(0, 0, 0, 0.85);
       cursor: all-scroll;
+
+      &.is-name {
+        cursor: default;
+        background: #ecf5ff;
+        border-color: var(--el-color-primary-light-5);
+      }
 
       .btn {
         color: var(--el-color-primary);

@@ -54,6 +54,7 @@ There is **no test framework** configured in this project. Do not assume Vitest 
 ### Formatting (Prettier)
 
 Configured in `.prettierrc.json`:
+
 - **No semicolons** (`"semi": false`)
 - **Single quotes** (`"singleQuote": true`)
 - **No trailing commas** (`"trailingComma": "none"`)
@@ -63,6 +64,7 @@ Configured in `.prettierrc.json`:
 ### Imports
 
 Order imports in this sequence, separated by blank lines:
+
 1. Third-party libraries (Vue, Element Plus, Pinia, etc.)
 2. Internal modules using `@/` alias
 3. Type-only imports use `import type { ... }` syntax
@@ -87,19 +89,20 @@ import type { ListItemType } from '@/types/DataSource'
 
 ### Naming Conventions
 
-| Item | Convention | Example |
-|---|---|---|
-| Pinia stores | `use<Name>Store`, kebab-case file | `useSettingStore` in `stores/setting.ts` |
-| Composables/hooks | `use<PascalCase>`, file in `hooks/` | `useEnterUp` in `hooks/useEnterUp.ts` |
-| Utility modules | `<name>Until.ts` in `untils/` | `xlsxUntil.ts`, `pdfUntil.ts` |
-| Vue components | PascalCase filenames | `ScoreTableView.vue`, `EmptyTableView.vue` |
-| Type files | PascalCase in `types/` | `Common.ts`, `DataSource.ts` |
-| Enums | PascalCase with `Enum` suffix | `PagesEnum`, `InputEnum` |
-| Interfaces | PascalCase with `Type` suffix | `SettingType`, `TagCategoryType` |
+| Item              | Convention                          | Example                                    |
+| ----------------- | ----------------------------------- | ------------------------------------------ |
+| Pinia stores      | `use<Name>Store`, kebab-case file   | `useSettingStore` in `stores/setting.ts`   |
+| Composables/hooks | `use<PascalCase>`, file in `hooks/` | `useEnterUp` in `hooks/useEnterUp.ts`      |
+| Utility modules   | `<name>Until.ts` in `untils/`       | `xlsxUntil.ts`, `pdfUntil.ts`              |
+| Vue components    | PascalCase filenames                | `ScoreTableView.vue`, `EmptyTableView.vue` |
+| Type files        | PascalCase in `types/`              | `Common.ts`, `DataSource.ts`               |
+| Enums             | PascalCase with `Enum` suffix       | `PagesEnum`, `InputEnum`                   |
+| Interfaces        | PascalCase with `Type` suffix       | `SettingType`, `TagCategoryType`           |
 
 ### Vue Components (SFC)
 
 Use `<script setup lang="ts">` with this template order:
+
 1. `<script setup lang="ts">` — logic
 2. `<template>` — markup
 3. `<style scoped lang="scss">` — styles
@@ -114,10 +117,6 @@ const store = useSomeStore()
 const { data } = storeToRefs(store)
 const loading = ref(false)
 
-/**
- * Description of function
- * @param param description
- */
 const handleAction = (param: string) => {
   // logic
 }
@@ -139,6 +138,7 @@ defineExpose({ handleAction })
 ### Pinia Stores
 
 Use Options API style with `persist: true` for persisted state:
+
 ```ts
 import { defineStore } from 'pinia'
 
@@ -204,4 +204,4 @@ src/
 - Build output goes to `docs/` directory (`vite.config.ts` build.outDir)
 - The app uses hash-based routing (`/#/home`, `#/math`, etc.)
 - Environment variables are prefixed with `VITE_` and loaded via `loadEnv`
-- No existing Cursor rules, Copilot instructions, or prior AGENTS.md found
+- No Cursor rules (.cursor/rules/ or .cursorrules) or Copilot instructions found

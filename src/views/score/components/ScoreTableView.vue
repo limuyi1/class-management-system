@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { ElMessageBox } from 'element-plus'
 
 import { storeToRefs } from 'pinia'
 import { useDataSourceStore } from '@/stores/data-source'
+import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 
 import type { ListItemType } from '@/types/DataSource'
@@ -12,12 +13,18 @@ import type { ListItemType } from '@/types/DataSource'
 const emit = defineEmits(['edit'])
 
 const store = useDataSourceStore()
+const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
 
-const { tagTypeList, data: tableData } = storeToRefs(store)
+const { data: tableData } = storeToRefs(store)
+const { tableHeaders } = storeToRefs(settingStore)
 const { data: config } = storeToRefs(configuration)
 const tableRef = ref()
 const loading = ref(false)
+
+const tagTypeList = computed(() => {
+  return tableHeaders.value.slice(2).map((item) => item.prop)
+})
 
 /**
  * 表格行样式
