@@ -81,31 +81,23 @@ const groupArray = (array: any[], groupSize: number) => {
 
 /**
  * 滚动到指定行
- * @param index 学生索引（从0开始）
+ * @param index 学生索引
  */
 const scroll = (index: number) => {
-  // 确保滚动容器已存在且页面信息已初始化
   if (!scrollbarRef.value || !pageInfo.cellLevel || !pageInfo.columnCount) return
-
-  const pageSize = pageInfo.cellLevel * pageInfo.columnCount
-  // 边界检查
   if (index < 0 || index >= tableData.value.length) return
 
-  // 计算所在页面索引及页面内位置
-  const pageIndex = Math.floor(index / pageSize)
-  const innerIndex = index % pageSize
-  const row = Math.floor(innerIndex / pageInfo.columnCount)
+  const rowIndex = Math.floor((index - 1) / pageInfo.columnCount)
+  const element = document.querySelectorAll('tr')[rowIndex]
 
-  // 每个卡片的高度（行数 × 单元格高度）
-  const rowsPerCard = Math.ceil(pageSize / pageInfo.columnCount)
-  const cardHeight = rowsPerCard * pageInfo.cellHeight
+  if (!element) return
+  const container = scrollbarRef.value.wrapRef
+  const elementRect = element.getBoundingClientRect()
+  const containerRect = container!.getBoundingClientRect()
+  const offsetTop = elementRect.top - containerRect?.top + container!.scrollTop
 
-  // 目标滚动位置 = 前面所有卡片总高度 + 当前卡片内行的偏移
-  const targetTop = pageIndex * cardHeight + row * pageInfo.cellHeight
-
-  // 使用平滑滚动
-  scrollbarRef.value.wrapRef?.scrollTo({
-    top: targetTop,
+  scrollbarRef.value.scrollTo({
+    top: offsetTop,
     behavior: 'smooth'
   })
 }

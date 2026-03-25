@@ -56,11 +56,11 @@ const cellStyle = computed(() => ({
       :style="{ padding: `${pageInfo.margin / 2}px ${pageInfo.margin}px` }"
     >
       <table class="evaluation-card--table" border="0" cellspacing="0" cellpadding="0">
-        <template v-for="(item, index) in props.data">
+        <template v-for="(item, index) in data">
           <tr v-if="index % pageInfo.columnCount == 0" :key="`${item.xing4_ming2}_${index}`">
             <template v-for="e in pageInfo.columnCount">
               <td
-                v-if="props.data[index + e - 1]?.xing4_ming2"
+                v-if="data[index + e - 1]?.xing4_ming2"
                 :key="e"
                 class="table-cell"
                 :style="cellStyle"
@@ -70,12 +70,12 @@ const cellStyle = computed(() => ({
                     class="custom-font"
                     :style="{ fontSize: configuration.salutationFontSize + 'px' }"
                   >
-                    {{ props.data[index + e - 1]?.xing4_ming2 }}同学：
+                    {{ data[index + e - 1]?.xing4_ming2 }}同学：
                   </div>
                   <div
                     class="table-body custom-font"
                     :style="{ fontSize: configuration.textFontSize + 'px' }"
-                    v-html="getEvaluationText(props.data[index + e - 1]?.comment)"
+                    v-html="getEvaluationText(data[index + e - 1]?.comment)"
                   ></div>
                   <div class="table-footer">
                     <span :style="{ fontSize: configuration.sealFontSize + 'px' }"
