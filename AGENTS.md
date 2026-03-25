@@ -7,39 +7,24 @@ Scores Recording System (成绩记录系统) — a Vue 3 + TypeScript + Vite des
 ## Build / Dev / Lint Commands
 
 ```bash
-# Install dependencies
-pnpm install
-
-# Start dev server (port from VITE_PORT in .env)
-pnpm dev
-
-# Full build (type-check + vite build)
-pnpm build
-
-# Vite build only (no type-check)
-pnpm build-only
-
-# Preview production build
-pnpm preview
-
-# Type-check with vue-tsc
-pnpm type-check
-
-# Lint and auto-fix
-pnpm lint
-
-# Format source code
-pnpm format
+pnpm install          # Install dependencies
+pnpm dev              # Start dev server (port from VITE_PORT in .env)
+pnpm build            # Full build (type-check + vite build)
+pnpm build-only       # Vite build only (no type-check)
+pnpm preview          # Preview production build
+pnpm type-check       # Type-check with vue-tsc
+pnpm lint             # Lint and auto-fix (ESLint)
+pnpm format           # Format source code (Prettier)
 ```
 
-There is **no test framework** configured in this project. Do not assume Vitest or Jest exists. If tests are needed, add the framework first.
+There is **no test framework** configured. Do not assume Vitest or Jest exists. If tests are needed, add the framework first.
 
 ## Tech Stack
 
 - **Framework**: Vue 3.3 (Composition API, `<script setup lang="ts">`)
 - **Build**: Vite 5, `@vitejs/plugin-vue`, `@vitejs/plugin-vue-jsx`
 - **Language**: TypeScript 5.3, strict mode via `@vue/tsconfig`
-- **UI Libraries**: Element Plus, VxeTable (`vxe-table` / `vxe-pc-ui`), FontAwesome
+- **UI**: Element Plus, VxeTable (`vxe-table`/`vxe-pc-ui`), FontAwesome
 - **Styling**: Tailwind CSS 4 + SCSS (scoped styles in SFCs)
 - **State**: Pinia + `pinia-plugin-persistedstate` (zipson serialization)
 - **Router**: Vue Router 4 with hash history (`createWebHashHistory`)
@@ -51,19 +36,14 @@ There is **no test framework** configured in this project. Do not assume Vitest 
 
 ## Code Style
 
-### Formatting (Prettier)
+### Formatting (`.prettierrc.json`)
 
-Configured in `.prettierrc.json`:
-
-- **No semicolons** (`"semi": false`)
-- **Single quotes** (`"singleQuote": true`)
-- **No trailing commas** (`"trailingComma": "none"`)
-- **2-space indentation** (`"tabWidth": 2`)
-- **100 char print width** (`"printWidth": 100`)
+- No semicolons (`"semi": false`), single quotes (`"singleQuote": true`)
+- No trailing commas (`"trailingComma": "none"`), 2-space indent, 100 char width
 
 ### Imports
 
-Order imports in this sequence, separated by blank lines:
+Order imports separated by blank lines:
 
 1. Third-party libraries (Vue, Element Plus, Pinia, etc.)
 2. Internal modules using `@/` alias
@@ -72,7 +52,6 @@ Order imports in this sequence, separated by blank lines:
 ```ts
 import { ref, computed } from 'vue'
 import { ElMessageBox } from 'element-plus'
-import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import type { ListItemType } from '@/types/DataSource'
@@ -82,10 +61,10 @@ import type { ListItemType } from '@/types/DataSource'
 
 - Use `lang="ts"` in all `<script setup>` blocks
 - Prefer explicit types for function parameters and return values
-- Use `type` keyword for type-only imports: `import type { Foo } from '@/types/...'`
-- Interfaces/types go in `src/types/` with PascalCase filenames (e.g., `Setting.ts`, `Common.ts`)
-- Use `enum` for fixed sets of values (e.g., `PagesEnum`, `InputEnum`)
-- Avoid `any` where possible; use it only for truly dynamic data (e.g., parsed Excel rows)
+- Types/interfaces in `src/types/` with PascalCase filenames (e.g., `Setting.ts`)
+- Use `enum` for fixed value sets (e.g., `PagesEnum`, `InputEnum`)
+- Interface/type names use `Type` suffix (e.g., `SettingType`, `TagCategoryType`)
+- Avoid `any`; use only for truly dynamic data (e.g., parsed Excel rows)
 
 ### Naming Conventions
 
@@ -95,9 +74,7 @@ import type { ListItemType } from '@/types/DataSource'
 | Composables/hooks | `use<PascalCase>`, file in `hooks/` | `useEnterUp` in `hooks/useEnterUp.ts`      |
 | Utility modules   | `<name>Until.ts` in `untils/`       | `xlsxUntil.ts`, `pdfUntil.ts`              |
 | Vue components    | PascalCase filenames                | `ScoreTableView.vue`, `EmptyTableView.vue` |
-| Type files        | PascalCase in `types/`              | `Common.ts`, `DataSource.ts`               |
 | Enums             | PascalCase with `Enum` suffix       | `PagesEnum`, `InputEnum`                   |
-| Interfaces        | PascalCase with `Type` suffix       | `SettingType`, `TagCategoryType`           |
 
 ### Vue Components (SFC)
 
@@ -110,17 +87,13 @@ Use `<script setup lang="ts">` with this template order:
 ```vue
 <script setup lang="ts">
 import { ref } from 'vue'
-import { storeToRefs } from 'pinia'
 import { useSomeStore } from '@/stores/some'
 
 const store = useSomeStore()
-const { data } = storeToRefs(store)
 const loading = ref(false)
-
 const handleAction = (param: string) => {
-  // logic
+  /* logic */
 }
-
 defineExpose({ handleAction })
 </script>
 
@@ -130,7 +103,7 @@ defineExpose({ handleAction })
 
 <style scoped lang="scss">
 .wrapper {
-  // styles
+  /* styles */
 }
 </style>
 ```
@@ -140,15 +113,9 @@ defineExpose({ handleAction })
 Use Options API style with `persist: true` for persisted state:
 
 ```ts
-import { defineStore } from 'pinia'
-
 export const useExampleStore = defineStore('example', {
-  state: () => ({
-    items: [] as Array<SomeType>
-  }),
-  getters: {
-    count: (state) => state.items.length
-  },
+  state: () => ({ items: [] as Array<SomeType> }),
+  getters: { count: (state) => state.items.length },
   actions: {},
   persist: true
 })
@@ -157,15 +124,15 @@ export const useExampleStore = defineStore('example', {
 ### Styling
 
 - Use **scoped SCSS** in Vue SFCs
-- Use **Tailwind CSS** utility classes directly in templates (e.g., `class="w-[100px]! mr-[8px]"`)
+- Use **Tailwind CSS** utility classes in templates (e.g., `class="w-[100px]! mr-[8px]"`)
 - Use Element Plus CSS variables for theming (e.g., `var(--el-color-primary)`)
-- BEM-like naming for custom CSS classes (e.g., `setting-tabs__wrapper`, `operate-btn__wrapper`)
-- Use `:deep()` for penetrating scoped styles to child components
+- BEM-like naming for custom CSS (e.g., `setting-tabs__wrapper`)
+- Use `:deep()` to penetrate scoped styles to child components
 
 ### Error Handling
 
 - Wrap async operations in try/catch with `console.error` for logging
-- Use Element Plus `ElMessageBox.confirm` for destructive action confirmations
+- Use `ElMessageBox.confirm` for destructive action confirmations
 - Use `ElLoading.service()` for loading states during long operations
 - Use `@ts-ignore` sparingly and only when necessary
 
@@ -187,13 +154,8 @@ src/
 ├── router/          # Vue Router config
 ├── stores/          # Pinia stores
 ├── types/           # TypeScript interfaces & enums
-├── untils/          # Utility modules
-├── views/           # Page components (nested by feature)
-│   ├── home/
-│   ├── score/
-│   ├── evaluation/
-│   ├── setting/
-│   └── main/
+├── untils/          # Utility modules (intentionally named "untils")
+├── views/           # Page components (home/, score/, evaluation/, setting/, main/)
 ├── App.vue
 └── main.ts
 ```
@@ -201,7 +163,16 @@ src/
 ## Important Notes
 
 - The `untils/` directory is intentionally named (not "utils") — do not rename it
-- Build output goes to `docs/` directory (`vite.config.ts` build.outDir)
+- Build output goes to `docs/` directory (configured in `vite.config.ts`)
 - The app uses hash-based routing (`/#/home`, `#/math`, etc.)
 - Environment variables are prefixed with `VITE_` and loaded via `loadEnv`
-- No Cursor rules (.cursor/rules/ or .cursorrules) or Copilot instructions found
+
+## Data Storage Architecture
+
+| Store                   | File                      | Purpose                                   |
+| ----------------------- | ------------------------- | ----------------------------------------- |
+| `useDataSourceStore`    | `stores/data-source.ts`   | Student data array, statistics getters    |
+| `useSettingStore`       | `stores/setting.ts`       | Table headers, tag categories, tags       |
+| `useConfigurationStore` | `stores/configuration.ts` | App settings (font size, page type, etc.) |
+
+Table headers stored as `tableHeaders: Array<SettingType>` in `setting.ts`. First header is always `{ prop: 'xing4_ming2', label: '姓名' }` (cannot be deleted). Each data row has `xing4_ming2` (student name), dynamic keys matching header props, and optional `comment`.

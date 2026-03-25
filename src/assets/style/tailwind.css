@@ -1,10 +1,5 @@
 @import 'tailwindcss';
 
-@font-face {
-  font-family: FYFont, sans-serif;
-  src: url('../font/字小魂扶摇手书.ttf') format('truetype');
-}
-
 @theme {
   --font-fy: 'FYFont', sans-serif;
 

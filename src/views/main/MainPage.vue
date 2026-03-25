@@ -21,7 +21,7 @@ const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
       <el-aside class="contents">
         <left-menu />
       </el-aside>
-      <el-main class="flex-1! h-[calc(100vh-92px)] p-0!">
+      <el-main class="flex-1! h-[calc(100vh-90px)] p-0!">
         <router-view v-slot="{ Component }">
           <keep-alive>
             <component :is="Component" />

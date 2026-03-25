@@ -4,12 +4,15 @@ import { computed, ref } from 'vue'
 import InputCard from '@/views/score/components/InputCard.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
+import { useSettingStore } from '@/stores/setting'
+import { useConfigurationStore } from '@/stores/configuration'
 import { storeToRefs } from 'pinia'
 
-import type { ListItemType } from '@/types/DataSource'
-
 const store = useDataSourceStore()
+const settingStore = useSettingStore()
+const configuration = useConfigurationStore()
 const { data: originList } = storeToRefs(store)
+const { data: config } = storeToRefs(configuration)
 
 const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
@@ -17,7 +20,10 @@ const emit = defineEmits(['scroll'])
 
 const percentage = computed(() => {
   const count = originList.value.length
-  const notEmptyCount = originList.value.filter((item) => item.score !== null).length
+  if (count === 0 || !config.value.inputScoreTab) return 0
+  const notEmptyCount = originList.value.filter((item: any) => {
+    return item[config.value.inputScoreTab] !== null
+  }).length
 
   return Number((notEmptyCount / count).toFixed(2)) * 100
 })
@@ -43,8 +49,10 @@ const progressTextFormat = (percentage: number) => {
  * 获取未输入分数的列表
  */
 const hasNullScoreList = computed(() => {
-  const data = originList.value as Array<ListItemType>
-  return data.filter((e: ListItemType) => e.score === null)
+  if (!config.value.inputScoreTab) return []
+  return originList.value.filter((e: any) => {
+    return e[config.value.inputScoreTab] === null
+  })
 })
 
 /**
@@ -85,12 +93,12 @@ defineExpose({
         </template>
         <el-tag
           v-for="item in hasNullScoreList"
-          :key="item.id"
+          :key="item.xing4_ming2"
           style="margin: 0 3px 3px 0"
           class="ml-2"
           type="info"
         >
-          {{ item.name }}
+          {{ item.xing4_ming2 }}
         </el-tag>
       </el-popover>
     </el-card>

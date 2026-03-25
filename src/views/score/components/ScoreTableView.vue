@@ -8,8 +8,6 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 
-import type { ListItemType } from '@/types/DataSource'
-
 const emit = defineEmits(['edit'])
 
 const store = useDataSourceStore()
@@ -23,24 +21,34 @@ const tableRef = ref()
 const loading = ref(false)
 
 const tagTypeList = computed(() => {
-  return tableHeaders.value.slice(2).map((item) => item.prop)
+  return tableHeaders.value.map((item) => item.prop)
 })
+
+/**
+ * 获取当前选中列的分数值
+ * @param row
+ */
+const getCurrentScore = (row: any) => {
+  if (!config.value.inputScoreTab) return null
+  return row[config.value.inputScoreTab]
+}
 
 /**
  * 表格行样式
  * @param row
  * @param rowIndex
  */
-const tableRowClassName = ({ row }: { row: ListItemType }) => {
-  if (!row.score) {
+const tableRowClassName = ({ row }: { row: any }) => {
+  const score = getCurrentScore(row)
+  if (!score) {
     return ''
   }
 
-  if (row.score >= 90) {
+  if (score >= 90) {
     return 'success-row'
-  } else if (row.score >= 80) {
+  } else if (score >= 80) {
     return 'primary-row'
-  } else if (row.score >= 60) {
+  } else if (score >= 60) {
     return 'warning-row'
   } else {
     return 'danger-row'
@@ -108,7 +116,11 @@ const resetScore = () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    tableData.value.forEach((e) => (e.score = null))
+    if (config.value.inputScoreTab) {
+      tableData.value.forEach((e: any) => {
+        e[config.value.inputScoreTab] = null
+      })
+    }
   })
 }
 
@@ -133,8 +145,8 @@ defineExpose({ scroll })
     :row-class-name="tableRowClassName"
     @row-click="handleEdit"
   >
-    <el-table-column prop="序号" label="序号" width="60" align="center" />
-    <el-table-column prop="姓名" label="姓名" width="200" />
+    <el-table-column type="index" label="序号" width="60" align="center" />
+    <el-table-column prop="xing4_ming2" label="姓名" width="200" />
     <el-table-column :prop="config.inputScoreTab" width="200">
       <template #header>
         <div class="operate-btn__wrapper">
@@ -143,7 +155,12 @@ defineExpose({ scroll })
             v-model="config.inputScoreTab"
             placeholder="选择类型"
           >
-            <el-option v-for="item in tagTypeList" :key="item" :label="item" :value="item" />
+            <el-option
+              v-for="item in tagTypeList"
+              :key="item"
+              :label="tableHeaders.find((h) => h.prop === item)?.label || item"
+              :value="item"
+            />
           </el-select>
           <el-tooltip effect="dark" placement="top" append-to="body" content="重置分数">
             <el-icon :size="18" color="var(--el-color-primary)">

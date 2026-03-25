@@ -17,9 +17,7 @@ defineExpose({ autoFocus })
 <template>
   <div class="final-evaluation-page__wrapper">
     <div class="final-evaluation-page--left">
-      <el-scrollbar>
-        <evaluation-table-view ref="evaluationTableViewRef" />
-      </el-scrollbar>
+      <evaluation-table-view ref="evaluationTableViewRef" />
     </div>
     <div class="final-evaluation-page--right">
       <el-scrollbar>
@@ -34,7 +32,7 @@ defineExpose({ autoFocus })
 
 <style scoped lang="scss">
 .final-evaluation-page__wrapper {
-  height: calc(100vh - 60px - 55px - 20px);
+  height: 100%;
   width: 100%;
   display: flex;
 

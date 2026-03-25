@@ -2,13 +2,14 @@
 import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
+import { useConfigurationStore } from '@/stores/configuration'
 import { xlsxToImage } from '@/untils/xlsxUntil'
 
-import type { ListItemType } from '@/types/DataSource'
-
 const store = useDataSourceStore()
+const configuration = useConfigurationStore()
 
 const { data: originList } = storeToRefs(store)
+const { data: config } = storeToRefs(configuration)
 
 interface Props {
   downloadFileName: string
@@ -34,11 +35,13 @@ const xlsxToImageCommand = (command: string) => {
 /**
  * 获取数据
  */
-const getList = (): ListItemType[] => {
+const getList = (): any[] => {
+  if (!config.value.inputScoreTab) return []
+  const scoreKey = config.value.inputScoreTab
   return originList.value
-    .filter((e) => e.score !== null)
-    .filter((e: ListItemType) => props.condition(e))
-    .sort((a, b) => (b.score || 0) - (a.score || 0))
+    .filter((e: any) => e[scoreKey] !== null)
+    .filter((e: any) => props.condition(e))
+    .sort((a: any, b: any) => (b[scoreKey] || 0) - (a[scoreKey] || 0))
 }
 
 /**
@@ -50,11 +53,12 @@ const buildData = (isScore: boolean = true) => {
   const bodyData: any[][] = []
 
   const data = getList()
-  data.forEach((e, i) => {
+  const scoreKey = config.value.inputScoreTab
+  data.forEach((e: any, i: number) => {
     if (isScore) {
-      bodyData.push([String(i + 1), e.name, e.score])
+      bodyData.push([String(i + 1), e.xing4_ming2, scoreKey ? e[scoreKey] : ''])
     } else {
-      bodyData.push([String(i + 1), e.name])
+      bodyData.push([String(i + 1), e.xing4_ming2])
     }
   })
 
@@ -72,15 +76,15 @@ const buildData = (isScore: boolean = true) => {
       </template>
 
       <el-badge
-        v-for="item in getList()"
-        :key="item.id"
+        v-for="(item, index) in getList()"
+        :key="index"
         style="margin: 0 12px 12px 0"
-        :value="item.score"
+        :value="config.inputScoreTab ? item[config.inputScoreTab] : 0"
         :type="props.tagType"
         :max="100"
       >
         <el-tag :type="props.tagType">
-          {{ item.name }}
+          {{ item.xing4_ming2 }}
         </el-tag>
       </el-badge>
     </el-popover>

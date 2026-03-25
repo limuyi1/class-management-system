@@ -7,7 +7,6 @@ import { useEnterUp } from '@/hooks/useEnterUp'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 
-import type { ListItemType } from '@/types/DataSource'
 import { InputEnum } from '@/types/Common'
 
 interface Props {
@@ -24,15 +23,15 @@ const { data: originList } = storeToRefs(store)
 const configuration = useConfigurationStore()
 const { data: config } = storeToRefs(configuration)
 
-const options = ref<ListItemType[]>([])
+const options = ref<any[]>([])
 const nameInputRef = ref()
 const scoreInputRef = ref()
 const commentInputRef = ref()
-const formData: ListItemType = reactive({
-  id: null,
+const formData = reactive({
+  id: null as number | null,
   name: '',
-  score: null,
-  comment: null
+  score: null as number | null,
+  comment: null as string | null
 })
 
 onMounted(() => {
@@ -54,7 +53,7 @@ const autoFocus = () => {
 const remoteMethod = (query: string) => {
   if (query) {
     options.value = originList.value.filter(
-      (item) => item.name.includes(query) || match(item.name, query)?.length
+      (item: any) => item.xing4_ming2.includes(query) || match(item.xing4_ming2, query)?.length
     )
   } else {
     options.value = []
@@ -68,12 +67,12 @@ const remoteMethod = (query: string) => {
 const selectChange = (index: number) => {
   if (index) {
     useEnterUp('stuName', () => {
-      const { id, name, score, comment } = originList.value[index - 1]
+      const item = originList.value[index - 1]
 
-      formData.id = id
-      formData.name = name
-      formData.score = score
-      formData.comment = comment
+      formData.id = index
+      formData.name = item.xing4_ming2
+      formData.score = config.value.inputScoreTab ? item[config.value.inputScoreTab] : null
+      formData.comment = item.comment || null
 
       // 表格滚动到相应姓名的位置
       emit('scroll', index)
@@ -88,28 +87,29 @@ const selectChange = (index: number) => {
  * 提交方法
  */
 const onSubmit = () => {
+  if (!formData.id) return
+
+  const item = originList.value[formData.id - 1]
+
   // 设置分数
-  if (props.type === InputEnum.SCORE) {
-    originList.value[Number(formData.id) - 1].score = formData.score
+  if (props.type === InputEnum.SCORE && config.value.inputScoreTab) {
+    item[config.value.inputScoreTab] = formData.score
   }
 
   // 设置评语
   if (props.type === InputEnum.COMMENT) {
-    originList.value[Number(formData.id) - 1].comment =
-      formData.comment === '' ? null : formData.comment
+    item.comment = formData.comment === '' ? null : formData.comment
   }
 
   // 删除已选中的选项
-  if (formData.id) {
-    formData.id = null
-    formData.name = ''
-    formData.score = null
-    formData.comment = null
-    options.value = []
+  formData.id = null
+  formData.name = ''
+  formData.score = null
+  formData.comment = null
+  options.value = []
 
-    // 重新聚焦到姓名输入框
-    nameInputRef.value.focus()
-  }
+  // 重新聚焦到姓名输入框
+  nameInputRef.value.focus()
 }
 
 /**
@@ -117,14 +117,15 @@ const onSubmit = () => {
  * @param data
  */
 const editData = (data: any) => {
-  console.info(data, 'data------')
+  remoteMethod(data.xing4_ming2)
 
-  remoteMethod(data['姓名'])
+  // 找到对应的行号
+  const rowIndex = originList.value.findIndex((item: any) => item === data)
 
-  formData.id = data['序号']
-  formData.name = data['姓名']
-  formData.score = data[config.value.inputScoreTab]
-  formData.comment = data.comment
+  formData.id = rowIndex + 1
+  formData.name = data.xing4_ming2
+  formData.score = config.value.inputScoreTab ? data[config.value.inputScoreTab] : null
+  formData.comment = data.comment || null
 
   // 重新聚焦到分数输入框
   scoreInputRef.value?.focus()
@@ -149,7 +150,12 @@ defineExpose({ editData, autoFocus })
           :remote-method="remoteMethod"
           @change="selectChange"
         >
-          <el-option v-for="item in options" :key="item.id" :label="item.name" :value="item.id" />
+          <el-option
+            v-for="(item, index) in options"
+            :key="index"
+            :label="item.xing4_ming2"
+            :value="originList.indexOf(item) + 1"
+          />
         </el-select>
       </el-form-item>
       <el-form-item v-if="props.type === InputEnum.SCORE" label="分数">

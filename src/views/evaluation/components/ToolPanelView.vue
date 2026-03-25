@@ -19,7 +19,8 @@ const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
 const percentage = computed(() => {
   const count = data.value.length
-  const notEmptyCount = data.value.filter((item) => item.comment !== null).length
+  if (count === 0) return 0
+  const notEmptyCount = data.value.filter((item: any) => item.comment !== null).length
 
   return Number((notEmptyCount / count).toFixed(2)) * 100
 })

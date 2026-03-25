@@ -8,3 +8,11 @@
 :root {
   --el-color-primary: var(--color-primary);
 }
+
+@font-face {
+  font-family: FYFont;
+  src: url('../font/fuyao-shoushu.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap; /* 优化页面加载闪烁 */
+}
