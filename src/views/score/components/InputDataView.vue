@@ -135,7 +135,7 @@ defineExpose({
   box-sizing: border-box;
 
   .space {
-    height: 12px;
+    height: 10px;
   }
 
   .progress-card {

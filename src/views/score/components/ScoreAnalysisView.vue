@@ -14,7 +14,7 @@ import StatisticsNumCard from '@/views/score/components/StatisticsNumCard.vue'
 <style scoped lang="scss">
 .score-analysis-view__wrapper {
   .space {
-    height: 12px;
+    height: 10px;
   }
 }
 </style>

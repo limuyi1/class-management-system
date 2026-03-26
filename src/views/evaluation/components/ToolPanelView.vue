@@ -48,7 +48,7 @@ defineExpose({
 <template>
   <div class="tool-panel-view__wrapper">
     <configuration-card />
-    <el-row :gutter="16">
+    <el-row :gutter="10">
       <el-col :span="12">
         <input-card
           ref="inputCardRef"
@@ -100,7 +100,7 @@ defineExpose({
       align-items: center;
       justify-content: center;
       gap: 6px;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
       font-weight: 600;
       font-size: 14px;
       color: #334155;

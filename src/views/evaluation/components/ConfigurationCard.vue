@@ -139,7 +139,7 @@ const fontChange = (fontSize: number) => {
 
 <style scoped lang="scss">
 .configuration-card__wrapper {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   border-radius: 10px;
 
   .configuration-card--header {
@@ -171,6 +171,7 @@ const fontChange = (fontSize: number) => {
       font-size: 13px;
       border-radius: 6px;
       background: #f8fafc;
+      padding-left: 8px;
     }
 
     :deep(.el-collapse-item__wrap) {

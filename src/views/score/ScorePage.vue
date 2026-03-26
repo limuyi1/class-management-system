@@ -26,7 +26,7 @@ defineExpose({ autoFocus })
         <p>点击左侧学生姓名，快速录入分数</p>
       </div>
     </div>
-    <el-row class="score-page-content" :gutter="16">
+    <el-row class="score-page-content" :gutter="10">
       <el-col class="h-full" :span="6">
         <score-table-view ref="tableRef" @edit="(data) => inputDataRef?.editData(data)" />
       </el-col>
@@ -34,7 +34,9 @@ defineExpose({ autoFocus })
         <input-data-view ref="inputDataRef" @scroll="(index) => tableRef?.scroll(index)" />
       </el-col>
       <el-col class="h-full" :span="12">
-        <score-analysis-view />
+        <el-scrollbar>
+          <score-analysis-view />
+        </el-scrollbar>
       </el-col>
     </el-row>
   </div>
