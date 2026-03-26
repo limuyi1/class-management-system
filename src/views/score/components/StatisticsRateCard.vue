@@ -51,93 +51,57 @@ exec()
 
 <template>
   <el-card class="statistics-rate__wrapper">
-    <div class="download-btn__wrapper">
+    <div class="card-header">
+      <div class="card-title">
+        <font-awesome-icon :icon="['solid', 'chart-simple']" />
+        <span>成绩统计</span>
+      </div>
       <download-btn />
     </div>
-    <el-row style="margin-bottom: 8px">
+    <div class="stats-grid">
+      <div class="stat-item highlight">
+        <div class="stat-value">{{ outputAverage.toFixed(1) }}</div>
+        <div class="stat-label">平均分</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">{{ outputComprehensiveRatingRate.toFixed(1) }}%</div>
+        <div class="stat-label">
+          综合比率
+          <el-tooltip
+            effect="dark"
+            content="平均分*40% + 及格率*30% + 优秀率*30% + 特优率*5% - 低分率*5%"
+            placement="top"
+          >
+            <font-awesome-icon :icon="['solid', 'circle-question']" class="hint-icon" />
+          </el-tooltip>
+        </div>
+      </div>
+    </div>
+    <el-divider />
+    <el-row :gutter="16">
       <el-col :span="6">
-        <el-statistic title="平均分" :value="outputAverage.toFixed(2)" />
+        <div class="stat-mini">
+          <div class="stat-mini-value success">{{ outputPassRate.toFixed(1) }}%</div>
+          <div class="stat-mini-label">及格率</div>
+        </div>
       </el-col>
       <el-col :span="6">
-        <el-statistic title="综合评比率" :value="outputComprehensiveRatingRate.toFixed(2)">
-          <template #title>
-            <div style="display: inline-flex; align-items: center">
-              综合评比率
-              <el-tooltip
-                effect="dark"
-                content="平均分 * 40% + 及格率 * 30% + 优秀率 * 30% + 特优率 * 5% - 低分率 * 5%"
-                placement="top"
-              >
-                <el-icon class="icon-wrapper" :size="12">
-                  <WarningFilled />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-          <template #suffix>%</template>
-        </el-statistic>
-      </el-col>
-    </el-row>
-    <el-row>
-      <el-col :span="6">
-        <el-statistic title="及格率" :value="outputPassRate.toFixed(2)">
-          <template #title>
-            <div style="display: inline-flex; align-items: center">
-              及格率
-              <el-tooltip effect="dark" content="≥60分 / 总人数" placement="top">
-                <el-icon class="icon-wrapper" :size="12">
-                  <WarningFilled />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-          <template #suffix>%</template>
-        </el-statistic>
+        <div class="stat-mini">
+          <div class="stat-mini-value primary">{{ outputExcellentRate.toFixed(1) }}%</div>
+          <div class="stat-mini-label">优秀率</div>
+        </div>
       </el-col>
       <el-col :span="6">
-        <el-statistic title="优秀率" :value="outputExcellentRate.toFixed(2)">
-          <template #title>
-            <div style="display: inline-flex; align-items: center">
-              优秀率
-              <el-tooltip effect="dark" content="≥80分 / 总人数" placement="top">
-                <el-icon class="icon-wrapper" :size="12">
-                  <WarningFilled />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-          <template #suffix>%</template>
-        </el-statistic>
+        <div class="stat-mini">
+          <div class="stat-mini-value gold">{{ outputOptimumRate.toFixed(1) }}%</div>
+          <div class="stat-mini-label">特优率</div>
+        </div>
       </el-col>
       <el-col :span="6">
-        <el-statistic title="特优率" :value="outputOptimumRate.toFixed(2)">
-          <template #title>
-            <div style="display: inline-flex; align-items: center">
-              特优率
-              <el-tooltip effect="dark" content="≥95分 / 总人数" placement="top">
-                <el-icon class="icon-wrapper" :size="12">
-                  <WarningFilled />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-          <template #suffix>%</template>
-        </el-statistic>
-      </el-col>
-      <el-col :span="6">
-        <el-statistic title="低分率" :value="outputLowScoreRate.toFixed(2)">
-          <template #title>
-            <div style="display: inline-flex; align-items: center">
-              低分率
-              <el-tooltip effect="dark" content="<40分 / 总人数" placement="top">
-                <el-icon class="icon-wrapper" :size="12">
-                  <WarningFilled />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-          <template #suffix>%</template>
-        </el-statistic>
+        <div class="stat-mini">
+          <div class="stat-mini-value danger">{{ outputLowScoreRate.toFixed(1) }}%</div>
+          <div class="stat-mini-label">低分率</div>
+        </div>
       </el-col>
     </el-row>
   </el-card>
@@ -145,17 +109,112 @@ exec()
 
 <style scoped lang="scss">
 .statistics-rate__wrapper {
-  position: relative;
+  border-radius: 10px;
+  height: 100%;
 
-  .download-btn__wrapper {
-    position: absolute;
-    top: 8px;
-    right: 8px;
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+
+    .card-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+
+      svg {
+        color: var(--theme-primary);
+        font-size: 16px;
+      }
+    }
   }
 
-  .icon-wrapper {
-    margin-left: 4px;
-    cursor: pointer;
+  .stats-grid {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+
+    .stat-item {
+      flex: 1;
+      text-align: center;
+      padding: 14px;
+      background: #f8fafc;
+      border-radius: 8px;
+
+      &.highlight {
+        background: linear-gradient(
+          135deg,
+          var(--theme-primary) 0%,
+          var(--theme-primary-light) 100%
+        );
+        color: #fff;
+
+        .stat-label {
+          color: rgba(255, 255, 255, 0.85);
+        }
+      }
+
+      .stat-value {
+        font-size: 26px;
+        font-weight: bold;
+        color: #1e293b;
+      }
+
+      .stat-label {
+        font-size: 12px;
+        color: #64748b;
+        margin-top: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+
+        .hint-icon {
+          font-size: 11px;
+          color: #94a3b8;
+          cursor: pointer;
+        }
+      }
+    }
+  }
+
+  :deep(.el-divider) {
+    margin: 10px 0;
+  }
+
+  .stat-mini {
+    text-align: center;
+
+    .stat-mini-value {
+      font-size: 18px;
+      font-weight: bold;
+
+      &.success {
+        color: #22c55e;
+      }
+
+      &.primary {
+        color: var(--theme-primary);
+      }
+
+      &.gold {
+        color: #f59e0b;
+      }
+
+      &.danger {
+        color: #ef4444;
+      }
+    }
+
+    .stat-mini-label {
+      font-size: 11px;
+      color: #64748b;
+      margin-top: 2px;
+    }
   }
 }
 </style>

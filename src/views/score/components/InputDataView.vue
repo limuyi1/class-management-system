@@ -78,28 +78,50 @@ defineExpose({
 
 <template>
   <div class="input-data-view__wrapper">
-    <el-card>
-      <el-popover placement="top" :width="400" trigger="hover" :disabled="!hasNullScoreList.length">
+    <el-card class="progress-card">
+      <div class="progress-header">
+        <span class="progress-title">录入进度</span>
+        <span class="progress-percent">{{ percentage.toFixed(0) }}%</span>
+      </div>
+      <el-progress
+        class="input-data-view--progress"
+        text-inside
+        :stroke-width="20"
+        striped
+        striped-flow
+        :percentage="percentage"
+        :format="progressTextFormat"
+        :color="colorFun"
+      />
+      <el-popover
+        placement="bottom"
+        :width="320"
+        trigger="hover"
+        :disabled="!hasNullScoreList.length"
+      >
         <template #reference>
-          <el-progress
-            class="input-data-view--progress"
-            text-inside
-            :stroke-width="18"
-            striped-flow
-            :percentage="percentage"
-            :format="progressTextFormat"
-            :color="colorFun"
-          />
+          <div class="unfinished-hint" v-if="hasNullScoreList.length > 0">
+            <font-awesome-icon :icon="['solid', 'circle-exclamation']" />
+            <span>还有 {{ hasNullScoreList.length }} 人未录入</span>
+          </div>
+          <div class="unfinished-hint success" v-else>
+            <font-awesome-icon :icon="['solid', 'circle-check']" />
+            <span>全部完成！</span>
+          </div>
         </template>
-        <el-tag
-          v-for="item in hasNullScoreList"
-          :key="item.xing4_ming2"
-          style="margin: 0 3px 3px 0"
-          class="ml-2"
-          type="info"
-        >
-          {{ item.xing4_ming2 }}
-        </el-tag>
+        <div class="unfinished-list">
+          <el-tag
+            v-for="item in hasNullScoreList.slice(0, 20)"
+            :key="item.xing4_ming2"
+            class="unfinished-tag"
+            type="info"
+          >
+            {{ item.xing4_ming2 }}
+          </el-tag>
+          <span v-if="hasNullScoreList.length > 20" class="more-hint">
+            ...还有 {{ hasNullScoreList.length - 20 }} 人
+          </span>
+        </div>
       </el-popover>
     </el-card>
     <div class="space"></div>
@@ -109,17 +131,81 @@ defineExpose({
 
 <style scoped lang="scss">
 .input-data-view__wrapper {
-  height: calc(100vh - 60px - 55px - 12px);
+  height: calc(100vh - 60px - 55px - 60px);
   box-sizing: border-box;
 
   .space {
     height: 12px;
   }
 
-  .input-data-view--progress {
-    :deep(.el-progress-bar__innerText) {
-      line-height: 18px;
-      margin-top: -5px;
+  .progress-card {
+    border-radius: 10px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+
+      .progress-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: #334155;
+      }
+
+      .progress-percent {
+        font-size: 18px;
+        font-weight: bold;
+        color: var(--theme-primary);
+      }
+    }
+
+    .input-data-view--progress {
+      :deep(.el-progress-bar__outer) {
+        border-radius: 8px;
+        background: #e2e8f0;
+      }
+
+      :deep(.el-progress-bar__inner) {
+        border-radius: 8px;
+      }
+
+      :deep(.el-progress-bar__innerText) {
+        font-weight: 600;
+        font-size: 12px;
+      }
+    }
+
+    .unfinished-hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: 12px;
+      color: #64748b;
+      cursor: pointer;
+
+      &.success {
+        color: var(--theme-primary);
+      }
+    }
+
+    .unfinished-list {
+      max-height: 180px;
+      overflow-y: auto;
+
+      .unfinished-tag {
+        margin: 3px;
+      }
+
+      .more-hint {
+        display: block;
+        margin-top: 6px;
+        color: #94a3b8;
+        font-size: 12px;
+      }
     }
   }
 }

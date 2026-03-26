@@ -142,12 +142,13 @@ defineExpose({ scroll })
     :data="tableData"
     size="large"
     height="calc(100%)"
+    border
     :row-class-name="tableRowClassName"
     @row-click="handleEdit"
   >
-    <el-table-column type="index" label="序号" width="60" align="center" />
-    <el-table-column prop="xing4_ming2" label="姓名" width="200" />
-    <el-table-column :prop="config.inputScoreTab" width="200">
+    <el-table-column type="index" label="序号" width="70" align="center" />
+    <el-table-column prop="xing4_ming2" label="姓名" />
+    <el-table-column :prop="config.inputScoreTab" width="150">
       <template #header>
         <div class="operate-btn__wrapper">
           <el-select

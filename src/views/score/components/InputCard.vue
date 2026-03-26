@@ -136,15 +136,19 @@ defineExpose({ editData, autoFocus })
 
 <template>
   <el-card class="input-card__wrapper">
+    <div class="card-title">
+      <font-awesome-icon :icon="['solid', 'pen-to-square']" />
+      <span>{{ props.type === InputEnum.SCORE ? '输入分数' : '填写评语' }}</span>
+    </div>
     <el-form ref="form" label-position="top" label-width="100px" :model="formData">
-      <el-form-item label="姓名">
+      <el-form-item label="学生姓名">
         <el-select
           ref="nameInputRef"
           name="stuName"
           style="width: 100%"
           v-model="formData.id"
           size="large"
-          placeholder="请输入搜索学生姓名"
+          placeholder="搜索学生姓名..."
           filterable
           remote
           :remote-method="remoteMethod"
@@ -158,7 +162,7 @@ defineExpose({ editData, autoFocus })
           />
         </el-select>
       </el-form-item>
-      <el-form-item v-if="props.type === InputEnum.SCORE" label="分数">
+      <el-form-item v-if="props.type === InputEnum.SCORE" label="考试成绩">
         <el-input-number
           ref="scoreInputRef"
           style="width: 100%"
@@ -168,10 +172,11 @@ defineExpose({ editData, autoFocus })
           :max="100"
           :precision="1"
           :disabled="!formData.id"
+          placeholder="0~100分"
           @keyup.enter="onSubmit"
         ></el-input-number>
       </el-form-item>
-      <el-form-item v-if="props.type === InputEnum.COMMENT" label="评价">
+      <el-form-item v-if="props.type === InputEnum.COMMENT" label="学生评语">
         <el-input
           ref="commentInputRef"
           style="width: 100%"
@@ -180,13 +185,14 @@ defineExpose({ editData, autoFocus })
           type="textarea"
           maxlength="500"
           show-word-limit
-          placeholder="请输入学生评价"
-          :rows="3"
+          placeholder="请输入对学生的评价..."
+          :rows="4"
           :disabled="!formData.id"
         ></el-input>
       </el-form-item>
       <el-form-item>
         <el-button
+          class="submit-btn"
           style="width: 100%"
           type="primary"
           size="large"
@@ -194,7 +200,8 @@ defineExpose({ editData, autoFocus })
           :disabled="!formData.id"
           @click="onSubmit"
         >
-          <Promotion style="width: 16px; height: 16px" />&nbsp;提 交
+          <font-awesome-icon :icon="['solid', 'paper-plane']" />
+          提 交
         </el-button>
       </el-form-item>
     </el-form>
@@ -203,5 +210,54 @@ defineExpose({ editData, autoFocus })
 
 <style scoped lang="scss">
 .input-card__wrapper {
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--theme-primary);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--theme-primary);
+
+    svg {
+      font-size: 16px;
+    }
+  }
+
+  .submit-btn {
+    margin-top: 4px;
+    height: 44px;
+    font-size: 15px;
+    background: var(--theme-gradient);
+    border: none;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:disabled {
+      background: #cbd5e1;
+    }
+  }
+
+  :deep(.el-form-item__label) {
+    font-weight: 500;
+    color: #475569;
+    font-size: 13px;
+  }
+
+  :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+
+  :deep(.el-select__wrapper),
+  :deep(.el-input-number) {
+    border-radius: 8px;
+  }
 }
 </style>

@@ -22,134 +22,190 @@ const fontChange = (fontSize: number) => {
 </script>
 
 <template>
-  <el-card class="configuration-card__wrapper" shadow="always">
+  <el-card class="configuration-card__wrapper" shadow="hover">
     <template #header>
       <div class="configuration-card--header">
-        <span style="margin-right: 8px">配置</span>
+        <span class="header-title">
+          <font-awesome-icon :icon="['solid', 'sliders']" />
+          配置设置
+        </span>
         <el-tooltip effect="dark" content="导出PDF" placement="top">
-          <el-button type="primary" size="small" icon="Printer" circle @click="printFun" />
+          <el-button type="primary" size="small" circle @click="printFun">
+            <font-awesome-icon :icon="['solid', 'print']" />
+          </el-button>
         </el-tooltip>
       </div>
     </template>
     <el-form ref="form" label-position="top" :model="formData">
       <el-collapse class="configuration-collapse__wrapper" v-model="activeNames">
-        <el-collapse-item title="基础配置" name="configuration">
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-form-item label="整体字号">
-                <el-input-number
-                  style="width: 100%"
-                  v-model="formData.fontSize"
-                  :min="12"
-                  :max="22"
-                  @change="fontChange"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="问候语字号">
-                <el-input-number
-                  style="width: 100%"
-                  v-model="formData.salutationFontSize"
-                  :min="12"
-                  :max="22"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="正文字号">
-                <el-input-number
-                  style="width: 100%"
-                  v-model="formData.textFontSize"
-                  :min="12"
-                  :max="22"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-form-item label="学校（章）字号">
-                <el-input-number
-                  style="width: 100%"
-                  v-model="formData.sealFontSize"
-                  :min="12"
-                  :max="22"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="班主任字号">
-                <el-input-number
-                  style="width: 100%"
-                  v-model="formData.classTeacherFontSize"
-                  :min="12"
-                  :max="22"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8">
-              <el-form-item label="落款字号">
-                <el-input-number
-                  style="width: 100%"
-                  v-model="formData.inscribeFontSize"
-                  :min="12"
-                  :max="22"
-                ></el-input-number>
-              </el-form-item>
-            </el-col>
-            <el-col :span="8"> </el-col>
-          </el-row>
-          <el-row :gutter="20">
-            <el-col :span="8">
-              <el-form-item label="页面类型">
-                <el-select
-                  v-model="formData.pageType"
-                  placeholder="请选择页面类型"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="item in formData.pageTypeList"
-                    :key="item"
-                    :label="item"
-                    :value="item"
-                  />
-                </el-select>
-              </el-form-item>
-            </el-col>
-          </el-row>
+        <el-collapse-item title="字体大小" name="configuration">
+          <div class="config-grid">
+            <div class="config-item">
+              <label>整体字号</label>
+              <el-input-number
+                style="width: 100%"
+                v-model="formData.fontSize"
+                :min="12"
+                :max="22"
+                size="small"
+                @change="fontChange"
+              ></el-input-number>
+            </div>
+            <div class="config-item">
+              <label>问候语</label>
+              <el-input-number
+                style="width: 100%"
+                v-model="formData.salutationFontSize"
+                :min="12"
+                :max="22"
+                size="small"
+              ></el-input-number>
+            </div>
+            <div class="config-item">
+              <label>正文</label>
+              <el-input-number
+                style="width: 100%"
+                v-model="formData.textFontSize"
+                :min="12"
+                :max="22"
+                size="small"
+              ></el-input-number>
+            </div>
+            <div class="config-item">
+              <label>学校章</label>
+              <el-input-number
+                style="width: 100%"
+                v-model="formData.sealFontSize"
+                :min="12"
+                :max="22"
+                size="small"
+              ></el-input-number>
+            </div>
+            <div class="config-item">
+              <label>班主任</label>
+              <el-input-number
+                style="width: 100%"
+                v-model="formData.classTeacherFontSize"
+                :min="12"
+                :max="22"
+                size="small"
+              ></el-input-number>
+            </div>
+            <div class="config-item">
+              <label>落款</label>
+              <el-input-number
+                style="width: 100%"
+                v-model="formData.inscribeFontSize"
+                :min="12"
+                :max="22"
+                size="small"
+              ></el-input-number>
+            </div>
+          </div>
         </el-collapse-item>
       </el-collapse>
 
-      <el-row :gutter="20">
-        <el-col :span="16">
-          <el-form-item label="落款名">
-            <el-input
-              style="width: 100%"
-              v-model="formData.inscribe"
-              size="large"
-              show-word-limit
-              :minlength="1"
-              :maxlength="6"
-            ></el-input>
-          </el-form-item>
-        </el-col>
-      </el-row>
+      <div class="form-row">
+        <div class="form-item">
+          <label>页面类型</label>
+          <el-select v-model="formData.pageType" placeholder="请选择" style="width: 100%">
+            <el-option
+              v-for="item in formData.pageTypeList"
+              :key="item"
+              :label="item"
+              :value="item"
+            />
+          </el-select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-item">
+          <label>落款名称</label>
+          <el-input
+            style="width: 100%"
+            v-model="formData.inscribe"
+            size="large"
+            show-word-limit
+            :minlength="1"
+            :maxlength="6"
+            placeholder="请输入落款"
+          ></el-input>
+        </div>
+      </div>
     </el-form>
   </el-card>
 </template>
 
 <style scoped lang="scss">
 .configuration-card__wrapper {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  border-radius: 10px;
 
   .configuration-card--header {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 600;
+      font-size: 14px;
+      color: #334155;
+
+      svg {
+        color: var(--theme-primary);
+        font-size: 15px;
+      }
+    }
   }
 
   .configuration-collapse__wrapper {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
+    border: none;
+
+    :deep(.el-collapse-item__header) {
+      font-weight: 500;
+      font-size: 13px;
+      border-radius: 6px;
+      background: #f8fafc;
+    }
+
+    :deep(.el-collapse-item__wrap) {
+      border: none;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      padding: 6px 0;
+
+      .config-item {
+        label {
+          display: block;
+          margin-bottom: 4px;
+          font-size: 11px;
+          color: #64748b;
+        }
+      }
+    }
+  }
+
+  .form-row {
+    margin-bottom: 10px;
+
+    .form-item {
+      label {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 12px;
+        font-weight: 500;
+        color: #475569;
+      }
+    }
   }
 }
 </style>

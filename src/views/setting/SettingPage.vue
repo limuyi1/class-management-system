@@ -69,17 +69,17 @@ const activeTab = ref('student-info')
   }
 
   :deep(.el-tabs__nav-wrap) {
-    padding: 0 16px;
+    padding: 0 12px;
   }
 
   :deep(.el-tabs__item) {
     position: relative;
-    height: 56px;
-    line-height: 56px;
+    height: 48px;
+    line-height: 48px;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 15px;
+    font-size: 14px;
     transition: all 0.3s ease;
-    padding: 0 24px;
+    padding: 0 20px;
 
     &:hover {
       color: #fff;
@@ -100,7 +100,7 @@ const activeTab = ref('student-info')
   }
 
   :deep(.el-tabs__content) {
-    height: calc(100% - 56px);
+    height: calc(100% - 48px);
     padding: 0;
   }
 
@@ -118,10 +118,10 @@ const activeTab = ref('student-info')
 .custom-tabs-label {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 
   svg {
-    font-size: 16px;
+    font-size: 14px;
   }
 }
 </style>

@@ -117,6 +117,7 @@ const handleUploadClick = () => {
 .main-content {
   padding: 0 !important;
   height: 100%;
+  overflow: hidden;
 }
 
 .main-footer {
