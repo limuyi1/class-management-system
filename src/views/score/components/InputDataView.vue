@@ -22,7 +22,8 @@ const percentage = computed(() => {
   const count = originList.value.length
   if (count === 0 || !config.value.inputScoreTab) return 0
   const notEmptyCount = originList.value.filter((item: any) => {
-    return item[config.value.inputScoreTab] !== null
+    const element = item[config.value.inputScoreTab]
+    return element !== null && element !== '' && !isNaN(element)
   }).length
 
   return Number((notEmptyCount / count).toFixed(2)) * 100

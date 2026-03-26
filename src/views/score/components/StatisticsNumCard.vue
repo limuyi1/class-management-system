@@ -24,7 +24,7 @@ const scoreStats = computed(() => {
 
   const scores = originList.value
     .map((e: any) => getScore(e))
-    .filter((s): s is number => s !== null)
+    .filter((s): s is number => s !== null && !isNaN(s))
 
   if (scores.length === 0) return null
 

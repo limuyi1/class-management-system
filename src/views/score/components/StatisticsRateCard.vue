@@ -1,18 +1,28 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useTransition } from '@vueuse/core'
 import DownloadBtn from '@/views/score/components/DownloadBtn.vue'
 
+import { storeToRefs } from 'pinia'
+
 import { useDataSourceStore } from '@/stores/data-source'
+import { useConfigurationStore } from '@/stores/configuration'
 
 const store = useDataSourceStore()
+const configuration = useConfigurationStore()
+const { data: tableData } = storeToRefs(store)
+const { data: config } = storeToRefs(configuration)
+
+const hasData = computed(() => store.hasAnyScore)
+const validCount = computed(() => store.validCount)
+const totalCount = computed(() => store.totalCount)
 
 const comprehensiveRatingRate = ref(0)
-const average = ref(0) // 平均分
-const passRate = ref(0) // 及格率
-const excellentRate = ref(0) // 优秀率
-const optimumRate = ref(0) // 特优率
-const lowScoreRate = ref(0) // 低分率
+const average = ref(0)
+const passRate = ref(0)
+const excellentRate = ref(0)
+const optimumRate = ref(0)
+const lowScoreRate = ref(0)
 
 const outputComprehensiveRatingRate = useTransition(comprehensiveRatingRate, {
   duration: 1500
@@ -33,10 +43,6 @@ const outputLowScoreRate = useTransition(lowScoreRate, {
   duration: 1500
 })
 
-store.$subscribe(() => {
-  exec()
-})
-
 const exec = () => {
   average.value = store.average
   passRate.value = store.passRate
@@ -46,7 +52,13 @@ const exec = () => {
   comprehensiveRatingRate.value = store.comprehensiveRatingRate
 }
 
-exec()
+watch(
+  () => [tableData.value, config.value.inputScoreTab],
+  () => exec(),
+  {
+    immediate: true
+  }
+)
 </script>
 
 <template>
@@ -58,52 +70,61 @@ exec()
       </div>
       <download-btn />
     </div>
-    <div class="stats-grid">
-      <div class="stat-item highlight">
-        <div class="stat-value">{{ outputAverage.toFixed(1) }}</div>
-        <div class="stat-label">平均分</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-value">{{ outputComprehensiveRatingRate.toFixed(1) }}%</div>
-        <div class="stat-label">
-          综合比率
-          <el-tooltip
-            effect="dark"
-            content="平均分*40% + 及格率*30% + 优秀率*30% + 特优率*5% - 低分率*5%"
-            placement="top"
-          >
-            <font-awesome-icon :icon="['solid', 'circle-question']" class="hint-icon" />
-          </el-tooltip>
+
+    <template v-if="hasData">
+      <div class="stats-grid">
+        <div class="stat-item highlight">
+          <div class="stat-value">{{ outputAverage.toFixed(1) }}</div>
+          <div class="stat-label">平均分</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ outputComprehensiveRatingRate.toFixed(1) }}%</div>
+          <div class="stat-label">
+            综合比率
+            <el-tooltip
+              effect="dark"
+              content="平均分*40% + 及格率*30% + 优秀率*30% + 特优率*5% - 低分率*5%"
+              placement="top"
+            >
+              <font-awesome-icon :icon="['solid', 'circle-question']" class="hint-icon" />
+            </el-tooltip>
+          </div>
         </div>
       </div>
+      <el-divider />
+      <el-row :gutter="16">
+        <el-col :span="6">
+          <div class="stat-mini">
+            <div class="stat-mini-value success">{{ outputPassRate.toFixed(1) }}%</div>
+            <div class="stat-mini-label">及格率</div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="stat-mini">
+            <div class="stat-mini-value primary">{{ outputExcellentRate.toFixed(1) }}%</div>
+            <div class="stat-mini-label">优秀率</div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="stat-mini">
+            <div class="stat-mini-value gold">{{ outputOptimumRate.toFixed(1) }}%</div>
+            <div class="stat-mini-label">特优率</div>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="stat-mini">
+            <div class="stat-mini-value danger">{{ outputLowScoreRate.toFixed(1) }}%</div>
+            <div class="stat-mini-label">低分率</div>
+          </div>
+        </el-col>
+      </el-row>
+    </template>
+
+    <div v-else class="empty-hint">
+      <font-awesome-icon :icon="['solid', 'chart-simple']" />
+      <span>暂无成绩数据</span>
+      <span class="empty-sub">已录入 {{ validCount }} / {{ totalCount }} 人</span>
     </div>
-    <el-divider />
-    <el-row :gutter="16">
-      <el-col :span="6">
-        <div class="stat-mini">
-          <div class="stat-mini-value success">{{ outputPassRate.toFixed(1) }}%</div>
-          <div class="stat-mini-label">及格率</div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-mini">
-          <div class="stat-mini-value primary">{{ outputExcellentRate.toFixed(1) }}%</div>
-          <div class="stat-mini-label">优秀率</div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-mini">
-          <div class="stat-mini-value gold">{{ outputOptimumRate.toFixed(1) }}%</div>
-          <div class="stat-mini-label">特优率</div>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="stat-mini">
-          <div class="stat-mini-value danger">{{ outputLowScoreRate.toFixed(1) }}%</div>
-          <div class="stat-mini-label">低分率</div>
-        </div>
-      </el-col>
-    </el-row>
   </el-card>
 </template>
 
@@ -214,6 +235,32 @@ exec()
       font-size: 11px;
       color: #64748b;
       margin-top: 2px;
+    }
+  }
+
+  .empty-hint {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 0;
+    color: #94a3b8;
+
+    svg {
+      font-size: 40px;
+      margin-bottom: 12px;
+      color: var(--theme-primary);
+      opacity: 0.5;
+    }
+
+    span {
+      font-size: 14px;
+    }
+
+    .empty-sub {
+      font-size: 12px;
+      margin-top: 8px;
+      color: #64748b;
     }
   }
 }
