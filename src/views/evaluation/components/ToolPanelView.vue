@@ -20,24 +20,19 @@ const inputCardRef = ref<InstanceType<typeof InputCard>>()
 const percentage = computed(() => {
   const count = data.value.length
   if (count === 0) return 0
-  const notEmptyCount = data.value.filter((item: any) => item.comment !== null).length
+  const notEmptyCount = data.value.filter(
+    (item: any) => item.comment !== null && item.comment !== '' && item.comment !== undefined
+  ).length
 
   return Number((notEmptyCount / count).toFixed(2)) * 100
 })
 
-/**
- * 自动聚焦
- */
+const notCompletedCount = computed(() => {
+  return data.value.length - Math.round((data.value.length * percentage.value) / 100)
+})
+
 const autoFocus = () => {
   inputCardRef.value?.autoFocus()
-}
-
-/**
- * 颜色
- * @param percentage
- */
-const colorFun = (percentage: number) => {
-  return `rgba(82, 155, 46,${percentage / 100})`
 }
 
 defineExpose({
@@ -48,99 +43,93 @@ defineExpose({
 <template>
   <div class="tool-panel-view__wrapper">
     <configuration-card />
-    <el-row :gutter="10">
-      <el-col :span="12">
-        <input-card
-          ref="inputCardRef"
-          :type="InputEnum.COMMENT"
-          @scroll="(index) => emit('scroll', index)"
-        />
-      </el-col>
-      <el-col :span="12">
-        <el-card class="progress-card">
-          <div class="progress-header">
+
+    <div class="input-section">
+      <div class="progress-bar">
+        <div class="progress-info">
+          <span class="label">
             <font-awesome-icon :icon="['solid', 'chart-pie']" />
-            <span>完成进度</span>
-          </div>
-          <div class="progress-content">
-            <el-progress type="dashboard" :percentage="percentage" :width="160" :color="colorFun">
-              <template #default="{ percentage: p }">
-                <div class="progress-value">
-                  <span class="number">{{ p.toFixed(0) }}</span>
-                  <span class="unit">%</span>
-                </div>
-                <div class="progress-label">已完成</div>
-              </template>
-            </el-progress>
-          </div>
-          <div class="progress-hint" v-if="percentage < 100">
-            还差 {{ data.length - Math.round((data.length * percentage) / 100) }} 人
-          </div>
-          <div class="progress-hint success" v-else>
-            <font-awesome-icon :icon="['solid', 'circle-check']" />
-            全部完成！
-          </div>
-        </el-card>
-      </el-col>
-    </el-row>
+            进度
+          </span>
+          <span class="percentage">{{ percentage.toFixed(0) }}%</span>
+        </div>
+        <el-progress
+          :percentage="percentage"
+          :stroke-width="6"
+          :show-text="false"
+          color="var(--theme-primary)"
+        />
+        <div class="progress-hint" v-if="percentage < 100">还差 {{ notCompletedCount }} 人</div>
+        <div class="progress-hint success" v-else>
+          <font-awesome-icon :icon="['solid', 'circle-check']" />
+          全部完成
+        </div>
+      </div>
+
+      <input-card
+        ref="inputCardRef"
+        :type="InputEnum.COMMENT"
+        @scroll="(index) => emit('scroll', index)"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped lang="scss">
 .tool-panel-view__wrapper {
-  padding: 0 12px 16px;
+  padding: 0 8px;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 
-  .progress-card {
-    border-radius: 10px;
-    text-align: center;
+  .input-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
 
-    .progress-header {
+  .progress-bar {
+    padding: 8px 10px;
+    background: #f0f9f5;
+    border-radius: 6px;
+
+    .progress-info {
       display: flex;
       align-items: center;
-      justify-content: center;
-      gap: 6px;
-      margin-bottom: 10px;
-      font-weight: 600;
-      font-size: 14px;
-      color: #334155;
+      justify-content: space-between;
+      margin-bottom: 6px;
 
-      svg {
-        color: var(--theme-primary);
-        font-size: 16px;
-      }
-    }
-
-    .progress-content {
-      padding: 12px 0;
-
-      .progress-value {
-        .number {
-          font-size: 32px;
-          font-weight: bold;
-          color: var(--theme-primary);
-        }
-
-        .unit {
-          font-size: 16px;
-          color: #94a3b8;
-        }
-      }
-
-      .progress-label {
-        font-size: 13px;
+      .label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 12px;
         color: #64748b;
-        margin-top: 2px;
+
+        svg {
+          color: var(--theme-primary);
+          font-size: 12px;
+        }
+      }
+
+      .percentage {
+        font-size: 14px;
+        font-weight: bold;
+        color: var(--theme-primary);
       }
     }
 
     .progress-hint {
-      font-size: 12px;
+      margin-top: 4px;
+      font-size: 11px;
       color: #f59e0b;
-      margin-top: 6px;
 
       &.success {
         color: var(--theme-primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
       }
     }
   }

@@ -74,11 +74,11 @@ watch(
     <template v-if="hasData">
       <div class="stats-grid">
         <div class="stat-item highlight">
-          <div class="stat-value">{{ outputAverage.toFixed(1) }}</div>
+          <div class="stat-value">{{ outputAverage.toFixed(2) }}</div>
           <div class="stat-label">平均分</div>
         </div>
         <div class="stat-item">
-          <div class="stat-value">{{ outputComprehensiveRatingRate.toFixed(1) }}%</div>
+          <div class="stat-value">{{ outputComprehensiveRatingRate.toFixed(2) }}%</div>
           <div class="stat-label">
             综合比率
             <el-tooltip
@@ -95,25 +95,25 @@ watch(
       <el-row :gutter="16">
         <el-col :span="6">
           <div class="stat-mini">
-            <div class="stat-mini-value success">{{ outputPassRate.toFixed(1) }}%</div>
+            <div class="stat-mini-value success">{{ outputPassRate.toFixed(2) }}%</div>
             <div class="stat-mini-label">及格率</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="stat-mini">
-            <div class="stat-mini-value primary">{{ outputExcellentRate.toFixed(1) }}%</div>
+            <div class="stat-mini-value primary">{{ outputExcellentRate.toFixed(2) }}%</div>
             <div class="stat-mini-label">优秀率</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="stat-mini">
-            <div class="stat-mini-value gold">{{ outputOptimumRate.toFixed(1) }}%</div>
+            <div class="stat-mini-value gold">{{ outputOptimumRate.toFixed(2) }}%</div>
             <div class="stat-mini-label">特优率</div>
           </div>
         </el-col>
         <el-col :span="6">
           <div class="stat-mini">
-            <div class="stat-mini-value danger">{{ outputLowScoreRate.toFixed(1) }}%</div>
+            <div class="stat-mini-value danger">{{ outputLowScoreRate.toFixed(2) }}%</div>
             <div class="stat-mini-label">低分率</div>
           </div>
         </el-col>

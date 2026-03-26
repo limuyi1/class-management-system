@@ -43,7 +43,7 @@ const colorFun = (percentage: number) => {
  * @param percentage
  */
 const progressTextFormat = (percentage: number) => {
-  return `完成率：${percentage.toFixed(2)}%`
+  return `完成率：${percentage.toFixed(0)}%`
 }
 
 /**
@@ -53,7 +53,7 @@ const hasNullScoreList = computed(() => {
   if (!config.value.inputScoreTab) return []
   return originList.value.filter((e: any) => {
     const element = e[config.value.inputScoreTab]
-    return element === null || isNaN(element)
+    return element === null || isNaN(element) || element === '' || element === undefined
   })
 })
 

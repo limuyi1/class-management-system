@@ -7,13 +7,13 @@ const menu = [
   },
   {
     name: '成绩',
-    icon: 'calculator',
+    icon: 'graduation-cap',
     path: '/math',
     disabled: true
   },
   {
     name: '评语',
-    icon: 'comment-dots',
+    icon: 'comments',
     path: '/comment',
     disabled: true
   },

@@ -17,7 +17,7 @@ pnpm lint             # Lint and auto-fix (ESLint)
 pnpm format           # Format source code (Prettier)
 ```
 
-There is **no test framework** configured. Do not assume Vitest or Jest exists. If tests are needed, add the framework first.
+There is **no test framework** configured. Do not assume Vitest or Jest exists.
 
 ## Tech Stack
 
@@ -29,88 +29,48 @@ There is **no test framework** configured. Do not assume Vitest or Jest exists. 
 - **State**: Pinia + `pinia-plugin-persistedstate` (zipson serialization)
 - **Router**: Vue Router 4 with hash history (`createWebHashHistory`)
 - **Package Manager**: pnpm
-
-## Path Aliases
-
-- `@` → `./src` (configured in `vite.config.ts` and `tsconfig.app.json`)
+- **Path Alias**: `@` → `./src`
 
 ## Code Style
 
 ### Formatting (`.prettierrc.json`)
 
-- No semicolons (`"semi": false`), single quotes (`"singleQuote": true`)
-- No trailing commas (`"trailingComma": "none"`), 2-space indent, 100 char width
+- No semicolons, single quotes, no trailing commas, 2-space indent, 100 char width
 
-### Imports
+### Imports (blank line between groups)
 
-Order imports separated by blank lines:
-
-1. Third-party libraries (Vue, Element Plus, Pinia, etc.)
+1. Third-party libraries (Vue, Element Plus, Pinia)
 2. Internal modules using `@/` alias
-3. Type-only imports use `import type { ... }` syntax
-
-```ts
-import { ref, computed } from 'vue'
-import { ElMessageBox } from 'element-plus'
-
-import { useDataSourceStore } from '@/stores/data-source'
-import type { ListItemType } from '@/types/DataSource'
-```
+3. Type-only imports (`import type { ... }`)
 
 ### TypeScript
 
 - Use `lang="ts"` in all `<script setup>` blocks
-- Prefer explicit types for function parameters and return values
-- Types/interfaces in `src/types/` with PascalCase filenames (e.g., `Setting.ts`)
-- Use `enum` for fixed value sets (e.g., `PagesEnum`, `InputEnum`)
-- Interface/type names use `Type` suffix (e.g., `SettingType`, `TagCategoryType`)
+- Prefer explicit types for function parameters/return values
+- Types in `src/types/` with PascalCase filenames (e.g., `Setting.ts`)
+- Use `enum` for fixed value sets (e.g., `PagesEnum`)
+- Interface/type names use `Type` suffix (e.g., `SettingType`)
 - Avoid `any`; use only for truly dynamic data (e.g., parsed Excel rows)
 
 ### Naming Conventions
 
-| Item              | Convention                          | Example                                    |
-| ----------------- | ----------------------------------- | ------------------------------------------ |
-| Pinia stores      | `use<Name>Store`, kebab-case file   | `useSettingStore` in `stores/setting.ts`   |
-| Composables/hooks | `use<PascalCase>`, file in `hooks/` | `useEnterUp` in `hooks/useEnterUp.ts`      |
-| Utility modules   | `<name>Until.ts` in `untils/`       | `xlsxUntil.ts`, `pdfUntil.ts`              |
-| Vue components    | PascalCase filenames                | `ScoreTableView.vue`, `EmptyTableView.vue` |
-| Enums             | PascalCase with `Enum` suffix       | `PagesEnum`, `InputEnum`                   |
+| Item              | Convention                          | Example                                  |
+| ----------------- | ----------------------------------- | ---------------------------------------- |
+| Pinia stores      | `use<Name>Store`, kebab-case file   | `useSettingStore` in `stores/setting.ts` |
+| Composables/hooks | `use<PascalCase>`, file in `hooks/` | `useEnterUp` in `hooks/useEnterUp.ts`    |
+| Utility modules   | `<name>Until.ts` in `untils/`       | `xlsxUntil.ts`, `pdfUntil.ts`            |
+| Vue components    | PascalCase filenames                | `ScoreTableView.vue`                     |
+| Enums             | PascalCase with `Enum` suffix       | `PagesEnum`, `InputEnum`                 |
 
-### Vue Components (SFC)
-
-Use `<script setup lang="ts">` with this template order:
+### Vue SFC Template Order
 
 1. `<script setup lang="ts">` — logic
 2. `<template>` — markup
 3. `<style scoped lang="scss">` — styles
 
-```vue
-<script setup lang="ts">
-import { ref } from 'vue'
-import { useSomeStore } from '@/stores/some'
-
-const store = useSomeStore()
-const loading = ref(false)
-const handleAction = (param: string) => {
-  /* logic */
-}
-defineExpose({ handleAction })
-</script>
-
-<template>
-  <div v-loading="loading">{{ data }}</div>
-</template>
-
-<style scoped lang="scss">
-.wrapper {
-  /* styles */
-}
-</style>
-```
-
 ### Pinia Stores
 
-Use Options API style with `persist: true` for persisted state:
+Use Options API style with `persist: true`:
 
 ```ts
 export const useExampleStore = defineStore('example', {
@@ -123,23 +83,23 @@ export const useExampleStore = defineStore('example', {
 
 ### Styling
 
-- Use **scoped SCSS** in Vue SFCs
-- Use **Tailwind CSS** utility classes in templates (e.g., `class="w-[100px]! mr-[8px]"`)
-- Use Element Plus CSS variables for theming (e.g., `var(--el-color-primary)`)
-- BEM-like naming for custom CSS (e.g., `setting-tabs__wrapper`)
-- Use `:deep()` to penetrate scoped styles to child components
+- Scoped SCSS in Vue SFCs
+- Tailwind CSS utility classes in templates
+- Element Plus CSS variables for theming
+- BEM-like naming (e.g., `setting-tabs__wrapper`)
+- Use `:deep()` for penetrating scoped styles
 
 ### Error Handling
 
 - Wrap async operations in try/catch with `console.error` for logging
 - Use `ElMessageBox.confirm` for destructive action confirmations
-- Use `ElLoading.service()` for loading states during long operations
+- Use `ElLoading.service()` for loading states
 - Use `@ts-ignore` sparingly and only when necessary
 
 ### Comments
 
-- Write JSDoc comments (`/** ... */`) for utility functions and composables
-- Comments may be in Chinese (中文) — maintain consistency with existing code
+- JSDoc comments (`/** ... */`) for utility functions and composables
+- Comments may be in Chinese — maintain consistency
 - Do not add comments to trivial code
 
 ## Project Structure
@@ -162,10 +122,10 @@ src/
 
 ## Important Notes
 
-- The `untils/` directory is intentionally named (not "utils") — do not rename it
-- Build output goes to `docs/` directory (configured in `vite.config.ts`)
-- The app uses hash-based routing (`/#/home`, `#/math`, etc.)
-- Environment variables are prefixed with `VITE_` and loaded via `loadEnv`
+- `untils/` is intentionally named (not "utils") — do not rename
+- Build output goes to `docs/` directory
+- Hash-based routing (`/#/home`, `#/math`, etc.)
+- Environment variables prefixed with `VITE_`
 
 ## Data Storage Architecture
 

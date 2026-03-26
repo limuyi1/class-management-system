@@ -101,8 +101,8 @@ defineExpose({ autoFocus })
 
   .evaluation-page-right {
     height: 100%;
-    flex: 3;
-    min-width: 320px;
+    flex: 2;
+    min-width: 280px;
   }
 }
 </style>
