@@ -142,7 +142,6 @@ defineExpose({
 
   .progress-card {
     border-radius: 10px;
-    padding: 14px 16px;
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
 
     .progress-header {
