@@ -63,5 +63,3 @@ const isNotEmpty = computed(() => store.data?.length)
     <el-empty description="暂无学生信息，请先上传" />
   </div>
 </template>
-
-<style scoped lang="scss"></style>

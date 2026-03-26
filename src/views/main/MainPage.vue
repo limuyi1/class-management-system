@@ -4,7 +4,6 @@ import { ref } from 'vue'
 import LeftMenu from '@/views/main/components/LeftMenu.vue'
 import { dayjs, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
-import router from '@/router'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'

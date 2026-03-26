@@ -1,6 +1,6 @@
 <script setup lang="tsx">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+
 import { storeToRefs } from 'pinia'
 
 import { ElMessageBox } from 'element-plus'
@@ -11,7 +11,6 @@ import { useSettingStore } from '@/stores/setting'
 
 import type { VxeTableEvents, VxeTablePropTypes } from 'vxe-table'
 
-const router = useRouter()
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
 const { data: tableData } = storeToRefs(store)
@@ -159,5 +158,3 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
     <el-empty description="暂无学生信息，请先上传" />
   </div>
 </template>
-
-<style scoped lang="scss"></style>

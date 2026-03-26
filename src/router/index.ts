@@ -51,7 +51,7 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const store = useDataSourceStore()
   const hasData = store.data?.length > 0
 

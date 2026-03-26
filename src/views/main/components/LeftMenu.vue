@@ -81,7 +81,7 @@ const handleMenuClick = (item: any) => {
   </div>
 </template>
 
-<style scoped>
+<style scoped lang="scss">
 .left-menu {
   width: 150px;
   height: 100%;
