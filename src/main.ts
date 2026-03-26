@@ -26,6 +26,7 @@ import { parse, stringify } from 'zipson'
 
 import App from './App.vue'
 import router from './router'
+import { useThemeStore } from './stores/theme'
 
 const app = createApp(App)
 
@@ -53,5 +54,7 @@ app.use(ElementPlus, {
 app.use(VxeUIAll)
 app.use(VxeUITable)
 app.use(router)
+
+useThemeStore().initTheme()
 
 app.mount('#app')

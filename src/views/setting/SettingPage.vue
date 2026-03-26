@@ -64,7 +64,7 @@ const activeTab = ref('student-info')
 
   :deep(.el-tabs__header) {
     margin: 0;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+    background: var(--theme-gradient);
     border-radius: 12px 12px 0 0;
   }
 

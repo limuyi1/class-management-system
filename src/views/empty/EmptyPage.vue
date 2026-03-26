@@ -98,7 +98,7 @@ const uploadFile = async (file: any) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--theme-gradient);
 }
 
 .empty-content {
@@ -111,7 +111,7 @@ const uploadFile = async (file: any) => {
 
 .empty-icon {
   font-size: 80px;
-  color: #667eea;
+  color: var(--theme-primary);
   margin-bottom: 24px;
 }
 

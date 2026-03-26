@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 
 import LeftMenu from '@/views/main/components/LeftMenu.vue'
+import ThemeSelector from '@/components/ThemeSelector.vue'
 import { dayjs, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
 
@@ -35,9 +36,11 @@ const handleUploadClick = () => {
         <h1 class="header-title">{{ title }}</h1>
       </div>
       <div class="header-right">
+        <theme-selector />
         <el-button
           v-if="tableData && tableData.length > 0"
-          type="primary"
+          type="info"
+          round
           @click="handleUploadClick"
         >
           <template #icon>
@@ -74,7 +77,7 @@ const handleUploadClick = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background-color: var(--el-color-primary);
+  background: var(--theme-gradient);
   color: #fff;
   padding: 0 20px;
 
@@ -93,6 +96,12 @@ const handleUploadClick = () => {
     font-size: 20px;
     font-weight: bold;
     margin: 0;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
   }
 }
 
@@ -114,7 +123,7 @@ const handleUploadClick = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #333;
+  background-color: var(--theme-footer-bg);
   color: #fff;
   font-size: 14px;
 }

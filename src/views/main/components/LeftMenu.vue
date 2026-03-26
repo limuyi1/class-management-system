@@ -120,8 +120,8 @@ const handleMenuClick = (item: any) => {
 }
 
 .menu-item.active {
-  background-color: #ecf5ff;
-  color: var(--el-color-primary);
+  background-color: var(--theme-menu-active-bg);
+  color: var(--theme-menu-active);
 }
 
 .menu-item.active:before {
@@ -131,7 +131,7 @@ const handleMenuClick = (item: any) => {
   top: 0;
   width: 3px;
   height: 100%;
-  background-color: var(--el-color-primary);
+  background-color: var(--theme-menu-active);
 }
 
 .menu-item.disabled {

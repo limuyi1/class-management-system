@@ -3,6 +3,15 @@
 @theme {
   --font-fy: 'FYFont', sans-serif;
 
-  --color-primary: rgba(79, 70, 229, 0.8);
+  --color-primary: var(--theme-primary, #10b981);
   --color-dark: rgba(31, 41, 55, 0.9);
+}
+
+:root {
+  --theme-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --theme-primary: #10b981;
+  --theme-primary-light: #34d399;
+  --theme-footer-bg: #059669;
+  --theme-menu-active: #10b981;
+  --theme-menu-active-bg: #ecfdf5;
 }
