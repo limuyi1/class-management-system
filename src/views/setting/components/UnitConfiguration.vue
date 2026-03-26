@@ -107,6 +107,7 @@ const remove = (item: SettingType) => {
 .unit-configuration__wrapper {
   width: 600px;
   margin: 0 auto;
+  padding: 24px;
 
   .unit-configuration-title {
     height: 32px;

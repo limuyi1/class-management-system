@@ -1,33 +1,59 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
 import data from '@/config/menu'
 import { useDataSourceStore } from '@/stores/data-source'
 
 const router = useRouter()
 const store = useDataSourceStore()
+const { data: tableData } = storeToRefs(store)
 
 const isCollapse = ref(false)
 const activePath = ref('')
 
+const hasData = computed(() => tableData.value?.length > 0)
+
 const menuData = computed(() => {
-  const isEmpty = store.data?.length
   return data.map((item) => {
-    if (item.path !== '/home') {
-      item.disabled = !isEmpty
+    const newItem = { ...item }
+    if (item.path === '/setting') {
+      newItem.disabled = false
+    } else {
+      newItem.disabled = !hasData.value
     }
-    return item
+
+    return newItem
   })
 })
 
 onMounted(() => {
-  activePath.value = router.currentRoute.value?.path || data[0].path
+  const currentPath = router.currentRoute.value?.path
+  if (currentPath === '/empty' || (!hasData.value && currentPath === '/home')) {
+    activePath.value = '/empty'
+  } else if (currentPath === '/home' && hasData.value) {
+    activePath.value = '/home'
+  } else {
+    activePath.value = currentPath || data[0].path
+  }
 })
+
+watch(
+  tableData,
+  (newVal) => {
+    if (!newVal || newVal.length === 0) {
+      activePath.value = '/empty'
+      router.push('/empty')
+    }
+  },
+  { deep: true }
+)
 
 const handleMenuClick = (item: any) => {
   if (item.disabled) return
-  activePath.value = item.path
-  router.push(item.path)
+  const targetPath = item.targetPath || item.path
+  activePath.value = targetPath
+  router.push(targetPath)
 }
 </script>
 
@@ -148,7 +174,7 @@ const handleMenuClick = (item: any) => {
 
 .collapse-button {
   position: absolute;
-  z-index: 10;
+  z-index: 11;
   right: -12px;
   top: 50%;
   transform: translateY(-50%);

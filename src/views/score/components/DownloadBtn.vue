@@ -76,7 +76,7 @@ const exportExcelFun = (data: ListItemType[], fileName: string) => {
   const sheet5 = generateSheet(getList((e: ListItemType) => Boolean(e.score && e.score < 60)))
   XLSX.utils.book_append_sheet(workbook, sheet5, '＜60分')
 
-  exportExcel(null, null, `${fileName}_${new Date().toLocaleString()}.xlsx`, workbook)
+  exportExcel(undefined, undefined, `${fileName}_${new Date().toLocaleString()}.xlsx`, workbook)
 }
 
 /**

@@ -144,15 +144,14 @@ const handleInputConfirm = () => {
   height: 100%;
   width: 100%;
   background: #ffffff;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  //border: 1px solid #e2e8f0;
 
   .label-maintenance-aside {
     height: 100%;
     width: 200px;
     border-right: 1px solid #e2e8f0;
     background: #fcfcfc;
-    border-radius: 8px 0 0 8px;
+    border-radius: 0 0 0 8px;
     padding: 12px;
 
     .label-maintenance-aside-header {
