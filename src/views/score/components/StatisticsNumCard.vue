@@ -12,8 +12,6 @@ const configuration = useConfigurationStore()
 const { data: originList } = storeToRefs(store)
 const { data: config } = storeToRefs(configuration)
 
-const lowScoreExpanded = ref(false)
-
 const getScore = (item: any): number | null => {
   if (!config.value.inputScoreTab) return null
   return item[config.value.inputScoreTab]
@@ -284,14 +282,10 @@ const copyToClipboard = () => {
         </div>
       </div>
 
-      <el-collapse v-model="lowScoreExpanded" class="low-score-collapse">
+      <el-collapse accordion class="low-score-collapse">
         <el-collapse-item name="low">
           <template #title>
             <div class="collapse-title">
-              <font-awesome-icon
-                :icon="['solid', 'chevron-down']"
-                :class="{ rotated: lowScoreExpanded }"
-              />
               <span class="collapse-label">60分以下</span>
               <span class="collapse-count">({{ scoreStats.lowScoreTotal }}人)</span>
               <el-popover

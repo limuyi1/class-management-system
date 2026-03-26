@@ -52,7 +52,8 @@ const progressTextFormat = (percentage: number) => {
 const hasNullScoreList = computed(() => {
   if (!config.value.inputScoreTab) return []
   return originList.value.filter((e: any) => {
-    return e[config.value.inputScoreTab] === null
+    const element = e[config.value.inputScoreTab]
+    return element === null || isNaN(element)
   })
 })
 
@@ -101,7 +102,7 @@ defineExpose({
         :disabled="!hasNullScoreList.length"
       >
         <template #reference>
-          <div class="unfinished-hint" v-if="hasNullScoreList.length > 0">
+          <div class="unfinished-hint" v-if="hasNullScoreList.length">
             <font-awesome-icon :icon="['solid', 'circle-exclamation']" />
             <span>还有 {{ hasNullScoreList.length }} 人未录入</span>
           </div>
