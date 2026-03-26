@@ -148,7 +148,7 @@ defineExpose({ scroll })
   >
     <el-table-column type="index" label="序号" width="70" align="center" />
     <el-table-column prop="xing4_ming2" label="姓名" />
-    <el-table-column :prop="config.inputScoreTab" width="150">
+    <el-table-column :prop="config.inputScoreTab">
       <template #header>
         <div class="operate-btn__wrapper">
           <el-select
