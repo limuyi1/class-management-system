@@ -24,6 +24,19 @@ const tagTypeList = computed(() => {
   return tableHeaders.value.map((item) => item.prop)
 })
 
+const scoreColorMap = [
+  { min: 90, max: 100, color: '#22c55e' },
+  { min: 80, max: 89, color: '#3b82f6' },
+  { min: 70, max: 79, color: '#eab308' },
+  { min: 60, max: 69, color: '#f97316' },
+  { min: 50, max: 59, color: '#ef4444' },
+  { min: 40, max: 49, color: '#dc2626' },
+  { min: 30, max: 39, color: '#b91c1c' },
+  { min: 20, max: 29, color: '#991b1b' },
+  { min: 10, max: 19, color: '#7f1d1d' },
+  { min: 0, max: 9, color: '#450a0a' }
+]
+
 /**
  * 获取当前选中列的分数值
  * @param row
@@ -34,24 +47,25 @@ const getCurrentScore = (row: any) => {
 }
 
 /**
+ * 获取分数对应的颜色
+ * @param score
+ */
+const getScoreColor = (score: number) => {
+  const range = scoreColorMap.find((r) => score >= r.min && score <= r.max)
+  return range?.color
+}
+
+/**
  * 表格行样式
  * @param row
- * @param rowIndex
  */
-const tableRowClassName = ({ row }: { row: any }) => {
+const getRowStyle = ({ row }: { row: any }) => {
   const score = getCurrentScore(row)
-  if (!score) {
-    return ''
-  }
-
-  if (score >= 90) {
-    return 'success-row'
-  } else if (score >= 80) {
-    return 'primary-row'
-  } else if (score >= 60) {
-    return 'warning-row'
-  } else {
-    return 'danger-row'
+  if (!score) return {}
+  const color = getScoreColor(score)
+  if (!color) return {}
+  return {
+    backgroundColor: color + '20'
   }
 }
 
@@ -75,6 +89,12 @@ const rowBlink = async (index: number) => {
   const ele: any = elems[index - 1]
   const classList = ele.classList
 
+  // 获取当前行的分数颜色
+  const rowData = tableData.value[index - 1]
+  const score = getCurrentScore(rowData)
+  const scoreColor = score ? getScoreColor(score) : null
+  const originalColor = scoreColor ? scoreColor + '20' : ''
+
   // 行颜色已存在的闪烁
   if (classList.length > 1) {
     const backupClass = classList[1]
@@ -92,7 +112,7 @@ const rowBlink = async (index: number) => {
       if (i % 2 === 0) {
         ele.style.backgroundColor = '#f5f7fa'
       } else {
-        ele.style.backgroundColor = ''
+        ele.style.backgroundColor = originalColor
       }
       await delay(300)
     }
@@ -143,7 +163,7 @@ defineExpose({ scroll })
     size="large"
     height="calc(100%)"
     border
-    :row-class-name="tableRowClassName"
+    :row-style="getRowStyle"
     @row-click="handleEdit"
   >
     <el-table-column type="index" label="序号" width="70" align="center" />
@@ -182,21 +202,5 @@ defineExpose({ scroll })
 
 :deep(.el-table__row) {
   height: 50px;
-}
-
-.el-table :deep(.success-row) {
-  --el-table-tr-bg-color: var(--el-color-success-light-9);
-}
-
-.el-table :deep(.primary-row) {
-  --el-table-tr-bg-color: var(--el-color-primary-light-9);
-}
-
-.el-table :deep(.warning-row) {
-  --el-table-tr-bg-color: var(--el-color-warning-light-9);
-}
-
-.el-table :deep(.danger-row) {
-  --el-table-tr-bg-color: var(--el-color-danger-light-9);
 }
 </style>

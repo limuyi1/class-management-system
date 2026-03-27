@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
+import domtoimage from 'dom-to-image'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -16,6 +17,24 @@ const getScore = (item: any): number | null => {
   if (!config.value.inputScoreTab) return null
   return item[config.value.inputScoreTab]
 }
+
+/**
+ * 阈值输入（默认平均分）
+ */
+const threshold = ref(60)
+
+/**
+ * 低于阈值的学生列表
+ */
+const belowThresholdStudents = computed(() => {
+  if (!config.value.inputScoreTab) return []
+  return originList.value
+    .filter((e: any) => {
+      const score = getScore(e)
+      return score !== null && score < threshold.value
+    })
+    .sort((a: any, b: any) => (getScore(a) || 0) - (getScore(b) || 0))
+})
 
 const scoreStats = computed(() => {
   if (!config.value.inputScoreTab) return null
@@ -107,6 +126,17 @@ const scoreStats = computed(() => {
   }
 })
 
+// 监听 scoreStats，首次加载时设置阈值为平均分
+watch(
+  () => scoreStats.value,
+  (newVal) => {
+    if (newVal && threshold.value === 60) {
+      threshold.value = parseFloat(newVal.avgScore)
+    }
+  },
+  { immediate: true }
+)
+
 const copyToClipboard = () => {
   if (!scoreStats.value) return
 
@@ -143,6 +173,67 @@ const copyToClipboard = () => {
     })
     .catch(() => {
       ElMessage.error('复制失败')
+    })
+}
+
+/**
+ * 下载图片
+ * @param mode 'withScore' | 'nameOnly'
+ */
+const downloadImage = (mode: 'withScore' | 'nameOnly') => {
+  const students = belowThresholdStudents.value
+  if (students.length === 0) {
+    ElMessage.warning('暂无学生数据')
+    return
+  }
+
+  const headerHtml =
+    mode === 'withScore'
+      ? '<th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">姓名</th><th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">分数</th>'
+      : '<th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">姓名</th>'
+
+  const bodyHtml = students
+    .map((s) => {
+      const row = `<td style="border:1px solid #ddd;padding:8px;text-align:center;">${s.xing4_ming2}</td>`
+      const scoreRow =
+        mode === 'withScore'
+          ? `<td style="border:1px solid #ddd;padding:8px;text-align:center;">${getScore(s)}分</td>`
+          : ''
+      return `<tr>${row}${scoreRow}</tr>`
+    })
+    .join('')
+
+  const html = `
+    <table style="border-collapse:collapse;width:100%;font-family:sans-serif;font-size:14px;">
+      <thead><tr>${headerHtml}</tr></thead>
+      <tbody>${bodyHtml}</tbody>
+    </table>
+  `
+
+  const container = document.createElement('div')
+  container.innerHTML = html
+  container.style.padding = '20px'
+  container.style.background = '#fff'
+  container.style.position = 'absolute'
+  container.style.top = '0'
+  container.style.left = '0'
+  container.style.zIndex = '-1000'
+  document.body.appendChild(container)
+
+  domtoimage
+    .toJpeg(container, { quality: 1, bgcolor: '#fff' })
+    .then((dataUrl: string) => {
+      const link = document.createElement('a')
+      link.download = `低分学生_${threshold.value}分.jpg`
+      link.href = dataUrl
+      link.click()
+      ElMessage.success('下载成功')
+    })
+    .catch(() => {
+      ElMessage.error('下载失败')
+    })
+    .finally(() => {
+      container.remove()
     })
 }
 </script>
@@ -239,6 +330,77 @@ const copyToClipboard = () => {
           <span class="item-value">{{ scoreStats.avgScore }}</span>
           <span class="item-unit">分</span>
         </div>
+      </div>
+
+      <!-- 低于阈值学生区域 -->
+      <div class="threshold-section" v-if="scoreStats">
+        <div class="threshold-input-wrap">
+          <span>低于</span>
+          <el-input-number
+            v-model="threshold"
+            :min="0"
+            :max="100"
+            :step="5"
+            size="small"
+            controls-position="right"
+            class="threshold-input"
+          />
+          <span>分的学生 ({{ belowThresholdStudents.length }}人)</span>
+        </div>
+        <el-dropdown trigger="hover">
+          <el-button type="primary" size="small" round>
+            <font-awesome-icon :icon="['solid', 'download']" />
+            下载
+          </el-button>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item @click="downloadImage('withScore')">姓名 + 分数</el-dropdown-item>
+              <el-dropdown-item @click="downloadImage('nameOnly')">仅姓名</el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
+
+      <!-- 学生列表（超过8人折叠） -->
+      <div class="student-tags" v-if="belowThresholdStudents.length">
+        <template v-if="belowThresholdStudents.length <= 8">
+          <el-tag
+            v-for="item in belowThresholdStudents"
+            :key="item.xing4_ming2"
+            type="warning"
+            size="small"
+          >
+            {{ item.xing4_ming2 }} {{ getScore(item) }}分
+          </el-tag>
+        </template>
+        <template v-else>
+          <el-tag
+            v-for="item in belowThresholdStudents.slice(0, 8)"
+            :key="item.xing4_ming2"
+            type="warning"
+            size="small"
+          >
+            {{ item.xing4_ming2 }} {{ getScore(item) }}分
+          </el-tag>
+          <el-popover placement="bottom" :width="200">
+            <template #reference>
+              <el-tag type="warning" size="small"
+                >...+{{ belowThresholdStudents.length - 8 }}人</el-tag
+              >
+            </template>
+            <div class="popover-tags">
+              <el-tag
+                v-for="item in belowThresholdStudents.slice(8)"
+                :key="item.xing4_ming2"
+                type="warning"
+                size="small"
+                class="mb-1"
+              >
+                {{ item.xing4_ming2 }} {{ getScore(item) }}分
+              </el-tag>
+            </div>
+          </el-popover>
+        </template>
       </div>
 
       <div class="range-list">
@@ -469,6 +631,46 @@ const copyToClipboard = () => {
         }
       }
     }
+  }
+
+  .threshold-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: #fef3c7;
+    border-radius: 8px;
+    margin-bottom: 10px;
+
+    .threshold-input-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #92400e;
+    }
+
+    .threshold-input {
+      width: 80px;
+    }
+  }
+
+  .student-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  :deep(.mb-1) {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .popover-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
   }
 
   .range-list {

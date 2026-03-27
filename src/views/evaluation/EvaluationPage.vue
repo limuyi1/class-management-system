@@ -90,12 +90,12 @@ defineExpose({ autoFocus })
 .evaluation-page-content {
   flex: 1;
   display: flex;
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
 
   .evaluation-page-left {
     height: 100%;
-    flex: 7;
+    flex: 6;
     min-width: 0;
   }
 
