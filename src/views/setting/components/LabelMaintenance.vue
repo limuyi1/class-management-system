@@ -37,9 +37,7 @@ const addCategory = () => {
         label: value
       }
       list.value.push(newCategory)
-      if (list.value.length === 1) {
-        activeCategory.value = newCategory.prop
-      }
+      activeCategory.value = newCategory.prop
       inputValue.value = ''
     })
     .catch(() => {})

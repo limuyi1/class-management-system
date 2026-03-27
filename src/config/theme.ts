@@ -11,6 +11,11 @@ export interface ThemeConfig {
   menuActiveBg: string
   emptyBg: string
   emptyIcon: string
+  buttonHoverBg: string
+  buttonHoverBorder: string
+  buttonActiveBg: string
+  buttonActiveBorder: string
+  tagColors: string[]
 }
 
 export const themes: Record<ThemeName, ThemeConfig> = {
@@ -24,7 +29,21 @@ export const themes: Record<ThemeName, ThemeConfig> = {
     menuActive: '#10B981',
     menuActiveBg: '#ECFDF5',
     emptyBg: 'linear-gradient(135deg, #34D399 0%, #10B981 100%)',
-    emptyIcon: '#10B981'
+    emptyIcon: '#10B981',
+    buttonHoverBg: '#ECFDF5',
+    buttonHoverBorder: '#6EE7B7',
+    buttonActiveBg: '#D1FAE5',
+    buttonActiveBorder: '#10B981',
+    tagColors: [
+      '#67c23a',
+      '#409eff',
+      '#e6a23c',
+      '#f56c6c',
+      '#909399',
+      '#c71585',
+      '#37a168',
+      '#2b7cde'
+    ]
   },
   orange: {
     name: 'orange',
@@ -36,7 +55,21 @@ export const themes: Record<ThemeName, ThemeConfig> = {
     menuActive: '#F59E0B',
     menuActiveBg: '#FFFBEB',
     emptyBg: 'linear-gradient(135deg, #FBBF24 0%, #F59E0B 100%)',
-    emptyIcon: '#F59E0B'
+    emptyIcon: '#F59E0B',
+    buttonHoverBg: '#FFFBEB',
+    buttonHoverBorder: '#FCD34D',
+    buttonActiveBg: '#FEF3C7',
+    buttonActiveBorder: '#F59E0B',
+    tagColors: [
+      '#67c23a',
+      '#409eff',
+      '#e6a23c',
+      '#f56c6c',
+      '#909399',
+      '#c71585',
+      '#37a168',
+      '#2b7cde'
+    ]
   },
   purple: {
     name: 'purple',
@@ -48,7 +81,21 @@ export const themes: Record<ThemeName, ThemeConfig> = {
     menuActive: '#6366F1',
     menuActiveBg: '#EEF2FF',
     emptyBg: 'linear-gradient(135deg, #818CF8 0%, #6366F1 100%)',
-    emptyIcon: '#6366F1'
+    emptyIcon: '#6366F1',
+    buttonHoverBg: '#EEF2FF',
+    buttonHoverBorder: '#A5B4FC',
+    buttonActiveBg: '#E0E7FF',
+    buttonActiveBorder: '#6366F1',
+    tagColors: [
+      '#67c23a',
+      '#409eff',
+      '#e6a23c',
+      '#f56c6c',
+      '#909399',
+      '#c71585',
+      '#37a168',
+      '#2b7cde'
+    ]
   },
   bluepink: {
     name: 'bluepink',
@@ -60,7 +107,21 @@ export const themes: Record<ThemeName, ThemeConfig> = {
     menuActive: '#8B5CF6',
     menuActiveBg: '#F5F3FF',
     emptyBg: 'linear-gradient(135deg, #A78BFA 0%, #8B5CF6 100%)',
-    emptyIcon: '#8B5CF6'
+    emptyIcon: '#8B5CF6',
+    buttonHoverBg: '#F5F3FF',
+    buttonHoverBorder: '#C4B5FD',
+    buttonActiveBg: '#EDE9FE',
+    buttonActiveBorder: '#8B5CF6',
+    tagColors: [
+      '#67c23a',
+      '#409eff',
+      '#e6a23c',
+      '#f56c6c',
+      '#909399',
+      '#c71585',
+      '#37a168',
+      '#2b7cde'
+    ]
   }
 }
 

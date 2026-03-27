@@ -1,11 +1,33 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+
+import { useRoute, useRouter } from 'vue-router'
 
 import LabelMaintenance from '@/views/setting/components/LabelMaintenance.vue'
 import UnitConfiguration from '@/views/setting/components/UnitConfiguration.vue'
 import StudentInfo from '@/views/setting/components/StudentInfo.vue'
 
+const route = useRoute()
+const router = useRouter()
 const activeTab = ref('student-info')
+
+watch(
+  () => route.query,
+  (query) => {
+    if (
+      query.tab === 'student-info' ||
+      query.tab === 'label-maintenance' ||
+      query.tab === 'unit-config'
+    ) {
+      activeTab.value = query.tab
+    }
+  },
+  { immediate: true }
+)
+
+watch(activeTab, (newTab) => {
+  router.replace({ path: '/setting', query: { tab: newTab } })
+})
 </script>
 
 <template>

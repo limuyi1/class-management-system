@@ -24,6 +24,14 @@ export const useThemeStore = defineStore(
       root.style.setProperty('--theme-footer-bg', config.footerBg)
       root.style.setProperty('--theme-menu-active', config.menuActive)
       root.style.setProperty('--theme-menu-active-bg', config.menuActiveBg)
+      root.style.setProperty('--theme-button-hover-bg', config.buttonHoverBg)
+      root.style.setProperty('--theme-button-hover-border', config.buttonHoverBorder)
+      root.style.setProperty('--theme-button-active-bg', config.buttonActiveBg)
+      root.style.setProperty('--theme-button-active-border', config.buttonActiveBorder)
+
+      config.tagColors.forEach((color, index) => {
+        root.style.setProperty(`--theme-tag-${index + 1}`, color)
+      })
     }
 
     const initTheme = () => {

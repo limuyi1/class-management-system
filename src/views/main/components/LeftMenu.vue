@@ -53,7 +53,11 @@ const handleMenuClick = (item: any) => {
   if (item.disabled) return
   const targetPath = item.targetPath || item.path
   activePath.value = targetPath
-  router.push(targetPath)
+  if (item.path === '/setting') {
+    router.push({ path: '/setting', query: { tab: 'student-info' } })
+  } else {
+    router.push(targetPath)
+  }
 }
 </script>
 
