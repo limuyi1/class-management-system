@@ -113,6 +113,23 @@ watch(activeTab, (newTab) => {
     }
   }
 
+  :deep(.el-tabs__item.is-active .custom-tabs-label) {
+    position: relative;
+
+    &::after {
+      content: '';
+      display: block;
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 38px;
+      height: 3px;
+      background: #fff;
+      border-radius: 2px;
+    }
+  }
+
   :deep(.el-tabs__active-bar) {
     display: none;
   }

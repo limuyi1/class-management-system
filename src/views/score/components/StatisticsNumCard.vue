@@ -155,7 +155,6 @@ const copyToClipboard = () => {
 
   let text = `成绩分布统计（共${totalCount}人）\n`
   text += `最高分：${maxScore}分（${maxScoreCount}人）${topStudents.join('、')}\n`
-  text += `最低分：${minScore}分（${minScoreCount}人）${bottomStudents.join('、')}\n`
   text += `平均分：${avgScore}分\n`
 
   ranges.forEach((r) => {
