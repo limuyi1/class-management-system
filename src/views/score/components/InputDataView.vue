@@ -8,6 +8,11 @@ import { useProgress } from '@/hooks/useProgress'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 
+/**
+ * 数据录入视图组件
+ * 展示成绩录入进度和输入卡片
+ */
+
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const { data: originList } = storeToRefs(store)
@@ -17,11 +22,19 @@ const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
 const emit = defineEmits(['scroll'])
 
+/**
+ * 使用进度 Hook 计算录入进度
+ * 根据当前选中的成绩列计算完成百分比和未完成人数
+ */
 const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
   data: originList,
   getValue: (item: any) => (config.value.inputScoreTab ? item[config.value.inputScoreTab] : null)
 })
 
+/**
+ * 未录入成绩的学生列表
+ * 过滤出分数为 null、NaN、空字符串或 undefined 的学生
+ */
 const hasNullScoreList = computed(() => {
   const scoreTab = config.value.inputScoreTab
   if (!scoreTab) return []
@@ -31,18 +44,31 @@ const hasNullScoreList = computed(() => {
   })
 })
 
+/**
+ * 进度条颜色函数
+ */
 const colorFun = () => {
   return `rgba(82, 155, 46, 1)`
 }
 
+/**
+ * 进度条文本格式化
+ */
 const progressTextFormat = (percentage: number) => {
   return `完成率：${percentage.toFixed(0)}%`
 }
 
+/**
+ * 自动聚焦到输入卡片
+ */
 const autoFocus = () => {
   inputCardRef.value?.autoFocus()
 }
 
+/**
+ * 编辑学生数据
+ * @param data - 学生行数据
+ */
 const editData = (data: any) => {
   inputCardRef.value?.editData(data)
 }

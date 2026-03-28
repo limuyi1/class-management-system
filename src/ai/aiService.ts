@@ -1,6 +1,15 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import { AIModelTypeEnum, type AIModelTypeEnum as AIModelType } from '@/types/AIConfig'
 
+/**
+ * AI 服务模块
+ * 提供与各种 AI 模型（Gemini、OpenAI 兼容 API）交互的接口
+ * 支持生成评语、识别图片成绩、生成标签等功能
+ */
+
+/**
+ * AI 配置接口
+ */
 interface AIConfig {
   modelType: AIModelType
   model: string
@@ -46,6 +55,11 @@ async function openaiGet(config: AIConfig, endpoint: string): Promise<any> {
   return response.json()
 }
 
+/**
+ * 测试 AI 连接是否可用
+ * @param config - AI 配置信息
+ * @returns 连接是否成功
+ */
 export async function testAIConnection(config: AIConfig): Promise<boolean> {
   try {
     if (config.modelType === AIModelTypeEnum.GEMINI) {
@@ -63,6 +77,11 @@ export async function testAIConnection(config: AIConfig): Promise<boolean> {
   }
 }
 
+/**
+ * 获取可用的 AI 模型列表
+ * @param config - AI 配置信息
+ * @returns 模型 ID 数组
+ */
 export async function fetchAvailableModels(config: AIConfig): Promise<string[]> {
   try {
     if (config.modelType === AIModelTypeEnum.GEMINI) {
@@ -77,6 +96,10 @@ export async function fetchAvailableModels(config: AIConfig): Promise<string[]> 
   }
 }
 
+/**
+ * 学生数据接口
+ * 用于传递学生信息给 AI 生成评语
+ */
 interface StudentData {
   name: string
   tags?: string[]
@@ -84,6 +107,14 @@ interface StudentData {
   comment?: string | null
 }
 
+/**
+ * 替换模板占位符
+ * 将模板中的 {{key}} 占位符替换为实际数据
+ * 数组类型会用顿号连接，null/undefined 会替换为"暂无"
+ * @param template - 模板字符串
+ * @param data - 数据对象
+ * @returns 替换后的字符串
+ */
 function replaceTemplate(template: string, data: Record<string, any>): string {
   let result = template
   for (const [key, value] of Object.entries(data)) {
@@ -99,6 +130,13 @@ function replaceTemplate(template: string, data: Record<string, any>): string {
   return result
 }
 
+/**
+ * 为单个学生生成评语
+ * @param student - 学生数据
+ * @param prompt - AI 提示词模板
+ * @param config - AI 配置信息
+ * @returns 生成的评语文本
+ */
 export async function generateSingleComment(
   student: StudentData,
   prompt: string,
@@ -126,6 +164,13 @@ export async function generateSingleComment(
   return data.choices[0]?.message?.content || ''
 }
 
+/**
+ * 批量生成学生评语
+ * @param students - 学生数据数组
+ * @param prompt - AI 提示词模板
+ * @param config - AI 配置信息
+ * @returns 更新后的学生数据数组（包含生成的评语）
+ */
 export async function generateBatchComments(
   students: StudentData[],
   prompt: string,
@@ -174,11 +219,22 @@ export async function generateBatchComments(
   }
 }
 
+/**
+ * 成绩识别结果
+ */
 interface ScoreResult {
   name: string
   score: number | null
 }
 
+/**
+ * 从图片中识别学生成绩
+ * 使用 AI 视觉能力识别图片中的成绩信息
+ * @param imageBase64 - 图片的 Base64 编码
+ * @param prompt - AI 提示词模板
+ * @param config - AI 配置信息
+ * @returns 识别结果数组，包含学生姓名和分数
+ */
 export async function recognizeScoreFromImage(
   imageBase64: string,
   prompt: string,
@@ -244,6 +300,15 @@ export async function recognizeScoreFromImage(
   }
 }
 
+/**
+ * AI 生成学生标签
+ * @param category - 标签分类名称
+ * @param count - 生成的标签数量
+ * @param requirement - 特殊需求描述
+ * @param prompt - AI 提示词模板
+ * @param config - AI 配置信息
+ * @returns 生成的标签数组
+ */
 export async function generateTags(
   category: string,
   count: number,

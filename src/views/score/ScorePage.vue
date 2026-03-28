@@ -13,6 +13,7 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
+import { fileToBase64 } from '@/untils/fileUntil'
 
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
@@ -27,19 +28,6 @@ const uploading = ref(false)
 
 const autoFocus = () => {
   inputDataRef.value?.autoFocus()
-}
-
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      const base64 = result.replace(/^data:image\/\w+;base64,/, '')
-      resolve(base64)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
 }
 
 const handleUploadClick = () => {

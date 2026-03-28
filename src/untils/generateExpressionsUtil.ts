@@ -70,15 +70,11 @@ const generateAdditionAndSubtractionExpressions = () => {
 
   if (op2 === '+') {
     num3 = getRandomInteger(3, 99, (res) => {
-      console.info(calc, res, 'num3+++++')
-
       // 整十、个位小于num1的个位
       return res % 10 === 0 || getDigit(res) + getDigit(calc) <= 10
     })
   } else {
     num3 = getRandomInteger(3, calc, (res) => {
-      console.info(calc, res, 'num3----')
-
       // 整十、大于num1、个位小于calc的个位
       return res % 10 === 0 || getDigit(res) <= getDigit(calc)
     })

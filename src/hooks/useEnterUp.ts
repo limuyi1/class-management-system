@@ -1,6 +1,11 @@
 import { onUnmounted, ref } from 'vue'
 
 /**
+ * 回车键监听 Hook
+ * 监听指定元素的回车事件，支持节流和异步处理
+ */
+
+/**
  * 监听回车事件（确保同时只执行一次，支持同步/异步函数）
  * @param nameProperty 需要监听的元素 name 属性
  * @param fn 执行函数（可以是异步函数）

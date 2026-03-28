@@ -7,6 +7,7 @@ import LabelMaintenance from '@/views/setting/components/LabelMaintenance.vue'
 import UnitConfiguration from '@/views/setting/components/UnitConfiguration.vue'
 import StudentInfo from '@/views/setting/components/StudentInfo.vue'
 import AIConfiguration from '@/views/setting/components/AIConfiguration.vue'
+import ImportExport from '@/views/setting/components/ImportExport.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -21,7 +22,8 @@ watch(
       query.tab === 'student-info' ||
       query.tab === 'label-maintenance' ||
       query.tab === 'unit-config' ||
-      query.tab === 'ai-config'
+      query.tab === 'ai-config' ||
+      query.tab === 'system-backup'
     ) {
       activeTab.value = query.tab
     }
@@ -89,6 +91,17 @@ watch(activeTab, (newTab) => {
         </template>
         <div class="tab-content">
           <a-i-configuration />
+        </div>
+      </el-tab-pane>
+      <el-tab-pane name="system-backup">
+        <template #label>
+          <span class="custom-tabs-label">
+            <font-awesome-icon :icon="['solid', 'floppy-disk']" />
+            <span>系统备份</span>
+          </span>
+        </template>
+        <div class="tab-content">
+          <import-export />
         </div>
       </el-tab-pane>
     </el-tabs>

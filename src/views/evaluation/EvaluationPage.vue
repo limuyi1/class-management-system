@@ -15,6 +15,11 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { generateBatchComments } from '@/ai/aiService'
 import { exportPDF } from '@/untils/pdfUntil'
 
+/**
+ * 期末评语管理页面
+ * 展示学生评语列表，提供编辑、AI 生成和 PDF 导出功能
+ */
+
 const evaluationTableViewRef = ref<InstanceType<typeof EvaluationTableView>>()
 const toolPanelViewRef = ref<InstanceType<typeof ToolPanelView>>()
 
@@ -26,12 +31,22 @@ const settingStore = useSettingStore()
 const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
 const aiConfigStore = useAIConfigStore()
 
+/**
+ * 批量生成中状态
+ */
 const batchGenerating = ref(false)
 
+/**
+ * 自动聚焦到工具面板
+ */
 const autoFocus = () => {
   toolPanelViewRef.value?.autoFocus()
 }
 
+/**
+ * 导出 PDF 处理函数
+ * 获取所有评语卡片 DOM 元素并导出为 PDF
+ */
 const handleExportPDF = () => {
   const doms = document.getElementsByClassName('evaluation-card--table__wrapper')
   exportPDF(doms, formData.value.pageType)

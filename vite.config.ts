@@ -49,7 +49,7 @@ export default defineConfig(({ mode }): UserConfig => {
     },
     base: './',
     build: {
-      outDir: 'docs',
+      outDir: 'dist',
       assetsDir: 'static'
     }
   }

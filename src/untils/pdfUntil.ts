@@ -5,6 +5,11 @@ import { ElMessage, ElLoading } from 'element-plus'
 import { PagesEnum } from '@/types/Common'
 
 /**
+ * PDF 导出工具
+ * 将 DOM 元素转换为 PDF 文件
+ */
+
+/**
  * 将 DOM 元素导出为 PDF 文件
  * @param refs DOM 元素集合（类数组对象），每个元素将作为 PDF 一页
  * @param pageType PDF 页面尺寸类型，默认 A4
