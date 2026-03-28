@@ -4,7 +4,7 @@ import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, ElPopover, ElTooltip } from 'element-plus'
 import { pinyin } from 'pinyin-pro'
 
 import { useDataSourceStore } from '@/stores/data-source'
@@ -19,6 +19,44 @@ const settingStore = useSettingStore()
 const { data: tableData } = storeToRefs(store)
 const { tableHeaders: headers } = storeToRefs(settingStore)
 const { tagCategory: categories, tags: tagOptions } = storeToRefs(settingStore)
+
+const toggleDisabled = (row: any) => {
+  row.disabled = !row.disabled
+}
+
+const deleteStudent = (row: any) => {
+  const index = tableData.value.indexOf(row)
+  if (index > -1) {
+    tableData.value.splice(index, 1)
+  }
+}
+
+const addStudentAbove = (row: any) => {
+  const index = tableData.value.indexOf(row)
+  const newStudent = { xing4_ming2: '', isNew: true }
+  tableData.value.splice(index, 0, newStudent)
+}
+
+const addStudentBelow = (row: any) => {
+  const index = tableData.value.indexOf(row)
+  const newStudent = { xing4_ming2: '', isNew: true }
+  tableData.value.splice(index + 1, 0, newStudent)
+}
+
+const confirmNewStudent = (row: any) => {
+  if (!row.xing4_ming2 || !row.xing4_ming2.trim()) {
+    ElMessage.error('姓名不能为空')
+    return
+  }
+  delete row.isNew
+}
+
+const cancelNewStudent = (row: any) => {
+  const index = tableData.value.indexOf(row)
+  if (index > -1) {
+    tableData.value.splice(index, 1)
+  }
+}
 
 const tableRef = ref()
 
@@ -484,6 +522,64 @@ defineExpose({
             </div>
           </template>
         </vxe-column>
+        <vxe-column field="disabled" title="禁用" width="70" fixed="right" :resizable="false">
+          <template #default="{ row }">
+            <el-switch v-model="row.disabled" size="small" />
+          </template>
+        </vxe-column>
+        <vxe-column title="操作" width="100" fixed="right" :resizable="false">
+          <template #default="{ row }">
+            <div class="operation-icons" v-if="row.isNew">
+              <span class="operation-icon" @click="confirmNewStudent(row)" title="确认">
+                <font-awesome-icon :icon="['fas', 'check']" />
+              </span>
+              <span class="operation-icon" @click="cancelNewStudent(row)" title="取消">
+                <font-awesome-icon :icon="['fas', 'times']" />
+              </span>
+            </div>
+            <div class="operation-icons" v-else>
+              <el-popover
+                placement="top"
+                :width="160"
+                trigger="click"
+                v-model:visible="row.popoverVisible"
+              >
+                <template #reference>
+                  <span class="operation-icon delete-icon" title="删除">
+                    <font-awesome-icon :icon="['fas', 'trash']" />
+                  </span>
+                </template>
+                <div class="text-center">
+                  <p>确定删除该学生？</p>
+                  <div class="mt-2">
+                    <el-button
+                      type="danger"
+                      size="small"
+                      @click="
+                        () => {
+                          deleteStudent(row)
+                          row.popoverVisible = false
+                        }
+                      "
+                      >确定</el-button
+                    >
+                    <el-button size="small" @click="row.popoverVisible = false">取消</el-button>
+                  </div>
+                </div>
+              </el-popover>
+              <el-tooltip effect="dark" content="上方添加一行" placement="top">
+                <span class="operation-icon" @click="addStudentAbove(row)">
+                  <font-awesome-icon :icon="['fas', 'chevron-up']" />
+                </span>
+              </el-tooltip>
+              <el-tooltip effect="dark" content="下方添加一行" placement="top">
+                <span class="operation-icon" @click="addStudentBelow(row)">
+                  <font-awesome-icon :icon="['fas', 'chevron-down']" />
+                </span>
+              </el-tooltip>
+            </div>
+          </template>
+        </vxe-column>
         <vxe-column
           v-for="item in headers"
           :key="item.prop"
@@ -759,5 +855,32 @@ defineExpose({
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+.operation-icons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.operation-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  color: #606266;
+
+  &:hover {
+    background-color: #f0f0f0;
+    color: var(--el-color-primary);
+  }
+
+  &.delete-icon:hover {
+    color: #f56c6c;
+  }
 }
 </style>

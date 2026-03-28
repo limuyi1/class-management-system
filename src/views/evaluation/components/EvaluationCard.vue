@@ -27,6 +27,8 @@ interface PageInoType {
 interface Props {
   pageInfo: PageInoType
   data: Array<any>
+  currentPage?: number
+  totalPages?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -65,6 +67,9 @@ const cellStyle = computed(() => ({
     :style="{ width: pageInfo.pageWidth + 'px', height: pageInfo.pageHeight + 'px' }"
     shadow="always"
   >
+    <div v-if="totalPages" class="page-number">
+      第 {{ currentPage }} 页 / 共 {{ totalPages }} 页
+    </div>
     <div
       class="evaluation-card--table__wrapper"
       :style="{ padding: `${pageInfo.margin / 2}px ${pageInfo.margin}px` }"
@@ -117,6 +122,7 @@ const cellStyle = computed(() => ({
 <style scoped lang="scss">
 // 核心：重置所有可能导致td高度偏大的样式
 .evaluation-card__wrapper {
+  position: relative;
   height: 100%;
   margin-bottom: 24px;
 
@@ -125,6 +131,15 @@ const cellStyle = computed(() => ({
     padding: 0 !important;
     height: 100% !important;
     min-height: 0 !important; // 移除最小高度限制
+  }
+
+  .page-number {
+    position: absolute;
+    top: 8px;
+    right: 16px;
+    font-size: 12px;
+    color: #999;
+    z-index: 1;
   }
 
   .evaluation-card--table__wrapper {

@@ -11,7 +11,7 @@ import type { VxeTablePropTypes } from 'vxe-table'
 
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
-const { data: tableData } = storeToRefs(store)
+const { enabledData: tableData } = storeToRefs(store)
 const { tableHeaders: headers } = storeToRefs(settingStore)
 
 const tableRef = ref()
@@ -21,7 +21,7 @@ const editConfig = ref<VxeTablePropTypes.EditConfig>({
   showIcon: false
 })
 
-const isNotEmpty = computed(() => store.data?.length)
+const isNotEmpty = computed(() => store.enabledData?.length)
 </script>
 
 <template>

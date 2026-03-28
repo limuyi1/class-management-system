@@ -243,3 +243,48 @@ export async function recognizeScoreFromImage(
     return []
   }
 }
+
+export async function generateTags(
+  category: string,
+  count: number,
+  requirement: string,
+  prompt: string,
+  config: AIConfig
+): Promise<string[]> {
+  const promptText = replaceTemplate(prompt, {
+    category,
+    count,
+    requirement: requirement || '无特殊要求'
+  })
+
+  let responseText: string
+
+  if (config.modelType === AIModelTypeEnum.GEMINI) {
+    const genAI = new GoogleGenerativeAI(config.apiKey)
+    const model = genAI.getGenerativeModel({ model: config.model || 'gemini-2.0-flash' })
+    const result = await model.generateContent(promptText)
+    responseText = result.response.text()
+  } else {
+    const data = await openaiFetch(config, '/chat/completions', {
+      model: config.model,
+      messages: [{ role: 'user', content: promptText }],
+      temperature: 0.7
+    })
+
+    responseText = data.choices[0]?.message?.content || '[]'
+  }
+
+  try {
+    const jsonMatch = responseText.match(/\[[\s\S]*\]/)
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', responseText)
+      return []
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    return Array.isArray(parsed) ? parsed : []
+  } catch (error) {
+    console.error('Failed to parse generate tags response:', error)
+    return []
+  }
+}

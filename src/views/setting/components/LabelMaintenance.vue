@@ -5,9 +5,11 @@ import { storeToRefs } from 'pinia'
 import { pinyin } from 'pinyin-pro'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useSettingStore } from '@/stores/setting'
+import { useAIConfigStore } from '@/stores/ai-config'
 
-import { ElMessageBox, type InputInstance } from 'element-plus'
+import { ElMessageBox, ElMessage, type InputInstance } from 'element-plus'
 import type { TagCategoryType } from '@/types/Setting'
+import { generateTags } from '@/ai/aiService'
 
 const store = useSettingStore()
 
@@ -16,7 +18,17 @@ const { tagCategory: list, tags } = storeToRefs(store)
 const InputRef = ref<InputInstance>()
 const inputValue = ref('')
 const inputVisible = ref(false)
+const isProcessingInput = ref(false)
 const activeCategory = ref(list.value[0]?.prop || '')
+
+const aiDialogVisible = ref(false)
+const generating = ref(false)
+const generateCount = ref(10)
+const generateRequirement = ref('')
+const generatedTags = ref<string[]>([])
+const selectedTags = ref<string[]>([])
+
+const aiStore = useAIConfigStore()
 
 const currentTags = computed(() => {
   return tags.value[activeCategory.value] || []
@@ -63,15 +75,142 @@ const showInput = () => {
   })
 }
 
-const handleInputConfirm = () => {
-  if (inputValue.value) {
+const getAllOtherCategoryTags = () => {
+  const allTags: string[] = []
+  Object.entries(tags.value).forEach(([prop, tagList]) => {
+    if (prop !== activeCategory.value) {
+      allTags.push(...tagList)
+    }
+  })
+  return allTags
+}
+
+const handleInputConfirm = async () => {
+  if (isProcessingInput.value) return
+  isProcessingInput.value = true
+
+  try {
+    const tag = inputValue.value.trim()
+    if (!tag) {
+      inputVisible.value = false
+      inputValue.value = ''
+      return
+    }
+
+    const currentTags = tags.value[activeCategory.value] || []
+
+    if (currentTags.includes(tag)) {
+      ElMessage.warning('该标签已存在')
+      inputVisible.value = false
+      inputValue.value = ''
+      return
+    }
+
+    const otherTags = getAllOtherCategoryTags()
+    if (otherTags.includes(tag)) {
+      try {
+        await ElMessageBox.confirm(`该标签已在其他分类中存在，是否移动到当前分类？`, '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        })
+        Object.entries(tags.value).forEach(([prop, tagList]) => {
+          if (prop !== activeCategory.value) {
+            const idx = tagList.indexOf(tag)
+            if (idx > -1) tagList.splice(idx, 1)
+          }
+        })
+      } catch {
+        inputVisible.value = false
+        inputValue.value = ''
+        return
+      }
+    }
+
     if (!tags.value[activeCategory.value]) {
       tags.value[activeCategory.value] = []
     }
-    tags.value[activeCategory.value].push(inputValue.value)
+    tags.value[activeCategory.value].push(tag)
+
+    inputVisible.value = false
+    inputValue.value = ''
+  } finally {
+    isProcessingInput.value = false
   }
-  inputVisible.value = false
-  inputValue.value = ''
+}
+
+const openAIGenerateDialog = () => {
+  if (!activeCategory.value) {
+    ElMessage.warning('请先选择一个标签分类')
+    return
+  }
+  aiDialogVisible.value = true
+  generateCount.value = 10
+  generateRequirement.value = '积极正向的学习表现标签，适合小学生使用'
+  generatedTags.value = []
+  selectedTags.value = []
+}
+
+const handleGenerateTags = async () => {
+  if (!aiStore.apiKey.trim()) {
+    ElMessage.warning('请先在AI配置中设置API Key')
+    return
+  }
+
+  generating.value = true
+  try {
+    const category = list.value.find((item) => item.prop === activeCategory.value)?.label || ''
+    const newTags = await generateTags(
+      category,
+      generateCount.value,
+      generateRequirement.value,
+      aiStore.prompts.tagGenerate,
+      {
+        modelType: aiStore.modelType,
+        model: aiStore.model,
+        apiKey: aiStore.apiKey,
+        baseUrl: aiStore.baseUrl
+      }
+    )
+
+    // 过滤掉已存在的标签（当前分类 + 其他分类）
+    const existingTags = tags.value[activeCategory.value] || []
+    const allOtherTags = getAllOtherCategoryTags()
+    const uniqueTags = newTags.filter(
+      (tag) => !existingTags.includes(tag) && !allOtherTags.includes(tag)
+    )
+
+    generatedTags.value = uniqueTags
+    ElMessage.success(`生成成功，共 ${uniqueTags.length} 个新标签`)
+  } catch (error) {
+    console.error('生成标签失败:', error)
+    ElMessage.error('生成标签失败，请检查AI配置')
+  } finally {
+    generating.value = false
+  }
+}
+
+const handleAddSelectedTags = () => {
+  if (selectedTags.value.length === 0) {
+    ElMessage.warning('请先选择要添加的标签')
+    return
+  }
+
+  const currentTags = tags.value[activeCategory.value] || []
+  const newTags = selectedTags.value.filter((tag) => !currentTags.includes(tag))
+
+  if (newTags.length === 0) {
+    ElMessage.warning('所选标签均已存在')
+    return
+  }
+
+  if (!tags.value[activeCategory.value]) {
+    tags.value[activeCategory.value] = []
+  }
+
+  tags.value[activeCategory.value].push(...newTags)
+  aiDialogVisible.value = false
+  ElMessage.success(`成功添加 ${newTags.length} 个标签`)
 }
 </script>
 
@@ -106,6 +245,18 @@ const handleInputConfirm = () => {
     <div class="label-maintenance-main">
       <div class="label-maintenance-main-title">
         {{ list.find((item) => item.prop === activeCategory)?.label || '标签' }}
+        <el-tooltip effect="dark" content="AI生成标签" placement="top">
+          <el-button
+            type="primary"
+            size="small"
+            class="ml-2"
+            :disabled="!activeCategory"
+            @click="openAIGenerateDialog"
+          >
+            <template #icon><font-awesome-icon :icon="['solid', 'robot']" /></template>
+            AI生成
+          </el-button>
+        </el-tooltip>
       </div>
       <div class="label-maintenance-main-tags" v-if="activeCategory">
         <el-tag
@@ -134,6 +285,63 @@ const handleInputConfirm = () => {
       <div class="label-maintenance-main-empty" v-else>请先添加字典分类</div>
     </div>
   </div>
+
+  <el-dialog
+    v-model="aiDialogVisible"
+    title="AI生成标签"
+    width="600px"
+    :close-on-click-modal="false"
+  >
+    <el-form label-position="top" class="generate-form">
+      <el-form-item label="生成数量">
+        <el-input-number v-model="generateCount" :min="1" :max="50" style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="自定义生成要求（可选）">
+        <el-input
+          v-model="generateRequirement"
+          type="textarea"
+          :rows="3"
+          placeholder="例如：积极正向的学习表现标签，适合小学生使用"
+        />
+      </el-form-item>
+      <el-form-item v-if="generatedTags.length > 0" label="选择要添加的标签">
+        <div class="select-all-wrapper">
+          <el-button size="small" type="primary" link @click="selectedTags = [...generatedTags]">
+            <font-awesome-icon :icon="['solid', 'check-double']" />
+            全选
+          </el-button>
+          <el-button size="small" type="info" link @click="selectedTags = []"> 取消全选 </el-button>
+        </div>
+        <el-checkbox-group v-model="selectedTags">
+          <div class="tags-grid">
+            <el-checkbox
+              v-for="tag in generatedTags"
+              :key="tag"
+              :label="tag"
+              :value="tag"
+              class="tag-checkbox"
+            >
+              {{ tag }}
+            </el-checkbox>
+          </div>
+        </el-checkbox-group>
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="aiDialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="generating" @click="handleGenerateTags">
+        生成标签
+      </el-button>
+      <el-button
+        type="success"
+        @click="handleAddSelectedTags"
+        :disabled="generatedTags.length === 0"
+      >
+        添加选中标签
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped lang="scss">
@@ -237,6 +445,27 @@ const handleInputConfirm = () => {
       color: #909399;
       font-size: 14px;
     }
+  }
+}
+
+.generate-form {
+  .select-all-wrapper {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .tags-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag-checkbox {
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
   }
 }
 </style>

@@ -21,6 +21,12 @@ export const useDataSourceStore = defineStore('dataSource', {
   },
   getters: {
     /**
+     * 获取启用状态的学生数据（过滤掉禁用的学生）
+     */
+    enabledData(): Array<any> {
+      return this.data.filter((item: any) => !item.disabled)
+    },
+    /**
      * 获取指定学生的当前录入分数
      * @returns 返回一个函数，传入学生对象返回对应分数
      */
@@ -33,17 +39,17 @@ export const useDataSourceStore = defineStore('dataSource', {
       }
     },
     /**
-     * 获取所有有效成绩（过滤掉 null 和 undefined）
+     * 获取所有有效成绩（过滤掉 null 和 undefined 和禁用的学生）
      */
     validScores(): number[] {
-      return this.data
+      return this.enabledData
         .map((item: any) => this.getScore(item))
         .filter((s: any): s is number => s !== null && s !== undefined)
     },
     /**
-     * 学生总数
+     * 学生总数（启用状态）
      */
-    totalCount: (state) => state.data.length as number,
+    totalCount: (state) => state.data.filter((item: any) => !item.disabled).length as number,
     /**
      * 有效成绩数量（有分数的学生人数）
      */

@@ -7,7 +7,7 @@ import { useDataSourceStore } from '@/stores/data-source'
 
 const router = useRouter()
 const store = useDataSourceStore()
-const { data: tableData } = storeToRefs(store)
+const { enabledData: tableData } = storeToRefs(store)
 
 const isCollapse = ref(false)
 const activePath = ref('')

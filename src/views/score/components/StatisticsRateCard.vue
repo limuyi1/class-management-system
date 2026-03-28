@@ -10,7 +10,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
-const { data: tableData } = storeToRefs(store)
+const { enabledData: tableData } = storeToRefs(store)
 const { data: config } = storeToRefs(configuration)
 
 const hasData = computed(() => store.hasAnyScore)

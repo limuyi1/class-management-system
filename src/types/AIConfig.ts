@@ -42,6 +42,7 @@ export interface AIPromptsType {
   singleComment: string
   batchComment: string
   imageScore: string
+  tagGenerate: string
 }
 
 export const DefaultAIPrompts: AIPromptsType = {
@@ -85,5 +86,10 @@ export const DefaultAIPrompts: AIPromptsType = {
 请返回JSON格式：
 {students: [{name: "学生姓名", score: 成绩分数}]}
 
-如果无法识别到成绩，请返回空数组：{students: []}`
+如果无法识别到成绩，请返回空数组：{students: []}`,
+
+  tagGenerate: `请生成 {{count}} 个适合小学生的四字词语学生表现标签，可包含积极正向及委婉贬义描述（如粗心大意、声音偏小等）；
+符合 {{category}} 分类要求，若 {{requirement}} 不为空则同时满足该要求。
+仅返回标准 JSON 数组，无任何多余文字、解释或格式符号，确保可直接解析。
+返回格式示例：["标签1", "标签2", "标签3"]`
 }

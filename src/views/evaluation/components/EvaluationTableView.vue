@@ -26,7 +26,7 @@ const handleCardClick = (row: any) => {
 }
 
 const store = useDataSourceStore()
-const { data: tableData } = storeToRefs(store)
+const { enabledData: tableData } = storeToRefs(store)
 
 const configurationStore = useConfigurationStore()
 const { data: configuration } = storeToRefs(configurationStore)
@@ -144,6 +144,8 @@ defineExpose({ scroll })
         v-for="(data, index) in dataSource"
         :page-info="pageInfo"
         :data="data"
+        :current-page="index + 1"
+        :total-pages="dataSource.length"
         :key="index"
         @click="handleCardClick"
       />

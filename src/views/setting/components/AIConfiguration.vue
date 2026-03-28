@@ -23,7 +23,8 @@ const modelOptions = Object.entries(AIModelTypeLabels).map(([value, label]) => (
 const promptTabs = [
   { key: 'singleComment', label: '单个评语', placeholder: DefaultAIPrompts.singleComment },
   { key: 'batchComment', label: '批量评语', placeholder: DefaultAIPrompts.batchComment },
-  { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore }
+  { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore },
+  { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate }
 ]
 
 const handleModelChange = async (val: AIModelTypeEnum) => {
@@ -248,6 +249,15 @@ const handleResetPrompt = () => {
             </div>
             <div class="tip-item">
               • <code v-pre>{{ students }}</code> - 批量学生数据（JSON数组）
+            </div>
+            <div class="tip-item">
+              • <code v-pre>{{ category }}</code> - 标签分类名称
+            </div>
+            <div class="tip-item">
+              • <code v-pre>{{ count }}</code> - 生成数量
+            </div>
+            <div class="tip-item">
+              • <code v-pre>{{ requirement }}</code> - 自定义生成要求
             </div>
           </div>
         </el-card>

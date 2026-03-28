@@ -15,7 +15,7 @@ const store = useDataSourceStore()
 const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
 
-const { data: tableData } = storeToRefs(store)
+const { enabledData: tableData } = storeToRefs(store)
 const { tableHeaders } = storeToRefs(settingStore)
 const { data: config } = storeToRefs(configuration)
 const tableRef = ref()
