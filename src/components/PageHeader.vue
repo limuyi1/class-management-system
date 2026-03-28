@@ -9,12 +9,17 @@ defineProps<Props>()
 
 <template>
   <div class="page-header">
-    <div class="header-icon">
-      <font-awesome-icon :icon="icon" />
+    <div class="header-left">
+      <div class="header-icon">
+        <font-awesome-icon :icon="icon" />
+      </div>
+      <div class="header-text">
+        <h2>{{ title }}</h2>
+        <p>{{ subtitle }}</p>
+      </div>
     </div>
-    <div class="header-text">
-      <h2>{{ title }}</h2>
-      <p>{{ subtitle }}</p>
+    <div class="header-right">
+      <slot name="right"></slot>
     </div>
   </div>
 </template>
@@ -23,12 +28,43 @@ defineProps<Props>()
 .page-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
   padding: 16px 20px;
   background: var(--theme-gradient);
   border-radius: 12px;
   color: #fff;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .el-button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: #fff;
+      }
+
+      &:focus {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: #fff;
+      }
+    }
+  }
 
   .header-icon {
     width: 44px;

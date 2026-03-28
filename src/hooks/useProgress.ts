@@ -53,8 +53,6 @@ export const useProgress = (options: UseProgressOptions) => {
    * 总数量 - 已完成数量
    */
   const notCompletedCount = computed(() => {
-    console.info(data.value.length, completedCount.value)
-
     return data.value.length - completedCount.value
   })
 

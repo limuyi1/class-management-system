@@ -6,6 +6,7 @@ import { useRoute, useRouter } from 'vue-router'
 import LabelMaintenance from '@/views/setting/components/LabelMaintenance.vue'
 import UnitConfiguration from '@/views/setting/components/UnitConfiguration.vue'
 import StudentInfo from '@/views/setting/components/StudentInfo.vue'
+import AIConfiguration from '@/views/setting/components/AIConfiguration.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,7 +20,8 @@ watch(
     if (
       query.tab === 'student-info' ||
       query.tab === 'label-maintenance' ||
-      query.tab === 'unit-config'
+      query.tab === 'unit-config' ||
+      query.tab === 'ai-config'
     ) {
       activeTab.value = query.tab
     }
@@ -76,6 +78,17 @@ watch(activeTab, (newTab) => {
         </template>
         <div class="tab-content">
           <unit-configuration />
+        </div>
+      </el-tab-pane>
+      <el-tab-pane name="ai-config">
+        <template #label>
+          <span class="custom-tabs-label">
+            <font-awesome-icon :icon="['solid', 'robot']" />
+            <span>AI 配置</span>
+          </span>
+        </template>
+        <div class="tab-content">
+          <a-i-configuration />
         </div>
       </el-tab-pane>
     </el-tabs>

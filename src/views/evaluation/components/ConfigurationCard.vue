@@ -2,19 +2,12 @@
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
-import { exportPDF } from '@/untils/pdfUntil'
-
 import { useConfigurationStore } from '@/stores/configuration'
 
 const store = useConfigurationStore()
 const { data: formData } = storeToRefs(store)
 
 const activeNames = ref<string[]>([])
-
-const printFun = () => {
-  const doms = document.getElementsByClassName('evaluation-card--table__wrapper')
-  exportPDF(doms, formData.value.pageType)
-}
 
 const fontChange = (fontSize?: number) => {
   if (fontSize) {
@@ -30,11 +23,6 @@ const fontChange = (fontSize?: number) => {
         <font-awesome-icon :icon="['solid', 'sliders']" />
         配置
       </span>
-      <el-tooltip effect="dark" content="导出PDF" placement="top">
-        <el-button type="primary" size="small" circle @click="printFun">
-          <font-awesome-icon :icon="['solid', 'print']" />
-        </el-button>
-      </el-tooltip>
     </div>
 
     <div class="config-body">
@@ -149,6 +137,9 @@ const fontChange = (fontSize?: number) => {
   padding: 10px 12px;
   background: var(--theme-gradient);
   color: #fff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
   .header-title {
     display: flex;

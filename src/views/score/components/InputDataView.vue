@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 
 import InputCard from '@/views/score/components/InputCard.vue'
 import { useProgress } from '@/hooks/useProgress'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
-import { storeToRefs } from 'pinia'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()

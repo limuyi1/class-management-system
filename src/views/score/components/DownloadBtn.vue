@@ -109,7 +109,9 @@ const exportExcelFun = () => {
 
 <template>
   <el-tooltip content="下载成绩" placement="top">
-    <el-button type="primary" size="small" icon="Download" circle @click="exportExcelFun" />
+    <el-button size="small" circle @click="exportExcelFun">
+      <font-awesome-icon :icon="['solid', 'download']" />
+    </el-button>
   </el-tooltip>
 </template>
 

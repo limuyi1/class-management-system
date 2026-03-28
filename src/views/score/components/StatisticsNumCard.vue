@@ -126,11 +126,11 @@ const scoreStats = computed(() => {
   }
 })
 
-// 监听 scoreStats，首次加载时设置阈值为平均分
+// 监听 scoreStats，成绩变化时自动更新阈值为平均分
 watch(
   () => scoreStats.value,
   (newVal) => {
-    if (newVal && threshold.value === 60) {
+    if (newVal) {
       threshold.value = parseFloat(newVal.avgScore)
     }
   },

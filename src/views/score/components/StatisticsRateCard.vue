@@ -68,7 +68,6 @@ watch(
         <font-awesome-icon :icon="['solid', 'chart-simple']" />
         <span>成绩统计</span>
       </div>
-      <download-btn v-if="hasData" />
     </div>
 
     <template v-if="hasData">

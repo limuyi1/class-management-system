@@ -91,7 +91,9 @@ const buildData = (isScore: boolean = true) => {
       </el-badge>
     </el-popover>
     <el-dropdown placement="bottom" @command="xlsxToImageCommand">
-      <el-button type="primary" size="small" icon="Picture" circle />
+      <el-button type="primary" size="small" circle>
+        <font-awesome-icon :icon="['solid', 'image']" />
+      </el-button>
       <template #dropdown>
         <el-dropdown-menu>
           <el-dropdown-item command="exist">有分数</el-dropdown-item>

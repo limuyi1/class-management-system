@@ -3,11 +3,14 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { match } from 'pinyin-pro'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 import { useEnterUp } from '@/hooks/useEnterUp'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
+import { useAIConfigStore } from '@/stores/ai-config'
+import { generateSingleComment } from '@/ai/aiService'
 
 import { InputEnum } from '@/types/Common'
 
@@ -32,6 +35,9 @@ const configuration = useConfigurationStore()
 const { data: config } = storeToRefs(configuration)
 const settingStore = useSettingStore()
 const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
+const aiConfigStore = useAIConfigStore()
+
+const generating = ref(false)
 
 /**
  * 当前选中学生的标签
@@ -57,6 +63,48 @@ const hasAnyTags = computed(() => {
   }
   return false
 })
+
+const handleGenerateComment = async () => {
+  if (!formData.id) return
+
+  if (!aiConfigStore.isConfigured) {
+    ElMessage.warning('请先在设置页面配置 AI')
+    return
+  }
+
+  generating.value = true
+  try {
+    const item = originList.value[formData.id - 1]
+    const allTags: string[] = []
+    for (const cat of tagCategoryList.value) {
+      const tagList = item.tags?.[cat.prop]
+      if (tagList && tagList.length > 0) {
+        allTags.push(...tagList)
+      }
+    }
+
+    const student = {
+      name: item.xing4_ming2,
+      tags: allTags,
+      score: config.value.inputScoreTab ? item[config.value.inputScoreTab] : undefined
+    }
+
+    const comment = await generateSingleComment(student, aiConfigStore.prompts.singleComment, {
+      modelType: aiConfigStore.modelType,
+      model: aiConfigStore.model,
+      apiKey: aiConfigStore.apiKey,
+      baseUrl: aiConfigStore.baseUrl
+    })
+
+    formData.comment = comment
+    ElMessage.success('评语生成成功')
+  } catch (error) {
+    console.error('生成评语失败:', error)
+    ElMessage.error('生成评语失败：' + (error as Error).message)
+  } finally {
+    generating.value = false
+  }
+}
 
 /**
  * 跳转到设置页面编辑标签
@@ -305,6 +353,28 @@ defineExpose({ editData, autoFocus })
             :disabled="!formData.id"
           />
         </el-form-item>
+        <el-form-item v-if="props.type === InputEnum.COMMENT">
+          <el-tooltip
+            :disabled="!formData.id || hasAnyTags"
+            :content="formData.id && !hasAnyTags ? '该学生暂无标签，请先在设置页面添加标签' : ''"
+            placement="top"
+          >
+            <div style="width: 100%">
+              <el-button
+                class="ai-generate-btn"
+                style="width: 100%"
+                size="default"
+                round
+                :disabled="!formData.id || !hasAnyTags"
+                :loading="generating"
+                @click="handleGenerateComment"
+              >
+                <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
+                AI 生成评语
+              </el-button>
+            </div>
+          </el-tooltip>
+        </el-form-item>
         <el-form-item>
           <el-button
             class="submit-btn"
@@ -363,6 +433,27 @@ defineExpose({ editData, autoFocus })
 
   &:disabled {
     background: #cbd5e1;
+  }
+}
+
+.ai-generate-btn {
+  height: 36px;
+  font-size: 14px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  border: none;
+  color: #fff;
+
+  &:hover {
+    opacity: 0.9;
+  }
+
+  &:disabled {
+    background: #cbd5e1;
+    color: #94a3b8;
+  }
+
+  svg {
+    margin-right: 4px;
   }
 }
 
