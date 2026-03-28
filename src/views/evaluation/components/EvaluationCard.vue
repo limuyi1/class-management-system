@@ -33,7 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const getEvaluationText = (str: string | undefined | null) => {
-  if (str) return str?.replace('\n', '<br />') || ''
+  if (str) return str.replace(/\n/g, '<br />')
   return ''
 }
 

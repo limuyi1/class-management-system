@@ -1,16 +1,15 @@
 import domtoimage from 'dom-to-image'
 import { jsPDF } from 'jspdf'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElLoading } from 'element-plus'
 
 import { PagesEnum } from '@/types/Common'
-import { ElLoading } from 'element-plus'
 
 /**
- * 导出pdf
- * @param refs 元素集合
- * @param pageType pdf页面类型
- * @param scale 缩放
- * @param fileName 文件名
+ * 将 DOM 元素导出为 PDF 文件
+ * @param refs DOM 元素集合（类数组对象），每个元素将作为 PDF 一页
+ * @param pageType PDF 页面尺寸类型，默认 A4
+ * @param scale 导出缩放比例，默认 4（提高清晰度）
+ * @param fileName 导出文件名，默认为当前日期时间
  */
 const exportPDF = async (
   refs: any,

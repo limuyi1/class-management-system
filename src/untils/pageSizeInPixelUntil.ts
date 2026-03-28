@@ -1,6 +1,4 @@
 import type { PagesEnum } from '@/types/Common'
-import { useConfigurationStore } from '@/stores/configuration'
-import { storeToRefs } from 'pinia'
 
 const getDPI = () => {
   const tempDiv = document.createElement('div')

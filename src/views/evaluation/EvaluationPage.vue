@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import PageHeader from '@/components/PageHeader.vue'
+
 import EvaluationTableView from '@/views/evaluation/components/EvaluationTableView.vue'
 import ToolPanelView from '@/views/evaluation/components/ToolPanelView.vue'
 
@@ -16,15 +18,11 @@ defineExpose({ autoFocus })
 
 <template>
   <div class="evaluation-page">
-    <div class="evaluation-page-header">
-      <div class="header-icon">
-        <font-awesome-icon :icon="['solid', 'comments']" />
-      </div>
-      <div class="header-text">
-        <h2>期末评语</h2>
-        <p>为每位学生撰写期末评语，支持一键导出PDF</p>
-      </div>
-    </div>
+    <page-header
+      :icon="['solid', 'comments']"
+      title="期末评语"
+      subtitle="为每位学生撰写期末评语，支持一键导出PDF"
+    />
     <div class="evaluation-page-content">
       <div class="evaluation-page-left">
         <evaluation-table-view ref="evaluationTableViewRef" />
@@ -49,42 +47,6 @@ defineExpose({ autoFocus })
   padding: 8px;
   box-sizing: border-box;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-}
-
-.evaluation-page-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  padding: 16px 20px;
-  background: var(--theme-gradient);
-  border-radius: 12px;
-  color: #fff;
-
-  .header-icon {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    font-size: 22px;
-  }
-
-  .header-text {
-    h2 {
-      margin: 0 0 2px 0;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    p {
-      margin: 0;
-      font-size: 13px;
-      opacity: 0.85;
-    }
-  }
 }
 
 .evaluation-page-content {

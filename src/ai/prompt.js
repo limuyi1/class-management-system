@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 export const analysisPrompt = `
 这个问题通常是因为 LaTeX 公式或 SVG 代码的**闭合标签不规范**，或者 Markdown 解析器对**代码块外部的特殊字符**产生了歧义。
 

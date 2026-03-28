@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import ConfigurationCard from '@/views/evaluation/components/ConfigurationCard.vue'
 import InputCard from '@/views/score/components/InputCard.vue'
+import { useProgress } from '@/hooks/useProgress'
 
 import { InputEnum } from '@/types/Common'
 
@@ -17,18 +18,9 @@ const { data } = storeToRefs(store)
 
 const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
-const percentage = computed(() => {
-  const count = data.value.length
-  if (count === 0) return 0
-  const notEmptyCount = data.value.filter(
-    (item: any) => item.comment !== null && item.comment !== '' && item.comment !== undefined
-  ).length
-
-  return Number((notEmptyCount / count).toFixed(2)) * 100
-})
-
-const notCompletedCount = computed(() => {
-  return data.value.length - Math.round((data.value.length * percentage.value) / 100)
+const { percentage, notCompletedCount } = useProgress({
+  data,
+  getValue: (item: any) => item.comment
 })
 
 const autoFocus = () => {

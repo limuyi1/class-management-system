@@ -16,8 +16,10 @@ const printFun = () => {
   exportPDF(doms, formData.value.pageType)
 }
 
-const fontChange = (fontSize: number) => {
-  store.fontSizeChange(fontSize)
+const fontChange = (fontSize?: number) => {
+  if (fontSize) {
+    store.fontSizeChange(fontSize)
+  }
 }
 </script>
 

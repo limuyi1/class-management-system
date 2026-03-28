@@ -8,20 +8,20 @@ export const useDataSourceStore = defineStore('dataSource', {
     }
   },
   getters: {
-    getScore:
-      (state) =>
-      (item: any): number | null => {
+    getScore() {
+      return (item: any): number | null => {
         const configuration = useConfigurationStore()
         const { data: config } = storeToRefs(configuration)
         if (!config.value.inputScoreTab) return null
         return item[config.value.inputScoreTab]
-      },
+      }
+    },
     validScores(): number[] {
       return this.data
         .map((item: any) => this.getScore(item))
         .filter((s: any): s is number => s !== null && s !== undefined)
     },
-    totalCount: (state) => state.data.length,
+    totalCount: (state) => state.data.length as number,
     validCount(): number {
       return this.validScores.length
     },
@@ -55,6 +55,16 @@ export const useDataSourceStore = defineStore('dataSource', {
       const lowCount = scores.filter((s: number) => s <= 40).length
       return (lowCount / scores.length) * 100
     },
+    /**
+     * 综合评分计算公式
+     * 综合评分 = 平均分×0.4 + 及格率×0.3 + 优秀率×0.3 + 最高分率×0.05 - 低分率×0.05
+     * 权重说明：
+     * - 平均分占40%，反映整体水平
+     * - 及格率占30%，反映基础掌握情况
+     * - 优秀率占30%，反映高分学生比例
+     * - 最高分率作为加分项，鼓励拔尖
+     * - 低分率作为减分项，惩罚大面积失分
+     */
     comprehensiveRatingRate(): number {
       if (this.validCount === 0) return 0
       return (

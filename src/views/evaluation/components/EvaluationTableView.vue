@@ -45,29 +45,38 @@ watch(
   }
 )
 
+/**
+ * 初始化布局计算
+ * 核心逻辑：
+ * 1. 将毫米单位的卡片尺寸转换为像素
+ * 2. 根据页面类型（A3/A4/B3/B4）获取页面像素尺寸
+ * 3. 计算每行可容纳的列数：可用宽度 / 卡片宽度
+ * 4. 计算居中 margins：两侧留白相同保证卡片居中
+ * 5. 计算每页可容纳的层数：页面高度 / 卡片高度
+ * 6. 根据每页容量对数据进行分组
+ */
 const init = () => {
   const cellWidth = mmToPixel(config.width)
   const cellHeight = mmToPixel(config.height)
   pageInfo.cellWidth = cellWidth
   pageInfo.cellHeight = cellHeight
 
-  // 根据下拉选择的类型，获取页面尺寸
   const { width, height } = pageSizeInPixels(configuration.value.pageType)
   pageInfo.pageWidth = width
   pageInfo.pageHeight = height
 
-  // 先按照默认最小的margin计算出每行的列数
+  // 计算每行列数：可用宽度 / 卡片宽度（向下取整）
   const columnCount = Math.floor((width - config.margin * 2) / cellWidth)
   pageInfo.columnCount = columnCount
 
-  // 算出真实的margin值
+  // 计算居中 margins：总宽度 - 所有卡片宽度 = 剩余空间，两侧均分
   const margin = Math.floor((width - cellWidth * columnCount) / 2)
   pageInfo.margin = margin
 
-  // 每页的层数
+  // 计算每页层数：页面高度 / 卡片高度，顶部预留一半 margin 空间
   pageInfo.cellLevel = Math.floor((height - margin / 2) / cellHeight)
 
-  // 每页的数据进行分组
+  // 每页数据量 = 列数 × 层数，按此分组
   dataSource.value = groupArray(tableData.value, pageInfo.cellLevel * columnCount)
 }
 

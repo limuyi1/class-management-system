@@ -11,9 +11,11 @@ const configuration = useConfigurationStore()
 const { data: originList } = storeToRefs(store)
 const { data: config } = storeToRefs(configuration)
 
+type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info'
+
 interface Props {
   downloadFileName: string
-  tagType: string // 'primary' | 'success' | 'warning' | 'danger' | 'info'
+  tagType: TagType
   condition: Function
 }
 

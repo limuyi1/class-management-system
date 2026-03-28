@@ -3,10 +3,10 @@ import domtoimage from 'dom-to-image'
 import { ElLoading } from 'element-plus'
 
 /**
- * 导出图片
- * @param data 表格数据
- * @param imageName 图片名称
- * @param scale 放大倍数
+ * 将表格数据导出为图片
+ * @param data 二维数组，第一行为表头，后续为数据行
+ * @param imageName 导出图片的文件名，默认为 image.png
+ * @param scale 导出缩放比例，默认为 2（提高清晰度）
  */
 const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: number = 2) => {
   const loading = ElLoading.service({
@@ -22,7 +22,6 @@ const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: numb
   const worksheet = XLSX.utils.aoa_to_sheet(data)
   element.innerHTML = XLSX.utils.sheet_to_html(worksheet)
 
-  // 设置表格样式
   const selectorTable = element.querySelector('table')
   selectorTable?.setAttribute('border', '1')
   selectorTable?.setAttribute('cellspacing', '0')
@@ -34,8 +33,8 @@ const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: numb
       height: element?.offsetHeight * scale,
       bgcolor: '#FFFFFF',
       style: {
-        transform: `scale(${scale})`, // 放大元素倍数，提高清晰度
-        transformOrigin: '0 0' // 指定变换的原点
+        transform: `scale(${scale})`,
+        transformOrigin: '0 0'
       }
     })
     .then((dataUrl: string) => {
@@ -52,11 +51,11 @@ const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: numb
 }
 
 /**
- * 导出excel
- * @param headerData
- * @param bodyData
- * @param fileName
- * @param file
+ * 导出 Excel 文件
+ * @param headerData 表头数组，如 ['序号', '姓名', '分数']
+ * @param bodyData 数据二维数组
+ * @param fileName 导出文件名，默认为当前日期时间
+ * @param file 预先构建好的工作簿对象，用于多 sheet 导出
  */
 const exportExcel = (
   headerData?: string[],
@@ -100,8 +99,9 @@ const exportExcel = (
 }
 
 /**
- * 解析表格数据
- * @param file 文件
+ * 解析 Excel 文件，提取表头和数据集
+ * @param file 文件对象，通常来自 el-upload 的 file.raw
+ * @returns 包含 header（表头数组）和 data（数据数组）的对象
  */
 const parseExcel = async (file: any) => {
   const dataBinary = await new Promise((resolve) => {
@@ -115,7 +115,6 @@ const parseExcel = async (file: any) => {
   const workBook = XLSX.read(dataBinary, { type: 'binary', cellDates: true })
   const firstWorkSheet = workBook.Sheets[workBook.SheetNames[0]]
 
-  // 分为第一行的数据，和第一行下方的数据
   const header = getRow(firstWorkSheet)
   const data = XLSX.utils.sheet_to_json(firstWorkSheet)
 
@@ -123,9 +122,10 @@ const parseExcel = async (file: any) => {
 }
 
 /**
- * 获得行数据
- * @param sheet
- * @param row
+ * 解析获取 Excel 工作表指定行的数据
+ * @param sheet 工作表对象
+ * @param row 指定行索引，默认为第一行（表头行）
+ * @returns 该行的数据数组
  */
 const getRow = (sheet: any, row?: number) => {
   const headers = [] // 定义数组，用于存放解析好的数据

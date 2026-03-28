@@ -77,7 +77,7 @@ const getStyle = computed(() => {
 </script>
 
 <template>
-  <el-tooltip :content="content" placement="top" :disabled="!isEllipsis">
+  <el-tooltip :content="String(content)" placement="top" :disabled="!isEllipsis">
     <div ref="text" :class="['overlength-text-tooltip', customClass]" :style="getStyle">
       {{ content }}
     </div>

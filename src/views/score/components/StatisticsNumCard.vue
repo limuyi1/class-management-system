@@ -140,18 +140,8 @@ watch(
 const copyToClipboard = () => {
   if (!scoreStats.value) return
 
-  const {
-    maxScore,
-    maxScoreCount,
-    topStudents,
-    minScore,
-    minScoreCount,
-    bottomStudents,
-    ranges,
-    lowScoreRanges,
-    avgScore,
-    totalCount
-  } = scoreStats.value
+  const { maxScore, maxScoreCount, topStudents, ranges, lowScoreRanges, avgScore, totalCount } =
+    scoreStats.value
 
   let text = `成绩分布统计（共${totalCount}人）\n`
   text += `最高分：${maxScore}分（${maxScoreCount}人）${topStudents.join('、')}\n`

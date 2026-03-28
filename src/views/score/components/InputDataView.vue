@@ -2,14 +2,13 @@
 import { computed, ref } from 'vue'
 
 import InputCard from '@/views/score/components/InputCard.vue'
+import { useProgress } from '@/hooks/useProgress'
 
 import { useDataSourceStore } from '@/stores/data-source'
-import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 import { storeToRefs } from 'pinia'
 
 const store = useDataSourceStore()
-const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
 const { data: originList } = storeToRefs(store)
 const { data: config } = storeToRefs(configuration)
@@ -18,56 +17,32 @@ const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
 const emit = defineEmits(['scroll'])
 
-const percentage = computed(() => {
-  const count = originList.value.length
-  if (count === 0 || !config.value.inputScoreTab) return 0
-  const notEmptyCount = originList.value.filter((item: any) => {
-    const element = item[config.value.inputScoreTab]
-    return element !== null && element !== '' && !isNaN(element)
-  }).length
-
-  return Number((notEmptyCount / count).toFixed(2)) * 100
+const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
+  data: originList,
+  getValue: (item: any) => (config.value.inputScoreTab ? item[config.value.inputScoreTab] : null)
 })
 
-/**
- * 颜色
- * @param percentage
- */
-const colorFun = (percentage: number) => {
-  // return `rgba(82, 155, 46, ${percentage / 100})`
-  return `rgba(82, 155, 46, 1)`
-}
-
-/**
- * 进度值
- * @param percentage
- */
-const progressTextFormat = (percentage: number) => {
-  return `完成率：${percentage.toFixed(0)}%`
-}
-
-/**
- * 获取未输入分数的列表
- */
 const hasNullScoreList = computed(() => {
-  if (!config.value.inputScoreTab) return []
+  const scoreTab = config.value.inputScoreTab
+  if (!scoreTab) return []
   return originList.value.filter((e: any) => {
-    const element = e[config.value.inputScoreTab]
+    const element = e[scoreTab]
     return element === null || isNaN(element) || element === '' || element === undefined
   })
 })
 
-/**
- * 自动聚焦
- */
+const colorFun = () => {
+  return `rgba(82, 155, 46, 1)`
+}
+
+const progressTextFormat = (percentage: number) => {
+  return `完成率：${percentage.toFixed(0)}%`
+}
+
 const autoFocus = () => {
   inputCardRef.value?.autoFocus()
 }
 
-/**
- * 编辑数据
- * @param data
- */
 const editData = (data: any) => {
   inputCardRef.value?.editData(data)
 }
@@ -104,7 +79,7 @@ defineExpose({
         <template #reference>
           <div class="unfinished-hint" v-if="hasNullScoreList.length">
             <font-awesome-icon :icon="['solid', 'circle-exclamation']" />
-            <span>还有 {{ hasNullScoreList.length }} 人未录入</span>
+            <span>还有 {{ notCompletedCountValue }} 人未录入</span>
           </div>
           <div class="unfinished-hint success" v-else>
             <font-awesome-icon :icon="['solid', 'circle-check']" />

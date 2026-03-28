@@ -96,7 +96,7 @@ const generateAdditionAndSubtractionExpressions = () => {
 const getRandomInteger = (
   min: number,
   max: number,
-  condition: (res: number) => boolean = (res: number) => false
+  condition: (_res: number) => boolean = () => false
 ) => {
   let result
   do {

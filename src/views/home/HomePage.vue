@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
+import PageHeader from '@/components/PageHeader.vue'
+
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 
@@ -24,15 +26,7 @@ const isNotEmpty = computed(() => store.data?.length)
 
 <template>
   <div class="home-page">
-    <div class="home-page-header">
-      <div class="header-icon">
-        <font-awesome-icon :icon="['solid', 'users']" />
-      </div>
-      <div class="header-text">
-        <h2>学生信息</h2>
-        <p>双击单元格编辑学生信息</p>
-      </div>
-    </div>
+    <page-header :icon="['solid', 'users']" title="学生信息" subtitle="双击单元格编辑学生信息" />
     <div class="home-page-content" v-if="isNotEmpty">
       <vxe-table
         ref="tableRef"
@@ -77,42 +71,6 @@ const isNotEmpty = computed(() => store.data?.length)
   padding: 8px;
   box-sizing: border-box;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
-}
-
-.home-page-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-  padding: 16px 20px;
-  background: var(--theme-gradient);
-  border-radius: 12px;
-  color: #fff;
-
-  .header-icon {
-    width: 44px;
-    height: 44px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    font-size: 22px;
-  }
-
-  .header-text {
-    h2 {
-      margin: 0 0 2px 0;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    p {
-      margin: 0;
-      font-size: 13px;
-      opacity: 0.85;
-    }
-  }
 }
 
 .home-page-content {

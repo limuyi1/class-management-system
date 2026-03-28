@@ -34,22 +34,16 @@ const formData = reactive({
   comment: null as string | null
 })
 
+const currentSelectedIndex = ref<number | null>(null)
+
 onMounted(() => {
   autoFocus()
 })
 
-/**
- * 自动聚焦
- */
 const autoFocus = () => {
-  // 姓名获取焦点
   nameInputRef.value.focus()
 }
 
-/**
- * 姓名搜索方法
- * @param query
- */
 const remoteMethod = (query: string) => {
   if (query) {
     options.value = originList.value.filter(
@@ -60,28 +54,25 @@ const remoteMethod = (query: string) => {
   }
 }
 
-/**
- * 姓名选择方法
- * @param index
- */
 const selectChange = (index: number) => {
-  if (index) {
-    useEnterUp('stuName', () => {
-      const item = originList.value[index - 1]
-
-      formData.id = index
-      formData.name = item.xing4_ming2
-      formData.score = config.value.inputScoreTab ? item[config.value.inputScoreTab] : null
-      formData.comment = item.comment || null
-
-      // 表格滚动到相应姓名的位置
-      emit('scroll', index)
-
-      scoreInputRef.value?.focus()
-      commentInputRef.value?.focus()
-    })
-  }
+  currentSelectedIndex.value = index
 }
+
+useEnterUp('stuName', () => {
+  if (!currentSelectedIndex.value) return
+  const index = currentSelectedIndex.value
+  const item = originList.value[index - 1]
+
+  formData.id = index
+  formData.name = item.xing4_ming2
+  formData.score = config.value.inputScoreTab ? item[config.value.inputScoreTab] : null
+  formData.comment = item.comment || null
+
+  emit('scroll', index)
+
+  scoreInputRef.value?.focus()
+  commentInputRef.value?.focus()
+})
 
 /**
  * 提交方法
