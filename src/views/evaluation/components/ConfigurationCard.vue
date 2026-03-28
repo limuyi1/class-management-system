@@ -55,7 +55,6 @@ const fontChange = (fontSize?: number) => {
           <el-input
             style="width: 100%"
             v-model="formData.inscribe"
-            size="small"
             show-word-limit
             :minlength="1"
             :maxlength="6"

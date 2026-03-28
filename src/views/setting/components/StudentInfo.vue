@@ -22,6 +22,11 @@ const { tagCategory: categories, tags: tagOptions } = storeToRefs(settingStore)
 
 const tableRef = ref()
 
+/**
+ * 计算级联选择器选项
+ * 将标签分类和标签转换为级联选择器可用的格式
+ * 用于标签编辑对话框中的级联选择器
+ */
 const cascaderOptions = computed(() => {
   return categories.value.map((cat) => ({
     value: cat.prop,
@@ -33,6 +38,12 @@ const cascaderOptions = computed(() => {
   }))
 })
 
+/**
+ * 从学生行数据中提取标签信息（用于显示）
+ * 将行数据的 tags 对象转换为 { label: string, category: string } 数组
+ * @param row - 学生行数据对象
+ * @returns 标签信息数组，包含标签名和所属分类
+ */
 const getRowTags = (row: any): { label: string; category: string }[] => {
   if (!row.tags) return []
   const result: { label: string; category: string }[] = []
@@ -47,6 +58,12 @@ const getRowTags = (row: any): { label: string; category: string }[] => {
   return result
 }
 
+/**
+ * 从学生行数据中提取标签值（用于级联选择器编辑）
+ * 将行数据的 tags 对象转换为级联选择器需要的二维数组格式
+ * @param row - 学生行数据对象
+ * @returns 二维数组，格式为 [[分类prop, 标签名], ...]
+ */
 const getRowTagsValue = (row: any): string[][] => {
   if (!row.tags) return []
   const result: string[][] = []
@@ -58,6 +75,10 @@ const getRowTagsValue = (row: any): string[][] => {
   return result
 }
 
+/**
+ * 标签颜色变量列表
+ * 对应 CSS 变量中的主题色，用于不同分类的标签显示
+ */
 const tagColorVars = [
   'var(--theme-tag-1)',
   'var(--theme-tag-2)',
@@ -69,6 +90,12 @@ const tagColorVars = [
   'var(--theme-tag-8)'
 ]
 
+/**
+ * 根据分类名称获取对应的标签颜色
+ * 通过分类在分类列表中的索引映射到颜色变量
+ * @param category - 分类显示名称
+ * @returns 对应的 CSS 变量颜色值
+ */
 const getTagColor = (category: string) => {
   const catIndex = categories.value.findIndex((c) => c.label === category)
   return tagColorVars[catIndex % tagColorVars.length]
@@ -79,18 +106,30 @@ const batchDrawerVisible = ref(false)
 const currentEditRow = ref<any>(null)
 const currentCascaderValue = ref<string[][]>([])
 
+/**
+ * 打开单行标签编辑对话框
+ * @param row - 当前编辑的学生行数据
+ */
 const openTagEditor = (row: any) => {
   currentEditRow.value = row
   currentCascaderValue.value = getRowTagsValue(row)
   dialogVisible.value = true
 }
 
+/**
+ * 关闭标签编辑对话框
+ * 重置对话框状态
+ */
 const closeTagEditor = () => {
   dialogVisible.value = false
   currentEditRow.value = null
   currentCascaderValue.value = []
 }
 
+/**
+ * 确认标签修改并保存
+ * 将级联选择器的选择结果转换为 tags 格式并保存到行数据
+ */
 const confirmTagEdit = () => {
   if (!currentEditRow.value) return
   const tags: Record<string, string[]> = {}
@@ -106,6 +145,10 @@ const studentList = ref<any[]>([])
 const currentIndex = ref(0)
 const currentStudentTags = ref<Set<string>>(new Set())
 
+/**
+ * 已标记标签的学生数量
+ * 用于批量编辑时显示进度
+ */
 const taggedStudentCount = computed(() => {
   return studentList.value.filter((student) => {
     if (!student.tags) return false
@@ -116,6 +159,10 @@ const taggedStudentCount = computed(() => {
   }).length
 })
 
+/**
+ * 标签总数
+ * 所有分类下的标签数量之和
+ */
 const totalTagCount = computed(() => {
   let count = 0
   for (const cat of categories.value) {
@@ -125,8 +172,15 @@ const totalTagCount = computed(() => {
   return count
 })
 
+/**
+ * 获取当前正在编辑的学生
+ */
 const getCurrentStudent = () => studentList.value[currentIndex.value]
 
+/**
+ * 加载当前学生的已有标签
+ * 将学生数据的 tags 解析为 Set 格式，用于批量编辑界面的标签选择状态
+ */
 const loadCurrentStudentTags = () => {
   const student = getCurrentStudent()
   if (!student) return
@@ -141,6 +195,10 @@ const loadCurrentStudentTags = () => {
   currentStudentTags.value = tagSet
 }
 
+/**
+ * 切换标签的选中状态
+ * @param tag - 标签名称
+ */
 const toggleTag = (tag: string) => {
   if (currentStudentTags.value.has(tag)) {
     currentStudentTags.value.delete(tag)
@@ -149,8 +207,18 @@ const toggleTag = (tag: string) => {
   }
 }
 
+/**
+ * 检查标签是否被选中
+ * @param tag - 标签名称
+ * @returns 是否选中
+ */
 const isTagSelected = (tag: string) => currentStudentTags.value.has(tag)
 
+/**
+ * 保存当前学生的标签到数据中
+ * 将当前选中的标签反向查找对应的分类，并保存到学生数据
+ * @returns 是否发生了实际修改
+ */
 const saveCurrentTags = () => {
   const student = getCurrentStudent()
   if (!student) return false
@@ -177,6 +245,10 @@ const saveCurrentTags = () => {
   return false
 }
 
+/**
+ * 打开批量打标签抽屉
+ * 初始化学生列表和当前索引，准备进行批量标签编辑
+ */
 const openBatchEditor = () => {
   studentList.value = [...tableData.value]
   currentIndex.value = 0
@@ -184,6 +256,10 @@ const openBatchEditor = () => {
   batchDrawerVisible.value = true
 }
 
+/**
+ * 关闭批量打标签抽屉
+ * 清理相关状态数据
+ */
 const closeBatchEditor = () => {
   batchDrawerVisible.value = false
   studentList.value = []
@@ -191,11 +267,19 @@ const closeBatchEditor = () => {
   currentStudentTags.value = new Set()
 }
 
+/**
+ * 跳转到标签维护页面
+ * 关闭当前抽屉后导航到标签维护设置
+ */
 const goToLabelMaintenance = () => {
   closeBatchEditor()
   router.push({ path: '/setting', query: { tab: 'label-maintenance' } })
 }
 
+/**
+ * 批量编辑中跳转到上一个学生
+ * 循环回到最后一个学生
+ */
 const goToPrevStudent = () => {
   if (currentIndex.value > 0) {
     currentIndex.value--
@@ -206,6 +290,10 @@ const goToPrevStudent = () => {
   }
 }
 
+/**
+ * 批量编辑中跳转到下一个学生
+ * 保存当前学生标签后移动到下一个，编辑完成后关闭抽屉
+ */
 const goToNextStudent = () => {
   saveCurrentTags()
 
@@ -217,6 +305,10 @@ const goToNextStudent = () => {
   }
 }
 
+/**
+ * 确认并关闭批量编辑
+ * 先保存当前学生的标签，然后关闭抽屉
+ */
 const confirmAndClose = () => {
   saveCurrentTags()
   closeBatchEditor()
@@ -317,6 +409,22 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
       break
   }
 }
+
+/**
+ * 按学生姓名打开标签编辑对话框
+ * 从学生数据中查找对应姓名的学生并打开单行编辑dialog
+ * @param name - 学生姓名
+ */
+const openTagEditorByName = (name: string) => {
+  const student = tableData.value.find((item) => item.xing4_ming2 === name)
+  if (student) {
+    openTagEditor(student)
+  }
+}
+
+defineExpose({
+  openTagEditorByName
+})
 </script>
 
 <template>

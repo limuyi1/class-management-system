@@ -7,6 +7,14 @@ import { useConfigurationStore } from '@/stores/configuration'
 const store = useConfigurationStore()
 const { data: configuration } = storeToRefs(store)
 
+/**
+ * 点击评语卡片回调
+ * 触发后会激活右侧输入区进行评语编辑
+ */
+const emit = defineEmits<{
+  click: [row: any]
+}>()
+
 interface PageInoType {
   pageWidth: number
   pageHeight: number
@@ -32,6 +40,12 @@ const props = withDefaults(defineProps<Props>(), {
   })
 })
 
+/**
+ * 格式化评语文本
+ * 将换行符转换为 HTML <br /> 标签，使其在表格中正确显示
+ * @param str - 原始评语字符串
+ * @returns 格式化后的 HTML 字符串
+ */
 const getEvaluationText = (str: string | undefined | null) => {
   if (str) return str.replace(/\n/g, '<br />')
   return ''
@@ -64,6 +78,7 @@ const cellStyle = computed(() => ({
                 :key="e"
                 class="table-cell"
                 :style="cellStyle"
+                @click="emit('click', data[index + e - 1])"
               >
                 <div class="cell-content" :style="{ fontSize: configuration.fontSize + 'px' }">
                   <div
@@ -139,13 +154,19 @@ const cellStyle = computed(() => ({
   :deep(.table-cell) {
     border-bottom: 1px dashed #000;
     border-right: 1px dashed #000;
-    box-sizing: border-box !important; // 高度包含padding/border
-    padding: 8px !important; // 明确padding，避免浏览器默认值
-    vertical-align: top !important; // 取消垂直居中，避免额外高度
-    line-height: normal !important; // 重置行高
-    min-height: 0 !important; // 移除最小高度限制
-    height: v-bind('props.pageInfo.cellHeight + "px"') !important; // 强制锁定高度
+    box-sizing: border-box !important;
+    padding: 8px !important;
+    vertical-align: top !important;
+    line-height: normal !important;
+    min-height: 0 !important;
+    height: v-bind('props.pageInfo.cellHeight + "px"') !important;
     overflow: hidden;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: #f0f9ff;
+    }
   }
 
   // 内容区仅撑满td，不额外增高

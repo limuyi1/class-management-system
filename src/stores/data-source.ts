@@ -1,13 +1,29 @@
 import { defineStore, storeToRefs } from 'pinia'
 import { useConfigurationStore } from '@/stores/configuration'
 
+/**
+ * 学生数据源状态管理
+ * 负责存储学生数据并提供成绩统计分析计算
+ */
 export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
+      /**
+       * 学生数据数组
+       * 每个元素代表一个学生的完整信息，包括：
+       * - xing4_ming2: 姓名（必填）
+       * - [prop]: 各科成绩（动态列，prop 为拼音格式）
+       * - comment: 期末评语
+       * - tags: 标签映射 { [分类prop]: [标签数组] }
+       */
       data: [] as Array<any>
     }
   },
   getters: {
+    /**
+     * 获取指定学生的当前录入分数
+     * @returns 返回一个函数，传入学生对象返回对应分数
+     */
     getScore() {
       return (item: any): number | null => {
         const configuration = useConfigurationStore()
@@ -16,39 +32,68 @@ export const useDataSourceStore = defineStore('dataSource', {
         return item[config.value.inputScoreTab]
       }
     },
+    /**
+     * 获取所有有效成绩（过滤掉 null 和 undefined）
+     */
     validScores(): number[] {
       return this.data
         .map((item: any) => this.getScore(item))
         .filter((s: any): s is number => s !== null && s !== undefined)
     },
+    /**
+     * 学生总数
+     */
     totalCount: (state) => state.data.length as number,
+    /**
+     * 有效成绩数量（有分数的学生人数）
+     */
     validCount(): number {
       return this.validScores.length
     },
+    /**
+     * 平均分
+     * 计算所有有效成绩的平均值
+     */
     average(): number {
       const scores = this.validScores
       if (scores.length === 0) return 0
       const sum = scores.reduce((acc: number, cur: number) => acc + cur, 0)
       return sum / scores.length
     },
+    /**
+     * 及格率
+     * 分数 >= 60 分的学生占比
+     */
     passRate(): number {
       const scores = this.validScores
       if (scores.length === 0) return 0
       const passCount = scores.filter((s: number) => s >= 60).length
       return (passCount / scores.length) * 100
     },
+    /**
+     * 优秀率
+     * 分数 >= 80 分的学生占比
+     */
     excellentRate(): number {
       const scores = this.validScores
       if (scores.length === 0) return 0
       const excellentCount = scores.filter((s: number) => s >= 80).length
       return (excellentCount / scores.length) * 100
     },
+    /**
+     * 最高分率
+     * 分数 >= 95 分的学生占比（用于综合评分加分项）
+     */
     optimumRate(): number {
       const scores = this.validScores
       if (scores.length === 0) return 0
       const optimumCount = scores.filter((s: number) => s >= 95).length
       return (optimumCount / scores.length) * 100
     },
+    /**
+     * 低分率
+     * 分数 <= 40 分的学生占比（用于综合评分减分项）
+     */
     lowScoreRate(): number {
       const scores = this.validScores
       if (scores.length === 0) return 0
@@ -56,7 +101,7 @@ export const useDataSourceStore = defineStore('dataSource', {
       return (lowCount / scores.length) * 100
     },
     /**
-     * 综合评分计算公式
+     * 综合评分
      * 综合评分 = 平均分×0.4 + 及格率×0.3 + 优秀率×0.3 + 最高分率×0.05 - 低分率×0.05
      * 权重说明：
      * - 平均分占40%，反映整体水平
@@ -75,6 +120,10 @@ export const useDataSourceStore = defineStore('dataSource', {
         (this.lowScoreRate / 100) * 0.05
       )
     },
+    /**
+     * 是否存在任何成绩数据
+     * 用于判断是否显示成绩相关功能
+     */
     hasAnyScore(): boolean {
       return this.validCount > 0
     }

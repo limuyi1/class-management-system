@@ -10,16 +10,28 @@ import StudentInfo from '@/views/setting/components/StudentInfo.vue'
 const route = useRoute()
 const router = useRouter()
 const activeTab = ref('student-info')
+const studentInfoRef = ref<InstanceType<typeof StudentInfo>>()
 
 watch(
   () => route.query,
   (query) => {
+    // 先更新 activeTab，确保与 query 参数一致
     if (
       query.tab === 'student-info' ||
       query.tab === 'label-maintenance' ||
       query.tab === 'unit-config'
     ) {
       activeTab.value = query.tab
+    }
+
+    // 监听编辑标签参数，自动打开对应学生的标签编辑dialog
+    if (query['edit-tags'] === '1' && query['student-name']) {
+      // 延迟执行确保组件已挂载
+      setTimeout(() => {
+        studentInfoRef.value?.openTagEditorByName(query['student-name'] as string)
+        // 清除 query 参数避免重复触发
+        router.replace({ path: '/setting', query: { tab: activeTab.value } })
+      }, 100)
     }
   },
   { immediate: true }
@@ -41,7 +53,7 @@ watch(activeTab, (newTab) => {
           </span>
         </template>
         <div class="tab-content">
-          <student-info />
+          <student-info ref="studentInfoRef" />
         </div>
       </el-tab-pane>
       <el-tab-pane name="label-maintenance">

@@ -1,14 +1,22 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { match } from 'pinyin-pro'
 import { storeToRefs } from 'pinia'
+import { useRouter } from 'vue-router'
 
 import { useEnterUp } from '@/hooks/useEnterUp'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
+import { useSettingStore } from '@/stores/setting'
 
 import { InputEnum } from '@/types/Common'
 
+const router = useRouter()
+
+/**
+ * 输入卡片属性
+ * @property type - 输入类型，SCORE 表示分数录入，COMMENT 表示评语录入
+ */
 interface Props {
   type?: InputEnum
 }
@@ -22,11 +30,59 @@ const store = useDataSourceStore()
 const { data: originList } = storeToRefs(store)
 const configuration = useConfigurationStore()
 const { data: config } = storeToRefs(configuration)
+const settingStore = useSettingStore()
+const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
+
+/**
+ * 当前选中学生的标签
+ * 从学生数据的 tags 字段读取，格式：{ [分类prop]: [标签数组] }
+ * 没有 tags 字段时返回空对象，保证标签区域能够正常显示
+ */
+const currentStudentTags = computed(() => {
+  if (!formData.id) return null
+  const item = originList.value[formData.id - 1]
+  return item?.tags || {}
+})
+
+/**
+ * 当前学生是否有任何标签
+ * 遍历所有标签分类，检查是否有任何标签被设置
+ */
+const hasAnyTags = computed(() => {
+  const tags = currentStudentTags.value
+  if (!tags || Object.keys(tags).length === 0) return false
+  for (const cat of tagCategoryList.value) {
+    const tagList = tags[cat.prop]
+    if (tagList && tagList.length > 0) return true
+  }
+  return false
+})
+
+/**
+ * 跳转到设置页面编辑标签
+ * 打开对应学生的单行标签编辑dialog
+ */
+const goToEditTags = () => {
+  if (!formData.name) return
+  router.push({
+    path: '/setting',
+    query: {
+      tab: 'student-info',
+      'edit-tags': '1',
+      'student-name': formData.name
+    }
+  })
+}
 
 const options = ref<any[]>([])
 const nameInputRef = ref()
 const scoreInputRef = ref()
 const commentInputRef = ref()
+
+/**
+ * 表单数据
+ * 包含：id（学生索引）, name（姓名）, score（分数）, comment（评语）
+ */
 const formData = reactive({
   id: null as number | null,
   name: '',
@@ -34,16 +90,29 @@ const formData = reactive({
   comment: null as string | null
 })
 
+/**
+ * 当前选中的学生索引
+ * 用于回车提交时定位学生数据
+ */
 const currentSelectedIndex = ref<number | null>(null)
 
 onMounted(() => {
   autoFocus()
 })
 
+/**
+ * 自动聚焦到姓名输入框
+ * 组件挂载时自动聚焦，方便用户直接输入
+ */
 const autoFocus = () => {
   nameInputRef.value.focus()
 }
 
+/**
+ * 远程搜索方法 - 拼音模糊匹配学生姓名
+ * 使用 pinyin-pro 库实现中文拼音匹配
+ * @param query - 输入的搜索关键词
+ */
 const remoteMethod = (query: string) => {
   if (query) {
     options.value = originList.value.filter(
@@ -54,13 +123,13 @@ const remoteMethod = (query: string) => {
   }
 }
 
-const selectChange = (index: number) => {
-  currentSelectedIndex.value = index
-}
-
-useEnterUp('stuName', () => {
-  if (!currentSelectedIndex.value) return
-  const index = currentSelectedIndex.value
+/**
+ * 填充学生数据到表单
+ * 选中或回车选择学生后，自动填充该学生的已有数据并聚焦到对应输入框
+ * @param index - 选中的学生索引（1-based），可能为 null
+ */
+const fillStudentData = (index: number | null) => {
+  if (!index) return
   const item = originList.value[index - 1]
 
   formData.id = index
@@ -70,12 +139,34 @@ useEnterUp('stuName', () => {
 
   emit('scroll', index)
 
-  scoreInputRef.value?.focus()
-  commentInputRef.value?.focus()
+  if (props.type === InputEnum.COMMENT) {
+    commentInputRef.value?.focus()
+  } else {
+    scoreInputRef.value?.focus()
+  }
+}
+
+/**
+ * 选择学生后的处理
+ * 记录当前选中的学生索引，并填充数据到表单
+ * @param index - 选中的学生索引（1-based）
+ */
+const selectChange = (index: number) => {
+  currentSelectedIndex.value = index
+  fillStudentData(index)
+}
+
+/**
+ * 回车键提交处理
+ * 选中学生后按回车，填充该学生的已有数据
+ */
+useEnterUp('stuName', () => {
+  fillStudentData(currentSelectedIndex.value)
 })
 
 /**
- * 提交方法
+ * 提交分数或评语
+ * 将表单数据保存到学生数据中，并重置表单状态
  */
 const onSubmit = () => {
   if (!formData.id) return
@@ -104,8 +195,9 @@ const onSubmit = () => {
 }
 
 /**
- * 编辑数据
- * @param data
+ * 编辑已有数据
+ * 从表格行点击触发，加载对应学生的数据到表单
+ * @param data - 学生行数据对象
  */
 const editData = (data: any) => {
   remoteMethod(data.xing4_ming2)
@@ -118,8 +210,12 @@ const editData = (data: any) => {
   formData.score = config.value.inputScoreTab ? data[config.value.inputScoreTab] : null
   formData.comment = data.comment || null
 
-  // 重新聚焦到分数输入框
-  scoreInputRef.value?.focus()
+  // 根据类型聚焦到对应输入框
+  if (props.type === InputEnum.COMMENT) {
+    commentInputRef.value?.focus()
+  } else {
+    scoreInputRef.value?.focus()
+  }
 }
 
 defineExpose({ editData, autoFocus })
@@ -167,6 +263,33 @@ defineExpose({ editData, autoFocus })
             placeholder="0~100分"
             @keyup.enter="onSubmit"
           />
+        </el-form-item>
+        <el-form-item
+          v-if="props.type === InputEnum.COMMENT && currentStudentTags"
+          label="学生标签"
+        >
+          <div v-if="hasAnyTags" class="student-tags" @click="goToEditTags">
+            <div
+              v-for="cat in tagCategoryList.filter((c) => currentStudentTags[c.prop]?.length)"
+              :key="cat.prop"
+              class="tag-category"
+            >
+              <span class="category-label">{{ cat.label }}：</span>
+              <el-tag
+                v-for="tag in currentStudentTags[cat.prop]"
+                :key="tag"
+                size="small"
+                type="success"
+                class="student-tag"
+              >
+                {{ tag }}
+              </el-tag>
+            </div>
+          </div>
+          <div v-else class="empty-tags-tip" @click="goToEditTags">
+            <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
+            <span>暂无标签，点击添加</span>
+          </div>
         </el-form-item>
         <el-form-item v-if="props.type === InputEnum.COMMENT" label="学生评语">
           <el-input
@@ -260,5 +383,60 @@ defineExpose({ editData, autoFocus })
 
 :deep(.el-textarea__inner) {
   border-radius: 6px;
+}
+
+.student-tags {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #f8fafc;
+  border-radius: 6px;
+  padding: 8px 10px;
+
+  .tag-category {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 12px;
+
+    .category-label {
+      color: #64748b;
+      font-weight: 500;
+      min-width: 42px;
+    }
+
+    .student-tag {
+      margin-right: 0;
+    }
+
+    .no-tag {
+      color: #94a3b8;
+      font-size: 11px;
+    }
+  }
+}
+
+.empty-tags-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #fef3c7;
+  border: 1px dashed #f59e0b;
+  border-radius: 6px;
+  color: #d97706;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #fde68a;
+    border-color: #f59e0b;
+  }
+
+  svg {
+    font-size: 14px;
+  }
 }
 </style>

@@ -9,6 +9,22 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { mmToPixel, pageSizeInPixels } from '@/untils/pageSizeInPixelUntil'
 
+/**
+ * 点击评语卡片回调
+ * 通知父组件激活对应学生的评语编辑
+ */
+const emit = defineEmits<{
+  cardClick: [row: any]
+}>()
+
+/**
+ * 处理卡片点击事件
+ * @param row - 被点击的学生行数据
+ */
+const handleCardClick = (row: any) => {
+  emit('cardClick', row)
+}
+
 const store = useDataSourceStore()
 const { data: tableData } = storeToRefs(store)
 
@@ -80,6 +96,13 @@ const init = () => {
   dataSource.value = groupArray(tableData.value, pageInfo.cellLevel * columnCount)
 }
 
+/**
+ * 数组分组
+ * 将一维数组按指定大小分割为二维数组
+ * @param array - 待分割的数组
+ * @param groupSize - 每组元素数量
+ * @returns 分组后的二维数组
+ */
 const groupArray = (array: any[], groupSize: number) => {
   let groups = []
   for (let i = 0; i < array.length; i += groupSize) {
@@ -122,6 +145,7 @@ defineExpose({ scroll })
         :page-info="pageInfo"
         :data="data"
         :key="index"
+        @click="handleCardClick"
       />
     </div>
   </el-scrollbar>

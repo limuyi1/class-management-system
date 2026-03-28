@@ -27,8 +27,18 @@ const autoFocus = () => {
   inputCardRef.value?.autoFocus()
 }
 
+/**
+ * 填充学生数据到输入框
+ * 点击左侧评语卡片时调用，自动选中该学生并聚焦评语输入框
+ * @param row - 学生行数据
+ */
+const fillStudentData = (row: any) => {
+  inputCardRef.value?.editData(row)
+}
+
 defineExpose({
-  autoFocus
+  autoFocus,
+  fillStudentData
 })
 </script>
 

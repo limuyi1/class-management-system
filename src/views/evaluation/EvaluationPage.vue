@@ -13,6 +13,15 @@ const autoFocus = () => {
   toolPanelViewRef.value?.autoFocus()
 }
 
+/**
+ * 处理评语卡片点击事件
+ * 点击左侧学生评语卡片时，激活右侧输入区进行编辑
+ * @param row - 被点击的学生行数据
+ */
+const handleCardClick = (row: any) => {
+  toolPanelViewRef.value?.fillStudentData(row)
+}
+
 defineExpose({ autoFocus })
 </script>
 
@@ -25,7 +34,7 @@ defineExpose({ autoFocus })
     />
     <div class="evaluation-page-content">
       <div class="evaluation-page-left">
-        <evaluation-table-view ref="evaluationTableViewRef" />
+        <evaluation-table-view ref="evaluationTableViewRef" @card-click="handleCardClick" />
       </div>
       <div class="evaluation-page-right">
         <el-scrollbar>

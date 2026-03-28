@@ -27,7 +27,10 @@ const menuData = computed(() => {
   })
 })
 
-onMounted(() => {
+/**
+ * 根据当前路由更新菜单选中状态
+ */
+const updateActivePath = () => {
   const currentPath = router.currentRoute.value?.path
   if (currentPath === '/empty' || (!hasData.value && currentPath === '/home')) {
     activePath.value = '/empty'
@@ -36,7 +39,7 @@ onMounted(() => {
   } else {
     activePath.value = currentPath || data[0].path
   }
-})
+}
 
 watch(
   tableData,
@@ -47,6 +50,17 @@ watch(
     }
   },
   { deep: true }
+)
+
+// 监听路由变化，更新菜单选中状态
+watch(
+  () => router.currentRoute.value.path,
+  () => {
+    updateActivePath()
+  },
+  {
+    immediate: true
+  }
 )
 
 const handleMenuClick = (item: any) => {
