@@ -2,7 +2,8 @@
 import * as XLSX from 'xlsx'
 import { storeToRefs } from 'pinia'
 
-import { exportExcel } from '@/untils/xlsxUntil'
+import { exportExcel } from '@/utils/xlsxUntil'
+import { passingScoreRanges, lowScoreRanges } from '@/config/score'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -14,15 +15,9 @@ const { data: originList } = storeToRefs(store)
 const { data: config } = storeToRefs(configuration)
 
 /**
- * 分数分布区间配置
+ * 分数分布区间配置（合并及格区间和低分区间）
  */
-const scoreRanges = [
-  { label: '90-100分', min: 90, max: 100 },
-  { label: '80-89分', min: 80, max: 89 },
-  { label: '70-79分', min: 70, max: 79 },
-  { label: '60-69分', min: 60, max: 69 },
-  { label: '60分以下', min: 0, max: 59 }
-]
+const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max: 59 }]
 
 /**
  * 获取当前选中列的分数值

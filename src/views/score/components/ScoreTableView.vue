@@ -8,6 +8,7 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 import { getScoreColor as getScoreColorConfig } from '@/config/score'
+import { delay } from '@/utils/commonUntil'
 
 const emit = defineEmits(['edit'])
 
@@ -102,14 +103,6 @@ const rowBlink = async (index: number) => {
       await delay(300)
     }
   }
-}
-
-/**
- * 等待函数
- * @param ms
- */
-const delay = (ms: number) => {
-  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 /**

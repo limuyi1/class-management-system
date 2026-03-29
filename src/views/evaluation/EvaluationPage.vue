@@ -13,7 +13,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { generateBatchComments } from '@/ai/aiService'
-import { exportPDF } from '@/untils/pdfUntil'
+import { exportPDF } from '@/utils/pdfUntil'
 
 /**
  * 期末评语管理页面

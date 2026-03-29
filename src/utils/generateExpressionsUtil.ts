@@ -41,8 +41,6 @@ const generateAdditionAndSubtractionExpressions = () => {
     num2 = getRandomInteger(3, 99, (res) => {
       calc = eval(`${num1} ${op1} ${res}`)
 
-      // console.info(calc, `${num1} ${op1} ${res}`, 'calc1----')
-
       // 整十、个位小于num1的个位
       return res % 10 === 0 || getDigit(res) + getDigit(num1) <= 10 || getDigit(calc) === 1
     })
@@ -53,8 +51,6 @@ const generateAdditionAndSubtractionExpressions = () => {
     })
     num2 = getRandomInteger(11, num1, (res) => {
       calc = eval(`${num1} ${op1} ${res}`)
-
-      // console.info(calc, `${num1} ${op1} ${res}`, 'calc2----')
 
       // 整十、等于num1、个位小于等于num1的个位、差不能出现个位为1、差小于11
       return (

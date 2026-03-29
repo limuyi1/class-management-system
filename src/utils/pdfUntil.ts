@@ -33,8 +33,6 @@ const exportPDF = async (
       orientation: 'portrait',
       unit: 'px',
       format: pageType
-      // compress: true, // 压缩文档
-      // precision: 16 // 浮点数的精度
     })
 
     for (const [index, ref] of Array.from(refs).entries()) {

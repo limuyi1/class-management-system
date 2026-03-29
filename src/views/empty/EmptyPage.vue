@@ -11,7 +11,7 @@ import { useThemeStore } from '@/stores/theme'
 import { ElMessage } from 'element-plus'
 import { pinyin } from 'pinyin-pro'
 import { storeToRefs } from 'pinia'
-import { parseExcel } from '@/untils/xlsxUntil'
+import { parseExcel } from '@/utils/xlsxUntil'
 
 interface BackupData {
   version: number

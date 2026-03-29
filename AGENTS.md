@@ -114,7 +114,7 @@ src/
 ├── router/          # Vue Router config
 ├── stores/          # Pinia stores
 ├── types/           # TypeScript interfaces & enums
-├── untils/          # Utility modules (intentionally named "untils")
+├── utils/           # Utility modules
 ├── views/           # Page components (home/, score/, evaluation/, setting/, main/)
 ├── App.vue
 └── main.ts
@@ -122,7 +122,7 @@ src/
 
 ## Important Notes
 
-- `untils/` is intentionally named (not "utils") — do not rename
+- `utils/` - 工具函数目录 — do not rename
 - Build output goes to `docs/` directory
 - Hash-based routing (`/#/home`, `#/math`, etc.)
 - Environment variables prefixed with `VITE_`

@@ -3,7 +3,7 @@ import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
-import { xlsxToImage } from '@/untils/xlsxUntil'
+import { xlsxToImage } from '@/utils/xlsxUntil'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()

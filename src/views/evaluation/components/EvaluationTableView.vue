@@ -7,7 +7,8 @@ import EvaluationCard from '@/views/evaluation/components/EvaluationCard.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
-import { mmToPixel, pageSizeInPixels } from '@/untils/pageSizeInPixelUntil'
+import { mmToPixel, pageSizeInPixels } from '@/utils/pageSizeInPixelUntil'
+import { groupArray } from '@/utils/commonUntil'
 
 /**
  * 点击评语卡片回调
@@ -94,21 +95,6 @@ const init = () => {
 
   // 每页数据量 = 列数 × 层数，按此分组
   dataSource.value = groupArray(tableData.value, pageInfo.cellLevel * columnCount)
-}
-
-/**
- * 数组分组
- * 将一维数组按指定大小分割为二维数组
- * @param array - 待分割的数组
- * @param groupSize - 每组元素数量
- * @returns 分组后的二维数组
- */
-const groupArray = (array: any[], groupSize: number) => {
-  let groups = []
-  for (let i = 0; i < array.length; i += groupSize) {
-    groups.push(array.slice(i, i + groupSize))
-  }
-  return groups
 }
 
 /**
