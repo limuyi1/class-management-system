@@ -8,6 +8,7 @@ import UnitConfiguration from '@/views/setting/components/UnitConfiguration.vue'
 import StudentInfo from '@/views/setting/components/StudentInfo.vue'
 import AIConfiguration from '@/views/setting/components/AIConfiguration.vue'
 import ImportExport from '@/views/setting/components/ImportExport.vue'
+import QuestionTypeMaintenance from '@/views/wrong-book/components/QuestionTypeMaintenance.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,7 +24,8 @@ watch(
       query.tab === 'label-maintenance' ||
       query.tab === 'unit-config' ||
       query.tab === 'ai-config' ||
-      query.tab === 'system-backup'
+      query.tab === 'system-backup' ||
+      query.tab === 'question-type'
     ) {
       activeTab.value = query.tab
     }
@@ -91,6 +93,17 @@ watch(activeTab, (newTab) => {
         </template>
         <div class="tab-content">
           <a-i-configuration />
+        </div>
+      </el-tab-pane>
+      <el-tab-pane name="question-type">
+        <template #label>
+          <span class="custom-tabs-label">
+            <font-awesome-icon :icon="['solid', 'list-alt']" />
+            <span>题型管理</span>
+          </span>
+        </template>
+        <div class="tab-content">
+          <question-type-maintenance />
         </div>
       </el-tab-pane>
       <el-tab-pane name="system-backup">

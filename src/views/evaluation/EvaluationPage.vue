@@ -134,12 +134,14 @@ defineExpose({ autoFocus })
       <template #right>
         <el-tooltip content="AI 批量生成评语" placement="top">
           <el-button size="small" circle :loading="batchGenerating" @click="handleBatchGenerate">
-            <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
+            <template #icon
+              ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+            /></template>
           </el-button>
         </el-tooltip>
         <el-tooltip content="导出PDF" placement="top">
           <el-button size="small" circle @click="handleExportPDF">
-            <font-awesome-icon :icon="['solid', 'print']" />
+            <template #icon><font-awesome-icon :icon="['solid', 'print']" /></template>
           </el-button>
         </el-tooltip>
       </template>

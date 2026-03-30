@@ -357,3 +357,241 @@ export async function generateTags(
     return []
   }
 }
+
+interface QuestionResult {
+  question: string
+  answer: string
+  explanation?: string
+  questionType?: string
+  hasImage: boolean
+}
+
+interface AnswerGenerateResult {
+  answer: string
+  explanation: string
+}
+
+/**
+ * 从图片中识别错题题目
+ * 使用 AI 视觉能力识别图片中的题目信息
+ * @param imageBase64 - 图片的 Base64 编码
+ * @param config - AI 配置信息
+ * @returns 识别结果，包含题目、答案、解析、题型等
+ */
+export async function recognizeQuestionFromImage(
+  imageBase64: string,
+  config: AIServiceConfig
+): Promise<QuestionResult> {
+  const prompt = `你是一个智能题目录入助手。请仔细识别图片中的数学题目，并按以下JSON格式返回结果：
+{
+  "question": "题目内容",
+  "answer": "答案",
+  "explanation": "解析（可选）",
+  "questionType": "题型，如：选择题、填空题、解答题、应用题、计算题等",
+  "hasImage": true/false - 图片中是否包含重要的图形、图像、图表等（几何题、函数图像等必须标为true）
+}
+注意：
+1. 如果图片中有几何图形、函数图像、图表等，请确保在hasImage字段返回true
+2. 如果图片不清晰或无法识别，请返回合理的默认值
+3. 题目内容请保持原文，只提取文字部分，不要包含图片描述
+4. 如果有多个题目，请只返回第一个题目的信息
+5. 返回的内容为标准的markdown格式
+6. 公式使用 $formula$ 格式（这是 LaTeX 公式标记，会在后续渲染）`
+
+  if (config.modelType === AIModelTypeEnum.GEMINI) {
+    const genAI = new GoogleGenerativeAI(config.apiKey)
+    const model = genAI.getGenerativeModel({ model: config.model || 'gemini-2.0-flash' })
+
+    const imagePart = {
+      inlineData: {
+        data: imageBase64,
+        mimeType: 'image/png'
+      }
+    }
+
+    const result = await model.generateContent([prompt, imagePart])
+    const responseText = result.response.text()
+
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        console.error('No JSON found in response:', responseText)
+        return {
+          question: responseText,
+          answer: '',
+          hasImage: false
+        }
+      }
+
+      const parsed = JSON.parse(jsonMatch[0])
+      return {
+        question: parsed.question || '',
+        answer: parsed.answer || '',
+        explanation: parsed.explanation,
+        questionType: parsed.questionType,
+        hasImage: parsed.hasImage ?? false
+      }
+    } catch (error) {
+      console.error('Failed to parse image recognition response:', error)
+      return {
+        question: '',
+        answer: '',
+        hasImage: false
+      }
+    }
+  }
+
+  const data = await openaiFetch(config, '/chat/completions', {
+    model: config.model,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } }
+        ]
+      }
+    ],
+    temperature: 0.3
+  })
+
+  const responseText = data.choices[0]?.message?.content || '{}'
+
+  try {
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', responseText)
+      return {
+        question: responseText,
+        answer: '',
+        hasImage: false
+      }
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    return {
+      question: parsed.question || '',
+      answer: parsed.answer || '',
+      explanation: parsed.explanation,
+      questionType: parsed.questionType,
+      hasImage: parsed.hasImage ?? false
+    }
+  } catch (error) {
+    console.error('Failed to parse image recognition response:', error)
+    return {
+      question: '',
+      answer: '',
+      hasImage: false
+    }
+  }
+}
+
+/**
+ * 从题目内容和图片生成答案和解析
+ * 使用 AI 分析题目并生成详细的答案和解析
+ * @param questionText - 题目文本内容
+ * @param questionImages - 题目图片 Base64 数组
+ * @param config - AI 配置信息
+ * @returns 生成的答案和解析
+ */
+export async function generateAnswerFromQuestion(
+  questionText: string,
+  questionImages: string[],
+  config: AIServiceConfig
+): Promise<AnswerGenerateResult> {
+  const imageHint = questionImages.length > 0 ? '（题目包含图片，请结合图片理解题目）' : ''
+
+  const defaultPrompt = `你是一位专业的小学数学老师。请根据以下题目内容，生成详细的答案和解析。
+
+题目：{{question}}
+{{imageHint}}
+
+请返回JSON格式：
+{
+  "answer": "答案内容",
+  "explanation": "详细解析，包含解题步骤和思路"
+}
+
+要求：
+1. 答案要准确、简洁
+2. 解析要详细，包含解题步骤和思路分析
+3. 如果是选择题或填空题，直接给出答案
+4. 如果是解答题，要给出完整解题过程
+5. 使用通俗易懂的语言，符合小学生认知水平
+6. 适当使用数学公式（用LaTeX格式表示）
+7. 仅返回JSON对象，不要有其他文字`
+
+  const prompt = replaceTemplate(config.prompts?.answerGenerate || defaultPrompt, {
+    question: questionText,
+    imageHint
+  })
+
+  if (config.modelType === AIModelTypeEnum.GEMINI) {
+    const genAI = new GoogleGenerativeAI(config.apiKey)
+    const model = genAI.getGenerativeModel({ model: config.model || 'gemini-2.0-flash' })
+
+    const contents: any[] = [prompt]
+    for (const img of questionImages) {
+      contents.push({
+        inlineData: {
+          data: img,
+          mimeType: 'image/png'
+        }
+      })
+    }
+
+    const result = await model.generateContent(contents)
+    const responseText = result.response.text()
+
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+      if (!jsonMatch) {
+        console.error('No JSON found in response:', responseText)
+        return { answer: '', explanation: '' }
+      }
+
+      const parsed = JSON.parse(jsonMatch[0])
+      return {
+        answer: parsed.answer || '',
+        explanation: parsed.explanation || ''
+      }
+    } catch (error) {
+      console.error('Failed to parse answer generation response:', error)
+      return { answer: '', explanation: '' }
+    }
+  }
+
+  const messages: any[] = []
+  const userContent: any[] = [{ type: 'text', text: prompt }]
+
+  for (const img of questionImages) {
+    userContent.push({ type: 'image_url', image_url: { url: `data:image/png;base64,${img}` } })
+  }
+
+  messages.push({ role: 'user', content: userContent })
+
+  const data = await openaiFetch(config, '/chat/completions', {
+    model: config.model,
+    messages,
+    temperature: 0.3
+  })
+
+  const responseText = data.choices[0]?.message?.content || '{}'
+
+  try {
+    const jsonMatch = responseText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      console.error('No JSON found in response:', responseText)
+      return { answer: '', explanation: '' }
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    return {
+      answer: parsed.answer || '',
+      explanation: parsed.explanation || ''
+    }
+  } catch (error) {
+    console.error('Failed to parse answer generation response:', error)
+    return { answer: '', explanation: '' }
+  }
+}

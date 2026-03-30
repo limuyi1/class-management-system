@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useTransition } from '@vueuse/core'
-import DownloadBtn from '@/views/score/components/DownloadBtn.vue'
 
 import { storeToRefs } from 'pinia'
 

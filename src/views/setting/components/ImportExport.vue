@@ -3,12 +3,15 @@ import { ref } from 'vue'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
+import JSZip from 'jszip'
+import { saveAs } from 'file-saver'
 
 import { useSettingStore } from '@/stores/setting'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useThemeStore } from '@/stores/theme'
+import { useWrongBookStore } from '@/stores/wrong-book'
 
 interface BackupData {
   version: number
@@ -32,6 +35,11 @@ interface BackupData {
   }
   theme: {
     currentTheme: string
+  }
+  wrongBook: {
+    folders: any[]
+    questions: any[]
+    questionTypes: Array<{ value: string; label: string }>
   }
 }
 
@@ -59,6 +67,11 @@ interface DiffResult {
     modified: number
   }
   aiConfig: { hasDiff: boolean; diffFields: string[] }
+  wrongBook: {
+    folders: { current: number; backup: number }
+    questions: { current: number; backup: number }
+    questionTypes: { current: number; backup: number }
+  }
 }
 
 const settingStore = useSettingStore()
@@ -66,12 +79,14 @@ const dataSourceStore = useDataSourceStore()
 const configurationStore = useConfigurationStore()
 const aiConfigStore = useAIConfigStore()
 const themeStore = useThemeStore()
+const wrongBookStore = useWrongBookStore()
 
 const { tableHeaders, tagCategory, tags } = storeToRefs(settingStore)
 const { data } = storeToRefs(dataSourceStore)
 const { data: configuration } = storeToRefs(configurationStore)
 const { modelType, model, apiKey, baseUrl, prompts, availableModels } = storeToRefs(aiConfigStore)
 const { currentTheme } = storeToRefs(themeStore)
+const { folders, questions, questionTypes } = storeToRefs(wrongBookStore)
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const importing = ref(false)
@@ -79,8 +94,10 @@ const diffResult = ref<DiffResult | null>(null)
 const showDiffDialog = ref(false)
 const backupData = ref<BackupData | null>(null)
 
-const exportBackup = () => {
-  const backup: BackupData = {
+const exportBackup = async () => {
+  const zip = new JSZip()
+
+  const backupData = {
     version: 1,
     exportTime: new Date().toISOString(),
     setting: {
@@ -102,18 +119,38 @@ const exportBackup = () => {
     },
     theme: {
       currentTheme: currentTheme.value
+    },
+    wrongBook: {
+      folders: JSON.parse(JSON.stringify(folders.value)),
+      questionTypes: JSON.parse(JSON.stringify(questionTypes.value))
     }
   }
 
-  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `class-management-backup-${new Date().toISOString().slice(0, 10)}.json`
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  zip.file('data.json', JSON.stringify(backupData, null, 2))
+
+  const questionsCopy = JSON.parse(JSON.stringify(questions.value))
+  const imagesFolder = zip.folder('images')
+
+  for (let i = 0; i < questionsCopy.length; i++) {
+    const q = questionsCopy[i]
+    if (q.questionImages && q.questionImages.length > 0) {
+      const newImages: string[] = []
+      for (let j = 0; j < q.questionImages.length; j++) {
+        const img = q.questionImages[j]
+        const ext = 'png'
+        const fileName = `q${i}_${j}.${ext}`
+        const base64Data = img.replace(/^data:image\/\w+;base64,/, '')
+        imagesFolder?.file(fileName, base64Data, { base64: true })
+        newImages.push(fileName)
+      }
+      q.questionImages = newImages
+    }
+  }
+
+  zip.file('questions.json', JSON.stringify(questionsCopy, null, 2))
+
+  const content = await zip.generateAsync({ type: 'blob' })
+  saveAs(content, `class-management-backup-${new Date().toISOString().slice(0, 10)}.zip`)
 
   ElMessage.success('导出成功！')
 }
@@ -132,7 +169,12 @@ const compareData = (backup: BackupData): DiffResult => {
       tagDetails: []
     },
     dataSource: { currentCount: 0, backupCount: 0, added: 0, removed: 0, modified: 0 },
-    aiConfig: { hasDiff: false, diffFields: [] }
+    aiConfig: { hasDiff: false, diffFields: [] },
+    wrongBook: {
+      folders: { current: 0, backup: 0 },
+      questions: { current: 0, backup: 0 },
+      questionTypes: { current: 0, backup: 0 }
+    }
   }
 
   const currentHeaders = tableHeaders.value
@@ -234,6 +276,14 @@ const compareData = (backup: BackupData): DiffResult => {
   result.aiConfig.hasDiff = diffFields.length > 0
   result.aiConfig.diffFields = diffFields
 
+  const backupWrongBook = backup.wrongBook || { folders: [], questions: [], questionTypes: [] }
+  result.wrongBook.folders.current = folders.value.length
+  result.wrongBook.folders.backup = backupWrongBook.folders?.length || 0
+  result.wrongBook.questions.current = questions.value.length
+  result.wrongBook.questions.backup = backupWrongBook.questions?.length || 0
+  result.wrongBook.questionTypes.current = questionTypes.value.length
+  result.wrongBook.questionTypes.backup = backupWrongBook.questionTypes?.length || 0
+
   result.hasDiff =
     result.setting.tableHeaders.added > 0 ||
     result.setting.tableHeaders.removed > 0 ||
@@ -245,10 +295,21 @@ const compareData = (backup: BackupData): DiffResult => {
     result.dataSource.added > 0 ||
     result.dataSource.removed > 0 ||
     result.dataSource.modified > 0 ||
-    result.aiConfig.hasDiff
+    result.aiConfig.hasDiff ||
+    result.wrongBook.folders.current !== result.wrongBook.folders.backup ||
+    result.wrongBook.questions.current !== result.wrongBook.questions.backup ||
+    result.wrongBook.questionTypes.current !== result.wrongBook.questionTypes.backup
 
   return result
 }
+
+interface BackupDataCache {
+  data: any
+  questions: any[]
+  images: Record<string, string>
+}
+
+const backupCache = ref<BackupDataCache | null>(null)
 
 const handleFileChange = async (event: Event) => {
   const target = event.target as HTMLInputElement
@@ -256,26 +317,80 @@ const handleFileChange = async (event: Event) => {
   if (!file) return
 
   importing.value = true
+  backupData.value = null
+  backupCache.value = null
 
   try {
-    const text = await file.text()
-    const backup = JSON.parse(text) as BackupData
+    const isZip = file.name.endsWith('.zip')
 
-    if (!backup.version || !backup.setting || !backup.dataSource) {
-      ElMessage.error('无效的备份文件格式')
-      return
-    }
+    if (isZip) {
+      const arrayBuffer = await file.arrayBuffer()
+      const zip = await JSZip.loadAsync(arrayBuffer)
 
-    backupData.value = backup
-    diffResult.value = compareData(backup)
+      const dataJson = await zip.file('data.json')?.async('string')
+      const questionsJson = await zip.file('questions.json')?.async('string')
 
-    if (diffResult.value.hasDiff) {
-      showDiffDialog.value = true
+      if (!dataJson) {
+        ElMessage.error('无效的 ZIP 备份文件，缺少 data.json')
+        return
+      }
+
+      const backup = JSON.parse(dataJson) as BackupData
+      const questions = questionsJson ? JSON.parse(questionsJson) : []
+
+      if (!backup.wrongBook) {
+        backup.wrongBook = { folders: [], questions: [], questionTypes: [] }
+      }
+      backup.wrongBook.questions = questions
+
+      const images: Record<string, string> = {}
+      const imageFiles = zip.file(/^images\//)
+      for (const imgFile of imageFiles) {
+        const fileName = imgFile.name.replace('images/', '')
+        const base64 = await imgFile.async('base64')
+        images[fileName] = `data:image/png;base64,${base64}`
+      }
+
+      backupCache.value = {
+        data: backup,
+        questions,
+        images
+      }
+
+      backupData.value = backup
+      diffResult.value = compareData(backup)
+
+      if (diffResult.value.hasDiff) {
+        showDiffDialog.value = true
+      } else {
+        await confirmImport('当前数据与备份一致，是否仍要导入？')
+      }
     } else {
-      await confirmImport('当前数据与备份一致，是否仍要导入？')
+      const text = await file.text()
+      const backup = JSON.parse(text) as BackupData
+
+      if (!backup.version || !backup.setting || !backup.dataSource) {
+        ElMessage.error('无效的备份文件格式')
+        return
+      }
+
+      backupData.value = backup
+      backupCache.value = {
+        data: backup,
+        questions: backup.wrongBook?.questions || [],
+        images: {}
+      }
+      diffResult.value = compareData(backup)
+
+      if (diffResult.value.hasDiff) {
+        showDiffDialog.value = true
+      } else {
+        await confirmImport('当前数据与备份一致，是否仍要导入？')
+      }
     }
-  } catch {
-    ElMessage.error('解析文件失败，请确保是有效的 JSON 文件')
+  } catch (e) {
+    console.error('解析文件失败:', e)
+    ElMessage.error('解析文件失败，请确保是有效的备份文件')
   } finally {
     target.value = ''
     importing.value = false
@@ -311,10 +426,29 @@ const confirmImport = async (message: string = '导入将覆盖当前所有数�
 
     themeStore.setTheme(backup.theme.currentTheme as any)
 
+    if (backup.wrongBook) {
+      folders.value = backup.wrongBook.folders || []
+      questionTypes.value = backup.wrongBook.questionTypes || []
+    }
+
+    if (backupCache.value?.questions) {
+      const restoredQuestions = backupCache.value.questions.map((q: any) => {
+        if (q.questionImages && q.questionImages.length > 0) {
+          const restoredImages = q.questionImages.map((imgName: string) => {
+            return backupCache.value?.images[imgName] || imgName
+          })
+          return { ...q, questionImages: restoredImages }
+        }
+        return q
+      })
+      questions.value = restoredQuestions
+    }
+
     ElMessage.success('导入成功！')
     showDiffDialog.value = false
     diffResult.value = null
     backupData.value = null
+    backupCache.value = null
   } catch {
     // user cancel
   }
@@ -342,10 +476,10 @@ const cancelImport = () => {
           </div>
           <div class="action-info">
             <div class="action-label">导出备份</div>
-            <div class="action-desc">将当前所有数据导出为 JSON 文件</div>
+            <div class="action-desc">将当前所有数据导出为 ZIP 文件（推荐，包含图片）</div>
           </div>
           <el-button type="primary" size="large" @click="exportBackup">
-            <font-awesome-icon :icon="['solid', 'download']" />
+            <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
             导出
           </el-button>
         </div>
@@ -358,16 +492,16 @@ const cancelImport = () => {
           </div>
           <div class="action-info">
             <div class="action-label">导入备份</div>
-            <div class="action-desc">从 JSON 备份文件恢复数据</div>
+            <div class="action-desc">从 JSON 或 ZIP 备份文件恢复数据</div>
           </div>
           <el-button type="success" size="large" @click="triggerImport" :loading="importing">
-            <font-awesome-icon :icon="['solid', 'upload']" />
+            <template #icon><font-awesome-icon :icon="['solid', 'upload']" /></template>
             导入
           </el-button>
           <input
             ref="fileInput"
             type="file"
-            accept=".json"
+            accept=".json,.zip"
             style="display: none"
             @change="handleFileChange"
           />
@@ -495,6 +629,36 @@ const cancelImport = () => {
             </div>
             <div class="diff-col">
               <span>{{ diffResult.aiConfig.diffFields.join('、') }}</span>
+            </div>
+          </div>
+
+          <div class="diff-row">
+            <div class="diff-col diff-col-title">错题本-文件夹</div>
+            <div class="diff-col">
+              <span>{{ diffResult.wrongBook.folders.current }} 个</span>
+            </div>
+            <div class="diff-col">
+              <span>{{ diffResult.wrongBook.folders.backup }} 个</span>
+            </div>
+          </div>
+
+          <div class="diff-row">
+            <div class="diff-col diff-col-title">错题本-错题</div>
+            <div class="diff-col">
+              <span>{{ diffResult.wrongBook.questions.current }} 道</span>
+            </div>
+            <div class="diff-col">
+              <span>{{ diffResult.wrongBook.questions.backup }} 道</span>
+            </div>
+          </div>
+
+          <div class="diff-row">
+            <div class="diff-col diff-col-title">错题本-题型</div>
+            <div class="diff-col">
+              <span>{{ diffResult.wrongBook.questionTypes.current }} 种</span>
+            </div>
+            <div class="diff-col">
+              <span>{{ diffResult.wrongBook.questionTypes.backup }} 种</span>
             </div>
           </div>
         </div>

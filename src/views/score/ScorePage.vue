@@ -136,7 +136,7 @@ defineExpose({ autoFocus })
       <template #right>
         <el-tooltip content="上传图片识别成绩" placement="top">
           <el-button size="small" circle :loading="uploading" @click="handleUploadClick">
-            <font-awesome-icon :icon="['solid', 'camera']" />
+            <template #icon><font-awesome-icon :icon="['solid', 'camera']" /></template>
           </el-button>
         </el-tooltip>
         <download-btn />

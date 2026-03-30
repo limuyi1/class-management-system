@@ -278,7 +278,7 @@ const handleAddSelectedTags = () => {
           @blur="handleInputConfirm"
         />
         <el-button v-else dashed @click="showInput">
-          <font-awesome-icon :icon="['solid', 'plus']" />
+          <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
           <span>添加标签</span>
         </el-button>
       </div>
@@ -307,7 +307,7 @@ const handleAddSelectedTags = () => {
       <el-form-item v-if="generatedTags.length > 0" label="选择要添加的标签">
         <div class="select-all-wrapper">
           <el-button size="small" type="primary" link @click="selectedTags = [...generatedTags]">
-            <font-awesome-icon :icon="['solid', 'check-double']" />
+            <template #icon><font-awesome-icon :icon="['solid', 'check-double']" /></template>
             全选
           </el-button>
           <el-button size="small" type="info" link @click="selectedTags = []"> 取消全选 </el-button>

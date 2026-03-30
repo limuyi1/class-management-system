@@ -20,10 +20,6 @@ const { data: tableData } = storeToRefs(store)
 const { tableHeaders: headers } = storeToRefs(settingStore)
 const { tagCategory: categories, tags: tagOptions } = storeToRefs(settingStore)
 
-const toggleDisabled = (row: any) => {
-  row.disabled = !row.disabled
-}
-
 const deleteStudent = (row: any) => {
   const index = tableData.value.indexOf(row)
   if (index > -1) {
@@ -497,7 +493,7 @@ defineExpose({
             <div class="tags-header">
               <span>标签</span>
               <el-button type="primary" link @click.stop="openBatchEditor">
-                <font-awesome-icon :icon="['solid', 'layer-group']" />
+                <template #icon><font-awesome-icon :icon="['solid', 'layer-group']" /></template>
               </el-button>
             </div>
           </template>
@@ -630,8 +626,8 @@ defineExpose({
             :disabled="studentList.length <= 1"
             @click="goToPrevStudent"
           >
-            <font-awesome-icon :icon="['fas', 'chevron-left']" />
-            <span class="ml-1">上一个</span>
+            <template #icon><font-awesome-icon :icon="['fas', 'chevron-left']" /></template>
+            <span>上一个</span>
           </el-button>
           <span class="progress-text">{{ currentIndex + 1 }} / {{ studentList.length }}</span>
           <el-button
@@ -641,7 +637,9 @@ defineExpose({
             @click="goToNextStudent"
           >
             <span>下一个</span>
-            <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
+            <template #icon
+              ><font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1"
+            /></template>
           </el-button>
         </div>
 

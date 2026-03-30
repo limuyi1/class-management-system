@@ -16,6 +16,7 @@ declare module '*.tiff'
 
 declare module 'element-plus/dist/locale/zh-cn.mjs'
 declare module 'dom-to-image'
+declare module 'vue-cropper'
 
 declare namespace JSX {
   interface IntrinsicElements {

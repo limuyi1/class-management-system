@@ -43,6 +43,7 @@ export interface AIPromptsType {
   batchComment: string
   imageScore: string
   tagGenerate: string
+  answerGenerate: string
 }
 
 export const DefaultAIPrompts: AIPromptsType = {
@@ -91,5 +92,25 @@ export const DefaultAIPrompts: AIPromptsType = {
   tagGenerate: `请生成 {{count}} 个适合小学生的四字词语学生表现标签，可包含积极正向及委婉贬义描述（如粗心大意、声音偏小等）；
 符合 {{category}} 分类要求，若 {{requirement}} 不为空则同时满足该要求。
 仅返回标准 JSON 数组，无任何多余文字、解释或格式符号，确保可直接解析。
-返回格式示例：["标签1", "标签2", "标签3"]`
+返回格式示例：["标签1", "标签2", "标签3"]`,
+
+  answerGenerate: `你是一位专业的小学数学老师。请根据以下题目内容，生成详细的答案和解析。
+
+题目：{{question}}
+{{imageHint}}
+
+请返回JSON格式：
+{
+  "answer": "答案内容",
+  "explanation": "详细解析，包含解题步骤和思路"
+}
+
+要求：
+1. 答案要准确、简洁
+2. 解析要详细，包含解题步骤和思路分析
+3. 如果是选择题或填空题，直接给出答案
+4. 如果是解答题，要给出完整解题过程
+5. 使用通俗易懂的语言，符合小学生认知水平
+6. 适当使用数学公式（用LaTeX格式表示）
+7. 仅返回JSON对象，不要有其他文字`
 }

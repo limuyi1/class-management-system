@@ -3,7 +3,7 @@ import * as XLSX from 'xlsx'
 import { storeToRefs } from 'pinia'
 
 import { exportExcel } from '@/utils/xlsxUntil'
-import { passingScoreRanges, lowScoreRanges } from '@/config/score'
+import { passingScoreRanges } from '@/config/score'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -105,7 +105,7 @@ const exportExcelFun = () => {
 <template>
   <el-tooltip content="下载成绩" placement="top">
     <el-button size="small" circle @click="exportExcelFun">
-      <font-awesome-icon :icon="['solid', 'download']" />
+      <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
     </el-button>
   </el-tooltip>
 </template>

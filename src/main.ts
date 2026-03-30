@@ -1,4 +1,5 @@
 import 'element-plus/dist/index.css'
+import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import './assets/style/element.scss'
 import './assets/style/main.css'
 

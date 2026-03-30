@@ -18,6 +18,12 @@ const menu = [
     disabled: true
   },
   {
+    name: '错题本',
+    icon: 'clipboard-list',
+    path: '/wrong-book',
+    disabled: false
+  },
+  {
     name: '设置',
     icon: 'gear',
     path: '/setting',

@@ -145,12 +145,16 @@ const handleBackupImport = async (event: Event) => {
           accept=".xls,.xlsx"
         >
           <el-button type="primary" size="large" class="upload-btn">
-            <font-awesome-icon :icon="['solid', 'upload']" class="upload-icon" />
+            <template #icon
+              ><font-awesome-icon :icon="['solid', 'upload']" class="upload-icon"
+            /></template>
             上传学生信息
           </el-button>
         </el-upload>
         <el-button type="success" size="large" class="upload-btn" @click="triggerBackupImport">
-          <font-awesome-icon :icon="['solid', 'file-import']" class="upload-icon" />
+          <template #icon
+            ><font-awesome-icon :icon="['solid', 'file-import']" class="upload-icon"
+          /></template>
           导入备份
         </el-button>
       </div>

@@ -24,7 +24,8 @@ const promptTabs = [
   { key: 'singleComment', label: '单个评语', placeholder: DefaultAIPrompts.singleComment },
   { key: 'batchComment', label: '批量评语', placeholder: DefaultAIPrompts.batchComment },
   { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore },
-  { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate }
+  { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate },
+  { key: 'answerGenerate', label: 'AI答题', placeholder: DefaultAIPrompts.answerGenerate }
 ]
 
 const handleModelChange = async (val: AIModelTypeEnum) => {
@@ -166,7 +167,7 @@ const handleResetPrompt = () => {
                     :loading="fetchingModels"
                     @click="handleFetchModels"
                   >
-                    <font-awesome-icon :icon="['solid', 'rotate']" />
+                    <template #icon><font-awesome-icon :icon="['solid', 'rotate']" /></template>
                   </el-button>
                 </el-tooltip>
               </div>
@@ -199,7 +200,7 @@ const handleResetPrompt = () => {
                 @click="handleTestConnection"
                 style="width: 100%"
               >
-                <font-awesome-icon :icon="['solid', 'plug']" />
+                <template #icon><font-awesome-icon :icon="['solid', 'plug']" /></template>
                 测试连接
               </el-button>
             </el-form-item>
@@ -214,7 +215,7 @@ const handleResetPrompt = () => {
               <font-awesome-icon :icon="['solid', 'file-lines']" />
               <span>提示词配置</span>
               <el-button type="primary" size="small" text @click="handleResetPrompt">
-                <font-awesome-icon :icon="['solid', 'rotate-left']" />
+                <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
                 重置
               </el-button>
             </div>

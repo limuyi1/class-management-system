@@ -369,7 +369,9 @@ defineExpose({ editData, autoFocus })
                 :loading="generating"
                 @click="handleGenerateComment"
               >
-                <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
+                <template #icon
+                  ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+                /></template>
                 AI 生成评语
               </el-button>
             </div>
@@ -385,7 +387,7 @@ defineExpose({ editData, autoFocus })
             :disabled="!formData.id"
             @click="onSubmit"
           >
-            <font-awesome-icon :icon="['solid', 'paper-plane']" />
+            <template #icon><font-awesome-icon :icon="['solid', 'paper-plane']" /></template>
             提 交
           </el-button>
         </el-form-item>

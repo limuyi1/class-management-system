@@ -235,7 +235,7 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
         <span>分数分布</span>
       </div>
       <el-button type="primary" size="small" round @click="copyToClipboard" v-if="scoreStats">
-        <font-awesome-icon :icon="['solid', 'copy']" />
+        <template #icon><font-awesome-icon :icon="['solid', 'copy']" /></template>
         复制
       </el-button>
     </div>
@@ -338,7 +338,7 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
         </div>
         <el-dropdown trigger="hover">
           <el-button type="primary" size="small" round>
-            <font-awesome-icon :icon="['solid', 'download']" />
+            <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
             下载
           </el-button>
           <template #dropdown>
