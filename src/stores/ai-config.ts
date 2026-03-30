@@ -5,17 +5,22 @@ import {
   AIModelDefaultBaseUrls,
   AIModelDefaultModels,
   DefaultAIPrompts,
+  type AIConfigType,
   type AIPromptsType
 } from '@/types/AIConfig'
 
+interface AIConfigState extends AIConfigType {
+  availableModels: string[]
+}
+
 export const useAIConfigStore = defineStore('aiConfig', {
-  state: () => ({
-    modelType: AIModelTypeEnum.GEMINI as AIModelTypeEnum,
+  state: (): AIConfigState => ({
+    modelType: AIModelTypeEnum.GEMINI,
     model: AIModelDefaultModels[AIModelTypeEnum.GEMINI],
     apiKey: '',
     baseUrl: AIModelDefaultBaseUrls[AIModelTypeEnum.GEMINI],
-    prompts: { ...DefaultAIPrompts } as AIPromptsType,
-    availableModels: [] as string[]
+    prompts: { ...DefaultAIPrompts },
+    availableModels: []
   }),
   getters: {
     isConfigured: (state) => {
@@ -36,7 +41,7 @@ export const useAIConfigStore = defineStore('aiConfig', {
       this.availableModels = models
     },
     updatePrompts(prompts: Partial<AIPromptsType>) {
-      this.prompts = { ...this.prompts, ...prompts }
+      this.prompts = { ...DefaultAIPrompts, ...this.prompts, ...prompts }
     },
     resetPrompts() {
       this.prompts = { ...DefaultAIPrompts }

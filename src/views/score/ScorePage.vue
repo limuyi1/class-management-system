@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { ElMessage, ElLoading } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
+import ImageCropper from '@/components/ImageCropper.vue'
 
 import ScoreTableView from '@/views/score/components/ScoreTableView.vue'
 import InputDataView from '@/views/score/components/InputDataView.vue'
@@ -25,6 +26,8 @@ const { data: config } = storeToRefs(configuration)
 const aiConfigStore = useAIConfigStore()
 
 const uploading = ref(false)
+const cropperVisible = ref(false)
+const cropperImageSrc = ref('')
 
 const autoFocus = () => {
   inputDataRef.value?.autoFocus()
@@ -47,61 +50,77 @@ const handleUploadClick = () => {
       return
     }
 
-    uploading.value = true
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在识别成绩...'
-    })
-
     try {
       const base64 = await fileToBase64(file)
-
-      const results = await recognizeScoreFromImage(base64, aiConfigStore.prompts.imageScore, {
-        modelType: aiConfigStore.modelType,
-        model: aiConfigStore.model,
-        apiKey: aiConfigStore.apiKey,
-        baseUrl: aiConfigStore.baseUrl
-      })
-
-      if (results.length === 0) {
-        ElMessage.warning('未能识别到成绩信息')
-        return
-      }
-
-      const scoreTab = config.value.inputScoreTab
-      if (!scoreTab) {
-        ElMessage.warning('请先在设置页面选择成绩录入的单元')
-        return
-      }
-
-      let matchedCount = 0
-      let notMatched: string[] = []
-
-      for (const result of results) {
-        const student = originList.value.find((item: any) => item.xing4_ming2 === result.name)
-
-        if (student && result.score !== null) {
-          student[scoreTab] = result.score
-          matchedCount++
-        } else if (result.name) {
-          notMatched.push(result.name)
-        }
-      }
-
-      if (notMatched.length > 0) {
-        ElMessage.warning(`已匹配 ${matchedCount} 人，未找到：${notMatched.join('、')}`)
-      } else {
-        ElMessage.success(`成功识别并填充 ${matchedCount} 个成绩`)
-      }
+      const imageUrl = `data:image/png;base64,${base64}`
+      cropperImageSrc.value = imageUrl
+      cropperVisible.value = true
     } catch (error) {
-      console.error('识别成绩失败:', error)
-      ElMessage.error('识别失败：' + (error as Error).message)
-    } finally {
-      loading.close()
-      uploading.value = false
+      console.error('读取图片失败:', error)
+      ElMessage.error('读取图片失败')
     }
   }
   input.click()
+}
+
+const handleCropConfirm = async (croppedBase64: string) => {
+  cropperVisible.value = false
+  uploading.value = true
+
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在识别成绩...'
+  })
+
+  try {
+    const results = await recognizeScoreFromImage(croppedBase64, aiConfigStore.prompts.imageScore, {
+      modelType: aiConfigStore.modelType,
+      model: aiConfigStore.model,
+      apiKey: aiConfigStore.apiKey,
+      baseUrl: aiConfigStore.baseUrl
+    })
+
+    if (results.length === 0) {
+      ElMessage.warning('未能识别到成绩信息')
+      return
+    }
+
+    const scoreTab = config.value.inputScoreTab
+    if (!scoreTab) {
+      ElMessage.warning('请先在设置页面选择成绩录入的单元')
+      return
+    }
+
+    let matchedCount = 0
+    let notMatched: string[] = []
+
+    for (const result of results) {
+      const student = originList.value.find((item: any) => item.xing4_ming2 === result.name)
+
+      if (student && result.score !== null) {
+        student[scoreTab] = result.score
+        matchedCount++
+      } else if (result.name) {
+        notMatched.push(result.name)
+      }
+    }
+
+    if (notMatched.length > 0) {
+      ElMessage.warning(`已匹配 ${matchedCount} 人，未找到：${notMatched.join('、')}`)
+    } else {
+      ElMessage.success(`成功识别并填充 ${matchedCount} 个成绩`)
+    }
+  } catch (error) {
+    console.error('识别成绩失败:', error)
+    ElMessage.error('识别失败：' + (error as Error).message)
+  } finally {
+    loading.close()
+    uploading.value = false
+  }
+}
+
+const handleCropCancel = () => {
+  cropperVisible.value = false
 }
 
 defineExpose({ autoFocus })
@@ -136,6 +155,12 @@ defineExpose({ autoFocus })
         </el-scrollbar>
       </el-col>
     </el-row>
+    <image-cropper
+      v-model:visible="cropperVisible"
+      :image-src="cropperImageSrc"
+      @confirm="handleCropConfirm"
+      @cancel="handleCropCancel"
+    />
   </div>
 </template>
 

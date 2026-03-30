@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { AIModelTypeEnum, type AIModelTypeEnum as AIModelType } from '@/types/AIConfig'
+import { AIModelTypeEnum, type AIPromptsType } from '@/types/AIConfig'
 
 /**
  * AI 服务模块
@@ -7,18 +7,16 @@ import { AIModelTypeEnum, type AIModelTypeEnum as AIModelType } from '@/types/AI
  * 支持生成评语、识别图片成绩、生成标签等功能
  */
 
-/**
- * AI 配置接口
- */
-interface AIConfig {
-  modelType: AIModelType
+interface AIServiceConfig {
+  modelType: AIModelTypeEnum
   model: string
   apiKey: string
   baseUrl: string
+  prompts?: AIPromptsType
 }
 
 async function openaiFetch(
-  config: AIConfig,
+  config: AIServiceConfig,
   endpoint: string,
   body: Record<string, any>
 ): Promise<any> {
@@ -39,7 +37,7 @@ async function openaiFetch(
   return response.json()
 }
 
-async function openaiGet(config: AIConfig, endpoint: string): Promise<any> {
+async function openaiGet(config: AIServiceConfig, endpoint: string): Promise<any> {
   const url = `${config.baseUrl}${endpoint}`
   const response = await fetch(url, {
     method: 'GET',
@@ -60,7 +58,7 @@ async function openaiGet(config: AIConfig, endpoint: string): Promise<any> {
  * @param config - AI 配置信息
  * @returns 连接是否成功
  */
-export async function testAIConnection(config: AIConfig): Promise<boolean> {
+export async function testAIConnection(config: AIServiceConfig): Promise<boolean> {
   try {
     if (config.modelType === AIModelTypeEnum.GEMINI) {
       const genAI = new GoogleGenerativeAI(config.apiKey)
@@ -82,10 +80,16 @@ export async function testAIConnection(config: AIConfig): Promise<boolean> {
  * @param config - AI 配置信息
  * @returns 模型 ID 数组
  */
-export async function fetchAvailableModels(config: AIConfig): Promise<string[]> {
+export async function fetchAvailableModels(config: AIServiceConfig): Promise<string[]> {
   try {
     if (config.modelType === AIModelTypeEnum.GEMINI) {
-      return []
+      const url = `https://generativelanguage.googleapis.com/v1/models?key=${config.apiKey}`
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch Gemini models: ${response.status}`)
+      }
+      const data = await response.json()
+      return data.models?.map((m: any) => m.name.replace('models/', '')) || []
     }
 
     const data = await openaiGet(config, '/models')
@@ -140,7 +144,7 @@ function replaceTemplate(template: string, data: Record<string, any>): string {
 export async function generateSingleComment(
   student: StudentData,
   prompt: string,
-  config: AIConfig
+  config: AIServiceConfig
 ): Promise<string> {
   const promptText = replaceTemplate(prompt, {
     name: student.name,
@@ -174,7 +178,7 @@ export async function generateSingleComment(
 export async function generateBatchComments(
   students: StudentData[],
   prompt: string,
-  config: AIConfig
+  config: AIServiceConfig
 ): Promise<StudentData[]> {
   const studentsJson = JSON.stringify(students, null, 2)
   const promptText = replaceTemplate(prompt, {
@@ -238,7 +242,7 @@ interface ScoreResult {
 export async function recognizeScoreFromImage(
   imageBase64: string,
   prompt: string,
-  config: AIConfig
+  config: AIServiceConfig
 ): Promise<ScoreResult[]> {
   if (config.modelType === AIModelTypeEnum.GEMINI) {
     const genAI = new GoogleGenerativeAI(config.apiKey)
@@ -314,7 +318,7 @@ export async function generateTags(
   count: number,
   requirement: string,
   prompt: string,
-  config: AIConfig
+  config: AIServiceConfig
 ): Promise<string[]> {
   const promptText = replaceTemplate(prompt, {
     category,

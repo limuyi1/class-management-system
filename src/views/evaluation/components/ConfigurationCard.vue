@@ -137,9 +137,6 @@ const fontChange = (fontSize?: number) => {
   padding: 10px 12px;
   background: var(--theme-gradient);
   color: #fff;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
 
   .header-title {
     display: flex;
