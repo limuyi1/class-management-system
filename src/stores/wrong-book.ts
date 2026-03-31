@@ -286,6 +286,5 @@ export const useWrongBookStore = defineStore('wrongBook', {
         this.questionTypes.splice(index, 1)
       }
     }
-  },
-  persist: true
+  }
 })

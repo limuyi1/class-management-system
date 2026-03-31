@@ -27,6 +27,5 @@ export const useSettingStore = defineStore('setting', {
      */
     tags: {} as TagType
   }),
-  actions: {},
-  persist: true
+  actions: {}
 })

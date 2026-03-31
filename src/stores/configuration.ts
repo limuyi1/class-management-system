@@ -28,6 +28,5 @@ export const useConfigurationStore = defineStore('configuration', {
       this.data.classTeacherFontSize = fontSize // 班主任字号
       this.data.inscribeFontSize = fontSize // 落款字号
     }
-  },
-  persist: true
+  }
 })

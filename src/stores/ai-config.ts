@@ -46,6 +46,5 @@ export const useAIConfigStore = defineStore('aiConfig', {
     resetPrompts() {
       this.prompts = { ...DefaultAIPrompts }
     }
-  },
-  persist: true
+  }
 })

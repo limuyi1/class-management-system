@@ -27,7 +27,7 @@ const menu = [
     name: '设置',
     icon: 'gear',
     path: '/setting',
-    disabled: true
+    disabled: false
   }
 ]
 
