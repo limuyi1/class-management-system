@@ -34,8 +34,8 @@ const handleFileChange = async (event: Event) => {
   const file = target.files?.[0]
   if (!file) return
 
-  if (!file.name.endsWith('.db')) {
-    ElMessage.error('请选择 .db 格式的备份文件')
+  if (!file.name.endsWith('.dexie')) {
+    ElMessage.error('请选择 .dexie 格式的备份文件')
     target.value = ''
     return
   }
@@ -85,7 +85,7 @@ const handleClear = async () => {
           </div>
           <div class="action-info">
             <div class="action-label">导出数据</div>
-            <div class="action-desc">将所有数据导出为 .db 文件（推荐）</div>
+            <div class="action-desc">将所有数据导出为 .dexie 文件（推荐）</div>
           </div>
           <el-button type="primary" size="large" @click="handleExport" :loading="exporting">
             <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
@@ -101,7 +101,7 @@ const handleClear = async () => {
           </div>
           <div class="action-info">
             <div class="action-label">导入数据</div>
-            <div class="action-desc">从 .db 备份文件恢复所有数据</div>
+            <div class="action-desc">从 .dexie 备份文件恢复所有数据</div>
           </div>
           <el-button type="success" size="large" @click="triggerImport" :loading="importing">
             <template #icon><font-awesome-icon :icon="['solid', 'upload']" /></template>
@@ -110,7 +110,7 @@ const handleClear = async () => {
           <input
             ref="fileInput"
             type="file"
-            accept=".db"
+            accept=".dexie"
             style="display: none"
             @change="handleFileChange"
           />

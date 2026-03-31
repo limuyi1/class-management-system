@@ -24,7 +24,6 @@ import { far } from '@fortawesome/free-regular-svg-icons'
 library.add(fas, far)
 
 import { createPersistedStateDexie } from './plugins/persistDexie'
-import { migrateFromLocalStorage } from './utils/migrate'
 
 import App from './App.vue'
 import router from './router'
@@ -49,8 +48,5 @@ app.use(VxeUIAll)
 app.use(VxeUITable)
 app.use(router)
 
-migrateFromLocalStorage()
-
 useThemeStore().initTheme()
-
 app.mount('#app')

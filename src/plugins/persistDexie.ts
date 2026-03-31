@@ -2,6 +2,9 @@ import type { PiniaPluginContext } from 'pinia'
 import { db, DB_ID } from '@/db'
 import type { Table } from 'dexie'
 
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+const DEBOUNCE_DELAY = 300
+
 const tableNameMap: Record<string, Table<any>> = {
   dataSource: db.dataSource,
   wrongBook: db.wrongBook,
@@ -11,38 +14,59 @@ const tableNameMap: Record<string, Table<any>> = {
   aiConfig: db.aiConfig
 }
 
+const STORES_WITH_DATA_FIELD = ['dataSource', 'configuration']
+
 export function createPersistedStateDexie() {
-  return ({ store }: PiniaPluginContext) => {
+  return async ({ store }: PiniaPluginContext) => {
     const storeId = store.$id
+    console.log('[PersistDexie] Init store:', storeId)
     const table = tableNameMap[storeId]
+    console.log('[PersistDexie] Table:', storeId, table)
 
     if (!table) {
+      console.log('[PersistDexie] No table for:', storeId)
       return
     }
 
     const loadFromDB = async () => {
       try {
         const record = await table.get(DB_ID)
+        console.log('[PersistDexie] Load record:', storeId, record)
         if (record) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id: _id, ...state } = record as any
-          store.$patch(state)
+          console.log('[PersistDexie] Patch state:', storeId, state)
+          console.log('[PersistDexie] store.$state before:', storeId, store.$state)
+
+          if (STORES_WITH_DATA_FIELD.includes(storeId)) {
+            store.$patch({ data: state.data })
+          } else {
+            store.$patch(state)
+          }
+
+          console.log('[PersistDexie] store.$state after:', storeId, store.$state)
         }
       } catch (error) {
         console.error(`[PersistDexie] Failed to load ${storeId} from IndexedDB:`, error)
       }
     }
 
-    loadFromDB()
+    await loadFromDB()
 
     store.$subscribe(
       () => {
-        try {
-          const state = store.$state
-          table.put({ id: DB_ID, ...state } as any)
-        } catch (error) {
-          console.error(`[PersistDexie] Failed to save ${storeId} to IndexedDB:`, error)
+        if (debounceTimer) {
+          clearTimeout(debounceTimer)
         }
+        debounceTimer = setTimeout(async () => {
+          try {
+            const rawState = store.$state
+            const clonableState = JSON.parse(JSON.stringify(rawState))
+            await table.put({ id: DB_ID, ...clonableState } as any)
+          } catch (error) {
+            console.error(`[PersistDexie] Failed to save ${storeId} to IndexedDB:`, error)
+          }
+        }, DEBOUNCE_DELAY)
       },
       { deep: true }
     )

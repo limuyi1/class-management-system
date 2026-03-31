@@ -26,7 +26,7 @@ There is **no test framework** configured. Do not assume Vitest or Jest exists.
 - **Language**: TypeScript 5.3, strict mode via `@vue/tsconfig`
 - **UI**: Element Plus, VxeTable (`vxe-table`/`vxe-pc-ui`), FontAwesome
 - **Styling**: Tailwind CSS 4 + SCSS (scoped styles in SFCs)
-- **State**: Pinia + `pinia-plugin-persistedstate` (zipson serialization)
+- **State**: Pinia + `pinia-plugin-persistedstate` with Dexie
 - **Router**: Vue Router 4 with hash history (`createWebHashHistory`)
 - **Package Manager**: pnpm
 - **Path Alias**: `@` → `./src`
