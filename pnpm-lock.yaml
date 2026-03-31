@@ -35,6 +35,18 @@ importers:
       '@vxe-ui/plugin-render-element':
         specifier: ~4.1.0
         version: 4.1.0
+<<<<<<< Updated upstream
+=======
+      cropperjs:
+        specifier: ^2.1.0
+        version: 2.1.0
+      dexie:
+        specifier: ^4.4.1
+        version: 4.4.1
+      dexie-export-import:
+        specifier: ^4.4.0
+        version: 4.4.0(dexie@4.4.1)
+>>>>>>> Stashed changes
       dom-to-image:
         specifier: ^2.6.0
         version: 2.6.0
@@ -1248,6 +1260,14 @@ packages:
   detect-libc@2.1.2:
     resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
     engines: {node: '>=8'}
+
+  dexie-export-import@4.4.0:
+    resolution: {integrity: sha512-r2yvfkcwzP0klAAsiwcCtyioD9xJG0m/mELsiuJnvJ4oP74NabUBblupYtxplEwAnDxF1JzOcsoKU+srfrkyaw==}
+    peerDependencies:
+      dexie: ^4.4.0
+
+  dexie@4.4.1:
+    resolution: {integrity: sha512-4Xec5+yrS+TgyFAnMrneFOt/QG8sD3FxlkUVpfypui3SriRN80UN0SZBWmkNAY7ulfKgk0ilvv7M6pBURprdgA==}
 
   dir-glob@3.0.1:
     resolution: {integrity: sha512-WkrWp9GR4KXfKGYzOLmTuGVi1UWFfws377n9cc55/tb6DuqyF6pcQ5AbiHEshaDpY9v6oaSr2XCDidGmMwdzIA==}
@@ -3256,6 +3276,12 @@ snapshots:
     optional: true
 
   detect-libc@2.1.2: {}
+
+  dexie-export-import@4.4.0(dexie@4.4.1):
+    dependencies:
+      dexie: 4.4.1
+
+  dexie@4.4.1: {}
 
   dir-glob@3.0.1:
     dependencies:

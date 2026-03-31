@@ -22,8 +22,8 @@ import { far } from '@fortawesome/free-regular-svg-icons'
 
 library.add(fas, far)
 
-import { createPersistedState } from 'pinia-plugin-persistedstate'
-import { parse, stringify } from 'zipson'
+import { createPersistedStateDexie } from './plugins/persistDexie'
+import { migrateFromLocalStorage } from './utils/migrate'
 
 import App from './App.vue'
 import router from './router'
@@ -32,15 +32,7 @@ import { useThemeStore } from './stores/theme'
 const app = createApp(App)
 
 const pinia = createPinia()
-pinia.use(
-  createPersistedState({
-    key: (id: string) => `__scs-persisted__${id}`,
-    serializer: {
-      serialize: stringify,
-      deserialize: parse
-    }
-  })
-)
+pinia.use(createPersistedStateDexie())
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
@@ -55,6 +47,8 @@ app.use(ElementPlus, {
 app.use(VxeUIAll)
 app.use(VxeUITable)
 app.use(router)
+
+migrateFromLocalStorage()
 
 useThemeStore().initTheme()
 

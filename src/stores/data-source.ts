@@ -133,6 +133,5 @@ export const useDataSourceStore = defineStore('dataSource', {
     hasAnyScore(): boolean {
       return this.validCount > 0
     }
-  },
-  persist: true
+  }
 })
