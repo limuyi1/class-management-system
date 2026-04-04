@@ -20,6 +20,14 @@ export interface WrongFolder {
 }
 
 /**
+ * 文件夹树节点类型
+ * 用于渲染文件夹树形结构
+ */
+export interface WrongFolderTree extends WrongFolder {
+  children: WrongFolderTree[]
+}
+
+/**
  * 错题题目类型
  * 存储题目的完整信息
  */

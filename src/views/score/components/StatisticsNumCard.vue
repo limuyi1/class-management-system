@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 import domtoimage from 'dom-to-image'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
+import { useScoreStatistics } from '@/hooks/useScoreStatistics'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
@@ -13,129 +14,13 @@ const configuration = useConfigurationStore()
 const { data: originList } = storeToRefs(store)
 const { data: config } = storeToRefs(configuration)
 
-const getScore = (item: any): number | null => {
-  if (!config.value.inputScoreTab) return null
-  return item[config.value.inputScoreTab]
-}
+const studentsRef = computed(() => originList.value)
+const scorePropRef = computed(() => config.value.inputScoreTab)
 
-/**
- * 阈值输入（默认平均分）
- */
-const threshold = ref(60)
-
-/**
- * 低于阈值的学生列表
- */
-const belowThresholdStudents = computed(() => {
-  if (!config.value.inputScoreTab) return []
-  return originList.value
-    .filter((e: any) => {
-      const score = getScore(e)
-      return score !== null && score < threshold.value
-    })
-    .sort((a: any, b: any) => (getScore(a) || 0) - (getScore(b) || 0))
+const { threshold, belowThresholdStudents, scoreStats, getScore } = useScoreStatistics({
+  students: studentsRef,
+  scoreProp: scorePropRef
 })
-
-const scoreStats = computed(() => {
-  if (!config.value.inputScoreTab) return null
-
-  const scores = originList.value
-    .map((e: any) => getScore(e))
-    .filter((s): s is number => s !== null && !isNaN(s))
-
-  if (scores.length === 0) return null
-
-  const maxScore = Math.max(...scores)
-  const minScore = Math.min(...scores)
-  const avgScore = scores.reduce((a, b) => a + b, 0) / scores.length
-
-  const ranges = [
-    { label: '90-100分', min: 90, max: 100, color: '#22c55e' },
-    { label: '80-89分', min: 80, max: 89, color: '#3b82f6' },
-    { label: '70-79分', min: 70, max: 79, color: '#eab308' },
-    { label: '60-69分', min: 60, max: 69, color: '#f97316' }
-  ]
-
-  const lowScoreRanges = [
-    { label: '50-59分', min: 50, max: 59, color: '#ef4444' },
-    { label: '40-49分', min: 40, max: 49, color: '#dc2626' },
-    { label: '30-39分', min: 30, max: 39, color: '#b91c1c' },
-    { label: '20-29分', min: 20, max: 29, color: '#991b1b' },
-    { label: '10-19分', min: 10, max: 19, color: '#7f1d1d' },
-    { label: '0-9分', min: 0, max: 9, color: '#450a0a' }
-  ]
-
-  const getRangeData = (range: { min: number; max: number }) => {
-    const count = scores.filter((s) => s >= range.min && s <= range.max).length
-    const students = originList.value
-      .filter((e: any) => {
-        const score = getScore(e)
-        return score !== null && score >= range.min && score <= range.max
-      })
-      .sort((a: any, b: any) => (getScore(b) || 0) - (getScore(a) || 0))
-      .map((e: any) => e.xing4_ming2)
-    return { count, students }
-  }
-
-  const rangeData = ranges
-    .map((range) => {
-      const data = getRangeData(range)
-      return { ...range, ...data }
-    })
-    .filter((r) => r.count > 0)
-
-  const lowScoreData = lowScoreRanges
-    .map((range) => {
-      const data = getRangeData(range)
-      return { ...range, ...data }
-    })
-    .filter((r) => r.count > 0)
-
-  const topStudents = originList.value
-    .filter((e: any) => getScore(e) === maxScore)
-    .map((e: any) => e.xing4_ming2)
-
-  const bottomStudents = originList.value
-    .filter((e: any) => getScore(e) === minScore)
-    .map((e: any) => e.xing4_ming2)
-
-  const allLowScoreStudents = originList.value
-    .filter((e: any) => {
-      const score = getScore(e)
-      return score !== null && score < 60
-    })
-    .sort((a: any, b: any) => (getScore(a) || 0) - (getScore(b) || 0))
-    .map((e: any) => e.xing4_ming2)
-
-  const maxCount = Math.max(...rangeData.map((r) => r.count), 1)
-
-  return {
-    maxScore,
-    maxScoreCount: topStudents.length,
-    topStudents,
-    minScore,
-    minScoreCount: bottomStudents.length,
-    bottomStudents,
-    avgScore: avgScore.toFixed(2),
-    ranges: rangeData,
-    lowScoreRanges: lowScoreData,
-    lowScoreTotal: allLowScoreStudents.length,
-    allLowScoreStudents,
-    maxCount,
-    totalCount: scores.length
-  }
-})
-
-// 监听 scoreStats，成绩变化时自动更新阈值为平均分
-watch(
-  () => scoreStats.value,
-  (newVal) => {
-    if (newVal) {
-      threshold.value = parseFloat(newVal.avgScore)
-    }
-  },
-  { immediate: true }
-)
 
 const copyToClipboard = () => {
   if (!scoreStats.value) return
@@ -165,10 +50,6 @@ const copyToClipboard = () => {
     })
 }
 
-/**
- * 下载图片
- * @param mode 'withScore' | 'nameOnly'
- */
 const downloadImage = (mode: 'withScore' | 'nameOnly') => {
   const students = belowThresholdStudents.value
   if (students.length === 0) {
@@ -562,13 +443,13 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
         background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
 
         .item-label {
-          color: #991b1b;
+          color: #7f1d1d;
         }
         .item-value {
-          color: #dc2626;
+          color: #b91c1c;
         }
         .item-unit {
-          color: #f87171;
+          color: #991b1b;
         }
       }
 
@@ -576,13 +457,13 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
         background: #f8fafc;
 
         .item-label {
-          color: #64748b;
+          color: #475569;
         }
         .item-value {
-          color: #334155;
+          color: #1e293b;
         }
         .item-unit {
-          color: #94a3b8;
+          color: #64748b;
         }
       }
 

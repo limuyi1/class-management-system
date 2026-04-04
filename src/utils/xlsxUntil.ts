@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 import domtoimage from 'dom-to-image'
-import { ElLoading } from 'element-plus'
+import { ElLoading, ElMessage } from 'element-plus'
 
 /**
  * 将表格数据导出为图片
@@ -19,34 +19,45 @@ const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: numb
   element.setAttribute('style', 'position: absolute;top: 0;z-index: -1000;')
   document.body.appendChild(element)
 
-  const worksheet = XLSX.utils.aoa_to_sheet(data)
-  element.innerHTML = XLSX.utils.sheet_to_html(worksheet)
+  try {
+    const worksheet = XLSX.utils.aoa_to_sheet(data)
+    element.innerHTML = XLSX.utils.sheet_to_html(worksheet)
 
-  const selectorTable = element.querySelector('table')
-  selectorTable?.setAttribute('border', '1')
-  selectorTable?.setAttribute('cellspacing', '0')
+    const selectorTable = element.querySelector('table')
+    selectorTable?.setAttribute('border', '1')
+    selectorTable?.setAttribute('cellspacing', '0')
 
-  domtoimage
-    .toJpeg(element, {
-      quality: 1,
-      width: element?.offsetWidth * scale,
-      height: element?.offsetHeight * scale,
-      bgcolor: '#FFFFFF',
-      style: {
-        transform: `scale(${scale})`,
-        transformOrigin: '0 0'
-      }
-    })
-    .then((dataUrl: string) => {
-      const link = document.createElement('a')
-      link.href = dataUrl
-      link.download = imageName
-      link.click()
-    })
-    .finally(() => {
-      element.remove()
-      loading.close()
-    })
+    domtoimage
+      .toJpeg(element, {
+        quality: 1,
+        width: element?.offsetWidth * scale,
+        height: element?.offsetHeight * scale,
+        bgcolor: '#FFFFFF',
+        style: {
+          transform: `scale(${scale})`,
+          transformOrigin: '0 0'
+        }
+      })
+      .then((dataUrl: string) => {
+        const link = document.createElement('a')
+        link.href = dataUrl
+        link.download = imageName
+        link.click()
+      })
+      .catch((error: Error) => {
+        console.error('导出图片失败:', error)
+        ElMessage.error('导出图片失败')
+      })
+      .finally(() => {
+        element.remove()
+        loading.close()
+      })
+  } catch (error) {
+    console.error('生成表格失败:', error)
+    ElMessage.error('导出图片失败')
+    element.remove()
+    loading.close()
+  }
 }
 
 /**
@@ -67,34 +78,41 @@ const exportExcel = (
     text: '正在导出Excel，请稍后...'
   })
 
-  let workbook
-  if (!file && headerData && bodyData) {
-    workbook = XLSX.utils.book_new()
-    const data = [headerData, ...bodyData]
-    const worksheet = XLSX.utils.aoa_to_sheet(data)
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
-  } else {
-    workbook = file
-  }
+  try {
+    let workbook
+    if (!file && headerData && bodyData) {
+      workbook = XLSX.utils.book_new()
+      const data = [headerData, ...bodyData]
+      const worksheet = XLSX.utils.aoa_to_sheet(data)
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
+    } else {
+      workbook = file
+    }
 
-  if (!workbook) {
+    if (!workbook) {
+      loading.close()
+      return
+    }
+
+    const excelBuffer = XLSX.write(workbook!, {
+      bookType: 'xlsx',
+      type: 'array'
+    })
+
+    const blobData = new Blob([excelBuffer], { type: 'application/octet-stream' })
+    const url = window.URL.createObjectURL(blobData)
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', fileName)
+    link.click()
+
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('导出Excel失败:', error)
+    ElMessage.error('导出Excel失败')
+  } finally {
     loading.close()
-    return
   }
-
-  const excelBuffer = XLSX.write(workbook!, {
-    bookType: 'xlsx',
-    type: 'array'
-  })
-
-  const blobData = new Blob([excelBuffer], { type: 'application/octet-stream' })
-  const url = window.URL.createObjectURL(blobData)
-  const link = document.createElement('a')
-  link.href = url
-  link.setAttribute('download', fileName)
-  link.click()
-
-  loading.close()
 }
 
 /**

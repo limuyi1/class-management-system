@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import type { WrongFolder, WrongQuestion } from '@/types/WrongBook'
+
+import type { WrongFolder, WrongFolderTree, WrongQuestion } from '@/types/WrongBook'
 
 /**
  * 生成唯一ID
@@ -80,15 +81,15 @@ export const useWrongBookStore = defineStore('wrongBook', {
      * 构建文件夹树形结构
      * @returns 树形结构的文件夹数组
      */
-    folderTree: (state) => {
-      const buildTree = (parentId?: string): WrongFolder[] => {
+    folderTree: (state): WrongFolderTree[] => {
+      const buildTree = (parentId?: string): WrongFolderTree[] => {
         return state.folders
           .filter((f) => f.parentId === parentId)
           .sort((a, b) => a.order - b.order)
           .map((f) => ({
             ...f,
             children: buildTree(f.id)
-          })) as any
+          }))
       }
       return buildTree(undefined)
     }

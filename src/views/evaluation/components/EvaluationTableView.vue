@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElScrollbar } from 'element-plus'
+import { ElScrollbar, ElEmpty } from 'element-plus'
 
 import EvaluationCard from '@/views/evaluation/components/EvaluationCard.vue'
 
@@ -126,8 +126,10 @@ defineExpose({ scroll })
 <template>
   <el-scrollbar ref="scrollbarRef" always>
     <div class="evaluation-form-view__wrapper">
+      <el-empty v-if="dataSource.length === 0" description="暂无学生数据" />
       <evaluation-card
         v-for="(data, index) in dataSource"
+        v-else
         :page-info="pageInfo"
         :data="data"
         :current-page="index + 1"

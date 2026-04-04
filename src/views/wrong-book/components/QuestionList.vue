@@ -490,7 +490,7 @@ const handleImagePreview = (img: string) => {
 }
 
 .question-date {
-  color: #c0c4cc;
+  color: #6b7280;
   font-size: 12px;
 }
 
@@ -593,7 +593,7 @@ const handleImagePreview = (img: string) => {
 }
 
 .detail-date {
-  color: #c0c4cc;
+  color: #6b7280;
   font-size: 14px;
 }
 

@@ -87,7 +87,6 @@ router.beforeEach(async (to, _from, next) => {
   }
 
   const hasData = await waitForDataStore()
-  console.info('hasData:', hasData, 'data:', useDataSourceStore().data)
 
   if (!hasData) {
     next('/empty')

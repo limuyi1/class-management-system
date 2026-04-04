@@ -19,32 +19,24 @@ const STORES_WITH_DATA_FIELD = ['dataSource', 'configuration']
 export function createPersistedStateDexie() {
   return async ({ store }: PiniaPluginContext) => {
     const storeId = store.$id
-    console.log('[PersistDexie] Init store:', storeId)
     const table = tableNameMap[storeId]
-    console.log('[PersistDexie] Table:', storeId, table)
 
     if (!table) {
-      console.log('[PersistDexie] No table for:', storeId)
       return
     }
 
     const loadFromDB = async () => {
       try {
         const record = await table.get(DB_ID)
-        console.log('[PersistDexie] Load record:', storeId, record)
         if (record) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id: _id, ...state } = record as any
-          console.log('[PersistDexie] Patch state:', storeId, state)
-          console.log('[PersistDexie] store.$state before:', storeId, store.$state)
 
           if (STORES_WITH_DATA_FIELD.includes(storeId)) {
             store.$patch({ data: state.data })
           } else {
             store.$patch(state)
           }
-
-          console.log('[PersistDexie] store.$state after:', storeId, store.$state)
         }
       } catch (error) {
         console.error(`[PersistDexie] Failed to load ${storeId} from IndexedDB:`, error)

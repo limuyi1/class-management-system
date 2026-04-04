@@ -4,10 +4,19 @@ import { ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { exportDatabase, importDatabase, clearDatabase } from '@/utils/backup'
+import ImportProgress from './ImportProgress.vue'
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const exporting = ref(false)
 const importing = ref(false)
+
+const progressVisible = ref(false)
+const progressTitle = ref('')
+const progressPercent = ref(0)
+
+const updateProgress = (percent: number) => {
+  progressPercent.value = percent
+}
 
 const handleExport = async () => {
   try {
@@ -17,9 +26,16 @@ const handleExport = async () => {
       type: 'info'
     })
     exporting.value = true
-    await exportDatabase()
+    progressTitle.value = '正在导出数据'
+    progressPercent.value = 0
+    progressVisible.value = true
+    await exportDatabase(updateProgress)
+    progressPercent.value = 100
+    setTimeout(() => {
+      progressVisible.value = false
+    }, 500)
   } catch {
-    // user cancel
+    progressVisible.value = false
   } finally {
     exporting.value = false
   }
@@ -47,12 +63,16 @@ const handleFileChange = async (event: Event) => {
       type: 'warning'
     })
     importing.value = true
-    await importDatabase(file)
+    progressTitle.value = '正在导入数据'
+    progressPercent.value = 0
+    progressVisible.value = true
+    await importDatabase(file, updateProgress)
+    progressPercent.value = 100
   } catch {
-    // user cancel
+    progressVisible.value = false
   } finally {
-    target.value = ''
     importing.value = false
+    target.value = ''
   }
 }
 
@@ -63,9 +83,14 @@ const handleClear = async () => {
       cancelButtonText: '取消',
       type: 'error'
     })
-    await clearDatabase()
+    progressTitle.value = '正在清空数据'
+    progressPercent.value = 0
+    progressVisible.value = true
+    await clearDatabase((percent) => {
+      progressPercent.value = percent
+    })
   } catch {
-    // user cancel
+    progressVisible.value = false
   }
 }
 </script>
@@ -138,12 +163,18 @@ const handleClear = async () => {
         <span>建议定期备份数据，以防数据丢失</span>
       </div>
     </el-card>
+
+    <ImportProgress
+      v-model:visible="progressVisible"
+      :title="progressTitle"
+      :percent="progressPercent"
+    />
   </div>
 </template>
 
 <style scoped lang="scss">
 .import-export__wrapper {
-  width: 600px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 24px;
 

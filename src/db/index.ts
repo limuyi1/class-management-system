@@ -1,44 +1,13 @@
 import Dexie, { type Table } from 'dexie'
 
-export interface DataSourceRecord {
-  id: string
-  data: any[]
-}
-
-export interface WrongBookRecord {
-  id: string
-  folders: any[]
-  questions: any[]
-  selectedFolderId: string
-  questionTypes: any[]
-}
-
-export interface SettingRecord {
-  id: string
-  tableHeaders: any[]
-  tagCategory: any[]
-  tags: any
-}
-
-export interface ConfigurationRecord {
-  id: string
-  data: any
-}
-
-export interface ThemeRecord {
-  id: string
-  currentTheme: string
-}
-
-export interface AIConfigRecord {
-  id: string
-  modelType: string
-  model: string
-  apiKey: string
-  baseUrl: string
-  prompts: any
-  availableModels: string[]
-}
+import type {
+  AIConfigRecord,
+  ConfigurationRecord,
+  DataSourceRecord,
+  SettingRecord,
+  ThemeRecord,
+  WrongBookRecord
+} from '@/types/Database'
 
 export class SCSDatabase extends Dexie {
   dataSource!: Table<DataSourceRecord>
@@ -64,3 +33,12 @@ export class SCSDatabase extends Dexie {
 export const db = new SCSDatabase()
 
 export const DB_ID = 'main'
+
+export type {
+  AIConfigRecord,
+  ConfigurationRecord,
+  DataSourceRecord,
+  SettingRecord,
+  ThemeRecord,
+  WrongBookRecord
+}

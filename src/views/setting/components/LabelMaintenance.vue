@@ -350,7 +350,6 @@ const handleAddSelectedTags = () => {
   height: 100%;
   width: 100%;
   background: #ffffff;
-  //border: 1px solid #e2e8f0;
 
   .label-maintenance-aside {
     height: 100%;

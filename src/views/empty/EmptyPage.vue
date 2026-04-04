@@ -43,40 +43,43 @@ const backupInput = ref<HTMLInputElement | null>(null)
 
 const uploadFile = async (file: any) => {
   try {
-    parseExcel(file).then(({ header, data }) => {
-      if (!header.includes('姓名')) {
-        ElMessage.error('表格中必须包含[姓名]列！')
-        return
-      }
+    const { header, data } = await parseExcel(file)
 
-      const filteredHeader = header.filter((label: string) => label !== '序号' && label !== '姓名')
+    if (!header.includes('姓名')) {
+      ElMessage.error('表格中必须包含[姓名]列！')
+      return
+    }
 
-      const headerArray = filteredHeader.map((label: string) => ({
-        prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
-        label
-      }))
+    const filteredHeader = header.filter((label: string) => label !== '序号' && label !== '姓名')
 
-      const headerObj = headerArray.reduce((acc: any, cur: any) => {
+    const headerArray = filteredHeader.map((label: string) => ({
+      prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
+      label
+    }))
+
+    const headerObj: Record<string, unknown> = headerArray.reduce(
+      (acc, cur) => {
         acc[cur.prop] = null
         return acc
-      }, {})
+      },
+      {} as Record<string, unknown>
+    )
 
-      const result = data.map((e: any) => {
-        const _headerObj = Object.assign({ xing4_ming2: null }, headerObj)
-        _headerObj.xing4_ming2 = e['姓名'] || null
-        headerArray.forEach((headerItem) => {
-          _headerObj[headerItem.prop] = e[headerItem.label] || null
-        })
-        return _headerObj
+    const result = data.map((e: any) => {
+      const _headerObj: Record<string, unknown> = Object.assign({ xing4_ming2: null }, headerObj)
+      _headerObj.xing4_ming2 = e['姓名'] || null
+      headerArray.forEach((headerItem: { prop: string; label: string }) => {
+        _headerObj[headerItem.prop] = e[headerItem.label] || null
       })
-
-      tableHeaders.value = headerArray
-      store.data = result
-      config.value.inputScoreTab = headerArray[0]?.prop
-
-      ElMessage.success('导入成功！')
-      router.push('/home')
+      return _headerObj
     })
+
+    tableHeaders.value = headerArray
+    store.data = result
+    config.value.inputScoreTab = headerArray[0]?.prop
+
+    ElMessage.success('导入成功！')
+    router.push('/home')
   } catch (err) {
     ElMessage.error('导入失败！')
   }

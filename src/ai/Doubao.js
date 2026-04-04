@@ -139,7 +139,7 @@ async function main() {
     model: model
   })
 
-  console.log(response.choices[0])
+  return response.choices[0]
 }
 
 main()

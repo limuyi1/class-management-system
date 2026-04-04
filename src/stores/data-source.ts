@@ -1,4 +1,5 @@
 import { defineStore, storeToRefs } from 'pinia'
+
 import { useConfigurationStore } from '@/stores/configuration'
 
 /**
@@ -8,14 +9,6 @@ import { useConfigurationStore } from '@/stores/configuration'
 export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
-      /**
-       * 学生数据数组
-       * 每个元素代表一个学生的完整信息，包括：
-       * - xing4_ming2: 姓名（必填）
-       * - [prop]: 各科成绩（动态列，prop 为拼音格式）
-       * - comment: 期末评语
-       * - tags: 标签映射 { [分类prop]: [标签数组] }
-       */
       data: [] as Array<any>
     }
   },
