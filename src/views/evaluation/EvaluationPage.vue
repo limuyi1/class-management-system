@@ -24,9 +24,8 @@ const evaluationTableViewRef = ref<InstanceType<typeof EvaluationTableView>>()
 const toolPanelViewRef = ref<InstanceType<typeof ToolPanelView>>()
 
 const dataStore = useDataSourceStore()
-const { data: students } = storeToRefs(dataStore)
+const { items: students } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
-const { data: formData } = storeToRefs(configuration)
 const settingStore = useSettingStore()
 const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
 const aiConfigStore = useAIConfigStore()
@@ -49,7 +48,7 @@ const autoFocus = () => {
  */
 const handleExportPDF = () => {
   const doms = document.getElementsByClassName('evaluation-card--table__wrapper')
-  exportPDF(doms, formData.value.pageType)
+  exportPDF(doms, configuration.pageType)
 }
 
 /**
@@ -91,7 +90,7 @@ const handleBatchGenerate = async () => {
       return {
         name: item.xing4_ming2,
         tags: allTags,
-        score: formData.value.inputScoreTab ? item[formData.value.inputScoreTab] : undefined,
+        score: configuration.inputScoreTab ? item[configuration.inputScoreTab] : undefined,
         comment: item.comment
       }
     })

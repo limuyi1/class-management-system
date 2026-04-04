@@ -11,8 +11,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
-const { data: originList } = storeToRefs(store)
-const { data: config } = storeToRefs(configuration)
+const { items: originList } = storeToRefs(store)
 
 /**
  * 分数分布区间配置（合并及格区间和低分区间）
@@ -23,8 +22,8 @@ const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max:
  * 获取当前选中列的分数值
  */
 const getScore = (item: any): number | null => {
-  if (!config.value.inputScoreTab) return null
-  return item[config.value.inputScoreTab]
+  if (!configuration.inputScoreTab) return null
+  return item[configuration.inputScoreTab]
 }
 
 /**

@@ -15,8 +15,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
-const { data: originList } = storeToRefs(store)
-const { data: config } = storeToRefs(configuration)
+const { items: originList } = storeToRefs(store)
 
 const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
@@ -28,7 +27,7 @@ const emit = defineEmits(['scroll'])
  */
 const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
   data: originList,
-  getValue: (item: any) => (config.value.inputScoreTab ? item[config.value.inputScoreTab] : null)
+  getValue: (item: any) => (configuration.inputScoreTab ? item[configuration.inputScoreTab] : null)
 })
 
 /**
@@ -36,7 +35,7 @@ const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
  * 过滤出分数为 null、NaN、空字符串或 undefined 的学生
  */
 const hasNullScoreList = computed(() => {
-  const scoreTab = config.value.inputScoreTab
+  const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return []
   return originList.value.filter((e: any) => {
     const element = e[scoreTab]

@@ -14,7 +14,7 @@ import logo from '@/assets/main/logo.png'
 const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
-const { data: tableData } = storeToRefs(store)
+const { items: tableData } = storeToRefs(store)
 
 const handleUploadClick = () => {
   ElMessageBox.confirm('确定要重置学生信息吗？', '提示', {

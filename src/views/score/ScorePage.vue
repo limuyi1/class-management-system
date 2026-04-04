@@ -20,9 +20,8 @@ const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
 
 const dataStore = useDataSourceStore()
-const { data: originList } = storeToRefs(dataStore)
+const { items: originList } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
-const { data: config } = storeToRefs(configuration)
 const aiConfigStore = useAIConfigStore()
 
 const uploading = ref(false)
@@ -85,7 +84,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
       return
     }
 
-    const scoreTab = config.value.inputScoreTab
+    const scoreTab = configuration.inputScoreTab
     if (!scoreTab) {
       ElMessage.warning('请先在设置页面选择成绩录入的单元')
       return

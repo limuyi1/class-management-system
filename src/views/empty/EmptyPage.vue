@@ -35,9 +35,8 @@ const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
 const aiConfigStore = useAIConfigStore()
 const themeStore = useThemeStore()
-const { data: config } = storeToRefs(configuration)
 const { tableHeaders, tagCategory, tags } = storeToRefs(settingStore)
-const { data } = storeToRefs(store)
+const { items: data } = storeToRefs(store)
 
 const backupInput = ref<HTMLInputElement | null>(null)
 
@@ -75,8 +74,8 @@ const uploadFile = async (file: any) => {
     })
 
     tableHeaders.value = headerArray
-    store.data = result
-    config.value.inputScoreTab = headerArray[0]?.prop
+    store.items = result
+    configuration.inputScoreTab = headerArray[0]?.prop
 
     ElMessage.success('导入成功！')
     router.push('/home')
@@ -107,9 +106,9 @@ const handleBackupImport = async (event: Event) => {
     tagCategory.value = backup.setting.tagCategory
     tags.value = backup.setting.tags
 
-    data.value = backup.dataSource.data
+    data.value = backup.dataSource.items || backup.dataSource.data
 
-    config.value = backup.configuration.data
+    configuration.$patch(backup.configuration.data || backup.configuration)
 
     aiConfigStore.modelType = backup.aiConfig.modelType as any
     aiConfigStore.model = backup.aiConfig.model

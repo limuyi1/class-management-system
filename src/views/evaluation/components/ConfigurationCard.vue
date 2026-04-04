@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { storeToRefs } from 'pinia'
 
 import { useConfigurationStore } from '@/stores/configuration'
 
 const store = useConfigurationStore()
-const { data: formData } = storeToRefs(store)
 
 const activeNames = ref<string[]>([])
 
@@ -29,20 +27,15 @@ const fontChange = (fontSize?: number) => {
       <div class="config-row">
         <div class="config-item">
           <label>页面</label>
-          <el-select v-model="formData.pageType" placeholder="选择" style="width: 100%">
-            <el-option
-              v-for="item in formData.pageTypeList"
-              :key="item"
-              :label="item"
-              :value="item"
-            />
+          <el-select v-model="store.pageType" placeholder="选择" style="width: 100%">
+            <el-option v-for="item in store.pageTypeList" :key="item" :label="item" :value="item" />
           </el-select>
         </div>
         <div class="config-item full">
           <label>落款名</label>
           <el-input
             style="width: 100%"
-            v-model="formData.inscribe"
+            v-model="store.inscribe"
             show-word-limit
             :minlength="1"
             :maxlength="6"
@@ -58,7 +51,7 @@ const fontChange = (fontSize?: number) => {
               <label>整体</label>
               <el-input-number
                 style="width: 100%"
-                v-model="formData.fontSize"
+                v-model="store.fontSize"
                 :min="12"
                 :max="22"
                 size="small"
@@ -69,7 +62,7 @@ const fontChange = (fontSize?: number) => {
               <label>问候</label>
               <el-input-number
                 style="width: 100%"
-                v-model="formData.salutationFontSize"
+                v-model="store.salutationFontSize"
                 :min="12"
                 :max="22"
                 size="small"
@@ -79,7 +72,7 @@ const fontChange = (fontSize?: number) => {
               <label>正文</label>
               <el-input-number
                 style="width: 100%"
-                v-model="formData.textFontSize"
+                v-model="store.textFontSize"
                 :min="12"
                 :max="22"
                 size="small"
@@ -89,7 +82,7 @@ const fontChange = (fontSize?: number) => {
               <label>章</label>
               <el-input-number
                 style="width: 100%"
-                v-model="formData.sealFontSize"
+                v-model="store.sealFontSize"
                 :min="12"
                 :max="22"
                 size="small"
@@ -99,7 +92,7 @@ const fontChange = (fontSize?: number) => {
               <label>班主任</label>
               <el-input-number
                 style="width: 100%"
-                v-model="formData.classTeacherFontSize"
+                v-model="store.classTeacherFontSize"
                 :min="12"
                 :max="22"
                 size="small"
@@ -109,7 +102,7 @@ const fontChange = (fontSize?: number) => {
               <label>落款</label>
               <el-input-number
                 style="width: 100%"
-                v-model="formData.inscribeFontSize"
+                v-model="store.inscribeFontSize"
                 :min="12"
                 :max="22"
                 size="small"

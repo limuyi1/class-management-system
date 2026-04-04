@@ -18,7 +18,7 @@ const router = useRouter()
 
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
-const { data: tableData } = storeToRefs(store)
+const { items: tableData } = storeToRefs(store)
 const { tableHeaders: headers } = storeToRefs(settingStore)
 const { tagCategory: categories } = storeToRefs(settingStore)
 
@@ -167,7 +167,7 @@ const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
   visibleMethod: ({ columnIndex }) => !isNameColumn(columnIndex as number)
 })
 
-const isNotEmpty = computed(() => store.data?.length)
+const isNotEmpty = computed(() => store.items?.length)
 
 const isNameColumn = (columnIndex: number) => {
   return columnIndex <= 1

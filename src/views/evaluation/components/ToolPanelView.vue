@@ -14,12 +14,12 @@ const store = useDataSourceStore()
 
 const emit = defineEmits(['scroll'])
 
-const { data } = storeToRefs(store)
+const { items } = storeToRefs(store)
 
 const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
 const { percentage, notCompletedCount } = useProgress({
-  data,
+  data: items,
   getValue: (item: any) => item.comment
 })
 

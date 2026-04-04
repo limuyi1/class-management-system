@@ -8,8 +8,7 @@ import { xlsxToImage } from '@/utils/xlsxUntil'
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
-const { data: originList } = storeToRefs(store)
-const { data: config } = storeToRefs(configuration)
+const { items: originList } = storeToRefs(store)
 
 type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info'
 
@@ -38,8 +37,8 @@ const xlsxToImageCommand = (command: string) => {
  * 获取数据
  */
 const getList = (): any[] => {
-  if (!config.value.inputScoreTab) return []
-  const scoreKey = config.value.inputScoreTab
+  if (!configuration.inputScoreTab) return []
+  const scoreKey = configuration.inputScoreTab
   return originList.value
     .filter((e: any) => e[scoreKey] !== null)
     .filter((e: any) => props.condition(e))

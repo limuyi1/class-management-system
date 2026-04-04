@@ -18,7 +18,6 @@ const configuration = useConfigurationStore()
 
 const { enabledData: tableData } = storeToRefs(store)
 const { tableHeaders } = storeToRefs(settingStore)
-const { data: config } = storeToRefs(configuration)
 const tableRef = ref()
 
 const tagTypeList = computed(() => {
@@ -30,8 +29,8 @@ const tagTypeList = computed(() => {
  * @param row
  */
 const getCurrentScore = (row: any) => {
-  if (!config.value.inputScoreTab) return null
-  return row[config.value.inputScoreTab]
+  if (!configuration.inputScoreTab) return null
+  return row[configuration.inputScoreTab]
 }
 
 /**
@@ -114,7 +113,7 @@ const resetScore = () => {
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    const scoreTab = config.value.inputScoreTab
+    const scoreTab = configuration.inputScoreTab
     if (scoreTab) {
       tableData.value.forEach((e: any) => {
         e[scoreTab] = null

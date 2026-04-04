@@ -60,13 +60,13 @@ const router = createRouter({
 function waitForDataStore(): Promise<boolean> {
   return new Promise((resolve) => {
     const store = useDataSourceStore()
-    if (store.data?.length > 0) {
+    if (store.items?.length > 0) {
       resolve(true)
       return
     }
     const unsubscribe = store.$subscribe(
       () => {
-        if (store.data?.length > 0) {
+        if (store.items?.length > 0) {
           unsubscribe()
           resolve(true)
         }
@@ -75,7 +75,7 @@ function waitForDataStore(): Promise<boolean> {
     )
     setTimeout(() => {
       unsubscribe()
-      resolve(store.data?.length > 0)
+      resolve(store.items?.length > 0)
     }, 5000)
   })
 }

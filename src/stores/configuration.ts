@@ -8,20 +8,18 @@ import type { ConfigurationType } from '@/types/Configuration'
  * 负责存储应用设置，包括字体大小、纸张类型、当前录入分数标签页等
  */
 export const useConfigurationStore = defineStore('configuration', {
-  state: () => {
+  state: (): ConfigurationType => {
     return {
-      data: {
-        fontSize: 18,
-        salutationFontSize: 18,
-        textFontSize: 18,
-        sealFontSize: 18,
-        classTeacherFontSize: 18,
-        inscribeFontSize: 18,
-        inscribe: '',
-        pageType: PagesEnum.A4,
-        pageTypeList: [PagesEnum.A3, PagesEnum.A4, PagesEnum.B3, PagesEnum.B4],
-        inputScoreTab: null
-      } as ConfigurationType
+      fontSize: 18,
+      salutationFontSize: 18,
+      textFontSize: 18,
+      sealFontSize: 18,
+      classTeacherFontSize: 18,
+      inscribeFontSize: 18,
+      inscribe: '',
+      pageType: PagesEnum.A4,
+      pageTypeList: [PagesEnum.A3, PagesEnum.A4, PagesEnum.B3, PagesEnum.B4],
+      inputScoreTab: null
     }
   },
   actions: {
@@ -31,11 +29,11 @@ export const useConfigurationStore = defineStore('configuration', {
      * @param fontSize - 新的字体大小值
      */
     fontSizeChange(fontSize: number) {
-      this.data.salutationFontSize = fontSize
-      this.data.textFontSize = fontSize
-      this.data.sealFontSize = fontSize
-      this.data.classTeacherFontSize = fontSize
-      this.data.inscribeFontSize = fontSize
+      this.salutationFontSize = fontSize
+      this.textFontSize = fontSize
+      this.sealFontSize = fontSize
+      this.classTeacherFontSize = fontSize
+      this.inscribeFontSize = fontSize
     }
   }
 })

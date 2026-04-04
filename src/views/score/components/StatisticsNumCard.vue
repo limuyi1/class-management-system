@@ -11,14 +11,12 @@ import { useScoreStatistics } from '@/hooks/useScoreStatistics'
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
-const { data: originList } = storeToRefs(store)
-const { data: config } = storeToRefs(configuration)
+const { items: originList } = storeToRefs(store)
 
-const studentsRef = computed(() => originList.value)
-const scorePropRef = computed(() => config.value.inputScoreTab)
+const scorePropRef = computed(() => configuration.inputScoreTab)
 
 const { threshold, belowThresholdStudents, scoreStats, getScore } = useScoreStatistics({
-  students: studentsRef,
+  students: originList,
   scoreProp: scorePropRef
 })
 

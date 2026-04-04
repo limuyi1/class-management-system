@@ -30,9 +30,8 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits(['scroll'])
 
 const store = useDataSourceStore()
-const { data: originList } = storeToRefs(store)
+const { items: originList } = storeToRefs(store)
 const configuration = useConfigurationStore()
-const { data: config } = storeToRefs(configuration)
 const settingStore = useSettingStore()
 const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
 const aiConfigStore = useAIConfigStore()
@@ -86,7 +85,7 @@ const handleGenerateComment = async () => {
     const student = {
       name: item.xing4_ming2,
       tags: allTags,
-      score: config.value.inputScoreTab ? item[config.value.inputScoreTab] : undefined
+      score: configuration.inputScoreTab ? item[configuration.inputScoreTab] : undefined
     }
 
     const comment = await generateSingleComment(student, aiConfigStore.prompts.singleComment, {
@@ -182,7 +181,7 @@ const fillStudentData = (index: number | null) => {
 
   formData.id = index
   formData.name = item.xing4_ming2
-  formData.score = config.value.inputScoreTab ? item[config.value.inputScoreTab] : null
+  formData.score = configuration.inputScoreTab ? item[configuration.inputScoreTab] : null
   formData.comment = item.comment || null
 
   emit('scroll', index)
@@ -222,8 +221,8 @@ const onSubmit = () => {
   const item = originList.value[formData.id - 1]
 
   // 设置分数
-  if (props.type === InputEnum.SCORE && config.value.inputScoreTab) {
-    item[config.value.inputScoreTab] = formData.score
+  if (props.type === InputEnum.SCORE && configuration.inputScoreTab) {
+    item[configuration.inputScoreTab] = formData.score
   }
 
   // 设置评语
@@ -255,7 +254,7 @@ const editData = (data: any) => {
 
   formData.id = rowIndex + 1
   formData.name = data.xing4_ming2
-  formData.score = config.value.inputScoreTab ? data[config.value.inputScoreTab] : null
+  formData.score = configuration.inputScoreTab ? data[configuration.inputScoreTab] : null
   formData.comment = data.comment || null
 
   // 根据类型聚焦到对应输入框

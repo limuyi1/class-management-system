@@ -10,7 +10,6 @@ import { useConfigurationStore } from '@/stores/configuration'
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const { enabledData: tableData } = storeToRefs(store)
-const { data: config } = storeToRefs(configuration)
 
 const hasData = computed(() => store.hasAnyScore)
 const validCount = computed(() => store.validCount)
@@ -52,7 +51,7 @@ const exec = () => {
 }
 
 watch(
-  () => [tableData.value, config.value.inputScoreTab],
+  () => [tableData.value, configuration.inputScoreTab],
   () => exec(),
   {
     immediate: true

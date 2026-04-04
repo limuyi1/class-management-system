@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { storeToRefs } from 'pinia'
 
 import { useConfigurationStore } from '@/stores/configuration'
 
 const store = useConfigurationStore()
-const { data: configuration } = storeToRefs(store)
 
 /**
  * 点击评语卡片回调
@@ -57,7 +55,7 @@ const getEvaluationText = (str: string | undefined | null) => {
 const cellStyle = computed(() => ({
   width: `${props.pageInfo?.cellWidth}px`,
   height: `${props.pageInfo?.cellHeight}px`, // 目标高度（如261px）
-  fontSize: `${configuration.value.fontSize}px`
+  fontSize: `${store.fontSize}px`
 }))
 </script>
 
@@ -85,27 +83,22 @@ const cellStyle = computed(() => ({
                 :style="cellStyle"
                 @click="emit('click', data[index + e - 1])"
               >
-                <div class="cell-content" :style="{ fontSize: configuration.fontSize + 'px' }">
-                  <div
-                    class="custom-font"
-                    :style="{ fontSize: configuration.salutationFontSize + 'px' }"
-                  >
+                <div class="cell-content" :style="{ fontSize: store.fontSize + 'px' }">
+                  <div class="custom-font" :style="{ fontSize: store.salutationFontSize + 'px' }">
                     {{ data[index + e - 1]?.xing4_ming2 }}同学：
                   </div>
                   <div
                     class="table-body custom-font"
-                    :style="{ fontSize: configuration.textFontSize + 'px' }"
+                    :style="{ fontSize: store.textFontSize + 'px' }"
                     v-html="getEvaluationText(data[index + e - 1]?.comment)"
                   ></div>
                   <div class="table-footer">
-                    <span :style="{ fontSize: configuration.sealFontSize + 'px' }"
-                      >学校：（章）</span
-                    >
-                    <span :style="{ fontSize: configuration.classTeacherFontSize + 'px' }">
+                    <span :style="{ fontSize: store.sealFontSize + 'px' }">学校：（章）</span>
+                    <span :style="{ fontSize: store.classTeacherFontSize + 'px' }">
                       班主任：<span
                         class="custom-font"
-                        :style="{ fontSize: configuration.inscribeFontSize + 'px' }"
-                        >{{ configuration.inscribe }}</span
+                        :style="{ fontSize: store.inscribeFontSize + 'px' }"
+                        >{{ store.inscribe }}</span
                       >
                     </span>
                   </div>

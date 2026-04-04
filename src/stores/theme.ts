@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { themes, type ThemeName, type ThemeConfig, defaultTheme } from '@/config/theme'
 
 export const useThemeStore = defineStore('theme', () => {
@@ -9,7 +9,6 @@ export const useThemeStore = defineStore('theme', () => {
 
   const setTheme = (theme: ThemeName) => {
     currentTheme.value = theme
-    applyTheme()
   }
 
   const applyTheme = () => {
@@ -32,8 +31,16 @@ export const useThemeStore = defineStore('theme', () => {
     })
   }
 
+  watch(
+    currentTheme,
+    () => {
+      applyTheme()
+    },
+    { immediate: true }
+  )
+
   const initTheme = () => {
-    applyTheme()
+    // Theme is now applied automatically via watcher
   }
 
   return {

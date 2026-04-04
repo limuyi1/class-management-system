@@ -1,4 +1,4 @@
-import { defineStore, storeToRefs } from 'pinia'
+import { defineStore } from 'pinia'
 
 import { useConfigurationStore } from '@/stores/configuration'
 
@@ -9,7 +9,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
-      data: [] as Array<any>
+      items: [] as Array<any>
     }
   },
   getters: {
@@ -17,32 +17,23 @@ export const useDataSourceStore = defineStore('dataSource', {
      * 获取启用状态的学生数据（过滤掉禁用的学生）
      */
     enabledData(): Array<any> {
-      return this.data.filter((item: any) => !item.disabled)
-    },
-    /**
-     * 获取指定学生的当前录入分数
-     * @returns 返回一个函数，传入学生对象返回对应分数
-     */
-    getScore() {
-      return (item: any): number | null => {
-        const configuration = useConfigurationStore()
-        const { data: config } = storeToRefs(configuration)
-        if (!config.value.inputScoreTab) return null
-        return item[config.value.inputScoreTab]
-      }
+      return this.items.filter((item: any) => !item.disabled)
     },
     /**
      * 获取所有有效成绩（过滤掉 null 和 undefined 和禁用的学生）
      */
     validScores(): number[] {
+      const configuration = useConfigurationStore()
+      const scoreTab = configuration.inputScoreTab
+      if (!scoreTab) return []
       return this.enabledData
-        .map((item: any) => this.getScore(item))
+        .map((item: any) => item[scoreTab])
         .filter((s: any): s is number => s !== null && s !== undefined)
     },
     /**
      * 学生总数（启用状态）
      */
-    totalCount: (state) => state.data.filter((item: any) => !item.disabled).length as number,
+    totalCount: (state) => state.items.filter((item: any) => !item.disabled).length as number,
     /**
      * 有效成绩数量（有分数的学生人数）
      */
@@ -125,6 +116,18 @@ export const useDataSourceStore = defineStore('dataSource', {
      */
     hasAnyScore(): boolean {
       return this.validCount > 0
+    }
+  },
+  actions: {
+    /**
+     * 获取指定学生的当前录入分数
+     * @param item - 学生对象
+     * @returns 分数，如果未设置分数列或学生没有该列的分数则返回 null
+     */
+    getItemScore(item: any): number | null {
+      const configuration = useConfigurationStore()
+      if (!configuration.inputScoreTab) return null
+      return item[configuration.inputScoreTab]
     }
   }
 })
