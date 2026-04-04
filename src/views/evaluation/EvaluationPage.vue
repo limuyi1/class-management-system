@@ -14,6 +14,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { generateBatchComments } from '@/ai/aiService'
 import { exportPDF } from '@/utils/pdfUntil'
+import { extractStudentTags } from '@/utils/studentUntil'
 
 /**
  * 期末评语管理页面
@@ -79,13 +80,7 @@ const handleBatchGenerate = async () => {
 
   try {
     const studentsData = students.value.map((item) => {
-      const allTags: string[] = []
-      for (const cat of tagCategoryList.value) {
-        const tagList = item.tags?.[cat.prop]
-        if (tagList && tagList.length > 0) {
-          allTags.push(...tagList)
-        }
-      }
+      const allTags = extractStudentTags(item, tagCategoryList.value)
 
       return {
         name: item.xing4_ming2,

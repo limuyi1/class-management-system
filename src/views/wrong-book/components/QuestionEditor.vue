@@ -54,6 +54,20 @@ const form = ref({
   source: ''
 })
 
+const resetForm = (folderId?: string) => {
+  form.value = {
+    folderId: folderId ?? props.folderId,
+    questionText: '',
+    questionImages: [],
+    answer: '',
+    explanation: '',
+    questionType: '其他',
+    difficulty: 3,
+    isFavorite: false,
+    source: ''
+  }
+}
+
 const editorCropperVisible = ref(false)
 const editorCropperImageSrc = ref('')
 
@@ -216,17 +230,7 @@ watch(
         source: newQuestion.source || ''
       }
     } else {
-      form.value = {
-        folderId: props.folderId,
-        questionText: '',
-        questionImages: [],
-        answer: '',
-        explanation: '',
-        questionType: '其他',
-        difficulty: 3,
-        isFavorite: false,
-        source: ''
-      }
+      resetForm()
     }
   },
   { immediate: true }
@@ -248,17 +252,7 @@ watch(
       return
     }
     if (!props.question) {
-      form.value = {
-        folderId: props.folderId,
-        questionText: '',
-        questionImages: [],
-        answer: '',
-        explanation: '',
-        questionType: '其他',
-        difficulty: 3,
-        isFavorite: false,
-        source: ''
-      }
+      resetForm()
     }
   }
 )

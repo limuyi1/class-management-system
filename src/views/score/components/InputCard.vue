@@ -11,6 +11,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { generateSingleComment } from '@/ai/aiService'
+import { extractStudentTags } from '@/utils/studentUntil'
 
 import { InputEnum } from '@/types/Common'
 
@@ -74,13 +75,7 @@ const handleGenerateComment = async () => {
   generating.value = true
   try {
     const item = originList.value[formData.id - 1]
-    const allTags: string[] = []
-    for (const cat of tagCategoryList.value) {
-      const tagList = item.tags?.[cat.prop]
-      if (tagList && tagList.length > 0) {
-        allTags.push(...tagList)
-      }
-    }
+    const allTags = extractStudentTags(item, tagCategoryList.value)
 
     const student = {
       name: item.xing4_ming2,

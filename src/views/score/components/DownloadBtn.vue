@@ -42,19 +42,11 @@ const filterByRange = (range: { min: number; max: number }) => {
  * 生成统计数据
  */
 const createStatistics = () => {
-  const scores = originList.value
-    .map((e: any) => getScore(e))
-    .filter((s): s is number => s !== null && !isNaN(s))
-
-  const avg =
-    scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(2) : '0.00'
-  const passCount = scores.filter((s) => s >= 60).length
-  const passRate = scores.length > 0 ? ((passCount / scores.length) * 100).toFixed(2) : '0.00'
-  const excellentCount = scores.filter((s) => s >= 80).length
-  const excellentRate =
-    scores.length > 0 ? ((excellentCount / scores.length) * 100).toFixed(2) : '0.00'
-
-  return { avg, passRate, excellentRate }
+  return {
+    avg: store.average.toFixed(2),
+    passRate: store.passRate.toFixed(2),
+    excellentRate: store.excellentRate.toFixed(2)
+  }
 }
 
 /**
