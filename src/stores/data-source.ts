@@ -1,15 +1,19 @@
 import { defineStore } from 'pinia'
+import { liveQuery, type Observable } from 'dexie'
 
+import { db, DB_ID } from '@/db'
 import { useConfigurationStore } from '@/stores/configuration'
 
 /**
  * 学生数据源状态管理
  * 负责存储学生数据并提供成绩统计分析计算
+ * 使用 Dexie liveQuery 实现响应式数据同步
  */
 export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
-      items: [] as Array<any>
+      items: [] as Array<any>,
+      _isUpdatingFromDB: false as boolean
     }
   },
   getters: {
@@ -93,12 +97,6 @@ export const useDataSourceStore = defineStore('dataSource', {
     /**
      * 综合评分
      * 综合评分 = 平均分×0.4 + 及格率×0.3 + 优秀率×0.3 + 最高分率×0.05 - 低分率×0.05
-     * 权重说明：
-     * - 平均分占40%，反映整体水平
-     * - 及格率占30%，反映基础掌握情况
-     * - 优秀率占30%，反映高分学生比例
-     * - 最高分率作为加分项，鼓励拔尖
-     * - 低分率作为减分项，惩罚大面积失分
      */
     comprehensiveRatingRate(): number {
       if (this.validCount === 0) return 0
@@ -112,7 +110,6 @@ export const useDataSourceStore = defineStore('dataSource', {
     },
     /**
      * 是否存在任何成绩数据
-     * 用于判断是否显示成绩相关功能
      */
     hasAnyScore(): boolean {
       return this.validCount > 0
@@ -121,13 +118,69 @@ export const useDataSourceStore = defineStore('dataSource', {
   actions: {
     /**
      * 获取指定学生的当前录入分数
-     * @param item - 学生对象
-     * @returns 分数，如果未设置分数列或学生没有该列的分数则返回 null
      */
     getItemScore(item: any): number | null {
       const configuration = useConfigurationStore()
       if (!configuration.inputScoreTab) return null
       return item[configuration.inputScoreTab]
+    },
+
+    /**
+     * 从数据库订阅实时数据
+     * 使用 Dexie liveQuery，当 IndexedDB 变化时自动更新 store
+     */
+    subscribeToLiveQuery() {
+      const observable$ = liveQuery(() => db.dataSource.get(DB_ID)) as Observable<any>
+
+      observable$.subscribe({
+        next: async (record) => {
+          if (!record) return
+
+          this._isUpdatingFromDB = true
+
+          const newData = record.data || []
+          this.items = newData
+
+          await new Promise((resolve) => setTimeout(resolve, 0))
+          this._isUpdatingFromDB = false
+        },
+        error: (err) => {
+          console.error('[dataSource] LiveQuery error:', err)
+        }
+      })
+    },
+
+    /**
+     * 初始化数据库并建立订阅
+     */
+    async initDatabase() {
+      const record = await db.dataSource.get(DB_ID)
+      if (!record) {
+        await db.dataSource.put({
+          id: DB_ID,
+          data: []
+        })
+      }
+      this.subscribeToLiveQuery()
+    },
+
+    /**
+     * 保存当前状态到数据库
+     * 当 Store 状态变化时调用
+     */
+    async saveToDatabase() {
+      if (this._isUpdatingFromDB) {
+        return
+      }
+
+      try {
+        await db.dataSource.put({
+          id: DB_ID,
+          data: this.items
+        })
+      } catch (error) {
+        console.error('[dataSource] Failed to save to database:', error)
+      }
     }
   }
 })

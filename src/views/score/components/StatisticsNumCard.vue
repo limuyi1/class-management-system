@@ -16,7 +16,7 @@ const { items: originList } = storeToRefs(store)
 const scorePropRef = computed(() => configuration.inputScoreTab)
 
 const { threshold, belowThresholdStudents, scoreStats, getScore } = useScoreStatistics({
-  students: originList,
+  students: computed(() => originList.value as any),
   scoreProp: scorePropRef
 })
 

@@ -25,7 +25,16 @@ export interface SettingRecord {
 
 export interface ConfigurationRecord {
   id: string
-  data: ConfigurationType
+  fontSize: number
+  salutationFontSize: number
+  textFontSize: number
+  sealFontSize: number
+  classTeacherFontSize: number
+  inscribeFontSize: number
+  inscribe: string
+  pageType: string
+  pageTypeList: string[]
+  inputScoreTab: string | null
 }
 
 export interface ThemeRecord {

@@ -89,8 +89,8 @@ defineExpose({
         class="input-data-view--progress"
         text-inside
         :stroke-width="20"
-        striped
-        striped-flow
+        :striped="percentage !== 100"
+        :striped-flow="percentage !== 100"
         :percentage="percentage"
         :format="progressTextFormat"
         :color="colorFun"

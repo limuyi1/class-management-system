@@ -5,28 +5,9 @@ import { MdEditor, NormalToolbar } from 'md-editor-v3'
 import type { ToolbarNames } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import FormulaToolbar from '@/views/wrong-book/components/FormulaToolbar.vue'
+import type { MarkdownEditorProps, MarkdownEditorEmits } from '@/types/MarkdownEditor'
 
-interface Props {
-  modelValue?: string
-  placeholder?: string
-  minHeight?: string
-  showImageBtn?: boolean
-  showFormulaBtn?: boolean
-  showPreview?: boolean
-  showExpand?: boolean
-  showSplitMode?: boolean
-  disabled?: boolean
-}
-
-interface Emits {
-  (e: 'update:modelValue', value: string): void
-  (e: 'insertImage'): void
-  (e: 'insertFormula', formula: string): void
-  (e: 'preview'): void
-  (e: 'expand'): void
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<MarkdownEditorProps>(), {
   modelValue: '',
   placeholder: '请输入...',
   minHeight: '100px',
@@ -38,7 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false
 })
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<MarkdownEditorEmits>()
 
 const toolbars: ToolbarNames[] = [
   'bold',

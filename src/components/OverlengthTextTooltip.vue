@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, type StyleValue } from 'vue'
+import { ref, computed } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
+import type { OverlengthTextTooltipProps } from '@/types/OverlengthTextTooltip'
 
-interface Props {
-  content: string | number
-  width?: number
-  level?: number
-  customClass?: string
-  customStyle?: StyleValue
-}
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<OverlengthTextTooltipProps>(), {
   level: 1
 })
 

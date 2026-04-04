@@ -54,7 +54,7 @@ const buildData = (isScore: boolean = true) => {
   const bodyData: any[][] = []
 
   const data = getList()
-  const scoreKey = config.value.inputScoreTab
+  const scoreKey = configuration.inputScoreTab
   data.forEach((e: any, i: number) => {
     if (isScore) {
       bodyData.push([String(i + 1), e.xing4_ming2, scoreKey ? e[scoreKey] : ''])
@@ -80,7 +80,7 @@ const buildData = (isScore: boolean = true) => {
         v-for="(item, index) in getList()"
         :key="index"
         style="margin: 0 12px 12px 0"
-        :value="config.inputScoreTab ? item[config.inputScoreTab] : 0"
+        :value="configuration.inputScoreTab ? item[configuration.inputScoreTab] : 0"
         :type="props.tagType"
         :max="100"
       >

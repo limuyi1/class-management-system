@@ -28,6 +28,7 @@ import { createPersistedStateDexie } from './plugins/persistDexie'
 import App from './App.vue'
 import router from './router'
 import { useThemeStore } from './stores/theme'
+import { useDataSourceStore } from './stores/data-source'
 
 const app = createApp(App)
 
@@ -49,4 +50,5 @@ app.use(VxeUITable)
 app.use(router)
 
 useThemeStore().initTheme()
+useDataSourceStore().initDatabase()
 app.mount('#app')

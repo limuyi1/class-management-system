@@ -6,15 +6,12 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 const DEBOUNCE_DELAY = 300
 
 const tableNameMap: Record<string, Table<any>> = {
-  dataSource: db.dataSource,
   wrongBook: db.wrongBook,
   setting: db.setting,
   configuration: db.configuration,
   theme: db.theme,
   aiConfig: db.aiConfig
 }
-
-const STORES_WITH_DATA_FIELD = ['dataSource', 'configuration']
 
 export function createPersistedStateDexie() {
   return async ({ store }: PiniaPluginContext) => {
@@ -31,12 +28,7 @@ export function createPersistedStateDexie() {
         if (record) {
           // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { id: _id, ...state } = record as any
-
-          if (STORES_WITH_DATA_FIELD.includes(storeId)) {
-            store.$patch({ data: state.data })
-          } else {
-            store.$patch(state)
-          }
+          store.$patch(state)
         }
       } catch (error) {
         console.error(`[PersistDexie] Failed to load ${storeId} from IndexedDB:`, error)

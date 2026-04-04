@@ -1,6 +1,6 @@
 import 'dexie-export-import'
 import { db } from '@/db'
-import { ElMessage } from 'element-plus'
+import { dayjs, ElMessage } from 'element-plus'
 
 export async function exportDatabase(onProgress?: (percent: number) => void) {
   try {
@@ -16,7 +16,7 @@ export async function exportDatabase(onProgress?: (percent: number) => void) {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `scs-backup-${new Date().toISOString().slice(0, 10)}.dexie`
+    a.download = `scs-backup-${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.dexie`
     a.click()
     URL.revokeObjectURL(url)
     ElMessage.success('导出成功')

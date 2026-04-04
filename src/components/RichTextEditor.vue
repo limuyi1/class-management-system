@@ -4,27 +4,9 @@ import { ElPopover, ElButton } from 'element-plus'
 import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import FormulaToolbar from '@/views/wrong-book/components/FormulaToolbar.vue'
+import type { RichTextEditorProps, RichTextEditorEmits } from '@/types/RichTextEditor'
 
-interface Props {
-  modelValue?: string
-  placeholder?: string
-  minHeight?: string
-  showImageBtn?: boolean
-  showFormulaBtn?: boolean
-  showPreview?: boolean
-  showExpand?: boolean
-  disabled?: boolean
-}
-
-interface Emits {
-  (e: 'update:modelValue', value: string): void
-  (e: 'insertImage'): void
-  (e: 'insertFormula', formula: string): void
-  (e: 'preview'): void
-  (e: 'expand'): void
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<RichTextEditorProps>(), {
   modelValue: '',
   placeholder: '请输入...',
   minHeight: '100px',
@@ -35,7 +17,7 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false
 })
 
-const emit = defineEmits<Emits>()
+const emit = defineEmits<RichTextEditorEmits>()
 
 const editorRef = ref<InstanceType<typeof QuillEditor> | null>(null)
 

@@ -12,22 +12,7 @@ import { ElMessage } from 'element-plus'
 import { pinyin } from 'pinyin-pro'
 import { storeToRefs } from 'pinia'
 import { parseExcel } from '@/utils/xlsxUntil'
-
-interface BackupData {
-  version: number
-  setting: { tableHeaders: any[]; tagCategory: any[]; tags: Record<string, string[]> }
-  dataSource: { data: any[] }
-  configuration: any
-  aiConfig: {
-    modelType: string
-    model: string
-    apiKey: string
-    baseUrl: string
-    prompts: any
-    availableModels: string[]
-  }
-  theme: { currentTheme: string }
-}
+import type { BackupData } from '@/types/Backup'
 
 const router = useRouter()
 const store = useDataSourceStore()
@@ -106,9 +91,9 @@ const handleBackupImport = async (event: Event) => {
     tagCategory.value = backup.setting.tagCategory
     tags.value = backup.setting.tags
 
-    data.value = backup.dataSource.items || backup.dataSource.data
+    data.value = backup.dataSource.items
 
-    configuration.$patch(backup.configuration.data || backup.configuration)
+    configuration.$patch(backup.configuration)
 
     aiConfigStore.modelType = backup.aiConfig.modelType as any
     aiConfigStore.model = backup.aiConfig.model

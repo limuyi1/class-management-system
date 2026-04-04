@@ -30,7 +30,6 @@ const store = useDataSourceStore()
 const { enabledData: tableData } = storeToRefs(store)
 
 const configurationStore = useConfigurationStore()
-const { data: configuration } = storeToRefs(configurationStore)
 
 const config = {
   width: 90,
@@ -56,7 +55,7 @@ onMounted(() => {
 
 // 监听数据变化，重新计算分组
 watch(
-  () => [tableData.value.length, configuration.value.pageType],
+  () => [tableData.value.length, configurationStore.pageType],
   () => {
     init()
   }
@@ -78,7 +77,7 @@ const init = () => {
   pageInfo.cellWidth = cellWidth
   pageInfo.cellHeight = cellHeight
 
-  const { width, height } = pageSizeInPixels(configuration.value.pageType)
+  const { width, height } = pageSizeInPixels(configurationStore.pageType)
   pageInfo.pageWidth = width
   pageInfo.pageHeight = height
 

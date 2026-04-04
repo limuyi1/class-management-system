@@ -2,21 +2,11 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/stores/setting'
+import type { BatchTagDrawerProps, BatchTagDrawerEmits } from '@/types/BatchTagDrawer'
 
-export interface StudentData {
-  xing4_ming2: string
-  tags?: Record<string, string[]>
-}
+const props = defineProps<BatchTagDrawerProps>()
 
-const props = defineProps<{
-  visible: boolean
-  studentList: StudentData[]
-}>()
-
-const emit = defineEmits<{
-  'update:visible': [value: boolean]
-  confirm: [updatedStudents: StudentData[]]
-}>()
+const emit = defineEmits<BatchTagDrawerEmits>()
 
 const settingStore = useSettingStore()
 const { tagCategory: categories, tags: tagOptions } = storeToRefs(settingStore)

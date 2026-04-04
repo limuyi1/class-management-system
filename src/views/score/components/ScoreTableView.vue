@@ -145,12 +145,12 @@ defineExpose({ scroll })
   >
     <el-table-column type="index" label="序号" width="70" align="center" />
     <el-table-column prop="xing4_ming2" label="姓名" />
-    <el-table-column :prop="config.inputScoreTab || ''">
+    <el-table-column :prop="configuration.inputScoreTab || ''">
       <template #header>
         <div class="operate-btn__wrapper">
           <el-select
             class="w-[100px]! mr-[8px]"
-            v-model="config.inputScoreTab"
+            v-model="configuration.inputScoreTab"
             placeholder="选择类型"
           >
             <el-option

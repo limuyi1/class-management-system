@@ -2,21 +2,15 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/stores/setting'
+import type {
+  TagEditorDialogStudent,
+  TagEditorDialogProps,
+  TagEditorDialogEmits
+} from '@/types/TagEditorDialog'
 
-export interface TagEditorDialogStudent {
-  xing4_ming2: string
-  tags?: Record<string, string[]>
-}
+const props = defineProps<TagEditorDialogProps>()
 
-const props = defineProps<{
-  visible: boolean
-  student: TagEditorDialogStudent | null
-}>()
-
-const emit = defineEmits<{
-  'update:visible': [value: boolean]
-  confirm: [tags: Record<string, string[]>]
-}>()
+const emit = defineEmits<TagEditorDialogEmits>()
 
 const settingStore = useSettingStore()
 const { tagCategory: categories, tags: tagOptions } = storeToRefs(settingStore)

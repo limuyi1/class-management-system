@@ -19,26 +19,16 @@ const updateProgress = (percent: number) => {
 }
 
 const handleExport = async () => {
-  try {
-    await ElMessageBox.confirm('确定要导出所有数据吗？', '确认导出', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'info'
-    })
-    exporting.value = true
-    progressTitle.value = '正在导出数据'
-    progressPercent.value = 0
-    progressVisible.value = true
-    await exportDatabase(updateProgress)
-    progressPercent.value = 100
-    setTimeout(() => {
-      progressVisible.value = false
-    }, 500)
-  } catch {
+  exporting.value = true
+  progressTitle.value = '正在导出数据'
+  progressPercent.value = 0
+  progressVisible.value = true
+  await exportDatabase(updateProgress)
+  progressPercent.value = 100
+  setTimeout(() => {
     progressVisible.value = false
-  } finally {
-    exporting.value = false
-  }
+  }, 500)
+  exporting.value = false
 }
 
 const triggerImport = () => {

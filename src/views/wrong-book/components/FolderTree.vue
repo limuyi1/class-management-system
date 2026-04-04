@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElTree, ElButton, ElInput, ElMessageBox, ElMessage } from 'element-plus'
 import { useWrongBookStore } from '@/stores/wrong-book'
+import type { TreeNode } from '@/types/FolderTree'
 
 const wrongBookStore = useWrongBookStore()
 const { folders, selectedFolderId, questions } = storeToRefs(wrongBookStore)
@@ -10,15 +11,6 @@ const { folders, selectedFolderId, questions } = storeToRefs(wrongBookStore)
 const defaultProps = {
   children: 'children',
   label: 'name'
-}
-
-interface TreeNode {
-  id: string
-  name: string
-  parentId?: string
-  order: number
-  createdAt: string
-  children?: TreeNode[]
 }
 
 const treeData = computed<TreeNode[]>(() => {

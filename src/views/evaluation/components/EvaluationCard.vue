@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
+import type { PageInoType, EvaluationCardProps, EvaluationCardEmits } from '@/types/EvaluationCard'
 
 const store = useConfigurationStore()
 
@@ -9,27 +10,9 @@ const store = useConfigurationStore()
  * 点击评语卡片回调
  * 触发后会激活右侧输入区进行评语编辑
  */
-const emit = defineEmits<{
-  click: [row: any]
-}>()
+const emit = defineEmits<EvaluationCardEmits>()
 
-interface PageInoType {
-  pageWidth: number
-  pageHeight: number
-  cellWidth: number
-  cellHeight: number
-  columnCount: number
-  margin: number
-}
-
-interface Props {
-  pageInfo: PageInoType
-  data: Array<any>
-  currentPage?: number
-  totalPages?: number
-}
-
-const props = withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<EvaluationCardProps>(), {
   pageInfo: () => ({
     pageWidth: 0,
     pageHeight: 0,

@@ -54,7 +54,8 @@ watch(
   () => [tableData.value, configuration.inputScoreTab],
   () => exec(),
   {
-    immediate: true
+    immediate: true,
+    deep: true
   }
 )
 </script>
