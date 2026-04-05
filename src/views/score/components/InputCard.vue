@@ -341,7 +341,7 @@ defineExpose({ editData, autoFocus })
             v-model.trim="formData.comment"
             size="default"
             type="textarea"
-            maxlength="500"
+            maxlength="160"
             show-word-limit
             placeholder="请输入对学生的评价..."
             :rows="3"
@@ -476,19 +476,21 @@ defineExpose({ editData, autoFocus })
 .student-tags {
   display: flex;
   flex-direction: column;
-  gap: 6px;
   background: #f8fafc;
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: 6px;
+  gap: 2px;
+  cursor: pointer;
 
   .tag-category {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 2px;
     font-size: 12px;
 
     .category-label {
+      line-height: 20px;
       color: #64748b;
       font-weight: 500;
       min-width: 42px;
