@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { pinyin } from 'pinyin-pro'
@@ -20,6 +20,16 @@ const inputValue = ref('')
 const inputVisible = ref(false)
 const isProcessingInput = ref(false)
 const activeCategory = ref(list.value[0]?.prop || '')
+
+watch(
+  () => list.value,
+  (newList) => {
+    if (newList.length > 0 && !newList.find((item) => item.prop === activeCategory.value)) {
+      activeCategory.value = newList[0].prop
+    }
+  },
+  { immediate: true }
+)
 
 const aiDialogVisible = ref(false)
 const generating = ref(false)

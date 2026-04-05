@@ -70,9 +70,7 @@ watch(activeTab, (newTab) => {
           </span>
         </template>
         <div class="tab-content">
-          <el-scrollbar>
-            <label-maintenance />
-          </el-scrollbar>
+          <label-maintenance />
         </div>
       </el-tab-pane>
       <el-tab-pane name="unit-config">
