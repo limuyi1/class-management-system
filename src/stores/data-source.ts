@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
-import { liveQuery, type Observable } from 'dexie'
+import { watch } from 'vue'
 
-import { db, DB_ID } from '@/db'
 import { useConfigurationStore } from '@/stores/configuration'
 
 /**
@@ -13,9 +12,7 @@ export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
       items: [] as Array<any>,
-      _isUpdatingFromDB: false as boolean,
-      _dataReadyPromise: null as Promise<boolean> | null,
-      _dataReadyResolve: null as ((value: boolean) => void) | null
+      isInitialLoading: false
     }
   },
   getters: {
@@ -128,78 +125,24 @@ export const useDataSourceStore = defineStore('dataSource', {
     },
 
     /**
-     * 从数据库订阅实时数据
-     * 使用 Dexie liveQuery，当 IndexedDB 变化时自动更新 store
+     * 等待数据准备就绪
      */
-    subscribeToLiveQuery() {
-      const observable$ = liveQuery(() => db.dataSource.get(DB_ID)) as Observable<any>
-
-      observable$.subscribe({
-        next: async (record) => {
-          if (!record) return
-
-          this._isUpdatingFromDB = true
-
-          const newData = record.data || []
-          this.items = newData
-
-          if (this._dataReadyResolve && newData.length > 0) {
-            this._dataReadyResolve(true)
-            this._dataReadyResolve = null
-            this._dataReadyPromise = null
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 0))
-          this._isUpdatingFromDB = false
-        },
-        error: (err) => {
-          console.error('[dataSource] LiveQuery error:', err)
-        }
-      })
-    },
-
-    /**
-     * 初始化数据库并建立订阅
-     */
-    async initDatabase() {
-      this._dataReadyPromise = new Promise<boolean>((resolve) => {
-        this._dataReadyResolve = resolve
-      })
-
-      const record = await db.dataSource.get(DB_ID)
-      if (!record) {
-        await db.dataSource.put({
-          id: DB_ID,
-          data: []
-        })
-      }
-      this.subscribeToLiveQuery()
-    },
-
     async waitForDataReady(): Promise<boolean> {
-      if (this._dataReadyPromise) {
-        return this._dataReadyPromise
-      }
-      return this.items.length > 0
-    },
-
-    /**
-     * 保存当前状态到数据库
-     * 当 Store 状态变化时调用
-     */
-    async saveToDatabase() {
-      if (this._isUpdatingFromDB) {
-        return
-      }
-
-      try {
-        await db.dataSource.put({
-          id: DB_ID,
-          data: this.items
+      if (!this.isInitialLoading) {
+        return new Promise((resolve) => {
+          const unwatch = watch(
+            () => this.isInitialLoading,
+            (loaded) => {
+              if (loaded) {
+                unwatch()
+                resolve(true)
+              }
+            },
+            { immediate: true }
+          )
         })
-      } catch (error) {
-        console.error('[dataSource] Failed to save to database:', error)
       }
+      return true
     }
   }
 })

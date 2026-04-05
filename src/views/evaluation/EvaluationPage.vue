@@ -15,6 +15,7 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { generateBatchComments } from '@/ai/aiService'
 import { exportPDF } from '@/utils/pdfUntil'
 import { extractStudentTags } from '@/utils/studentUntil'
+import { NAME_PROP } from '@/types/Constants'
 
 /**
  * 期末评语管理页面
@@ -83,7 +84,7 @@ const handleBatchGenerate = async () => {
       const allTags = extractStudentTags(item, tagCategoryList.value)
 
       return {
-        name: item.xing4_ming2,
+        name: item[NAME_PROP],
         tags: allTags,
         score: configuration.inputScoreTab ? item[configuration.inputScoreTab] : undefined,
         comment: item.comment

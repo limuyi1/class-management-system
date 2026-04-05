@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { xlsxToImage } from '@/utils/xlsxUntil'
+import { NAME_PROP } from '@/types/Constants'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
@@ -57,9 +58,9 @@ const buildData = (isScore: boolean = true) => {
   const scoreKey = configuration.inputScoreTab
   data.forEach((e: any, i: number) => {
     if (isScore) {
-      bodyData.push([String(i + 1), e.xing4_ming2, scoreKey ? e[scoreKey] : ''])
+      bodyData.push([String(i + 1), e[NAME_PROP], scoreKey ? e[scoreKey] : ''])
     } else {
-      bodyData.push([String(i + 1), e.xing4_ming2])
+      bodyData.push([String(i + 1), e[NAME_PROP]])
     }
   })
 
@@ -85,7 +86,7 @@ const buildData = (isScore: boolean = true) => {
         :max="100"
       >
         <el-tag :type="props.tagType">
-          {{ item.xing4_ming2 }}
+          {{ item[NAME_PROP] }}
         </el-tag>
       </el-badge>
     </el-popover>

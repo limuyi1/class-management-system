@@ -101,7 +101,7 @@ const remove = (item: { value: string; label: string }) => {
 
 <style scoped lang="scss">
 .unit-configuration__wrapper {
-  width: 600px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 24px;
 

@@ -8,6 +8,7 @@ import { pinyin } from 'pinyin-pro'
 
 import { useSettingStore } from '@/stores/setting'
 import type { SettingType } from '@/types/Setting'
+import { NAME_PROP } from '@/types/Constants'
 
 const store = useSettingStore()
 
@@ -18,7 +19,7 @@ const editing = ref(false)
 
 // 姓名是固定的，不能编辑和删除
 const isNameHeader = (item: SettingType) => {
-  return item.prop === 'xing4_ming2'
+  return item.prop === NAME_PROP
 }
 
 const add = () => {
@@ -105,7 +106,7 @@ const remove = (item: SettingType) => {
 
 <style scoped lang="scss">
 .unit-configuration__wrapper {
-  width: 600px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 24px;
 

@@ -11,7 +11,7 @@ export const useSettingStore = defineStore('setting', {
     /**
      * 表格表头配置列表
      * 每个元素包含 prop（属性名，拼音格式）和 label（显示名称）
-     * 首列固定为 xing4_ming2（姓名），不可删除
+     * 首列固定为姓名列，不可删除
      */
     tableHeaders: [] as Array<SettingType>,
     /**

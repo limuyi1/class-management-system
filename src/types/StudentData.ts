@@ -1,5 +1,7 @@
+import { NAME_PROP } from '@/types/Constants'
+
 export interface StudentDataType {
-  xing4_ming2: string | null
+  [NAME_PROP]: string | null
   disabled?: boolean
   comment?: string
   tags?: Record<string, string[]>

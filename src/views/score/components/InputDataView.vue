@@ -7,6 +7,7 @@ import { useProgress } from '@/hooks/useProgress'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
+import { NAME_PROP } from '@/types/Constants'
 
 /**
  * 数据录入视图组件
@@ -114,11 +115,11 @@ defineExpose({
         <div class="unfinished-list">
           <el-tag
             v-for="item in hasNullScoreList.slice(0, 20)"
-            :key="item.xing4_ming2"
+            :key="item[NAME_PROP]"
             class="unfinished-tag"
             type="info"
           >
-            {{ item.xing4_ming2 }}
+            {{ item[NAME_PROP] }}
           </el-tag>
           <span v-if="hasNullScoreList.length > 20" class="more-hint">
             ...还有 {{ hasNullScoreList.length - 20 }} 人

@@ -7,6 +7,7 @@ import domtoimage from 'dom-to-image'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useScoreStatistics } from '@/hooks/useScoreStatistics'
+import { NAME_PROP } from '@/types/Constants'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
@@ -62,7 +63,7 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
 
   const bodyHtml = students
     .map((s) => {
-      const row = `<td style="border:1px solid #ddd;padding:8px;text-align:center;">${s.xing4_ming2}</td>`
+      const row = `<td style="border:1px solid #ddd;padding:8px;text-align:center;">${s[NAME_PROP]}</td>`
       const scoreRow =
         mode === 'withScore'
           ? `<td style="border:1px solid #ddd;padding:8px;text-align:center;">${getScore(s)}分</td>`
@@ -234,21 +235,21 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
         <template v-if="belowThresholdStudents.length <= 8">
           <el-tag
             v-for="item in belowThresholdStudents"
-            :key="item.xing4_ming2"
+            :key="item[NAME_PROP]"
             type="warning"
             size="small"
           >
-            {{ item.xing4_ming2 }} {{ getScore(item) }}分
+            {{ item[NAME_PROP] }} {{ getScore(item) }}分
           </el-tag>
         </template>
         <template v-else>
           <el-tag
             v-for="item in belowThresholdStudents.slice(0, 8)"
-            :key="item.xing4_ming2"
+            :key="item[NAME_PROP]"
             type="warning"
             size="small"
           >
-            {{ item.xing4_ming2 }} {{ getScore(item) }}分
+            {{ item[NAME_PROP] }} {{ getScore(item) }}分
           </el-tag>
           <el-popover placement="bottom" :width="200">
             <template #reference>
@@ -259,12 +260,12 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
             <div class="popover-tags">
               <el-tag
                 v-for="item in belowThresholdStudents.slice(8)"
-                :key="item.xing4_ming2"
+                :key="item[NAME_PROP]"
                 type="warning"
                 size="small"
                 class="mb-1"
               >
-                {{ item.xing4_ming2 }} {{ getScore(item) }}分
+                {{ item[NAME_PROP] }} {{ getScore(item) }}分
               </el-tag>
             </div>
           </el-popover>

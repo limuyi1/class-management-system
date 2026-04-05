@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/stores/setting'
 import type { BatchTagDrawerProps, BatchTagDrawerEmits } from '@/types/BatchTagDrawer'
+import { NAME_PROP } from '@/types/Constants'
 
 const props = defineProps<BatchTagDrawerProps>()
 
@@ -167,7 +168,7 @@ watch(
 
       <div class="current-student">
         <span class="student-label">当前学生：</span>
-        <span class="student-name">{{ getCurrentStudent()?.xing4_ming2 || '' }}</span>
+        <span class="student-name">{{ getCurrentStudent()?.[NAME_PROP] || '' }}</span>
       </div>
 
       <div class="tags-section">

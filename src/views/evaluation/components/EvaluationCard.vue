@@ -3,6 +3,7 @@ import { computed } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
 import type { PageInoType, EvaluationCardProps, EvaluationCardEmits } from '@/types/EvaluationCard'
+import { NAME_PROP } from '@/types/Constants'
 
 const store = useConfigurationStore()
 
@@ -57,10 +58,10 @@ const cellStyle = computed(() => ({
     >
       <table class="evaluation-card--table" border="0" cellspacing="0" cellpadding="0">
         <template v-for="(item, index) in data">
-          <tr v-if="index % pageInfo.columnCount == 0" :key="`${item.xing4_ming2}_${index}`">
+          <tr v-if="index % pageInfo.columnCount == 0" :key="`${item[NAME_PROP]}_${index}`">
             <template v-for="e in pageInfo.columnCount">
               <td
-                v-if="data[index + e - 1]?.xing4_ming2"
+                v-if="data[index + e - 1]?.[NAME_PROP]"
                 :key="e"
                 class="table-cell"
                 :style="cellStyle"
@@ -68,7 +69,7 @@ const cellStyle = computed(() => ({
               >
                 <div class="cell-content" :style="{ fontSize: store.fontSize + 'px' }">
                   <div class="custom-font" :style="{ fontSize: store.salutationFontSize + 'px' }">
-                    {{ data[index + e - 1]?.xing4_ming2 }}同学：
+                    {{ data[index + e - 1]?.[NAME_PROP] }}同学：
                   </div>
                   <div
                     class="table-body custom-font"

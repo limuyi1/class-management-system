@@ -70,7 +70,9 @@ watch(activeTab, (newTab) => {
           </span>
         </template>
         <div class="tab-content">
-          <label-maintenance />
+          <el-scrollbar>
+            <label-maintenance />
+          </el-scrollbar>
         </div>
       </el-tab-pane>
       <el-tab-pane name="unit-config">
@@ -81,7 +83,9 @@ watch(activeTab, (newTab) => {
           </span>
         </template>
         <div class="tab-content">
-          <unit-configuration />
+          <el-scrollbar>
+            <unit-configuration />
+          </el-scrollbar>
         </div>
       </el-tab-pane>
       <el-tab-pane name="ai-config">
@@ -92,7 +96,9 @@ watch(activeTab, (newTab) => {
           </span>
         </template>
         <div class="tab-content">
-          <a-i-configuration />
+          <el-scrollbar>
+            <a-i-configuration />
+          </el-scrollbar>
         </div>
       </el-tab-pane>
       <el-tab-pane name="question-type">
@@ -103,7 +109,9 @@ watch(activeTab, (newTab) => {
           </span>
         </template>
         <div class="tab-content">
-          <question-type-maintenance />
+          <el-scrollbar>
+            <question-type-maintenance />
+          </el-scrollbar>
         </div>
       </el-tab-pane>
       <el-tab-pane name="system-backup">
@@ -114,7 +122,9 @@ watch(activeTab, (newTab) => {
           </span>
         </template>
         <div class="tab-content">
-          <import-export />
+          <el-scrollbar>
+            <import-export />
+          </el-scrollbar>
         </div>
       </el-tab-pane>
     </el-tabs>

@@ -8,6 +8,7 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 
 import type { VxeTablePropTypes } from 'vxe-table'
+import { NAME_PROP } from '@/types/Constants'
 
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
@@ -40,7 +41,7 @@ const isNotEmpty = computed(() => store.enabledData?.length)
       >
         <vxe-column type="seq" title="序号" width="60" fixed="left" :resizable="false" />
         <vxe-column
-          field="xing4_ming2"
+          :field="NAME_PROP"
           title="姓名"
           width="100"
           fixed="left"

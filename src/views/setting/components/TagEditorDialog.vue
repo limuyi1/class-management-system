@@ -7,6 +7,7 @@ import type {
   TagEditorDialogProps,
   TagEditorDialogEmits
 } from '@/types/TagEditorDialog'
+import { NAME_PROP } from '@/types/Constants'
 
 const props = defineProps<TagEditorDialogProps>()
 
@@ -68,7 +69,7 @@ const initCascaderValue = () => {
 <template>
   <el-dialog
     v-model="dialogVisible"
-    :title="`为 ${student?.xing4_ming2 || ''} 添加标签`"
+    :title="`为 ${student?.[NAME_PROP] || ''} 添加标签`"
     width="400px"
     :close-on-click-modal="false"
     destroy-on-close

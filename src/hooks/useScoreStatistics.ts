@@ -1,8 +1,10 @@
 import { computed, ref, watch } from 'vue'
 import type { ComputedRef } from 'vue'
 
+import { NAME_PROP } from '@/types/Constants'
+
 interface StudentData {
-  xing4_ming2: string
+  [NAME_PROP]: string
   [key: string]: unknown
 }
 
@@ -104,7 +106,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
           return score !== null && score >= range.min && score <= range.max
         })
         .sort((a, b) => (getScore(b) || 0) - (getScore(a) || 0))
-        .map((e) => e.xing4_ming2)
+        .map((e) => e[NAME_PROP])
       return { count, students: studentList }
     }
 
@@ -124,11 +126,11 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
 
     const topStudents = students.value
       .filter((e) => getScore(e) === maxScore)
-      .map((e) => e.xing4_ming2)
+      .map((e) => e[NAME_PROP])
 
     const bottomStudents = students.value
       .filter((e) => getScore(e) === minScore)
-      .map((e) => e.xing4_ming2)
+      .map((e) => e[NAME_PROP])
 
     const allLowScoreStudents = students.value
       .filter((e) => {
@@ -136,7 +138,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
         return score !== null && score < 60
       })
       .sort((a, b) => (getScore(a) || 0) - (getScore(b) || 0))
-      .map((e) => e.xing4_ming2)
+      .map((e) => e[NAME_PROP])
 
     const maxCount = Math.max(...rangeData.map((r) => r.count), 1)
 

@@ -7,28 +7,24 @@ import { passingScoreRanges } from '@/config/score'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
+import { useSettingStore } from '@/stores/setting'
+import { dayjs } from 'element-plus'
+import { NAME_PROP } from '@/types/Constants'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
+const settingStore = useSettingStore()
 
 const { items: originList } = storeToRefs(store)
+const { tableHeaders } = storeToRefs(settingStore)
 
-/**
- * 分数分布区间配置（合并及格区间和低分区间）
- */
 const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max: 59 }]
 
-/**
- * 获取当前选中列的分数值
- */
 const getScore = (item: any): number | null => {
   if (!configuration.inputScoreTab) return null
   return item[configuration.inputScoreTab]
 }
 
-/**
- * 按分数区间筛选并排序数据
- */
 const filterByRange = (range: { min: number; max: number }) => {
   return originList.value
     .filter((e: any) => {
@@ -38,67 +34,114 @@ const filterByRange = (range: { min: number; max: number }) => {
     .sort((a: any, b: any) => (getScore(b) || 0) - (getScore(a) || 0))
 }
 
-/**
- * 生成统计数据
- */
-const createStatistics = () => {
-  return {
-    avg: store.average.toFixed(2),
-    passRate: store.passRate.toFixed(2),
-    excellentRate: store.excellentRate.toFixed(2)
-  }
+const buildSheetWithStats = (
+  sheetName: string,
+  filename: string,
+  scoreLabels: string[],
+  buildScoreRow: (item: any) => any[],
+  footerRows: any[][]
+) => {
+  const workbook = XLSX.utils.book_new()
+  const header = ['序号', '姓名', ...scoreLabels]
+  const body = originList.value.map((e: any, i: number) => [
+    String(i + 1),
+    e[NAME_PROP],
+    ...buildScoreRow(e)
+  ])
+
+  const merges = footerRows.map((_, i) => ({
+    s: { r: body.length + 1 + i, c: 0 },
+    e: { r: body.length + 1 + i, c: 1 }
+  }))
+
+  const sheet = XLSX.utils.aoa_to_sheet([header, ...body, ...footerRows])
+  sheet['!merges'] = merges
+  XLSX.utils.book_append_sheet(workbook, sheet, sheetName)
+  exportExcel(undefined, undefined, filename, workbook)
 }
 
-/**
- * 导出 Excel
- */
 const exportExcelFun = () => {
   const workbook = XLSX.utils.book_new()
+  const filename = `成绩_${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.xlsx`
 
-  // 生成总表 sheet（含统计）- 放在第一个
+  const footer = [
+    ['平均分', null, Number(store.average.toFixed(2))],
+    ['及格率', null, `${store.passRate.toFixed(2)}%`],
+    ['优秀率', null, `${store.excellentRate.toFixed(2)}%`]
+  ]
   const header = ['序号', '姓名', '分数']
   const body = originList.value.map((e: any, i: number) => {
     const score = getScore(e)
-    return [String(i + 1), e.xing4_ming2, score !== null ? Number(score) : '']
+    return [String(i + 1), e[NAME_PROP], score !== null ? Number(score) : '']
   })
-  const stats = createStatistics()
-  const footer = [
-    ['平均分', null, Number(stats.avg)],
-    ['及格率', null, `${stats.passRate}%`],
-    ['优秀率', null, `${stats.excellentRate}%`]
-  ]
-
-  const mergeStartIndex = body.length + 1
   const merges = footer.map((_, i) => ({
-    s: { r: mergeStartIndex + i, c: 0 },
-    e: { r: mergeStartIndex + i, c: 1 }
+    s: { r: body.length + 1 + i, c: 0 },
+    e: { r: body.length + 1 + i, c: 1 }
   }))
-
   const mainSheet = XLSX.utils.aoa_to_sheet([header, ...body, ...footer])
   mainSheet['!merges'] = merges
   XLSX.utils.book_append_sheet(workbook, mainSheet, '总表')
 
-  // 生成各分数区间的 sheet
   scoreRanges.forEach((range) => {
     const data = filterByRange(range)
     const rangeBody = data.map((e: any, i: number) => {
       const score = getScore(e)
-      return [String(i + 1), e.xing4_ming2, score !== null ? Number(score) : '']
+      return [String(i + 1), e[NAME_PROP], score !== null ? Number(score) : '']
     })
     const sheet = XLSX.utils.aoa_to_sheet([['序号', '姓名', '分数'], ...rangeBody])
     XLSX.utils.book_append_sheet(workbook, sheet, range.label)
   })
 
-  exportExcel(undefined, undefined, `成绩_${new Date().toLocaleString()}.xlsx`, workbook)
+  exportExcel(undefined, undefined, filename, workbook)
+}
+
+const exportAllExcelFun = () => {
+  const unitHeaders = tableHeaders.value.filter((h) => h.prop !== NAME_PROP)
+  const scoreLabels = unitHeaders.map((h) => h.label)
+
+  const unitAverages = unitHeaders.map((h) => {
+    const scores = originList.value
+      .map((e) => e[h.prop])
+      .filter((s) => s !== null && s !== undefined) as number[]
+    if (scores.length === 0) return ''
+    return (scores.reduce((acc, cur) => acc + cur, 0) / scores.length).toFixed(2)
+  })
+
+  const footer = [['平均分', null, ...unitAverages.map((avg) => (avg === '' ? '' : Number(avg)))]]
+
+  buildSheetWithStats(
+    '成绩汇总',
+    `成绩汇总_${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.xlsx`,
+    scoreLabels,
+    (item) =>
+      unitHeaders.map((h) =>
+        item[h.prop] !== null && item[h.prop] !== undefined ? Number(item[h.prop]) : ''
+      ),
+    footer
+  )
+}
+
+const handleCommand = (command: 'current' | 'all') => {
+  if (command === 'current') {
+    exportExcelFun()
+  } else {
+    exportAllExcelFun()
+  }
 }
 </script>
 
 <template>
-  <el-tooltip content="下载成绩" placement="top">
-    <el-button size="small" circle @click="exportExcelFun">
+  <el-dropdown @command="handleCommand" trigger="hover">
+    <el-button size="small" circle>
       <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
     </el-button>
-  </el-tooltip>
+    <template #dropdown>
+      <el-dropdown-menu>
+        <el-dropdown-item command="current">下载当前成绩</el-dropdown-item>
+        <el-dropdown-item command="all">下载所有成绩</el-dropdown-item>
+      </el-dropdown-menu>
+    </template>
+  </el-dropdown>
 </template>
 
 <style scoped lang="scss"></style>

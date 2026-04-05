@@ -13,6 +13,7 @@ import TagEditorDialog from './TagEditorDialog.vue'
 import BatchTagDrawer from './BatchTagDrawer.vue'
 
 import type { VxeTableEvents, VxeTablePropTypes } from 'vxe-table'
+import { NAME_PROP } from '@/types/Constants'
 
 const router = useRouter()
 
@@ -33,18 +34,18 @@ const deleteStudent = (row: any) => {
 
 const addStudentAbove = (row: any) => {
   const index = tableData.value.indexOf(row)
-  const newStudent = { xing4_ming2: '', isNew: true }
+  const newStudent = { [NAME_PROP]: '', isNew: true }
   tableData.value.splice(index, 0, newStudent)
 }
 
 const addStudentBelow = (row: any) => {
   const index = tableData.value.indexOf(row)
-  const newStudent = { xing4_ming2: '', isNew: true }
+  const newStudent = { [NAME_PROP]: '', isNew: true }
   tableData.value.splice(index + 1, 0, newStudent)
 }
 
 const confirmNewStudent = (row: any) => {
-  if (!row.xing4_ming2 || !row.xing4_ming2.trim()) {
+  if (!row[NAME_PROP] || !row[NAME_PROP].trim()) {
     ElMessage.error('姓名不能为空')
     return
   }
@@ -121,7 +122,7 @@ const closeBatchEditor = () => {
 
 const confirmBatchEdit = (updatedStudents: any[]) => {
   updatedStudents.forEach((student) => {
-    const originalStudent = tableData.value.find((s) => s.xing4_ming2 === student.xing4_ming2)
+    const originalStudent = tableData.value.find((s) => s[NAME_PROP] === student[NAME_PROP])
     if (originalStudent) {
       originalStudent.tags = student.tags
     }
@@ -231,7 +232,7 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
 }
 
 const openTagEditorByName = (name: string) => {
-  const student = tableData.value.find((item) => item.xing4_ming2 === name)
+  const student = tableData.value.find((item) => item[NAME_PROP] === name)
   if (student) {
     openTagEditor(student)
   }
@@ -261,7 +262,7 @@ defineExpose({
       >
         <vxe-column type="seq" title="序号" width="60" fixed="left" :resizable="false" />
         <vxe-column
-          field="xing4_ming2"
+          :field="NAME_PROP"
           title="姓名"
           width="100"
           fixed="left"

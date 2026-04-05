@@ -9,6 +9,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 import { getScoreColor as getScoreColorConfig } from '@/config/score'
 import { delay } from '@/utils/commonUntil'
+import { NAME_PROP } from '@/types/Constants'
 
 const emit = defineEmits(['edit'])
 
@@ -144,7 +145,7 @@ defineExpose({ scroll })
     @row-click="handleEdit"
   >
     <el-table-column type="index" label="序号" width="70" align="center" />
-    <el-table-column prop="xing4_ming2" label="姓名" />
+    <el-table-column :prop="NAME_PROP" label="姓名" />
     <el-table-column :prop="configuration.inputScoreTab || ''">
       <template #header>
         <div class="operate-btn__wrapper">
@@ -161,9 +162,11 @@ defineExpose({ scroll })
             />
           </el-select>
           <el-tooltip effect="dark" placement="top" append-to="body" content="重置分数">
-            <el-icon :size="18" color="var(--el-color-primary)">
-              <Refresh style="cursor: pointer" @click="resetScore" />
-            </el-icon>
+            <font-awesome-icon
+              :icon="['fas', 'rotate-right']"
+              style="color: var(--el-color-primary); cursor: pointer"
+              @click="resetScore"
+            />
           </el-tooltip>
         </div>
       </template>

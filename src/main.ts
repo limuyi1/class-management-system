@@ -1,5 +1,3 @@
-import 'element-plus/dist/index.css'
-import '@vueup/vue-quill/dist/vue-quill.snow.css'
 import './assets/style/element.scss'
 import './assets/style/main.css'
 
@@ -7,9 +5,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 
 import ElementPlus from 'element-plus'
-
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 
 import VxeUIAll, { VxeUI } from 'vxe-pc-ui'
 import VxeUITable from 'vxe-table'
@@ -27,17 +23,11 @@ import { createPersistedStateDexie } from './plugins/persistDexie'
 
 import App from './App.vue'
 import router from './router'
-import { useThemeStore } from './stores/theme'
-import { useDataSourceStore } from './stores/data-source'
 
 const app = createApp(App)
 
 const pinia = createPinia()
 pinia.use(createPersistedStateDexie())
-
-for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(key, component)
-}
 
 app.component('font-awesome-icon', FontAwesomeIcon)
 
@@ -49,6 +39,4 @@ app.use(VxeUIAll)
 app.use(VxeUITable)
 app.use(router)
 
-useThemeStore().initTheme()
-useDataSourceStore().initDatabase()
 app.mount('#app')

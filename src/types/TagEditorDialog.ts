@@ -1,5 +1,7 @@
+import { NAME_PROP } from '@/types/Constants'
+
 export interface TagEditorDialogStudent {
-  xing4_ming2: string
+  [NAME_PROP]: string
   tags?: Record<string, string[]>
 }
 

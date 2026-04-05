@@ -14,6 +14,7 @@ import { generateSingleComment } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUntil'
 
 import { InputEnum } from '@/types/Common'
+import { NAME_PROP } from '@/types/Constants'
 
 const router = useRouter()
 
@@ -78,7 +79,7 @@ const handleGenerateComment = async () => {
     const allTags = extractStudentTags(item, tagCategoryList.value)
 
     const student = {
-      name: item.xing4_ming2,
+      name: item[NAME_PROP],
       tags: allTags,
       score: configuration.inputScoreTab ? item[configuration.inputScoreTab] : undefined
     }
@@ -158,7 +159,7 @@ const autoFocus = () => {
 const remoteMethod = (query: string) => {
   if (query) {
     options.value = originList.value.filter(
-      (item: any) => item.xing4_ming2.includes(query) || match(item.xing4_ming2, query)?.length
+      (item: any) => item[NAME_PROP].includes(query) || match(item[NAME_PROP], query)?.length
     )
   } else {
     options.value = []
@@ -175,7 +176,7 @@ const fillStudentData = (index: number | null) => {
   const item = originList.value[index - 1]
 
   formData.id = index
-  formData.name = item.xing4_ming2
+  formData.name = item[NAME_PROP]
   formData.score = configuration.inputScoreTab ? item[configuration.inputScoreTab] : null
   formData.comment = item.comment || null
 
@@ -242,13 +243,13 @@ const onSubmit = () => {
  * @param data - 学生行数据对象
  */
 const editData = (data: any) => {
-  remoteMethod(data.xing4_ming2)
+  remoteMethod(data[NAME_PROP])
 
   // 找到对应的行号
   const rowIndex = originList.value.findIndex((item: any) => item === data)
 
   formData.id = rowIndex + 1
-  formData.name = data.xing4_ming2
+  formData.name = data[NAME_PROP]
   formData.score = configuration.inputScoreTab ? data[configuration.inputScoreTab] : null
   formData.comment = data.comment || null
 
@@ -287,7 +288,7 @@ defineExpose({ editData, autoFocus })
             <el-option
               v-for="(item, index) in options"
               :key="index"
-              :label="item.xing4_ming2"
+              :label="item[NAME_PROP]"
               :value="originList.indexOf(item) + 1"
             />
           </el-select>

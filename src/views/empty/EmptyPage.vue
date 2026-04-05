@@ -12,6 +12,7 @@ import { storeToRefs } from 'pinia'
 import { parseExcel } from '@/utils/xlsxUntil'
 import { importDatabase } from '@/utils/backup'
 import ImportProgress from '@/views/setting/components/ImportProgress.vue'
+import { NAME_PROP } from '@/types/Constants'
 
 const router = useRouter()
 const store = useDataSourceStore()
@@ -54,8 +55,8 @@ const uploadFile = async (file: any) => {
     )
 
     const result = data.map((e: any) => {
-      const _headerObj: Record<string, unknown> = Object.assign({ xing4_ming2: null }, headerObj)
-      _headerObj.xing4_ming2 = e['姓名'] || null
+      const _headerObj: Record<string, unknown> = Object.assign({ [NAME_PROP]: null }, headerObj)
+      _headerObj[NAME_PROP] = e['姓名'] || null
       headerArray.forEach((headerItem: { prop: string; label: string }) => {
         _headerObj[headerItem.prop] = e[headerItem.label] || null
       })
