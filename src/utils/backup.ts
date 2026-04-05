@@ -26,7 +26,11 @@ export async function exportDatabase(onProgress?: (percent: number) => void) {
   }
 }
 
-export async function importDatabase(file: File, onProgress?: (percent: number) => void) {
+export async function importDatabase(
+  file: File,
+  onProgress?: (percent: number) => void,
+  complete?: () => void
+) {
   try {
     const blob = file.slice(0, file.size, 'application/octet-stream')
     await db.import(blob, {
@@ -40,14 +44,14 @@ export async function importDatabase(file: File, onProgress?: (percent: number) 
       }
     })
     ElMessage.success('导入成功')
-    window.location.reload()
+    complete?.()
   } catch (error) {
     console.error('Import failed:', error)
     ElMessage.error(`导入失败：${error instanceof Error ? error.message : '未知错误'}`)
   }
 }
 
-export async function clearDatabase(onProgress?: (percent: number) => void) {
+export async function clearDatabase(onProgress?: (percent: number) => void, complete?: () => void) {
   try {
     await db.dataSource.clear()
     onProgress?.(15)
@@ -62,7 +66,7 @@ export async function clearDatabase(onProgress?: (percent: number) => void) {
     await db.aiConfig.clear()
     onProgress?.(100)
     ElMessage.success('数据已清空')
-    window.location.reload()
+    complete?.()
   } catch (error) {
     console.error('Clear failed:', error)
     ElMessage.error('清空失败')

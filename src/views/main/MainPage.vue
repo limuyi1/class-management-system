@@ -3,29 +3,11 @@ import { ref } from 'vue'
 
 import LeftMenu from '@/views/main/components/LeftMenu.vue'
 import ThemeSelector from '@/components/ThemeSelector.vue'
-import { dayjs, ElMessageBox } from 'element-plus'
-import { storeToRefs } from 'pinia'
-
-import { useDataSourceStore } from '@/stores/data-source'
-import { useSettingStore } from '@/stores/setting'
+import { dayjs } from 'element-plus'
 
 import logo from '@/assets/main/logo.png'
 
 const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
-const store = useDataSourceStore()
-const settingStore = useSettingStore()
-const { items: tableData } = storeToRefs(store)
-
-const handleUploadClick = () => {
-  ElMessageBox.confirm('确定要重置学生信息吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    store.$reset()
-    settingStore.$reset()
-  })
-}
 </script>
 
 <template>
@@ -37,17 +19,6 @@ const handleUploadClick = () => {
       </div>
       <div class="header-right">
         <theme-selector />
-        <el-button
-          v-if="tableData && tableData.length > 0"
-          type="info"
-          round
-          @click="handleUploadClick"
-        >
-          <template #icon>
-            <font-awesome-icon :icon="['solid', 'upload']" />
-          </template>
-          重新上传
-        </el-button>
       </div>
     </el-header>
     <el-container class="main-body">

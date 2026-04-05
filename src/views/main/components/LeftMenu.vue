@@ -10,9 +10,26 @@ const store = useDataSourceStore()
 const { enabledData: tableData } = storeToRefs(store)
 
 const isCollapse = ref(false)
-const activePath = ref('')
 
 const hasData = computed(() => tableData.value?.length > 0)
+
+const activePath = computed(() => {
+  const currentPath = router.currentRoute.value?.path
+
+  if (currentPath === '/empty') {
+    return '/empty'
+  }
+
+  if (!hasData.value) {
+    return '/empty'
+  }
+
+  if (currentPath === '/home') {
+    return '/home'
+  }
+
+  return currentPath || data[0].path
+})
 
 const menuData = computed(() => {
   return data.map((item) => {
@@ -27,46 +44,19 @@ const menuData = computed(() => {
   })
 })
 
-/**
- * 根据当前路由更新菜单选中状态
- */
-const updateActivePath = () => {
-  const currentPath = router.currentRoute.value?.path
-  if (currentPath === '/empty' || (!hasData.value && currentPath === '/home')) {
-    activePath.value = '/empty'
-  } else if (currentPath === '/home' && hasData.value) {
-    activePath.value = '/home'
-  } else {
-    activePath.value = currentPath || data[0].path
-  }
-}
-
 watch(
   tableData,
   (newVal) => {
     if (!newVal || newVal.length === 0) {
-      activePath.value = '/empty'
       router.push('/empty')
     }
   },
   { deep: true }
 )
 
-// 监听路由变化，更新菜单选中状态
-watch(
-  () => router.currentRoute.value.path,
-  () => {
-    updateActivePath()
-  },
-  {
-    immediate: true
-  }
-)
-
 const handleMenuClick = (item: any) => {
   if (item.disabled) return
   const targetPath = item.targetPath || item.path
-  activePath.value = targetPath
   if (item.path === '/setting') {
     router.push({ path: '/setting', query: { tab: 'student-info' } })
   } else {

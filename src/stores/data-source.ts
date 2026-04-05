@@ -13,7 +13,9 @@ export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
       items: [] as Array<any>,
-      _isUpdatingFromDB: false as boolean
+      _isUpdatingFromDB: false as boolean,
+      _dataReadyPromise: null as Promise<boolean> | null,
+      _dataReadyResolve: null as ((value: boolean) => void) | null
     }
   },
   getters: {
@@ -141,6 +143,12 @@ export const useDataSourceStore = defineStore('dataSource', {
           const newData = record.data || []
           this.items = newData
 
+          if (this._dataReadyResolve && newData.length > 0) {
+            this._dataReadyResolve(true)
+            this._dataReadyResolve = null
+            this._dataReadyPromise = null
+          }
+
           await new Promise((resolve) => setTimeout(resolve, 0))
           this._isUpdatingFromDB = false
         },
@@ -154,6 +162,10 @@ export const useDataSourceStore = defineStore('dataSource', {
      * 初始化数据库并建立订阅
      */
     async initDatabase() {
+      this._dataReadyPromise = new Promise<boolean>((resolve) => {
+        this._dataReadyResolve = resolve
+      })
+
       const record = await db.dataSource.get(DB_ID)
       if (!record) {
         await db.dataSource.put({
@@ -162,6 +174,13 @@ export const useDataSourceStore = defineStore('dataSource', {
         })
       }
       this.subscribeToLiveQuery()
+    },
+
+    async waitForDataReady(): Promise<boolean> {
+      if (this._dataReadyPromise) {
+        return this._dataReadyPromise
+      }
+      return this.items.length > 0
     },
 
     /**

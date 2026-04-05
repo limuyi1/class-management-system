@@ -57,36 +57,14 @@ const router = createRouter({
   ]
 })
 
-function waitForDataStore(): Promise<boolean> {
-  return new Promise((resolve) => {
-    const store = useDataSourceStore()
-    if (store.items?.length > 0) {
-      resolve(true)
-      return
-    }
-    const unsubscribe = store.$subscribe(
-      () => {
-        if (store.items?.length > 0) {
-          unsubscribe()
-          resolve(true)
-        }
-      },
-      { deep: true }
-    )
-    setTimeout(() => {
-      unsubscribe()
-      resolve(store.items?.length > 0)
-    }, 5000)
-  })
-}
-
 router.beforeEach(async (to, _from, next) => {
   if (to.path === '/empty') {
     next()
     return
   }
 
-  const hasData = await waitForDataStore()
+  const store = useDataSourceStore()
+  const hasData = await store.waitForDataReady()
 
   if (!hasData) {
     next('/empty')

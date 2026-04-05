@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { exportDatabase, importDatabase, clearDatabase } from '@/utils/backup'
 import ImportProgress from './ImportProgress.vue'
+import router from '@/router'
 
 const fileInput = ref<HTMLInputElement | null>(null)
 const exporting = ref(false)
@@ -56,7 +57,7 @@ const handleFileChange = async (event: Event) => {
     progressTitle.value = '正在导入数据'
     progressPercent.value = 0
     progressVisible.value = true
-    await importDatabase(file, updateProgress)
+    await importDatabase(file, updateProgress, () => window.location.reload())
     progressPercent.value = 100
   } catch {
     progressVisible.value = false
@@ -76,9 +77,14 @@ const handleClear = async () => {
     progressTitle.value = '正在清空数据'
     progressPercent.value = 0
     progressVisible.value = true
-    await clearDatabase((percent) => {
-      progressPercent.value = percent
-    })
+    await clearDatabase(
+      (percent) => {
+        progressPercent.value = percent
+      },
+      () => {
+        router.push('/empty')
+      }
+    )
   } catch {
     progressVisible.value = false
   }
@@ -100,7 +106,7 @@ const handleClear = async () => {
           </div>
           <div class="action-info">
             <div class="action-label">导出数据</div>
-            <div class="action-desc">将所有数据导出为 .dexie 文件（推荐）</div>
+            <div class="action-desc">将所有数据导出为 .dexie 文件</div>
           </div>
           <el-button type="primary" size="large" @click="handleExport" :loading="exporting">
             <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>

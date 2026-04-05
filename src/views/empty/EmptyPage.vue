@@ -5,25 +5,29 @@ import { useRouter } from 'vue-router'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
-import { useAIConfigStore } from '@/stores/ai-config'
-import { useThemeStore } from '@/stores/theme'
 
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { pinyin } from 'pinyin-pro'
 import { storeToRefs } from 'pinia'
 import { parseExcel } from '@/utils/xlsxUntil'
-import type { BackupData } from '@/types/Backup'
+import { importDatabase } from '@/utils/backup'
+import ImportProgress from '@/views/setting/components/ImportProgress.vue'
 
 const router = useRouter()
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
-const aiConfigStore = useAIConfigStore()
-const themeStore = useThemeStore()
-const { tableHeaders, tagCategory, tags } = storeToRefs(settingStore)
-const { items: data } = storeToRefs(store)
+const { tableHeaders } = storeToRefs(settingStore)
 
 const backupInput = ref<HTMLInputElement | null>(null)
+const importing = ref(false)
+const progressVisible = ref(false)
+const progressTitle = ref('')
+const progressPercent = ref(0)
+
+const updateProgress = (percent: number) => {
+  progressPercent.value = percent
+}
 
 const uploadFile = async (file: any) => {
   try {
@@ -78,37 +82,33 @@ const handleBackupImport = async (event: Event) => {
   const file = target.files?.[0]
   if (!file) return
 
+  if (!file.name.endsWith('.dexie')) {
+    ElMessage.error('请选择 .dexie 格式的备份文件')
+    target.value = ''
+    return
+  }
+
   try {
-    const text = await file.text()
-    const backup = JSON.parse(text) as BackupData
-
-    if (!backup.version || !backup.setting || !backup.dataSource) {
-      ElMessage.error('无效的备份文件格式')
-      return
-    }
-
-    tableHeaders.value = backup.setting.tableHeaders
-    tagCategory.value = backup.setting.tagCategory
-    tags.value = backup.setting.tags
-
-    data.value = backup.dataSource.items
-
-    configuration.$patch(backup.configuration)
-
-    aiConfigStore.modelType = backup.aiConfig.modelType as any
-    aiConfigStore.model = backup.aiConfig.model
-    aiConfigStore.apiKey = backup.aiConfig.apiKey
-    aiConfigStore.baseUrl = backup.aiConfig.baseUrl
-    aiConfigStore.prompts = backup.aiConfig.prompts
-    aiConfigStore.availableModels = backup.aiConfig.availableModels
-
-    themeStore.setTheme(backup.theme.currentTheme as any)
-
-    ElMessage.success('导入成功！')
-    router.push('/home')
-  } catch (err) {
-    ElMessage.error('解析文件失败，请确保是有效的 JSON 备份文件')
+    await ElMessageBox.confirm('导入将覆盖当前所有数据，确定要继续吗？', '确认导入', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    importing.value = true
+    progressTitle.value = '正在导入数据'
+    progressPercent.value = 0
+    progressVisible.value = true
+    await importDatabase(file, updateProgress, () => {
+      progressPercent.value = 100
+      setTimeout(() => {
+        progressVisible.value = false
+        router.push('/home')
+      }, 500)
+    })
+  } catch {
+    progressVisible.value = false
   } finally {
+    importing.value = false
     target.value = ''
   }
 }
@@ -148,16 +148,26 @@ const handleBackupImport = async (event: Event) => {
       <input
         ref="backupInput"
         type="file"
-        accept=".json"
+        accept=".dexie"
         style="display: none"
         @change="handleBackupImport"
       />
       <div class="upload-hint">
-        <p>支持 .xls 和 .xlsx 格式</p>
-        <p>表格中必须包含"姓名"列</p>
+        <p class="hint-section">
+          <strong>上传学生信息</strong>：支持 .xls/.xlsx 格式，表格需包含"姓名"列
+        </p>
+        <p class="hint-section">
+          <strong>导入备份</strong>：支持 .dexie 格式，用于恢复系统全量数据（会覆盖当前数据）
+        </p>
       </div>
     </div>
   </div>
+
+  <ImportProgress
+    v-model:visible="progressVisible"
+    :title="progressTitle"
+    :percent="progressPercent"
+  />
 </template>
 
 <style scoped lang="scss">
