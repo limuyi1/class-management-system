@@ -160,9 +160,7 @@ watch(
         <span class="progress-text">{{ currentIndex + 1 }} / {{ studentList.length }}</span>
         <el-button type="primary" link :disabled="studentList.length <= 1" @click="goToNextStudent">
           <span>下一个</span>
-          <template #icon
-            ><font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1"
-          /></template>
+          <font-awesome-icon :icon="['fas', 'chevron-right']" class="ml-1" />
         </el-button>
       </div>
 

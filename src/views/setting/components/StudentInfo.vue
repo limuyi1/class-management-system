@@ -289,6 +289,7 @@ defineExpose({
                   :color="getTagColor(tag.category)"
                   effect="dark"
                   class="mr-1 mb-1"
+                  disable-transitions
                 >
                   {{ tag.label }}
                 </el-tag>
@@ -428,5 +429,9 @@ defineExpose({
     color: var(--el-color-primary);
     border-color: var(--el-color-primary);
   }
+}
+
+.operation-icon {
+  cursor: pointer;
 }
 </style>

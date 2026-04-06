@@ -9,7 +9,7 @@ Scores Recording System (成绩记录系统) — a Vue 3 + TypeScript + Vite des
 ```bash
 pnpm install          # Install dependencies
 pnpm dev              # Start dev server (port from VITE_PORT in .env)
-pnpm build            # Full build (type-check + vite build)
+pnpm build            # Full build (runs type-check and vite build in parallel)
 pnpm build-only       # Vite build only (no type-check)
 pnpm preview          # Preview production build
 pnpm type-check       # Type-check with vue-tsc
