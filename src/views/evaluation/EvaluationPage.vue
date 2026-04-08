@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElMessage, ElLoading, ElMessageBox } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
 
@@ -73,6 +73,34 @@ const handleBatchGenerate = async () => {
     return
   }
 
+  // 统计已有评语的学生数量
+  const existingCount = students.value.filter((item) => item.comment && item.comment.trim()).length
+
+  // 如果有学生已有评语，弹出选择对话框
+  let mode: 'skip' | 'overwrite' = 'skip'
+  if (existingCount > 0) {
+    try {
+      const action = await ElMessageBox.confirm(
+        `检测到 ${students.value.length} 名学生中已有 ${existingCount} 名学生有评语，请选择生成方式`,
+        'AI 批量生成评语',
+        {
+          confirmButtonText: '覆盖所有',
+          cancelButtonText: '仅填充空评语',
+          type: 'info',
+          distinguishCancelAndClose: true
+        }
+      )
+      mode = 'overwrite'
+    } catch (action) {
+      if (action === 'cancel') {
+        mode = 'skip'
+      } else {
+        // 用户点击关闭按钮，取消操作
+        return
+      }
+    }
+  }
+
   batchGenerating.value = true
   const loading = ElLoading.service({
     lock: true,
@@ -100,6 +128,11 @@ const handleBatchGenerate = async () => {
 
     let updatedCount = 0
     for (let i = 0; i < result.length; i++) {
+      const hasExistingComment = students.value[i].comment && students.value[i].comment.trim()
+      // skip 模式下跳过已有评语的学生
+      if (mode === 'skip' && hasExistingComment) {
+        continue
+      }
       if (result[i].comment && result[i].comment !== students.value[i].comment) {
         students.value[i].comment = result[i].comment
         updatedCount++

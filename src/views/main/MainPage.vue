@@ -8,6 +8,7 @@ import { dayjs } from 'element-plus'
 import logo from '@/assets/main/logo.png'
 
 const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
+const author = ref(import.meta.env.VITE_APP_AUTHOR || '班务管理系统')
 </script>
 
 <template>
@@ -34,7 +35,7 @@ const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
       </el-main>
     </el-container>
     <el-footer class="main-footer" height="30px">
-      <div>&copy; {{ dayjs().format('YYYY') }} {{ title }} - 李木一版权所有</div>
+      <div>&copy; {{ dayjs().format('YYYY') }} {{ title }} - {{ author }}版权所有</div>
     </el-footer>
   </el-container>
 </template>

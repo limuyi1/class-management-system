@@ -60,9 +60,11 @@ https://class-management-system-r22i0tacg5.zh-cn.edgeone.cool/
 | 语言     | TypeScript 5.3                        |
 | UI 组件  | Element Plus, VxeTable                |
 | 状态管理 | Pinia                                 |
+| 数据库   | Dexie (IndexedDB 封装)                |
 | 样式     | Tailwind CSS 4, SCSS                  |
 | 工具库   | xlsx, jsPDF, dom-to-image, pinyin-pro |
 | 图标     | FontAwesome                           |
+| AI 集成  | Gemini (Google), Doubao (字节)        |
 
 ## 项目结构
 
@@ -175,7 +177,7 @@ pnpm lint
 
 ## 后续规划
 
-- [ ] 错题本功能
+- [x] 错题本功能 - 已在 V3.0 中实现
 - [ ] 试卷自动生成
 - [ ] 云端数据存储
 

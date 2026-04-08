@@ -64,7 +64,7 @@ const uploadFile = async (file: any) => {
     })
 
     tableHeaders.value = headerArray
-    store.items = result
+    store.$patch({ items: result })
     configuration.inputScoreTab = headerArray[0]?.prop
 
     ElMessage.success('导入成功！')

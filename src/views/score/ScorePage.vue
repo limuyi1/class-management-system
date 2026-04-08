@@ -15,6 +15,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUntil'
+import { NAME_PROP } from '@/types/Constants'
 
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
@@ -94,7 +95,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
     let notMatched: string[] = []
 
     for (const result of results) {
-      const student = originList.value.find((item: any) => item.xing4_ming2 === result.name)
+      const student = originList.value.find((item: any) => item[NAME_PROP] === result.name)
 
       if (student && result.score !== null) {
         student[scoreTab] = result.score
@@ -138,7 +139,7 @@ defineExpose({ autoFocus })
             <template #icon><font-awesome-icon :icon="['solid', 'camera']" /></template>
           </el-button>
         </el-tooltip>
-        <download-btn />
+        <download-btn v-if="dataStore.hasAnyScore" />
       </template>
     </page-header>
     <el-row class="score-page-content" :gutter="10">

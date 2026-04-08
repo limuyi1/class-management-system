@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, defineAsyncComponent } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'
 
-import LabelMaintenance from '@/views/setting/components/LabelMaintenance.vue'
-import UnitConfiguration from '@/views/setting/components/UnitConfiguration.vue'
-import StudentInfo from '@/views/setting/components/StudentInfo.vue'
-import AIConfiguration from '@/views/setting/components/AIConfiguration.vue'
-import ImportExport from '@/views/setting/components/ImportExport.vue'
-import QuestionTypeMaintenance from '@/views/wrong-book/components/QuestionTypeMaintenance.vue'
+const LabelMaintenance = defineAsyncComponent(() => import('@/views/setting/components/LabelMaintenance.vue'))
+const UnitConfiguration = defineAsyncComponent(() => import('@/views/setting/components/UnitConfiguration.vue'))
+const StudentInfo = defineAsyncComponent(() => import('@/views/setting/components/StudentInfo.vue'))
+const AIConfiguration = defineAsyncComponent(() => import('@/views/setting/components/AIConfiguration.vue'))
+const ImportExport = defineAsyncComponent(() => import('@/views/setting/components/ImportExport.vue'))
+const QuestionTypeMaintenance = defineAsyncComponent(() => import('@/views/wrong-book/components/QuestionTypeMaintenance.vue'))
 
 const route = useRoute()
 const router = useRouter()

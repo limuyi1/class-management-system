@@ -55,7 +55,8 @@ export function createPersistedStateDexie() {
       }
       try {
         if (isDataSource) {
-          await table.put({ id: DB_ID, data: store.$state.items } as any)
+          const clonableData = JSON.parse(JSON.stringify(store.$state.items))
+          await table.put({ id: DB_ID, data: clonableData } as any)
         } else {
           const rawState = store.$state
           const clonableState = JSON.parse(JSON.stringify(rawState))
