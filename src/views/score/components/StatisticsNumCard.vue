@@ -139,7 +139,7 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
             <el-popover
               v-if="scoreStats.topStudents.length > 3"
               placement="bottom"
-              trigger="click"
+              trigger="hover"
               :width="180"
             >
               <template #reference>
@@ -251,9 +251,9 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
           >
             {{ item[NAME_PROP] }} {{ getScore(item) }}分
           </el-tag>
-          <el-popover placement="bottom" :width="200">
+          <el-popover placement="bottom" :width="200" trigger="hover">
             <template #reference>
-              <el-tag type="warning" size="small"
+              <el-tag style="cursor: pointer" type="warning" size="small"
                 >...+{{ belowThresholdStudents.length - 8 }}人</el-tag
               >
             </template>
@@ -263,7 +263,6 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
                 :key="item[NAME_PROP]"
                 type="warning"
                 size="small"
-                class="mb-1"
               >
                 {{ item[NAME_PROP] }} {{ getScore(item) }}分
               </el-tag>
@@ -304,9 +303,18 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
                 </span>
               </template>
               <div class="student-list">
-                <div class="student-tag" v-for="(name, idx) in range.students" :key="idx">
+                <el-tag
+                  v-for="name in range.students"
+                  :key="name"
+                  size="small"
+                  :style="{
+                    backgroundColor: range.color + '20',
+                    color: range.color,
+                    borderColor: range.color + '40'
+                  }"
+                >
                   {{ name }}
-                </div>
+                </el-tag>
               </div>
             </el-popover>
           </div>
@@ -362,7 +370,16 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
                   </span>
                 </template>
                 <div class="student-chip-list">
-                  <el-tag v-for="name in range.students" :key="name" size="small" type="danger">
+                  <el-tag
+                    v-for="name in range.students"
+                    :key="name"
+                    size="small"
+                    :style="{
+                      backgroundColor: range.color + '20',
+                      color: range.color,
+                      borderColor: range.color + '40'
+                    }"
+                  >
                     {{ name }}
                   </el-tag>
                 </div>
@@ -527,19 +544,8 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
   .student-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 3px;
     margin-bottom: 10px;
-  }
-
-  :deep(.mb-1) {
-    display: block;
-    margin-bottom: 4px;
-  }
-
-  .popover-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
   }
 
   .range-list {
@@ -677,38 +683,6 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
     }
   }
 
-  .popover-tags {
-    max-height: 160px;
-    overflow-y: auto;
-
-    .el-tag {
-      margin: 3px;
-    }
-  }
-
-  .student-list {
-    max-height: 150px;
-    overflow-y: auto;
-
-    .student-tag {
-      display: inline-block;
-      margin: 3px;
-      padding: 3px 6px;
-      background: #f1f5f9;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-  }
-
-  .student-chip-list {
-    max-height: 120px;
-    overflow-y: auto;
-
-    .el-tag {
-      margin: 2px;
-    }
-  }
-
   .empty-hint {
     display: flex;
     flex-direction: column;
@@ -722,5 +696,30 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
       margin-bottom: 12px;
     }
   }
+}
+</style>
+<style>
+.popover-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.student-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.student-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  max-height: 120px;
+  overflow-y: auto;
 }
 </style>
