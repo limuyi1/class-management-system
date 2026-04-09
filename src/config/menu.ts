@@ -21,7 +21,8 @@ const menu = [
     name: '错题本',
     icon: 'clipboard-list',
     path: '/wrong-book',
-    disabled: false
+    disabled: false,
+    hidden: true
   },
   {
     name: '设置',

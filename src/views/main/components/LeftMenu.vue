@@ -32,7 +32,7 @@ const activePath = computed(() => {
 })
 
 const menuData = computed(() => {
-  return data.map((item) => {
+  return data.filter((item) => !item.hidden).map((item) => {
     const newItem = { ...item }
     if (item.path === '/setting') {
       newItem.disabled = false
