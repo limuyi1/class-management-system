@@ -126,18 +126,44 @@ const handleBatchGenerate = async () => {
       }
     })
 
-    const result = await generateBatchComments(studentsData, aiConfigStore.prompts.batchComment, {
-      modelType: aiConfigStore.modelType,
-      model: aiConfigStore.model,
-      apiKey: aiConfigStore.apiKey,
-      baseUrl: aiConfigStore.baseUrl
-    })
+    // 分批处理，每批15个学生
+    const BATCH_SIZE = 15
+    const totalBatches = Math.ceil(studentsData.length / BATCH_SIZE)
+    const allResults: Array<{ name: string; comment: string | null }> = []
+    let failedBatches: number[] = []
 
-    // 由于只传入了需要生成的学生，直接更新即可
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const start = batchIndex * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, studentsData.length)
+      const batchData = studentsData.slice(start, end)
+
+      loading.setText(`正在生成第 ${batchIndex + 1}/${totalBatches} 批评语...`)
+
+      try {
+        const result = await generateBatchComments(batchData, aiConfigStore.prompts.batchComment, {
+          modelType: aiConfigStore.modelType,
+          model: aiConfigStore.model,
+          apiKey: aiConfigStore.apiKey,
+          baseUrl: aiConfigStore.baseUrl
+        })
+
+        allResults.push(...result)
+      } catch (error) {
+        console.error(`第 ${batchIndex + 1} 批生成失败:`, error)
+        failedBatches.push(batchIndex + 1)
+        // 批次失败时，尝试下一个批次
+      }
+    }
+
+    if (failedBatches.length > 0) {
+      ElMessage.warning(`部分批次生成失败：第 ${failedBatches.join('、')} 批（共 ${totalBatches} 批）`)
+    }
+
+    // 更新成功生成的结果
     let updatedCount = 0
-    for (let i = 0; i < result.length; i++) {
-      if (result[i].comment) {
-        filteredStudents[i].comment = result[i].comment
+    for (let i = 0; i < allResults.length; i++) {
+      if (allResults[i].comment) {
+        filteredStudents[i].comment = allResults[i].comment
         updatedCount++
       }
     }
