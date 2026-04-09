@@ -75,10 +75,33 @@ const handleBatchGenerate = async () => {
 
   // 统计已有评语的学生数量
   const existingCount = students.value.filter((item) => item.comment && item.comment.trim()).length
+  const emptyCount = students.value.length - existingCount
 
-  // 如果有学生已有评语，弹出选择对话框
+  // 根据情况选择模式
   let mode: 'skip' | 'overwrite' = 'skip'
-  if (existingCount > 0) {
+
+  if (existingCount === 0) {
+    // 全部为空，直接生成
+    mode = 'overwrite'
+  } else if (emptyCount === 0) {
+    // 全部已有评语，只询问是否覆盖
+    try {
+      await ElMessageBox.confirm(
+        '所有学生已有评语，是否全部重新生成？',
+        'AI 批量生成评语',
+        {
+          confirmButtonText: '覆盖所有',
+          cancelButtonText: '取消',
+          type: 'info',
+          distinguishCancelAndClose: true
+        }
+      )
+      mode = 'overwrite'
+    } catch {
+      return
+    }
+  } else {
+    // 部分有评语，弹出选择对话框
     try {
       const action = await ElMessageBox.confirm(
         `检测到 ${students.value.length} 名学生中已有 ${existingCount} 名学生有评语，请选择生成方式`,
@@ -95,7 +118,6 @@ const handleBatchGenerate = async () => {
       if (action === 'cancel') {
         mode = 'skip'
       } else {
-        // 用户点击关闭按钮，取消操作
         return
       }
     }
