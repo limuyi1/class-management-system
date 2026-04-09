@@ -3,12 +3,22 @@ import { ref, watch, defineAsyncComponent } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'
 
-const LabelMaintenance = defineAsyncComponent(() => import('@/views/setting/components/LabelMaintenance.vue'))
-const UnitConfiguration = defineAsyncComponent(() => import('@/views/setting/components/UnitConfiguration.vue'))
+const LabelMaintenance = defineAsyncComponent(
+  () => import('@/views/setting/components/LabelMaintenance.vue')
+)
+const UnitConfiguration = defineAsyncComponent(
+  () => import('@/views/setting/components/UnitConfiguration.vue')
+)
 const StudentInfo = defineAsyncComponent(() => import('@/views/setting/components/StudentInfo.vue'))
-const AIConfiguration = defineAsyncComponent(() => import('@/views/setting/components/AIConfiguration.vue'))
-const ImportExport = defineAsyncComponent(() => import('@/views/setting/components/ImportExport.vue'))
-const QuestionTypeMaintenance = defineAsyncComponent(() => import('@/views/wrong-book/components/QuestionTypeMaintenance.vue'))
+const AIConfiguration = defineAsyncComponent(
+  () => import('@/views/setting/components/AIConfiguration.vue')
+)
+const ImportExport = defineAsyncComponent(
+  () => import('@/views/setting/components/ImportExport.vue')
+)
+const QuestionTypeMaintenance = defineAsyncComponent(
+  () => import('@/views/wrong-book/components/QuestionTypeMaintenance.vue')
+)
 
 const route = useRoute()
 const router = useRouter()

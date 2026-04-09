@@ -3,6 +3,13 @@ import { liveQuery, type Observable } from 'dexie'
 import { db, DB_ID } from '@/db'
 import type { Table } from 'dexie'
 
+import { useDataSourceStore } from '@/stores/data-source'
+import { useSettingStore } from '@/stores/setting'
+import { useConfigurationStore } from '@/stores/configuration'
+import { useThemeStore } from '@/stores/theme'
+import { useAIConfigStore } from '@/stores/ai-config'
+import { useWrongBookStore } from '@/stores/wrong-book'
+
 const tableNameMap: Record<string, Table<any>> = {
   wrongBook: db.wrongBook,
   setting: db.setting,
@@ -91,4 +98,21 @@ export function createPersistedStateDexie() {
       }
     })
   }
+}
+
+/**
+ * 预加载所有 Store
+ * 在应用启动时调用，提前完成所有 store 的数据库加载
+ * 避免后续页面访问时因懒加载 store 而产生卡顿
+ */
+export function preloadAllStores() {
+  const stores = [
+    useDataSourceStore(),
+    useSettingStore(),
+    useConfigurationStore(),
+    useThemeStore(),
+    useAIConfigStore(),
+    useWrongBookStore()
+  ]
+  console.log('[PersistDexie] All stores preloaded')
 }

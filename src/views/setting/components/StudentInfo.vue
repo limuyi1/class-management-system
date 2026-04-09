@@ -240,6 +240,25 @@ const openTagEditorByName = (name: string) => {
   }
 }
 
+// 虚拟删除弹窗状态
+const deletePopoverVisible = ref(false)
+const pendingDeleteRow = ref<any>(null)
+const deleteTriggerRef = ref<HTMLElement>()
+
+const openDeletePopover = (row: any, event: MouseEvent) => {
+  pendingDeleteRow.value = row
+  deleteTriggerRef.value = event.currentTarget as HTMLElement
+  deletePopoverVisible.value = true
+}
+
+const confirmDelete = () => {
+  if (pendingDeleteRow.value) {
+    deleteStudent(pendingDeleteRow.value)
+    pendingDeleteRow.value = null
+  }
+  deletePopoverVisible.value = false
+}
+
 defineExpose({
   openTagEditorByName
 })
@@ -247,11 +266,28 @@ defineExpose({
 
 <template>
   <div class="student-info h-full flex flex-col" v-if="isNotEmpty">
+    <!-- 虚拟删除弹窗（表格外唯一实例） -->
+    <el-popover
+      placement="top"
+      :width="160"
+      trigger="click"
+      v-model:visible="deletePopoverVisible"
+      :virtual-ref="deleteTriggerRef"
+      virtual-triggering
+    >
+      <div class="text-center">
+        <p>确定删除 {{ pendingDeleteRow?.[NAME_PROP] }}？</p>
+        <div class="mt-2">
+          <el-button type="danger" size="small" @click="confirmDelete">确定</el-button>
+          <el-button size="small" @click="deletePopoverVisible = false">取消</el-button>
+        </div>
+      </div>
+    </el-popover>
+
     <div class="flex-1 overflow-hidden">
       <vxe-table
         ref="tableRef"
         border
-        show-overflow
         align="center"
         height="100%"
         :edit-config="editConfig"
@@ -316,35 +352,13 @@ defineExpose({
               </span>
             </div>
             <div class="operation-icons" v-else>
-              <el-popover
-                placement="top"
-                :width="160"
-                trigger="click"
-                v-model:visible="row.popoverVisible"
+              <span
+                class="operation-icon delete-icon"
+                title="删除"
+                @click.stop="openDeletePopover(row, $event)"
               >
-                <template #reference>
-                  <span class="operation-icon delete-icon" title="删除">
-                    <font-awesome-icon :icon="['fas', 'trash']" />
-                  </span>
-                </template>
-                <div class="text-center">
-                  <p>确定删除该学生？</p>
-                  <div class="mt-2">
-                    <el-button
-                      type="danger"
-                      size="small"
-                      @click="
-                        () => {
-                          deleteStudent(row)
-                          row.popoverVisible = false
-                        }
-                      "
-                      >确定</el-button
-                    >
-                    <el-button size="small" @click="row.popoverVisible = false">取消</el-button>
-                  </div>
-                </div>
-              </el-popover>
+                <font-awesome-icon :icon="['fas', 'trash']" />
+              </span>
               <el-tooltip effect="dark" content="上方添加一行" placement="top">
                 <span class="operation-icon" @click="addStudentAbove(row)">
                   <font-awesome-icon :icon="['fas', 'chevron-up']" />

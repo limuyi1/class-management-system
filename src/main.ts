@@ -19,7 +19,7 @@ import { far } from '@fortawesome/free-regular-svg-icons'
 
 library.add(fas, far)
 
-import { createPersistedStateDexie } from './plugins/persistDexie'
+import { createPersistedStateDexie, preloadAllStores } from './plugins/persistDexie'
 
 import App from './App.vue'
 import router from './router'
@@ -40,3 +40,6 @@ app.use(VxeUITable)
 app.use(router)
 
 app.mount('#app')
+
+// 预加载所有 store（不阻塞渲染，提前完成持久化加载）
+preloadAllStores()
