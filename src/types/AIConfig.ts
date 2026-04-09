@@ -2,7 +2,7 @@ export enum AIModelTypeEnum {
   OPENAI = 'openai',
   GEMINI = 'gemini',
   KIMI = 'kimi',
-  DOUBAN = 'doubao',
+  DOUBAO = 'doubao',
   DEEPSEEK = 'deepseek'
 }
 
@@ -10,7 +10,7 @@ export const AIModelTypeLabels: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.OPENAI]: 'OpenAI',
   [AIModelTypeEnum.GEMINI]: 'Google Gemini',
   [AIModelTypeEnum.KIMI]: '月之暗面 Kimi',
-  [AIModelTypeEnum.DOUBAN]: '字节跳动 豆包',
+  [AIModelTypeEnum.DOUBAO]: '字节跳动 豆包',
   [AIModelTypeEnum.DEEPSEEK]: 'DeepSeek'
 }
 
@@ -18,7 +18,7 @@ export const AIModelDefaultBaseUrls: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.OPENAI]: 'https://api.openai.com/v1',
   [AIModelTypeEnum.GEMINI]: 'https://generativelanguage.googleapis.com/v1',
   [AIModelTypeEnum.KIMI]: 'https://api.moonshot.cn/v1',
-  [AIModelTypeEnum.DOUBAN]: 'https://ark.cn-beijing.volces.com/api/v3',
+  [AIModelTypeEnum.DOUBAO]: 'https://ark.cn-beijing.volces.com/api/v3',
   [AIModelTypeEnum.DEEPSEEK]: 'https://api.deepseek.com/v1'
 }
 
@@ -26,7 +26,7 @@ export const AIModelDefaultModels: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.OPENAI]: 'gpt-4o-mini',
   [AIModelTypeEnum.GEMINI]: 'gemini-2.0-flash',
   [AIModelTypeEnum.KIMI]: 'moonshot-v1-8k-vision-preview',
-  [AIModelTypeEnum.DOUBAN]: 'doubao-vision-pro',
+  [AIModelTypeEnum.DOUBAO]: 'doubao-vision-pro',
   [AIModelTypeEnum.DEEPSEEK]: 'deepseek-chat'
 }
 
