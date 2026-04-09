@@ -27,6 +27,8 @@ const cascaderOptions = computed(() => {
   }))
 })
 
+const hasAnyTags = computed(() => cascaderOptions.value.some((cat) => cat.children && cat.children.length > 0))
+
 const currentCascaderValue = ref<string[][]>([])
 
 const getRowTagsValue = (row: TagEditorDialogStudent): string[][] => {
@@ -45,6 +47,11 @@ const closeDialog = () => {
 }
 
 const confirmEdit = () => {
+  // 如果没有任何标签可用，跳转到标签维护页
+  if (!hasAnyTags.value) {
+    emit('goTab', 'label-maintenance')
+    return
+  }
   const tags: Record<string, string[]> = {}
   currentCascaderValue.value.forEach(([cat, tag]) => {
     if (!tags[cat]) tags[cat] = []

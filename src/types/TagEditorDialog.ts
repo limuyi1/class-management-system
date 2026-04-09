@@ -13,4 +13,5 @@ export interface TagEditorDialogProps {
 export interface TagEditorDialogEmits {
   'update:visible': [value: boolean]
   confirm: [tags: Record<string, string[]>]
+  goTab: [tab: string]
 }

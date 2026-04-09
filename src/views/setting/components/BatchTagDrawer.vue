@@ -170,7 +170,7 @@ watch(
       </div>
 
       <div class="tags-section">
-        <div v-if="totalTagCount === 0" class="empty-tags-tip">
+        <div v-if="totalTagCount === 0" class="empty-tags-tip" @click="emit('goTab', 'label-maintenance')">
           <font-awesome-icon :icon="['fas', 'tag']" />
           <span>暂无标签，点击添加</span>
         </div>

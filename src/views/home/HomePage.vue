@@ -32,10 +32,8 @@ const isNotEmpty = computed(() => store.enabledData?.length)
       <vxe-table
         ref="tableRef"
         border
-        show-overflow
-        auto-resize
         align="center"
-        height="auto"
+        height="100%"
         :edit-config="editConfig"
         :data="tableData"
       >

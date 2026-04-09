@@ -13,4 +13,5 @@ export interface BatchTagDrawerProps {
 export interface BatchTagDrawerEmits {
   'update:visible': [value: boolean]
   confirm: [updatedStudents: StudentData[]]
+  goTab: [tab: string]
 }

@@ -1,5 +1,5 @@
 <script setup lang="tsx">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -28,6 +28,7 @@ const tableRef = ref()
 const deleteStudent = (row: any) => {
   const index = tableData.value.indexOf(row)
   if (index > -1) {
+    tagCache.delete(row[NAME_PROP])
     tableData.value.splice(index, 1)
   }
 }
@@ -75,8 +76,20 @@ const getTagColor = (category: string) => {
   return tagColorVars[catIndex % tagColorVars.length]
 }
 
+const tagCache = new Map<string, { label: string; category: string }[]>()
+
+watch(categories, () => {
+  tagCache.clear()
+})
+
 const getRowTags = (row: any): { label: string; category: string }[] => {
-  if (!row.tags) return []
+  const cacheKey = row[NAME_PROP]
+  if (tagCache.has(cacheKey)) {
+    return tagCache.get(cacheKey)!
+  }
+  if (!row.tags) {
+    return []
+  }
   const result: { label: string; category: string }[] = []
   for (const [cat, tagList] of Object.entries(row.tags)) {
     if (Array.isArray(tagList)) {
@@ -86,6 +99,7 @@ const getRowTags = (row: any): { label: string; category: string }[] => {
       })
     }
   }
+  tagCache.set(cacheKey, result)
   return result
 }
 
@@ -106,6 +120,8 @@ const closeTagEditor = () => {
 
 const confirmTagEdit = (tags: Record<string, string[]>) => {
   if (!currentEditRow.value) return
+  const name = currentEditRow.value[NAME_PROP]
+  tagCache.delete(name)
   currentEditRow.value.tags = tags
   closeTagEditor()
 }
@@ -124,24 +140,21 @@ const confirmBatchEdit = (updatedStudents: any[]) => {
   updatedStudents.forEach((student) => {
     const originalStudent = tableData.value.find((s) => s[NAME_PROP] === student[NAME_PROP])
     if (originalStudent) {
+      tagCache.delete(student[NAME_PROP])
       originalStudent.tags = student.tags
     }
   })
   closeBatchEditor()
 }
 
-const goToLabelMaintenance = () => {
-  closeBatchEditor()
-  router.push({ path: '/setting', query: { tab: 'label-maintenance' } })
+const goToTab = (tab: string) => {
+  router.push({ path: '/setting', query: { tab } })
 }
 
 const editConfig = ref<VxeTablePropTypes.EditConfig>({
   trigger: 'dblclick',
   mode: 'cell',
   showIcon: false
-})
-const columnConfig = ref<VxeTablePropTypes.ColumnConfig>({
-  drag: true
 })
 const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
   header: {
@@ -165,25 +178,14 @@ const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
       ]
     ]
   },
-  visibleMethod: ({ columnIndex }) => !isNameColumn(columnIndex as number)
+  visibleMethod: ({ column }) => !isFixedColumn(column as any)
 })
 
 const isNotEmpty = computed(() => store.items?.length)
 
-const isNameColumn = (columnIndex: number) => {
-  return columnIndex <= 1
-}
-
-const columnDragendHandle = () => {
-  const $table = tableRef.value
-  if ($table) {
-    const tableColumn = $table.getFullColumns()
-    const filteredColumns = tableColumn.filter((col: any) => col.field !== 'tags')
-    headers.value = filteredColumns.splice(2).map((e: any) => ({
-      prop: e.field,
-      label: e.title
-    }))
-  }
+const isFixedColumn = (column: any) => {
+  // 通过 column.fixed 属性判断是否是固定列
+  return !!column.fixed
 }
 
 const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex }) => {
@@ -250,14 +252,11 @@ defineExpose({
         ref="tableRef"
         border
         show-overflow
-        auto-resize
         align="center"
-        height="auto"
+        height="100%"
         :edit-config="editConfig"
-        :column-config="columnConfig"
         :menu-config="menuConfig"
         :data="tableData"
-        @column-dragend="columnDragendHandle"
         @menu-click="menuClickEvent"
       >
         <vxe-column type="seq" title="序号" width="60" fixed="left" :resizable="false" />
@@ -306,7 +305,7 @@ defineExpose({
             <el-switch v-model="row.disabled" size="small" />
           </template>
         </vxe-column>
-        <vxe-column title="操作" width="100" fixed="right" :resizable="false">
+        <vxe-column field="cao_zuo" title="操作" width="100" fixed="right" :resizable="false">
           <template #default="{ row }">
             <div class="operation-icons" v-if="row.isNew">
               <span class="operation-icon" @click="confirmNewStudent(row)" title="确认">
@@ -376,12 +375,14 @@ defineExpose({
       v-model:visible="dialogVisible"
       :student="currentEditRow"
       @confirm="confirmTagEdit"
+      @go-tab="goToTab"
     />
 
     <BatchTagDrawer
       v-model:visible="batchDrawerVisible"
       :student-list="batchStudentList"
       @confirm="confirmBatchEdit"
+      @go-tab="goToTab"
     />
   </div>
 

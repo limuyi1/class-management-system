@@ -309,8 +309,7 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
                   size="small"
                   :style="{
                     backgroundColor: range.color + '20',
-                    color: range.color,
-                    borderColor: range.color + '40'
+                    color: range.color
                   }"
                 >
                   {{ name }}
@@ -376,8 +375,7 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
                     size="small"
                     :style="{
                       backgroundColor: range.color + '20',
-                      color: range.color,
-                      borderColor: range.color + '40'
+                      color: range.color
                     }"
                   >
                     {{ name }}
@@ -705,6 +703,12 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
   gap: 3px;
   max-height: 160px;
   overflow-y: auto;
+}
+
+.popover-tags .el-tag,
+.student-list .el-tag,
+.student-chip-list .el-tag {
+  border: none !important;
 }
 
 .student-list {
