@@ -108,14 +108,21 @@ const handleBatchGenerate = async () => {
   })
 
   try {
-    const studentsData = students.value.map((item) => {
+    // 根据模式构建学生数据
+    // 覆盖所有模式：传入空评语让 LLM 重新生成
+    // 仅填充空评语模式：只传入评语为空的学生
+    const filteredStudents = students.value.filter(
+      (item) => mode === 'overwrite' || !item.comment?.trim()
+    )
+
+    const studentsData = filteredStudents.map((item) => {
       const allTags = extractStudentTags(item, tagCategoryList.value)
 
       return {
         name: item[NAME_PROP],
         tags: allTags,
         score: configuration.inputScoreTab ? item[configuration.inputScoreTab] : undefined,
-        comment: item.comment
+        comment: mode === 'overwrite' ? '' : (item.comment || '')
       }
     })
 
@@ -126,15 +133,11 @@ const handleBatchGenerate = async () => {
       baseUrl: aiConfigStore.baseUrl
     })
 
+    // 由于只传入了需要生成的学生，直接更新即可
     let updatedCount = 0
     for (let i = 0; i < result.length; i++) {
-      const hasExistingComment = students.value[i].comment && students.value[i].comment.trim()
-      // skip 模式下跳过已有评语的学生
-      if (mode === 'skip' && hasExistingComment) {
-        continue
-      }
-      if (result[i].comment && result[i].comment !== students.value[i].comment) {
-        students.value[i].comment = result[i].comment
+      if (result[i].comment) {
+        filteredStudents[i].comment = result[i].comment
         updatedCount++
       }
     }
