@@ -62,6 +62,7 @@ const downloadImage = (mode: 'withScore' | 'nameOnly') => {
       : '<th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">姓名</th>'
 
   const bodyHtml = students
+    .sort((a, b) => (getScore(b) || 0) - (getScore(a) || 0))
     .map((s) => {
       const row = `<td style="border:1px solid #ddd;padding:8px;text-align:center;">${s[NAME_PROP]}</td>`
       const scoreRow =
