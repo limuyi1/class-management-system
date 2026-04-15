@@ -169,7 +169,7 @@ const handleBatchGenerate = async () => {
           baseUrl: aiConfigStore.baseUrl
         })
 
-        allResults.push(...result)
+        allResults.push(...(result as Array<{ name: string; comment: string | null }>))
       } catch (error) {
         console.error(`第 ${batchIndex + 1} 批生成失败:`, error)
         failedBatches.push(batchIndex + 1)
