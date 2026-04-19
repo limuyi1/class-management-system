@@ -4,12 +4,16 @@ import type { ScoreStudentType } from '@/hooks/useScoreStatistics'
 
 interface Props {
   threshold: number
+  effectiveThreshold: number
+  thresholdMode: 'average' | 'custom'
+  avgScore: number
   students: ScoreStudentType[]
   getScore: (item: ScoreStudentType) => number | null
 }
 
 interface Emits {
   (event: 'update:threshold', value: number): void
+  (event: 'update:threshold-mode', value: 'average' | 'custom'): void
   (event: 'download', mode: 'withScore' | 'nameOnly'): void
 }
 
@@ -19,9 +23,21 @@ const emit = defineEmits<Emits>()
 
 <template>
   <div class="threshold-section">
-    <div class="threshold-input-wrap">
-      <span>低于</span>
+    <div class="threshold-controls">
+      <span class="label">低于</span>
+      <el-segmented
+        :model-value="thresholdMode"
+        :options="[
+          { label: '平均分', value: 'average' },
+          { label: '自定义', value: 'custom' }
+        ]"
+        size="small"
+        @update:model-value="
+          (value: unknown) => emit('update:threshold-mode', value as 'average' | 'custom')
+        "
+      />
       <el-input-number
+        v-if="thresholdMode === 'custom'"
         :model-value="threshold"
         :min="0"
         :max="100"
@@ -31,8 +47,9 @@ const emit = defineEmits<Emits>()
         class="threshold-input"
         @update:model-value="(value: unknown) => emit('update:threshold', Number(value || 0))"
       />
-      <span>分的学生 ({{ students.length }}人)</span>
+      <span class="label">分</span>
     </div>
+
     <el-dropdown trigger="hover">
       <el-button type="primary" size="small" round>
         <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
@@ -91,18 +108,22 @@ const emit = defineEmits<Emits>()
   padding: 10px 12px;
   background: #fef3c7;
   border-radius: 8px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 
-  .threshold-input-wrap {
+  .threshold-controls {
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
-    color: #92400e;
+
+    .label {
+      font-size: 12px;
+      color: #92400e;
+      font-weight: 500;
+    }
   }
 
   .threshold-input {
-    width: 80px;
+    width: 90px;
   }
 }
 

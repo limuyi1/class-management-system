@@ -40,6 +40,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
   const { students, scoreProp } = options
 
   const threshold = ref(60)
+  const thresholdMode = ref<'average' | 'custom'>('average')
 
   const getScore = (item: StudentDataType): number | null => {
     if (!scoreProp.value) return null
@@ -47,27 +48,22 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     if (typeof score === 'number') return score
     if (typeof score === 'string') {
       const parsed = parseFloat(score)
-      return isNaN(parsed) ? null : parsed
+      return Number.isNaN(parsed) ? null : parsed
     }
     return null
   }
 
-  const belowThresholdStudents = computed(() => {
-    if (!scoreProp.value) return []
-    return students.value
-      .filter((e) => {
-        const score = getScore(e)
-        return score !== null && score < threshold.value
-      })
-      .sort((a, b) => (getScore(a) || 0) - (getScore(b) || 0))
-  })
+  const getStudentName = (student: StudentDataType): string => {
+    const name = student[NAME_PROP]
+    return name === null || name === undefined ? '未命名' : String(name)
+  }
 
   const scoreStats = computed<ScoreStatisticsType | null>(() => {
     if (!scoreProp.value) return null
 
     const allScores = students.value
       .map((e) => getScore(e))
-      .filter((s): s is number => s !== null && !isNaN(s))
+      .filter((s): s is number => s !== null && !Number.isNaN(s))
 
     if (allScores.length === 0) return null
 
@@ -152,10 +148,27 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     }
   })
 
+  const effectiveThreshold = computed(() => {
+    if (thresholdMode.value === 'average') {
+      return scoreStats.value ? Number(scoreStats.value.avgScore) : 60
+    }
+    return threshold.value
+  })
+
+  const belowThresholdStudents = computed(() => {
+    if (!scoreProp.value) return []
+    return students.value
+      .filter((e) => {
+        const score = getScore(e)
+        return score !== null && score < effectiveThreshold.value
+      })
+      .sort((a, b) => (getScore(a) || 0) - (getScore(b) || 0))
+  })
+
   watch(
     () => scoreStats.value,
     (newVal) => {
-      if (newVal) {
+      if (newVal && thresholdMode.value === 'average') {
         threshold.value = parseFloat(newVal.avgScore)
       }
     },
@@ -164,12 +177,10 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
 
   return {
     threshold,
+    thresholdMode,
+    effectiveThreshold,
     belowThresholdStudents,
     scoreStats,
     getScore
   }
 }
-  const getStudentName = (student: StudentDataType): string => {
-    const name = student[NAME_PROP]
-    return name === null || name === undefined ? '未命名' : String(name)
-  }

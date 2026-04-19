@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElMessage, ElLoading } from 'element-plus'
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
@@ -12,6 +12,7 @@ import ScoreAnalysisView from '@/views/score/components/ScoreAnalysisView.vue'
 import DownloadBtn from '@/views/score/components/DownloadBtn.vue'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
+import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUntil'
@@ -20,18 +21,47 @@ import type { StudentDataType } from '@/types/StudentData'
 
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
-
 const dataStore = useDataSourceStore()
-const { items: originList } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
+const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
+
+const { items: originList, enabledData } = storeToRefs(dataStore)
+const { tableHeaders } = storeToRefs(settingStore)
+
+const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
 
 const uploading = ref(false)
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
 
+const ensureDefaultScoreTab = () => {
+  if (!configuration.inputScoreTab && scoreColumns.value.length) {
+    configuration.inputScoreTab = scoreColumns.value[0].prop
+  }
+}
+ensureDefaultScoreTab()
+
 const autoFocus = () => {
   inputDataRef.value?.autoFocus()
+}
+
+const resetScore = () => {
+  if (!configuration.inputScoreTab) {
+    ElMessage.warning('请先选择当前录入科目')
+    return
+  }
+
+  ElMessageBox.confirm('确定要重置当前科目分数吗？', '提示', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    enabledData.value.forEach((student) => {
+      student[configuration.inputScoreTab as string] = null
+    })
+    ElMessage.success('已重置当前科目分数')
+  })
 }
 
 const handleUploadClick = () => {
@@ -39,6 +69,7 @@ const handleUploadClick = () => {
     ElMessage.warning('请先在设置页面配置 AI')
     return
   }
+
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -53,8 +84,7 @@ const handleUploadClick = () => {
 
     try {
       const base64 = await fileToBase64(file)
-      const imageUrl = `data:image/png;base64,${base64}`
-      cropperImageSrc.value = imageUrl
+      cropperImageSrc.value = `data:image/png;base64,${base64}`
       cropperVisible.value = true
     } catch (error) {
       console.error('读取图片失败:', error)
@@ -88,7 +118,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
 
     const scoreTab = configuration.inputScoreTab
     if (!scoreTab) {
-      ElMessage.warning('请先在设置页面选择成绩录入的单元')
+      ElMessage.warning('请先选择当前录入科目')
       return
     }
 
@@ -134,30 +164,49 @@ defineExpose({ autoFocus })
     <page-header
       :icon="['solid', 'graduation-cap']"
       title="成绩录入"
-      subtitle="点击左侧学生姓名，快速录入分数"
-    >
-      <template #right>
-        <el-tooltip content="上传图片识别成绩" placement="top">
-          <el-button size="small" circle :loading="uploading" @click="handleUploadClick">
-            <template #icon><font-awesome-icon :icon="['solid', 'camera']" /></template>
-          </el-button>
-        </el-tooltip>
-        <download-btn v-if="dataStore.hasAnyScore" />
-      </template>
-    </page-header>
-    <el-row class="score-page-content" :gutter="10">
-      <el-col class="h-full" :span="6">
+      subtitle="先选科目，再通过 AI 识图或手动搜索快速录入"
+    />
+
+    <div class="score-toolbar">
+      <el-select v-model="configuration.inputScoreTab" class="subject-select" placeholder="选择录入科目">
+        <el-option
+          v-for="item in scoreColumns"
+          :key="item.prop"
+          :label="item.label"
+          :value="item.prop"
+        />
+      </el-select>
+
+      <el-button class="danger-btn" plain @click="resetScore">
+        <template #icon><font-awesome-icon :icon="['solid', 'rotate-right']" /></template>
+        重置当前科目
+      </el-button>
+
+      <el-button type="primary" :loading="uploading" @click="handleUploadClick">
+        <template #icon><font-awesome-icon :icon="['solid', 'camera']" /></template>
+        图片识别导入
+      </el-button>
+
+      <download-btn class="download-btn" :disabled="!dataStore.hasAnyScore" />
+    </div>
+
+    <div class="score-page-content">
+      <div class="panel panel-left">
         <score-table-view ref="tableRef" @edit="(data) => inputDataRef?.editData(data)" />
-      </el-col>
-      <el-col class="h-full" :span="6">
-        <input-data-view ref="inputDataRef" @scroll="(index) => tableRef?.scroll(index)" />
-      </el-col>
-      <el-col class="h-full" :span="12">
-        <el-scrollbar>
-          <score-analysis-view />
-        </el-scrollbar>
-      </el-col>
-    </el-row>
+      </div>
+      <div class="panel panel-middle">
+        <input-data-view
+          ref="inputDataRef"
+          @scroll="(index) => tableRef?.scroll(index)"
+          @upload-image="handleUploadClick"
+          @clear-selection="tableRef?.clearActiveSelection()"
+        />
+      </div>
+      <div class="panel panel-right">
+        <score-analysis-view />
+      </div>
+    </div>
+
     <image-cropper
       v-model:visible="cropperVisible"
       :image-src="cropperImageSrc"
@@ -172,8 +221,54 @@ defineExpose({ autoFocus })
   min-height: 0;
 }
 
+.score-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  margin-bottom: 10px;
+
+  .subject-select {
+    width: 210px;
+  }
+
+  .danger-btn {
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+
+  .download-btn {
+    margin-left: auto;
+  }
+}
+
 .score-page-content {
   flex: 1;
   min-height: 0;
+  display: flex;
+  gap: 10px;
+
+  .panel {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .panel-left {
+    flex: 0 0 25%;
+  }
+
+  .panel-middle {
+    flex: 0 0 40%;
+  }
+
+  .panel-right {
+    flex: 0 0 35%;
+    padding-right: 8px;
+    box-sizing: border-box;
+  }
 }
 </style>

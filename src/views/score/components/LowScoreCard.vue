@@ -7,9 +7,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useScoreStatistics } from '@/hooks/useScoreStatistics'
 import { useScoreDistributionActions } from '@/hooks/useScoreDistributionActions'
 
-import ScoreSummary from '@/views/score/components/statistics/ScoreSummary.vue'
-import ScoreRangeList from '@/views/score/components/statistics/ScoreRangeList.vue'
-import LowScorePanel from '@/views/score/components/statistics/LowScorePanel.vue'
+import ThresholdStudents from '@/views/score/components/statistics/ThresholdStudents.vue'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
@@ -18,46 +16,47 @@ const { items: originList } = storeToRefs(store)
 
 const scorePropRef = computed(() => configuration.inputScoreTab)
 
-const { scoreStats, belowThresholdStudents, threshold, getScore } = useScoreStatistics({
+const {
+  threshold,
+  thresholdMode,
+  effectiveThreshold,
+  belowThresholdStudents,
+  scoreStats,
+  getScore
+} = useScoreStatistics({
   students: computed(() => originList.value),
   scoreProp: scorePropRef
 })
 
-const { copyToClipboard } = useScoreDistributionActions({
+const { downloadImage } = useScoreDistributionActions({
   scoreStats,
   belowThresholdStudents,
-  threshold,
+  threshold: effectiveThreshold,
   getScore
-})
-
-const copyDistribution = () => {
-  copyToClipboard()
-}
-
-defineExpose({
-  copyDistribution
 })
 </script>
 
 <template>
-  <el-card class="statistics-card__wrapper">
+  <el-card class="low-score-card">
     <div class="card-header">
       <div class="card-title">
-        <font-awesome-icon :icon="['solid', 'chart-column']" />
-        <span>分数分布</span>
-      </div>
-      <div class="card-actions">
-        <el-button v-if="scoreStats" type="primary" size="small" round @click="copyDistribution">
-          <template #icon><font-awesome-icon :icon="['solid', 'copy']" /></template>
-          复制
-        </el-button>
+        <font-awesome-icon :icon="['solid', 'triangle-exclamation']" />
+        <span>低分学生预警</span>
       </div>
     </div>
 
     <template v-if="scoreStats">
-      <score-summary :score-stats="scoreStats" />
-      <score-range-list :score-stats="scoreStats" />
-      <low-score-panel :score-stats="scoreStats" />
+      <threshold-students
+        :threshold="threshold"
+        :effective-threshold="effectiveThreshold"
+        :threshold-mode="thresholdMode"
+        :avg-score="Number(scoreStats.avgScore)"
+        :students="belowThresholdStudents"
+        :get-score="getScore"
+        @update:threshold="(value) => (threshold = value)"
+        @update:threshold-mode="(mode) => (thresholdMode = mode)"
+        @download="downloadImage"
+      />
     </template>
 
     <div v-else class="empty-hint">
@@ -68,7 +67,7 @@ defineExpose({
 </template>
 
 <style scoped lang="scss">
-.statistics-card__wrapper {
+.low-score-card {
   border-radius: 12px;
   background: #fff;
   border: 1px solid var(--border-muted);
@@ -93,14 +92,9 @@ defineExpose({
       color: #334155;
 
       svg {
-        color: var(--theme-primary);
+        color: #f59e0b;
         font-size: 16px;
       }
-    }
-
-    .card-actions {
-      display: flex;
-      gap: 2px;
     }
   }
 

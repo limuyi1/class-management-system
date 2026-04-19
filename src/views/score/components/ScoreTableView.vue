@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
-import { ElMessageBox } from 'element-plus'
-
 import { storeToRefs } from 'pinia'
+
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
-import { getScoreColor as getScoreColorConfig } from '@/config/score'
 import { delay } from '@/utils/commonUntil'
 import { NAME_PROP } from '@/types/Constants'
 import type { StudentDataType } from '@/types/StudentData'
@@ -22,58 +20,82 @@ const configuration = useConfigurationStore()
 
 const { enabledData: tableData } = storeToRefs(store)
 const { tableHeaders } = storeToRefs(settingStore)
-const tableRef = ref()
 
-const tagTypeList = computed(() => {
-  return tableHeaders.value.map((item) => item.prop)
+const tableRef = ref()
+const showOnlyUnentered = ref(false)
+const activeRow = ref<StudentDataType | null>(null)
+
+const currentColumnLabel = computed(() => {
+  const scoreTab = configuration.inputScoreTab
+  if (!scoreTab) return '当前分数'
+  return tableHeaders.value.find((item) => item.prop === scoreTab)?.label || scoreTab
 })
 
-/**
- * 获取当前选中列的分数值
- * @param row
- */
 const getCurrentScore = (row: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
   const score = row[configuration.inputScoreTab]
-  return typeof score === 'number' && Number.isFinite(score) ? score : null
+  if (typeof score === 'number' && Number.isFinite(score)) return score
+  if (typeof score === 'string') {
+    const parsed = parseFloat(score)
+    return Number.isNaN(parsed) ? null : parsed
+  }
+  return null
 }
 
-/**
- * 获取分数对应的颜色
- * @param score
- */
+const displayData = computed(() => {
+  if (!showOnlyUnentered.value) return tableData.value
+  return tableData.value.filter((row) => getCurrentScore(row) === null)
+})
+
 const getScoreColor = (score: number) => {
-  return getScoreColorConfig(score)
+  if (score >= 90) return '#22c55e'
+  if (score >= 80) return '#3b82f6'
+  if (score >= 70) return '#eab308'
+  if (score >= 60) return '#f97316'
+  if (score >= 50) return '#ef4444'
+  if (score >= 40) return '#dc2626'
+  if (score >= 30) return '#b91c1c'
+  if (score >= 20) return '#991b1b'
+  if (score >= 10) return '#7f1d1d'
+  return '#450a0a'
 }
 
-/**
- * 表格行样式
- * @param row
- */
 const getRowStyle = ({ row }: { row: StudentDataType }) => {
   const score = getCurrentScore(row)
-  if (!score) return {}
+  if (score === null) return {}
   const color = getScoreColor(score)
   if (!color) return {}
   return {
-    backgroundColor: color + '20'
+    backgroundColor: color + '16'
   }
 }
 
-/**
- * 滚动到指定行
- * @param index
- */
-const scroll = (index: number) => {
-  tableRef.value?.scrollTo(0, 50 * (index - 1))
-
-  rowBlink(index)
+const sortByCurrentScore = (a: StudentDataType, b: StudentDataType) => {
+  const scoreA = getCurrentScore(a)
+  const scoreB = getCurrentScore(b)
+  if (scoreA === null && scoreB === null) return 0
+  if (scoreA === null) return -1
+  if (scoreB === null) return 1
+  return scoreA - scoreB
 }
 
-/**
- * 行闪烁
- * @param index
- */
+const rowClassName = ({ row }: { row: StudentDataType }) => {
+  return row === activeRow.value ? 'score-table__active-row' : ''
+}
+
+const scroll = (index: number) => {
+  const rowData = tableData.value[index - 1]
+  if (!rowData) return
+  activeRow.value = rowData
+
+  const rowIndex = displayData.value.findIndex((item) => item === rowData)
+  if (rowIndex === -1) return
+
+  tableRef.value?.setCurrentRow(rowData)
+  tableRef.value?.scrollTo(0, 50 * rowIndex)
+  rowBlink(rowIndex + 1)
+}
+
 const rowBlink = async (index: number) => {
   const elems = tableRef.value?.$el.querySelectorAll('.el-table__row')
   if (!elems || !elems[index - 1]) return
@@ -81,110 +103,116 @@ const rowBlink = async (index: number) => {
   const ele = elems[index - 1]
   const classList = ele.classList
 
-  const rowData = tableData.value[index - 1]
-  const score = getCurrentScore(rowData)
-  const scoreColor = score ? getScoreColor(score) : null
-  const originalColor = scoreColor ? scoreColor + '20' : ''
+  const rowData = displayData.value[index - 1]
+  const score = rowData ? getCurrentScore(rowData) : null
+  const scoreColor = score === null ? null : getScoreColor(score)
+  const originalColor = scoreColor ? scoreColor + '16' : ''
 
   if (classList.length > 1) {
     const backupClass = classList[1]
 
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
       if (backupClass === classList[1]) {
         classList.remove(backupClass)
       } else {
         classList.add(backupClass)
       }
-      await delay(300)
+      await delay(260)
     }
   } else {
-    for (let i = 0; i < 6; i++) {
-      if (i % 2 === 0) {
-        ele.style.backgroundColor = '#f5f7fa'
-      } else {
-        ele.style.backgroundColor = originalColor
-      }
-      await delay(300)
+    for (let i = 0; i < 4; i++) {
+      ele.style.backgroundColor = i % 2 === 0 ? '#e0f2fe' : originalColor
+      await delay(260)
     }
   }
 }
 
-/**
- * 重置分数
- */
-const resetScore = () => {
-  ElMessageBox.confirm('确定要重置分数吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(() => {
-    const scoreTab = configuration.inputScoreTab
-    if (scoreTab) {
-      tableData.value.forEach((e) => {
-        e[scoreTab] = null
-      })
-    }
-  })
-}
-
-/**
- * 编辑信息
- * @param data
- */
 const handleEdit = (data: StudentDataType) => {
+  activeRow.value = data
   emit('edit', data)
 }
 
-defineExpose({ scroll })
+const clearActiveSelection = () => {
+  activeRow.value = null
+  tableRef.value?.setCurrentRow()
+}
+
+defineExpose({
+  scroll,
+  clearActiveSelection
+})
 </script>
 
 <template>
-  <el-table
-    ref="tableRef"
-    :data="tableData"
-    size="large"
-    height="calc(100%)"
-    border
-    :row-style="getRowStyle"
-    @row-click="handleEdit"
-  >
-    <el-table-column type="index" label="序号" width="70" align="center" />
-    <el-table-column :prop="NAME_PROP" label="姓名" />
-    <el-table-column :prop="configuration.inputScoreTab || ''">
-      <template #header>
-        <div class="operate-btn__wrapper">
-          <el-select
-            class="w-[100px]! mr-[8px]"
-            v-model="configuration.inputScoreTab"
-            placeholder="选择类型"
-          >
-            <el-option
-              v-for="item in tagTypeList"
-              :key="item"
-              :label="tableHeaders.find((h) => h.prop === item)?.label || item"
-              :value="item"
-            />
-          </el-select>
-          <el-tooltip effect="dark" placement="top" append-to="body" content="重置分数">
-            <font-awesome-icon
-              :icon="['fas', 'rotate-right']"
-              style="color: var(--el-color-primary); cursor: pointer"
-              @click="resetScore"
-            />
-          </el-tooltip>
-        </div>
-      </template>
-    </el-table-column>
-  </el-table>
+  <div class="score-table-view">
+    <div class="table-head-tools">
+      <div class="title">学生列表</div>
+      <el-switch
+        v-model="showOnlyUnentered"
+        inline-prompt
+        active-text="仅未录入"
+        inactive-text="全部"
+      />
+    </div>
+
+    <el-table
+      ref="tableRef"
+      :data="displayData"
+      size="large"
+      height="calc(100% - 48px)"
+      border
+      highlight-current-row
+      :row-style="getRowStyle"
+      :row-class-name="rowClassName"
+      @row-click="handleEdit"
+    >
+      <el-table-column type="index" label="序号" width="68" align="center" />
+      <el-table-column :prop="NAME_PROP" label="姓名" min-width="120" />
+      <el-table-column
+        :prop="configuration.inputScoreTab || ''"
+        :label="currentColumnLabel"
+        min-width="120"
+        sortable
+        :sort-method="sortByCurrentScore"
+      >
+        <template #default="{ row }">
+          <span>{{ getCurrentScore(row) ?? '--' }}</span>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
 </template>
 
 <style scoped lang="scss">
-.operate-btn__wrapper {
-  display: flex;
-  align-items: center;
+.score-table-view {
+  height: 100%;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border-muted);
+  padding: 10px;
+  box-shadow: var(--shadow-card);
+
+  .table-head-tools {
+    height: 38px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+
+    .title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+}
+
+:deep(.score-table__active-row td:first-child) {
+  box-shadow: inset 3px 0 0 var(--theme-primary);
 }
 
 :deep(.el-table__row) {
   height: 50px;
+  cursor: pointer;
 }
 </style>

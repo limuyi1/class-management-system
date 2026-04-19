@@ -12,6 +12,14 @@ import { dayjs, ElLoading, ElMessage } from 'element-plus'
 import { NAME_PROP } from '@/types/Constants'
 import type { StudentDataType } from '@/types/StudentData'
 
+interface Props {
+  disabled?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  disabled: false
+})
+
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
@@ -153,8 +161,9 @@ const handleCommand = (command: 'current' | 'all') => {
 
 <template>
   <el-dropdown @command="handleCommand" trigger="hover">
-    <el-button size="small" circle>
+    <el-button :disabled="disabled">
       <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
+      导出总表
     </el-button>
     <template #dropdown>
       <el-dropdown-menu>
@@ -164,5 +173,3 @@ const handleCommand = (command: 'current' | 'all') => {
     </template>
   </el-dropdown>
 </template>
-
-<style scoped lang="scss"></style>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useTransition } from '@vueuse/core'
 
 import { storeToRefs } from 'pinia'
@@ -14,6 +14,16 @@ const { enabledData: tableData } = storeToRefs(store)
 const hasData = computed(() => store.hasAnyScore)
 const validCount = computed(() => store.validCount)
 const totalCount = computed(() => store.totalCount)
+const maxScore = computed(() => {
+  const scores = store.validScores
+  if (!scores.length) return 0
+  return Math.max(...scores)
+})
+const minScore = computed(() => {
+  const scores = store.validScores
+  if (!scores.length) return 0
+  return Math.min(...scores)
+})
 
 const comprehensiveRatingRate = ref(0)
 const average = ref(0)
@@ -65,57 +75,30 @@ watch(
     <div class="card-header">
       <div class="card-title">
         <font-awesome-icon :icon="['solid', 'chart-simple']" />
-        <span>成绩统计</span>
+        <span>成绩总览（辅助）</span>
       </div>
     </div>
 
     <template v-if="hasData">
       <div class="stats-grid">
-        <div class="stat-item highlight">
-          <div class="stat-value">{{ outputAverage.toFixed(2) }}</div>
+        <div class="stat-item">
           <div class="stat-label">平均分</div>
+          <div class="stat-value">{{ outputAverage.toFixed(2) }}</div>
         </div>
         <div class="stat-item">
+          <div class="stat-label">综合比率</div>
           <div class="stat-value">{{ outputComprehensiveRatingRate.toFixed(2) }}%</div>
-          <div class="stat-label">
-            综合比率
-            <el-tooltip
-              effect="dark"
-              content="平均分×40% + 及格率(%)×30% + 优秀率(%)×30% + 特优率(%)×5% - 低分率(%)×5%"
-              placement="top"
-            >
-              <font-awesome-icon :icon="['solid', 'circle-question']" class="hint-icon" />
-            </el-tooltip>
-          </div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">及格率</div>
+          <div class="stat-value">{{ outputPassRate.toFixed(2) }}%</div>
         </div>
       </div>
-      <el-divider />
-      <el-row :gutter="16">
-        <el-col :span="6">
-          <div class="stat-mini">
-            <div class="stat-mini-value success">{{ outputPassRate.toFixed(2) }}%</div>
-            <div class="stat-mini-label">及格率</div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-mini">
-            <div class="stat-mini-value primary">{{ outputExcellentRate.toFixed(2) }}%</div>
-            <div class="stat-mini-label">优秀率</div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-mini">
-            <div class="stat-mini-value gold">{{ outputOptimumRate.toFixed(2) }}%</div>
-            <div class="stat-mini-label">特优率</div>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="stat-mini">
-            <div class="stat-mini-value danger">{{ outputLowScoreRate.toFixed(2) }}%</div>
-            <div class="stat-mini-label">低分率</div>
-          </div>
-        </el-col>
-      </el-row>
+      <div class="meta-line">
+        优秀率 {{ outputExcellentRate.toFixed(2) }}% | 特优率 {{ outputOptimumRate.toFixed(2) }}% |
+        低分率 {{ outputLowScoreRate.toFixed(2) }}%
+      </div>
+      <div class="extreme-row">最高 {{ maxScore }} 分 | 最低 {{ minScore }} 分</div>
     </template>
 
     <div v-else class="empty-hint">
@@ -128,20 +111,26 @@ watch(
 
 <style scoped lang="scss">
 .statistics-rate__wrapper {
-  border-radius: 10px;
-  height: 100%;
+  border-radius: 12px;
+  opacity: 0.92;
+  background: #fff;
+  border: 1px solid var(--border-muted);
+  box-shadow: var(--shadow-card);
+
+  :deep(.el-card__body) {
+    background: #fff;
+  }
 
   .card-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
 
     .card-title {
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 600;
       color: #334155;
 
@@ -154,86 +143,39 @@ watch(
 
   .stats-grid {
     display: flex;
-    gap: 12px;
-    margin-bottom: 12px;
+    gap: 8px;
+    margin-bottom: 8px;
 
     .stat-item {
       flex: 1;
-      text-align: center;
-      padding: 14px;
-      background: #f8fafc;
+      text-align: left;
+      padding: 8px 10px;
+      background: #f1f5f9;
       border-radius: 8px;
 
-      &.highlight {
-        background: linear-gradient(
-          135deg,
-          var(--theme-primary) 0%,
-          var(--theme-primary-light) 100%
-        );
-        color: #fff;
-
-        .stat-label {
-          color: rgba(255, 255, 255, 0.85);
-        }
-      }
-
       .stat-value {
-        font-size: 26px;
-        font-weight: bold;
+        font-size: 16px;
+        font-weight: 700;
         color: #1e293b;
       }
 
       .stat-label {
-        font-size: 12px;
+        font-size: 11px;
         color: #64748b;
-        margin-top: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-
-        .hint-icon {
-          font-size: 11px;
-          color: #94a3b8;
-          cursor: pointer;
-        }
+        margin-bottom: 2px;
       }
     }
   }
 
-  :deep(.el-divider) {
-    margin: 10px 0;
+  .meta-line {
+    font-size: 11px;
+    color: #64748b;
   }
 
-  .stat-mini {
-    text-align: center;
-
-    .stat-mini-value {
-      font-size: 18px;
-      font-weight: bold;
-
-      &.success {
-        color: #22c55e;
-      }
-
-      &.primary {
-        color: var(--theme-primary);
-      }
-
-      &.gold {
-        color: #f59e0b;
-      }
-
-      &.danger {
-        color: #ef4444;
-      }
-    }
-
-    .stat-mini-label {
-      font-size: 11px;
-      color: #64748b;
-      margin-top: 2px;
-    }
+  .extreme-row {
+    margin-top: 6px;
+    font-size: 11px;
+    color: #475569;
   }
 
   .empty-hint {
@@ -241,23 +183,23 @@ watch(
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 40px 0;
+    padding: 28px 0;
     color: #94a3b8;
 
     svg {
-      font-size: 40px;
-      margin-bottom: 12px;
+      font-size: 30px;
+      margin-bottom: 10px;
       color: var(--theme-primary);
       opacity: 0.5;
     }
 
     span {
-      font-size: 14px;
+      font-size: 13px;
     }
 
     .empty-sub {
-      font-size: 12px;
-      margin-top: 8px;
+      font-size: 11px;
+      margin-top: 6px;
       color: #64748b;
     }
   }

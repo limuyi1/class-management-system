@@ -9,11 +9,13 @@
 
 :root {
   --el-color-primary: var(--color-primary);
-  --surface-page-gradient: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  --surface-page: #f6f8fb;
+  --surface-page-gradient: linear-gradient(135deg, #f6f8fb 0%, #eef2f7 100%);
   --surface-card: #fff;
   --text-primary: #334155;
   --text-secondary: #64748b;
   --border-muted: #e2e8f0;
+  --shadow-card: 0 2px 10px rgba(15, 23, 42, 0.06);
 }
 
 @font-face {
@@ -30,5 +32,5 @@
   flex-direction: column;
   padding: 8px;
   box-sizing: border-box;
-  background: var(--surface-page-gradient);
+  background: var(--surface-page);
 }

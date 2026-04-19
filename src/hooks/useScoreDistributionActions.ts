@@ -8,7 +8,7 @@ import type { ScoreStatisticsType, ScoreStudentType } from '@/hooks/useScoreStat
 interface UseScoreDistributionActionsOptions {
   scoreStats: ComputedRef<ScoreStatisticsType | null>
   belowThresholdStudents: ComputedRef<ScoreStudentType[]>
-  threshold: Ref<number>
+  threshold: Ref<number> | ComputedRef<number>
   getScore: (item: ScoreStudentType) => number | null
 }
 

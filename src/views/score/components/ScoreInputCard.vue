@@ -1,0 +1,416 @@
+<script setup lang="ts">
+import { nextTick, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import { match } from 'pinyin-pro'
+import { dayjs, ElMessage } from 'element-plus'
+
+import { useDataSourceStore } from '@/stores/data-source'
+import { useConfigurationStore } from '@/stores/configuration'
+import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
+
+interface SuggestionItemType {
+  value: string
+  index: number
+}
+
+interface RecentEntryType {
+  index: number
+  name: string
+  score: number
+  time: string
+}
+
+const emit = defineEmits<{
+  scroll: [index: number]
+  uploadImage: []
+  clearSelection: []
+}>()
+
+const store = useDataSourceStore()
+const configuration = useConfigurationStore()
+const { items: originList } = storeToRefs(store)
+
+const activeMode = ref<'ai' | 'manual'>('manual')
+const searchKeyword = ref('')
+const selectedStudentId = ref<number | null>(null)
+const scoreValue = ref<number | null>(null)
+const recentEntries = ref<RecentEntryType[]>([])
+
+const searchInputRef = ref<{ focus: () => void } | null>(null)
+const scoreInputRef = ref<{ focus: () => void } | null>(null)
+
+const getStudentName = (student: StudentDataType): string => {
+  const name = student[NAME_PROP]
+  return name === null || name === undefined ? '' : String(name)
+}
+
+const getStudentScore = (student: StudentDataType): number | null => {
+  if (!configuration.inputScoreTab) return null
+  const raw = student[configuration.inputScoreTab]
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
+  if (typeof raw === 'string') {
+    const parsed = parseFloat(raw)
+    return Number.isNaN(parsed) ? null : parsed
+  }
+  return null
+}
+
+const getMatchedStudents = (query: string): SuggestionItemType[] => {
+  if (!query.trim()) return []
+  return originList.value
+    .map((student, index) => ({ student, index: index + 1 }))
+    .filter(({ student }) => {
+      const name = getStudentName(student)
+      return name.includes(query) || !!match(name, query)?.length
+    })
+    .slice(0, 20)
+    .map(({ student, index }) => ({
+      value: getStudentName(student),
+      index
+    }))
+}
+
+const querySuggestions = (queryString: string, cb: (items: SuggestionItemType[]) => void) => {
+  cb(getMatchedStudents(queryString))
+}
+
+const clearSelectedStudent = () => {
+  selectedStudentId.value = null
+  scoreValue.value = null
+  emit('clearSelection')
+}
+
+const focusSearchInput = () => {
+  searchInputRef.value?.focus()
+}
+
+const focusScoreInput = () => {
+  scoreInputRef.value?.focus()
+}
+
+const selectStudentByIndex = (index: number, shouldFocusScore: boolean = true) => {
+  const item = originList.value[index - 1]
+  if (!item) return
+
+  selectedStudentId.value = index
+  searchKeyword.value = getStudentName(item)
+  scoreValue.value = getStudentScore(item)
+  emit('scroll', index)
+
+  if (shouldFocusScore) {
+    nextTick(() => focusScoreInput())
+  }
+}
+
+const handleSuggestionSelect = (item: SuggestionItemType) => {
+  selectStudentByIndex(item.index)
+}
+
+const handleSearchEnter = () => {
+  if (!searchKeyword.value.trim()) {
+    ElMessage.warning('请输入学生姓名或拼音')
+    focusSearchInput()
+    return
+  }
+
+  const matched = getMatchedStudents(searchKeyword.value)
+  const exactMatched = matched.find((item) => item.value === searchKeyword.value.trim())
+  const target = exactMatched || matched[0]
+
+  if (!target) {
+    ElMessage.warning('未找到该学生')
+    focusSearchInput()
+    return
+  }
+
+  selectStudentByIndex(target.index)
+}
+
+const addRecentEntry = (index: number, score: number) => {
+  const student = originList.value[index - 1]
+  if (!student) return
+  const name = getStudentName(student)
+  const time = dayjs().format('HH:mm:ss')
+
+  recentEntries.value = [
+    { index, name, score, time },
+    ...recentEntries.value.filter((e) => e.index !== index)
+  ].slice(0, 3)
+}
+
+const saveScore = (mode: 'stay' | 'next' = 'stay') => {
+  if (!selectedStudentId.value) {
+    ElMessage.warning('请先选择学生')
+    focusSearchInput()
+    return
+  }
+
+  if (!configuration.inputScoreTab) {
+    ElMessage.warning('请先选择当前录入科目')
+    return
+  }
+
+  if (typeof scoreValue.value !== 'number' || !Number.isFinite(scoreValue.value)) {
+    ElMessage.warning('请输入有效分数')
+    focusScoreInput()
+    return
+  }
+
+  const student = originList.value[selectedStudentId.value - 1]
+  if (!student) return
+
+  student[configuration.inputScoreTab] = scoreValue.value
+  addRecentEntry(selectedStudentId.value, scoreValue.value)
+
+  if (mode === 'next') {
+    const nextIndex = selectedStudentId.value + 1
+    if (nextIndex <= originList.value.length) {
+      selectStudentByIndex(nextIndex)
+      return
+    }
+    clearSelectedStudent()
+    searchKeyword.value = ''
+    activeMode.value = 'manual'
+    nextTick(() => focusSearchInput())
+    return
+  }
+  nextTick(() => focusScoreInput())
+}
+
+const refillEntry = (entry: RecentEntryType) => {
+  selectStudentByIndex(entry.index, false)
+  scoreValue.value = entry.score
+  nextTick(() => focusScoreInput())
+}
+
+const handleAIMode = () => {
+  activeMode.value = 'ai'
+  emit('uploadImage')
+}
+
+const handleManualMode = () => {
+  activeMode.value = 'manual'
+  nextTick(() => focusSearchInput())
+}
+
+const autoFocus = () => {
+  focusSearchInput()
+}
+
+const editData = (data: StudentDataType) => {
+  const rowIndex = originList.value.findIndex((item) => item === data)
+  if (rowIndex === -1) return
+  selectStudentByIndex(rowIndex + 1)
+}
+
+watch(searchKeyword, (value) => {
+  if (value.trim()) return
+  if (!selectedStudentId.value) return
+  clearSelectedStudent()
+})
+
+defineExpose({
+  autoFocus,
+  editData
+})
+</script>
+
+<template>
+  <div class="score-input-card">
+    <div class="mode-switch">
+      <el-button class="mode-btn" :class="{ active: activeMode === 'ai' }" @click="handleAIMode">
+        <font-awesome-icon :icon="['solid', 'camera']" />
+        AI识图导入
+      </el-button>
+      <el-button
+        class="mode-btn"
+        :class="{ active: activeMode === 'manual' }"
+        @click="handleManualMode"
+      >
+        <font-awesome-icon :icon="['solid', 'keyboard']" />
+        手动录入
+      </el-button>
+    </div>
+
+    <div class="search-section">
+      <el-autocomplete
+        ref="searchInputRef"
+        v-model="searchKeyword"
+        class="search-input"
+        :fetch-suggestions="querySuggestions"
+        placeholder="输入姓名或拼音快速定位"
+        clearable
+        @select="handleSuggestionSelect"
+        @clear="clearSelectedStudent"
+        @keyup.enter="handleSearchEnter"
+      />
+    </div>
+
+    <div class="score-section">
+      <el-input-number
+        ref="scoreInputRef"
+        v-model="scoreValue"
+        class="score-input"
+        size="large"
+        :min="0"
+        :max="100"
+        :precision="1"
+        controls-position="right"
+        placeholder="0~100分"
+        @keyup.enter="saveScore('stay')"
+      />
+      <div class="score-actions">
+        <el-button type="primary" class="save-btn" @click="saveScore('stay')">保存分数</el-button>
+        <el-button class="next-btn" @click="saveScore('next')">保存并下一位</el-button>
+      </div>
+      <div class="shortcut-hint">姓名回车 -> 分数框 | 分数回车 -> 保存并回到姓名框</div>
+    </div>
+
+    <div class="recent-section">
+      <div class="recent-title">最近录入（{{ recentEntries.length }}）</div>
+      <div v-if="recentEntries.length" class="recent-list">
+        <div
+          v-for="entry in recentEntries"
+          :key="`${entry.index}-${entry.time}`"
+          class="recent-item"
+        >
+          <div class="recent-meta">
+            <span class="name">{{ entry.name }}</span>
+            <span class="score">{{ entry.score }} 分</span>
+            <span class="time">{{ entry.time }}</span>
+          </div>
+          <el-button text type="primary" @click="refillEntry(entry)">回填</el-button>
+        </div>
+      </div>
+      <el-empty v-else :image-size="60" description="暂无录入记录" />
+    </div>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.score-input-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-muted);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+}
+
+.mode-switch {
+  display: flex;
+  gap: 8px;
+
+  .mode-btn {
+    flex: 1;
+    border-radius: 10px;
+    border: 1px solid var(--border-muted);
+    background: #fff;
+    color: var(--text-secondary);
+
+    &.active {
+      color: #fff;
+      border-color: var(--theme-primary);
+      background: var(--theme-gradient);
+    }
+  }
+}
+
+.search-input {
+  width: 100%;
+
+  :deep(.el-input__wrapper) {
+    border-radius: 10px;
+    min-height: 42px;
+  }
+}
+
+.score-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .score-input {
+    width: 100%;
+
+    :deep(.el-input-number) {
+      width: 100%;
+    }
+
+    :deep(.el-input-number .el-input__wrapper) {
+      min-height: 44px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    :deep(.el-input-number .el-input-number__increase),
+    :deep(.el-input-number .el-input-number__decrease) {
+      border-radius: 0;
+    }
+  }
+
+  .score-actions {
+    display: flex;
+    gap: 8px;
+
+    .save-btn {
+      flex: 1;
+    }
+
+    .next-btn {
+      border: 1px solid var(--border-muted);
+    }
+  }
+
+  .shortcut-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
+.recent-section {
+  border-top: 1px solid var(--border-muted);
+  padding-top: 12px;
+
+  .recent-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+
+  .recent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .recent-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: #f8fafc;
+
+    .recent-meta {
+      display: flex;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-secondary);
+
+      .name {
+        color: var(--text-primary);
+        font-weight: 600;
+      }
+
+      .score {
+        color: var(--theme-primary);
+      }
+    }
+  }
+}
+</style>
