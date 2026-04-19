@@ -1,8 +1,9 @@
 import { ref, onUnmounted } from 'vue'
+import type { Ref } from 'vue'
 import { liveQuery, type Observable } from 'dexie'
 
-export function useLiveQuery<T>(querier: () => Promise<T>): { value: T | undefined } {
-  const result = ref<T>() as any
+export function useLiveQuery<T>(querier: () => Promise<T>): Ref<T | undefined> {
+  const result = ref<T>()
   let subscription: { unsubscribe: () => void } | null = null
 
   const init = () => {

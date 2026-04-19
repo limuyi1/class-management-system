@@ -2,13 +2,18 @@ import { computed, ref, watch } from 'vue'
 import type { ComputedRef } from 'vue'
 
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
-interface StudentData {
-  [NAME_PROP]: string
-  [key: string]: unknown
+export interface ScoreRangeType {
+  label: string
+  min: number
+  max: number
+  color: string
+  count: number
+  students: string[]
 }
 
-interface ScoreStatistics {
+export interface ScoreStatisticsType {
   maxScore: number
   maxScoreCount: number
   topStudents: string[]
@@ -16,30 +21,18 @@ interface ScoreStatistics {
   minScoreCount: number
   bottomStudents: string[]
   avgScore: string
-  ranges: Array<{
-    label: string
-    min: number
-    max: number
-    color: string
-    count: number
-    students: string[]
-  }>
-  lowScoreRanges: Array<{
-    label: string
-    min: number
-    max: number
-    color: string
-    count: number
-    students: string[]
-  }>
+  ranges: ScoreRangeType[]
+  lowScoreRanges: ScoreRangeType[]
   lowScoreTotal: number
   allLowScoreStudents: string[]
   maxCount: number
   totalCount: number
 }
 
+export type ScoreStudentType = StudentDataType
+
 interface UseScoreStatisticsOptions {
-  students: ComputedRef<StudentData[]>
+  students: ComputedRef<StudentDataType[]>
   scoreProp: ComputedRef<string | null>
 }
 
@@ -48,7 +41,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
 
   const threshold = ref(60)
 
-  const getScore = (item: StudentData): number | null => {
+  const getScore = (item: StudentDataType): number | null => {
     if (!scoreProp.value) return null
     const score = item[scoreProp.value]
     if (typeof score === 'number') return score
@@ -69,7 +62,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
       .sort((a, b) => (getScore(a) || 0) - (getScore(b) || 0))
   })
 
-  const scoreStats = computed<ScoreStatistics | null>(() => {
+  const scoreStats = computed<ScoreStatisticsType | null>(() => {
     if (!scoreProp.value) return null
 
     const allScores = students.value
@@ -106,7 +99,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
           return score !== null && score >= range.min && score <= range.max
         })
         .sort((a, b) => (getScore(b) || 0) - (getScore(a) || 0))
-        .map((e) => e[NAME_PROP])
+        .map((e) => getStudentName(e))
       return { count, students: studentList }
     }
 
@@ -126,11 +119,11 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
 
     const topStudents = students.value
       .filter((e) => getScore(e) === maxScore)
-      .map((e) => e[NAME_PROP])
+      .map((e) => getStudentName(e))
 
     const bottomStudents = students.value
       .filter((e) => getScore(e) === minScore)
-      .map((e) => e[NAME_PROP])
+      .map((e) => getStudentName(e))
 
     const allLowScoreStudents = students.value
       .filter((e) => {
@@ -138,7 +131,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
         return score !== null && score < 60
       })
       .sort((a, b) => (getScore(a) || 0) - (getScore(b) || 0))
-      .map((e) => e[NAME_PROP])
+      .map((e) => getStudentName(e))
 
     const maxCount = Math.max(...rangeData.map((r) => r.count), 1)
 
@@ -176,3 +169,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     getScore
   }
 }
+  const getStudentName = (student: StudentDataType): string => {
+    const name = student[NAME_PROP]
+    return name === null || name === undefined ? '未命名' : String(name)
+  }

@@ -1,6 +1,13 @@
 import * as XLSX from 'xlsx'
 import domtoimage from 'dom-to-image'
-import { ElLoading, ElMessage } from 'element-plus'
+import type { UploadFile } from 'element-plus'
+
+interface OperationResultType {
+  success: boolean
+  error?: Error
+}
+
+type ExcelCellValueType = string | number | boolean | null | undefined
 
 /**
  * 将表格数据导出为图片
@@ -8,12 +15,11 @@ import { ElLoading, ElMessage } from 'element-plus'
  * @param imageName - 导出图片的文件名，默认 image.png
  * @param scale - 缩放比例，默认 2（提高清晰度）
  */
-const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: number = 2) => {
-  const loading = ElLoading.service({
-    fullscreen: true,
-    text: '正在导出图片，请稍后...'
-  })
-
+const xlsxToImage = async (
+  data: ExcelCellValueType[][],
+  imageName: string = 'image.png',
+  scale: number = 2
+): Promise<OperationResultType> => {
   const element = document.createElement('div')
   element.id = 'sheet'
   element.setAttribute('style', 'position: absolute;top: 0;z-index: -1000;')
@@ -27,36 +33,27 @@ const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: numb
     selectorTable?.setAttribute('border', '1')
     selectorTable?.setAttribute('cellspacing', '0')
 
-    domtoimage
-      .toJpeg(element, {
-        quality: 1,
-        width: element?.offsetWidth * scale,
-        height: element?.offsetHeight * scale,
-        bgcolor: '#FFFFFF',
-        style: {
-          transform: `scale(${scale})`,
-          transformOrigin: '0 0'
-        }
-      })
-      .then((dataUrl: string) => {
-        const link = document.createElement('a')
-        link.href = dataUrl
-        link.download = imageName
-        link.click()
-      })
-      .catch((error: Error) => {
-        console.error('导出图片失败:', error)
-        ElMessage.error('导出图片失败')
-      })
-      .finally(() => {
-        element.remove()
-        loading.close()
-      })
+    const dataUrl = await domtoimage.toJpeg(element, {
+      quality: 1,
+      width: element?.offsetWidth * scale,
+      height: element?.offsetHeight * scale,
+      bgcolor: '#FFFFFF',
+      style: {
+        transform: `scale(${scale})`,
+        transformOrigin: '0 0'
+      }
+    })
+    const link = document.createElement('a')
+    link.href = dataUrl
+    link.download = imageName
+    link.click()
+    return { success: true }
   } catch (error) {
-    console.error('生成表格失败:', error)
-    ElMessage.error('导出图片失败')
+    const resultError = error instanceof Error ? error : new Error('导出图片失败')
+    console.error('导出图片失败:', resultError)
+    return { success: false, error: resultError }
+  } finally {
     element.remove()
-    loading.close()
   }
 }
 
@@ -69,15 +66,10 @@ const xlsxToImage = (data: any[][], imageName: string = 'image.png', scale: numb
  */
 const exportExcel = (
   headerData?: string[],
-  bodyData?: any[][],
+  bodyData?: ExcelCellValueType[][],
   fileName: string = new Date().toLocaleString() + '.xlsx',
   file?: XLSX.WorkBook
-) => {
-  const loading = ElLoading.service({
-    fullscreen: true,
-    text: '正在导出Excel，请稍后...'
-  })
-
+): OperationResultType => {
   try {
     let workbook
     if (!file && headerData && bodyData) {
@@ -90,8 +82,7 @@ const exportExcel = (
     }
 
     if (!workbook) {
-      loading.close()
-      return
+      return { success: false, error: new Error('导出Excel失败：工作簿为空') }
     }
 
     const excelBuffer = XLSX.write(workbook!, {
@@ -107,11 +98,11 @@ const exportExcel = (
     link.click()
 
     window.URL.revokeObjectURL(url)
+    return { success: true }
   } catch (error) {
-    console.error('导出Excel失败:', error)
-    ElMessage.error('导出Excel失败')
-  } finally {
-    loading.close()
+    const resultError = error instanceof Error ? error : new Error('导出Excel失败')
+    console.error('导出Excel失败:', resultError)
+    return { success: false, error: resultError }
   }
 }
 
@@ -120,12 +111,29 @@ const exportExcel = (
  * @param file - 文件对象，来自 el-upload 的 file.raw
  * @returns 包含 header（表头数组）和 data（数据数组）的对象
  */
-const parseExcel = async (file: any) => {
-  const dataBinary = await new Promise((resolve) => {
+type ExcelRowType = Record<string, string | number | boolean | null | undefined>
+
+const parseExcel = async (
+  file: UploadFile
+): Promise<{ header: string[]; data: ExcelRowType[] }> => {
+  const rawFile = file.raw
+  if (!rawFile) {
+    throw new Error('文件内容为空')
+  }
+
+  const dataBinary = await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
-    reader.readAsBinaryString(file.raw)
-    reader.onload = (ev: any) => {
-      resolve(ev.target.result)
+    reader.readAsBinaryString(rawFile)
+    reader.onload = (event: ProgressEvent<FileReader>) => {
+      const result = event.target?.result
+      if (typeof result !== 'string') {
+        reject(new Error('读取文件失败'))
+        return
+      }
+      resolve(result)
+    }
+    reader.onerror = () => {
+      reject(new Error('读取文件失败'))
     }
   })
 
@@ -133,7 +141,7 @@ const parseExcel = async (file: any) => {
   const firstWorkSheet = workBook.Sheets[workBook.SheetNames[0]]
 
   const header = getRow(firstWorkSheet)
-  const data = XLSX.utils.sheet_to_json(firstWorkSheet)
+  const data = XLSX.utils.sheet_to_json<ExcelRowType>(firstWorkSheet)
 
   return { header, data }
 }
@@ -144,14 +152,16 @@ const parseExcel = async (file: any) => {
  * @param row - 行索引，默认 0（第一行，表头行）
  * @returns 该行的数据数组
  */
-const getRow = (sheet: any, row?: number) => {
+const getRow = (sheet: XLSX.WorkSheet, row?: number) => {
   const headers: string[] = []
-  const range = XLSX.utils.decode_range(sheet['!ref'])
+  const ref = sheet['!ref']
+  if (!ref) return headers
+  const range = XLSX.utils.decode_range(ref)
   let C: number
   const R = row ? row : range.s.r
 
   for (C = range.s.c; C <= range.e.c; ++C) {
-    const cell = sheet[XLSX.utils.encode_cell({ c: C, r: R })]
+    const cell = sheet[XLSX.utils.encode_cell({ c: C, r: R })] as XLSX.CellObject | undefined
     let hdr = 'UNKNOWN ' + C
     if (cell && cell.t) hdr = XLSX.utils.format_cell(cell)
     headers.push(hdr)

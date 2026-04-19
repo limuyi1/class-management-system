@@ -7,12 +7,14 @@ import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
+import type { UploadFile } from 'element-plus'
 import { pinyin } from 'pinyin-pro'
 import { storeToRefs } from 'pinia'
 import { parseExcel } from '@/utils/xlsxUntil'
 import { importDatabase } from '@/utils/backup'
 import ImportProgress from '@/views/setting/components/ImportProgress.vue'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
 const router = useRouter()
 const store = useDataSourceStore()
@@ -30,7 +32,15 @@ const updateProgress = (percent: number) => {
   progressPercent.value = percent
 }
 
-const uploadFile = async (file: any) => {
+const normalizeValue = (value: unknown): string | number | boolean | null | undefined => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value
+  }
+  return String(value)
+}
+
+const uploadFile = async (file: UploadFile) => {
   try {
     const { header, data } = await parseExcel(file)
 
@@ -46,25 +56,26 @@ const uploadFile = async (file: any) => {
       label
     }))
 
-    const headerObj: Record<string, unknown> = headerArray.reduce(
+    const headerObj: StudentDataType = headerArray.reduce(
       (acc, cur) => {
         acc[cur.prop] = null
         return acc
       },
-      {} as Record<string, unknown>
+      { [NAME_PROP]: null } as StudentDataType
     )
 
-    const result = data.map((e: any) => {
-      const _headerObj: Record<string, unknown> = Object.assign({ [NAME_PROP]: null }, headerObj)
-      _headerObj[NAME_PROP] = e['姓名'] || null
+    const result: StudentDataType[] = data.map((row) => {
+      const student: StudentDataType = { ...headerObj, [NAME_PROP]: null }
+      const nameValue = row['姓名']
+      student[NAME_PROP] = nameValue === null || nameValue === undefined ? null : String(nameValue)
       headerArray.forEach((headerItem: { prop: string; label: string }) => {
-        _headerObj[headerItem.prop] = e[headerItem.label] || null
+        student[headerItem.prop] = normalizeValue(row[headerItem.label])
       })
-      return _headerObj
+      return student
     })
 
     tableHeaders.value = headerArray
-    store.$patch({ items: result as any[] })
+    store.items = result
     configuration.inputScoreTab = headerArray[0]?.prop
 
     ElMessage.success('导入成功！')

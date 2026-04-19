@@ -1,3 +1,5 @@
+import type { StudentDataType } from '@/types/StudentData'
+
 export interface PageInoType {
   pageWidth: number
   pageHeight: number
@@ -9,11 +11,11 @@ export interface PageInoType {
 
 export interface EvaluationCardProps {
   pageInfo: PageInoType
-  data: Array<any>
+  data: StudentDataType[]
   currentPage?: number
   totalPages?: number
 }
 
 export interface EvaluationCardEmits {
-  click: [row: any]
+  click: [row: StudentDataType]
 }

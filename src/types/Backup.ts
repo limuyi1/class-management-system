@@ -1,15 +1,21 @@
+import type { AIPromptsType, AIModelTypeEnum } from '@/types/AIConfig'
+import type { ConfigurationType } from '@/types/Configuration'
+import type { SettingType, TagCategoryType, TagType } from '@/types/Setting'
+import type { StudentDataType } from '@/types/StudentData'
+import type { ThemeName } from '@/config/theme'
+
 export interface BackupData {
   version: number
-  setting: { tableHeaders: any[]; tagCategory: any[]; tags: Record<string, string[]> }
-  dataSource: { items: any[] }
-  configuration: any
+  setting: { tableHeaders: SettingType[]; tagCategory: TagCategoryType[]; tags: TagType }
+  dataSource: { items: StudentDataType[] }
+  configuration: ConfigurationType
   aiConfig: {
-    modelType: string
+    modelType: AIModelTypeEnum
     model: string
     apiKey: string
     baseUrl: string
-    prompts: any
+    prompts: AIPromptsType
     availableModels: string[]
   }
-  theme: { currentTheme: string }
+  theme: { currentTheme: ThemeName }
 }

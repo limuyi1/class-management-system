@@ -14,6 +14,16 @@ import BatchTagDrawer from './BatchTagDrawer.vue'
 
 import type { VxeTableEvents, VxeTablePropTypes } from 'vxe-table'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
+
+type EditableStudentType = StudentDataType & {
+  isNew?: boolean
+}
+
+interface TableColumnType {
+  fixed?: boolean | string
+  field?: string
+}
 
 const router = useRouter()
 
@@ -25,35 +35,41 @@ const { tagCategory: categories } = storeToRefs(settingStore)
 
 const tableRef = ref()
 
-const deleteStudent = (row: any) => {
+const getStudentName = (student: EditableStudentType): string => {
+  return String(student[NAME_PROP] || '')
+}
+
+const deleteStudent = (row: EditableStudentType) => {
   const index = tableData.value.indexOf(row)
   if (index > -1) {
-    tagCache.delete(row[NAME_PROP])
+    tagCache.delete(getStudentName(row))
     tableData.value.splice(index, 1)
   }
 }
 
-const addStudentAbove = (row: any) => {
+const addStudentAbove = (row: EditableStudentType) => {
   const index = tableData.value.indexOf(row)
-  const newStudent = { [NAME_PROP]: '', isNew: true }
+  const newStudent: EditableStudentType = { [NAME_PROP]: '', isNew: true }
   tableData.value.splice(index, 0, newStudent)
 }
 
-const addStudentBelow = (row: any) => {
+const addStudentBelow = (row: EditableStudentType) => {
   const index = tableData.value.indexOf(row)
-  const newStudent = { [NAME_PROP]: '', isNew: true }
+  const newStudent: EditableStudentType = { [NAME_PROP]: '', isNew: true }
   tableData.value.splice(index + 1, 0, newStudent)
 }
 
-const confirmNewStudent = (row: any) => {
-  if (!row[NAME_PROP] || !row[NAME_PROP].trim()) {
+const confirmNewStudent = (row: EditableStudentType) => {
+  const name = getStudentName(row).trim()
+  if (!name) {
     ElMessage.error('姓名不能为空')
     return
   }
+  row[NAME_PROP] = name
   delete row.isNew
 }
 
-const cancelNewStudent = (row: any) => {
+const cancelNewStudent = (row: EditableStudentType) => {
   const index = tableData.value.indexOf(row)
   if (index > -1) {
     tableData.value.splice(index, 1)
@@ -82,8 +98,8 @@ watch(categories, () => {
   tagCache.clear()
 })
 
-const getRowTags = (row: any): { label: string; category: string }[] => {
-  const cacheKey = row[NAME_PROP]
+const getRowTags = (row: EditableStudentType): { label: string; category: string }[] => {
+  const cacheKey = getStudentName(row)
   if (tagCache.has(cacheKey)) {
     return tagCache.get(cacheKey)!
   }
@@ -105,10 +121,10 @@ const getRowTags = (row: any): { label: string; category: string }[] => {
 
 const dialogVisible = ref(false)
 const batchDrawerVisible = ref(false)
-const currentEditRow = ref<any>(null)
-const batchStudentList = ref<any[]>([])
+const currentEditRow = ref<EditableStudentType | null>(null)
+const batchStudentList = ref<EditableStudentType[]>([])
 
-const openTagEditor = (row: any) => {
+const openTagEditor = (row: EditableStudentType) => {
   currentEditRow.value = row
   dialogVisible.value = true
 }
@@ -120,7 +136,7 @@ const closeTagEditor = () => {
 
 const confirmTagEdit = (tags: Record<string, string[]>) => {
   if (!currentEditRow.value) return
-  const name = currentEditRow.value[NAME_PROP]
+  const name = getStudentName(currentEditRow.value)
   tagCache.delete(name)
   currentEditRow.value.tags = tags
   closeTagEditor()
@@ -136,11 +152,11 @@ const closeBatchEditor = () => {
   batchStudentList.value = []
 }
 
-const confirmBatchEdit = (updatedStudents: any[]) => {
+const confirmBatchEdit = (updatedStudents: EditableStudentType[]) => {
   updatedStudents.forEach((student) => {
-    const originalStudent = tableData.value.find((s) => s[NAME_PROP] === student[NAME_PROP])
+    const originalStudent = tableData.value.find((s) => getStudentName(s) === getStudentName(student))
     if (originalStudent) {
-      tagCache.delete(student[NAME_PROP])
+      tagCache.delete(getStudentName(student))
       originalStudent.tags = student.tags
     }
   })
@@ -178,12 +194,12 @@ const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
       ]
     ]
   },
-  visibleMethod: ({ column }) => !isFixedColumn(column as any)
+  visibleMethod: ({ column }) => !isFixedColumn(column as TableColumnType)
 })
 
 const isNotEmpty = computed(() => store.items?.length)
 
-const isFixedColumn = (column: any) => {
+const isFixedColumn = (column: TableColumnType) => {
   // 通过 column.fixed 属性判断是否是固定列
   return !!column.fixed
 }
@@ -226,7 +242,9 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
       }).then(() => {
         headers.value?.splice(columnIndex - 2, 1)
         tableData.value.forEach((e) => {
-          delete e[column.field]
+          if (column.field) {
+            delete e[column.field]
+          }
         })
       })
       break
@@ -234,7 +252,7 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
 }
 
 const openTagEditorByName = (name: string) => {
-  const student = tableData.value.find((item) => item[NAME_PROP] === name)
+  const student = tableData.value.find((item) => getStudentName(item) === name)
   if (student) {
     openTagEditor(student)
   }
@@ -242,10 +260,10 @@ const openTagEditorByName = (name: string) => {
 
 // 虚拟删除弹窗状态
 const deletePopoverVisible = ref(false)
-const pendingDeleteRow = ref<any>(null)
+const pendingDeleteRow = ref<EditableStudentType | null>(null)
 const deleteTriggerRef = ref<HTMLElement>()
 
-const openDeletePopover = (row: any, event: MouseEvent) => {
+const openDeletePopover = (row: EditableStudentType, event: MouseEvent) => {
   pendingDeleteRow.value = row
   deleteTriggerRef.value = event.currentTarget as HTMLElement
   deletePopoverVisible.value = true

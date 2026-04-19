@@ -8,6 +8,7 @@ import { useProgress } from '@/hooks/useProgress'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
 /**
  * 数据录入视图组件
@@ -28,7 +29,8 @@ const emit = defineEmits(['scroll'])
  */
 const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
   data: originList,
-  getValue: (item: any) => (configuration.inputScoreTab ? item[configuration.inputScoreTab] : null)
+  getValue: (item: StudentDataType) =>
+    configuration.inputScoreTab ? item[configuration.inputScoreTab] : null
 })
 
 /**
@@ -38,9 +40,15 @@ const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
 const hasNullScoreList = computed(() => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return []
-  return originList.value.filter((e: any) => {
-    const element = e[scoreTab]
-    return element === null || isNaN(element) || element === '' || element === undefined
+  return originList.value.filter((student) => {
+    const value = student[scoreTab]
+    if (value === null || value === undefined || value === '') return true
+    if (typeof value === 'number') return Number.isNaN(value)
+    if (typeof value === 'string') {
+      const parsed = Number(value)
+      return Number.isNaN(parsed)
+    }
+    return true
   })
 })
 
@@ -69,7 +77,7 @@ const autoFocus = () => {
  * 编辑学生数据
  * @param data - 学生行数据
  */
-const editData = (data: any) => {
+const editData = (data: StudentDataType) => {
   inputCardRef.value?.editData(data)
 }
 

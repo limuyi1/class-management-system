@@ -1,7 +1,9 @@
 import { describe, expect, it, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { nextTick } from 'vue'
 import { useDataSourceStore } from '../../src/stores/data-source'
 import { useConfigurationStore } from '../../src/stores/configuration'
+import type { StudentDataType } from '../../src/types/StudentData'
 
 describe('useDataSourceStore', () => {
   beforeEach(() => {
@@ -33,7 +35,7 @@ describe('useDataSourceStore', () => {
 
     const enabled = store.enabledData
     expect(enabled).toHaveLength(2)
-    expect(enabled.map((s: any) => s.xing4_ming2)).toEqual(['张三', '王五'])
+    expect(enabled.map((student) => student.xing4_ming2)).toEqual(['张三', '王五'])
   })
 
   it('should return empty enabledData when all disabled', () => {
@@ -190,5 +192,45 @@ describe('useDataSourceStore', () => {
     const rating = store.comprehensiveRatingRate
     expect(rating).toBeGreaterThan(0)
     expect(rating).toBeLessThan(100)
+  })
+
+  it('should ignore non-number scores in statistics', () => {
+    const configurationStore = useConfigurationStore()
+    configurationStore.inputScoreTab = 'yu3_wen2'
+
+    const store = useDataSourceStore()
+    store.items = [
+      { xing4_ming2: '张三', yu3_wen2: 80 },
+      { xing4_ming2: '李四', yu3_wen2: '90' },
+      { xing4_ming2: '王五', yu3_wen2: null }
+    ] as StudentDataType[]
+
+    expect(store.validScores).toEqual([80])
+    expect(store.average).toBe(80)
+  })
+
+  it('should resolve waitForInitReady immediately when already initialized', async () => {
+    const store = useDataSourceStore()
+    store.isInitialLoading = true
+
+    await expect(store.waitForInitReady()).resolves.toBe(true)
+  })
+
+  it('should wait for initialization state change in waitForInitReady', async () => {
+    const store = useDataSourceStore()
+    store.isInitialLoading = false
+
+    const pending = store.waitForInitReady()
+    store.isInitialLoading = true
+    await nextTick()
+
+    await expect(pending).resolves.toBe(true)
+  })
+
+  it('should keep compatibility for waitForDataReady alias', async () => {
+    const store = useDataSourceStore()
+    store.isInitialLoading = true
+
+    await expect(store.waitForDataReady()).resolves.toBe(true)
   })
 })

@@ -1,8 +1,8 @@
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
-export interface StudentData {
-  [NAME_PROP]: string
-  tags?: Record<string, string[]>
+export interface StudentData extends StudentDataType {
+  [NAME_PROP]: string | null
 }
 
 export interface BatchTagDrawerProps {

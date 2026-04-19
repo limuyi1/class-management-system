@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
-import type { PageInoType, EvaluationCardProps, EvaluationCardEmits } from '@/types/EvaluationCard'
+import type { EvaluationCardProps, EvaluationCardEmits } from '@/types/EvaluationCard'
 import { NAME_PROP } from '@/types/Constants'
 
 const store = useConfigurationStore()

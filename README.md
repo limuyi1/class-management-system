@@ -90,7 +90,7 @@ src/
 │   ├── configuration.ts   # 应用配置
 │   └── theme.ts          # 主题状态
 ├── types/                # TypeScript 类型定义
-├── untils/               # 工具函数
+├── utils/                # 工具函数
 │   ├── xlsxUntil.ts      # Excel 导入导出
 │   ├── pdfUntil.ts       # PDF 导出
 │   └── pageSizeInPixelUntil.ts
@@ -122,6 +122,8 @@ pnpm dev
 pnpm build
 ```
 
+构建产物默认输出到 `dist/` 目录。
+
 ### 类型检查
 
 ```bash
@@ -138,7 +140,7 @@ pnpm lint
 
 ### 学生数据存储
 
-- 学生数据存储在浏览器 localStorage 中
+- 学生数据通过 Dexie 存储在浏览器 IndexedDB 中
 - 数据结构示例：
   ```json
   {

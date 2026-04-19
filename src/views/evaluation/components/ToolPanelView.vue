@@ -7,6 +7,7 @@ import InputCard from '@/views/score/components/InputCard.vue'
 import { useProgress } from '@/hooks/useProgress'
 
 import { InputEnum } from '@/types/Common'
+import type { StudentDataType } from '@/types/StudentData'
 
 import { useDataSourceStore } from '@/stores/data-source'
 
@@ -20,7 +21,7 @@ const inputCardRef = ref<InstanceType<typeof InputCard>>()
 
 const { percentage, notCompletedCount } = useProgress({
   data: items,
-  getValue: (item: any) => item.comment
+  getValue: (item: StudentDataType) => item.comment
 })
 
 const autoFocus = () => {
@@ -32,7 +33,7 @@ const autoFocus = () => {
  * 点击左侧评语卡片时调用，自动选中该学生并聚焦评语输入框
  * @param row - 学生行数据
  */
-const fillStudentData = (row: any) => {
+const fillStudentData = (row: StudentDataType) => {
   inputCardRef.value?.editData(row)
 }
 

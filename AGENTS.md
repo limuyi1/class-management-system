@@ -146,7 +146,7 @@ tests/               # Test files
 
 ## Important Notes
 
-- Build output goes to `docs/` directory
+- Build output goes to `dist/` directory
 - Hash-based routing (`/#/home`, `/#/score`, etc.)
 - Environment variables prefixed with `VITE_`
 - Pinyin prop names use tone number suffix (e.g., `xing4_ming2` for 姓名)

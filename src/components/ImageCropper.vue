@@ -21,6 +21,25 @@ const emit = defineEmits<Emits>()
 const loading = ref(false)
 const cropperRef = ref<InstanceType<typeof VueCropper> | null>(null)
 
+type CropperMethodNameType =
+  | 'changeScale'
+  | 'rotateLeft'
+  | 'rotateRight'
+  | 'flipX'
+  | 'flipY'
+  | 'recycle'
+
+interface CropperApiType {
+  refresh: () => void
+  getCropData: (callback: (data: string) => void) => void
+  changeScale: (scale: number) => void
+  rotateLeft: () => void
+  rotateRight: () => void
+  flipX: () => void
+  flipY: () => void
+  recycle: () => void
+}
+
 watch(
   () => props.imageSrc,
   () => {
@@ -30,10 +49,16 @@ watch(
   }
 )
 
-const handleOperation = (method: string, ...args: any[]) => {
-  if (cropperRef.value && typeof (cropperRef.value as any)[method] === 'function') {
-    ;(cropperRef.value as any)[method](...args)
+const handleOperation = (method: CropperMethodNameType, ...args: number[]) => {
+  const cropper = cropperRef.value as unknown as CropperApiType | null
+  if (!cropper) return
+
+  if (method === 'changeScale') {
+    cropper.changeScale(args[0] || 0)
+    return
   }
+
+  cropper[method]()
 }
 
 const handleZoomIn = () => handleOperation('changeScale', 0.1)
@@ -48,7 +73,7 @@ const handleConfirm = async () => {
   if (!cropperRef.value) return
 
   loading.value = true
-  let fullscreenLoading: any = null
+  let fullscreenLoading: ReturnType<typeof ElLoading.service> | null = null
 
   try {
     fullscreenLoading = ElLoading.service({
@@ -57,7 +82,8 @@ const handleConfirm = async () => {
       background: 'rgba(255, 255, 255, 0.8)'
     })
 
-    cropperRef.value.getCropData((data: string) => {
+    const cropper = cropperRef.value as unknown as CropperApiType
+    cropper.getCropData((data: string) => {
       const base64Data = data.replace(/^data:image\/\w+;base64,/, '')
       emit('confirm', base64Data)
       emit('update:visible', false)

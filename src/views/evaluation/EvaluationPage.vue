@@ -16,6 +16,7 @@ import { generateBatchComments } from '@/ai/aiService'
 import { exportPDF } from '@/utils/pdfUntil'
 import { extractStudentTags } from '@/utils/studentUntil'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
 /**
  * 期末评语管理页面
@@ -48,9 +49,23 @@ const autoFocus = () => {
  * 导出 PDF 处理函数
  * 获取所有评语卡片 DOM 元素并导出为 PDF
  */
-const handleExportPDF = () => {
+const handleExportPDF = async () => {
   const doms = document.getElementsByClassName('evaluation-card--table__wrapper')
-  exportPDF(doms, configuration.pageType)
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在导出PDF...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  const result = await exportPDF(doms, configuration.pageType)
+  loading.close()
+
+  if (!result.success) {
+    ElMessage.error(result.error?.message || '导出失败！')
+    return
+  }
+
+  ElMessage.success('导出成功')
 }
 
 /**
@@ -58,8 +73,19 @@ const handleExportPDF = () => {
  * 点击左侧学生评语卡片时，激活右侧输入区进行编辑
  * @param row - 被点击的学生行数据
  */
-const handleCardClick = (row: any) => {
+const handleCardClick = (row: StudentDataType) => {
   toolPanelViewRef.value?.fillStudentData(row)
+}
+
+const getStudentName = (student: StudentDataType): string => {
+  const name = student[NAME_PROP]
+  return name === null || name === undefined ? '' : String(name)
+}
+
+const getStudentScore = (student: StudentDataType): number | undefined => {
+  if (!configuration.inputScoreTab) return undefined
+  const score = student[configuration.inputScoreTab]
+  return typeof score === 'number' && Number.isFinite(score) ? score : undefined
 }
 
 const handleBatchGenerate = async () => {
@@ -103,7 +129,7 @@ const handleBatchGenerate = async () => {
   } else {
     // 部分有评语，弹出选择对话框
     try {
-      const action = await ElMessageBox.confirm(
+      await ElMessageBox.confirm(
         `检测到 ${students.value.length} 名学生中已有 ${existingCount} 名学生有评语，请选择生成方式`,
         'AI 批量生成评语',
         {
@@ -141,9 +167,9 @@ const handleBatchGenerate = async () => {
       const allTags = extractStudentTags(item, tagCategoryList.value)
 
       return {
-        name: item[NAME_PROP],
+        name: getStudentName(item),
         tags: allTags,
-        score: configuration.inputScoreTab ? item[configuration.inputScoreTab] : undefined,
+        score: getStudentScore(item),
         comment: mode === 'overwrite' ? '' : (item.comment || '')
       }
     })
@@ -184,8 +210,9 @@ const handleBatchGenerate = async () => {
     // 更新成功生成的结果
     let updatedCount = 0
     for (let i = 0; i < allResults.length; i++) {
-      if (allResults[i].comment) {
-        filteredStudents[i].comment = allResults[i].comment
+      const generatedComment = allResults[i].comment?.trim()
+      if (generatedComment) {
+        filteredStudents[i].comment = generatedComment
         updatedCount++
       }
     }
@@ -204,7 +231,7 @@ defineExpose({ autoFocus })
 </script>
 
 <template>
-  <div class="evaluation-page">
+  <div class="evaluation-page app-page-shell">
     <page-header
       :icon="['solid', 'comments']"
       title="期末评语"
@@ -243,12 +270,7 @@ defineExpose({ autoFocus })
 
 <style scoped lang="scss">
 .evaluation-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  box-sizing: border-box;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  min-height: 0;
 }
 
 .evaluation-page-content {

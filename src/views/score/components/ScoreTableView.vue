@@ -10,8 +10,11 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { getScoreColor as getScoreColorConfig } from '@/config/score'
 import { delay } from '@/utils/commonUntil'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
-const emit = defineEmits(['edit'])
+const emit = defineEmits<{
+  edit: [row: StudentDataType]
+}>()
 
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
@@ -29,9 +32,10 @@ const tagTypeList = computed(() => {
  * 获取当前选中列的分数值
  * @param row
  */
-const getCurrentScore = (row: any) => {
+const getCurrentScore = (row: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
-  return row[configuration.inputScoreTab]
+  const score = row[configuration.inputScoreTab]
+  return typeof score === 'number' && Number.isFinite(score) ? score : null
 }
 
 /**
@@ -46,7 +50,7 @@ const getScoreColor = (score: number) => {
  * 表格行样式
  * @param row
  */
-const getRowStyle = ({ row }: { row: any }) => {
+const getRowStyle = ({ row }: { row: StudentDataType }) => {
   const score = getCurrentScore(row)
   if (!score) return {}
   const color = getScoreColor(score)
@@ -116,7 +120,7 @@ const resetScore = () => {
   }).then(() => {
     const scoreTab = configuration.inputScoreTab
     if (scoreTab) {
-      tableData.value.forEach((e: any) => {
+      tableData.value.forEach((e) => {
         e[scoreTab] = null
       })
     }
@@ -127,7 +131,7 @@ const resetScore = () => {
  * 编辑信息
  * @param data
  */
-const handleEdit = (data: any) => {
+const handleEdit = (data: StudentDataType) => {
   emit('edit', data)
 }
 

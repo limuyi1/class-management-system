@@ -1,7 +1,16 @@
-import type { PiniaPluginContext } from 'pinia'
+import type { PiniaPluginContext, StateTree, _DeepPartial } from 'pinia'
 import { liveQuery, type Observable } from 'dexie'
 import { db, DB_ID } from '@/db'
 import type { Table } from 'dexie'
+import type {
+  AIConfigRecord,
+  ConfigurationRecord,
+  DataSourceRecord,
+  SettingRecord,
+  ThemeRecord,
+  WrongBookRecord
+} from '@/types/Database'
+import type { StudentDataType } from '@/types/StudentData'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
@@ -10,7 +19,23 @@ import { useThemeStore } from '@/stores/theme'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useWrongBookStore } from '@/stores/wrong-book'
 
-const tableNameMap: Record<string, Table<any>> = {
+type PersistableRecordType =
+  | DataSourceRecord
+  | WrongBookRecord
+  | SettingRecord
+  | ConfigurationRecord
+  | ThemeRecord
+  | AIConfigRecord
+
+interface DataSourceLikeStoreType {
+  isInitialLoading: boolean
+  $state: {
+    items: StudentDataType[]
+  }
+  $patch: (partialState: { items: StudentDataType[] }) => void
+}
+
+const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   wrongBook: db.wrongBook,
   setting: db.setting,
   configuration: db.configuration,
@@ -31,16 +56,23 @@ export function createPersistedStateDexie() {
     }
 
     const isDataSource = storeId === 'dataSource'
+    const dataSourceStore = store as unknown as DataSourceLikeStoreType
+    const patchStateFromRecord = (record: PersistableRecordType) => {
+      const stateRecord = record as unknown as Record<string, unknown>
+      const { id, ...state } = stateRecord
+      void id
+      store.$patch(state as _DeepPartial<StateTree>)
+    }
 
     const loadFromDB = async () => {
       try {
         const record = await table.get(DB_ID)
         if (record) {
           if (isDataSource) {
-            store.$patch({ items: record.data || [] })
+            const dataRecord = record as DataSourceRecord
+            dataSourceStore.$patch({ items: dataRecord.data || [] })
           } else {
-            const { id: _id, ...state } = record as any
-            store.$patch(state)
+            patchStateFromRecord(record)
           }
         }
       } catch (error) {
@@ -49,11 +81,11 @@ export function createPersistedStateDexie() {
     }
 
     if (isDataSource) {
-      ;(store as any).isInitialLoading = false
+      dataSourceStore.isInitialLoading = false
     }
     await loadFromDB()
     if (isDataSource) {
-      ;(store as any).isInitialLoading = true
+      dataSourceStore.isInitialLoading = true
     }
 
     const saveToDB = async () => {
@@ -62,12 +94,12 @@ export function createPersistedStateDexie() {
       }
       try {
         if (isDataSource) {
-          const clonableData = JSON.parse(JSON.stringify(store.$state.items))
-          await table.put({ id: DB_ID, data: clonableData } as any)
+          const clonableData = JSON.parse(JSON.stringify(dataSourceStore.$state.items)) as StudentDataType[]
+          await table.put({ id: DB_ID, data: clonableData } as DataSourceRecord)
         } else {
           const rawState = store.$state
           const clonableState = JSON.parse(JSON.stringify(rawState))
-          await table.put({ id: DB_ID, ...clonableState } as any)
+          await table.put({ id: DB_ID, ...clonableState } as PersistableRecordType)
         }
       } catch (error) {
         console.error(`[PersistDexie] Failed to save ${storeId} to IndexedDB:`, error)
@@ -81,15 +113,21 @@ export function createPersistedStateDexie() {
       { deep: true }
     )
 
-    const observable$: Observable<any> = liveQuery(() => table.get(DB_ID)) as Observable<any>
+    const observable$: Observable<PersistableRecordType | undefined> = liveQuery(() =>
+      table.get(DB_ID)
+    ) as Observable<PersistableRecordType | undefined>
     observable$.subscribe({
       next: (record) => {
         if (!record) return
 
         updatingStores.add(storeId)
 
-        const { id: _id, ...state } = record as any
-        store.$patch(state)
+        if (isDataSource) {
+          const dataRecord = record as DataSourceRecord
+          dataSourceStore.$patch({ items: dataRecord.data || [] })
+        } else {
+          patchStateFromRecord(record)
+        }
 
         updatingStores.delete(storeId)
       },
@@ -106,7 +144,7 @@ export function createPersistedStateDexie() {
  * 避免后续页面访问时因懒加载 store 而产生卡顿
  */
 export function preloadAllStores() {
-  const stores = [
+  void [
     useDataSourceStore(),
     useSettingStore(),
     useConfigurationStore(),

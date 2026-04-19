@@ -8,7 +8,8 @@ import {
   ElInput,
   ElCheckbox,
   ElButton,
-  ElMessage
+  ElMessage,
+  ElLoading
 } from 'element-plus'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { PagesEnum } from '@/types/Common'
@@ -79,7 +80,17 @@ const handleExport = async () => {
   }
 
   const fileName = `${examTitle.value || '错题试卷'}_${new Date().toLocaleDateString()}.pdf`
-  await exportPDF(elements as any, pageType.value, 4, fileName)
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在导出PDF...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+  const result = await exportPDF(elements, pageType.value, 4, fileName)
+  loading.close()
+  if (!result.success) {
+    ElMessage.error(result.error?.message || '导出失败！')
+    return
+  }
   ElMessage.success('导出成功')
 }
 

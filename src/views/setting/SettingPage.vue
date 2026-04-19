@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, defineAsyncComponent } from 'vue'
+import { ref, defineAsyncComponent } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'
+import { useTabQuerySync } from '@/hooks/useTabQuerySync'
 
 const LabelMaintenance = defineAsyncComponent(
   () => import('@/views/setting/components/LabelMaintenance.vue')
@@ -22,44 +23,32 @@ const QuestionTypeMaintenance = defineAsyncComponent(
 
 const route = useRoute()
 const router = useRouter()
-const activeTab = ref('student-info')
+const validTabs = [
+  'student-info',
+  'label-maintenance',
+  'unit-config',
+  'ai-config',
+  'system-backup',
+  'question-type'
+] as const
+type SettingTabType = (typeof validTabs)[number]
+
+const activeTab = ref<SettingTabType>('student-info')
 const studentInfoRef = ref<InstanceType<typeof StudentInfo>>()
 
-watch(
-  () => route.query,
-  (query) => {
-    // 先更新 activeTab，确保与 query 参数一致
-    if (
-      query.tab === 'student-info' ||
-      query.tab === 'label-maintenance' ||
-      query.tab === 'unit-config' ||
-      query.tab === 'ai-config' ||
-      query.tab === 'system-backup' ||
-      query.tab === 'question-type'
-    ) {
-      activeTab.value = query.tab
-    }
-
-    // 监听编辑标签参数，自动打开对应学生的标签编辑dialog
-    if (query['edit-tags'] === '1' && query['student-name']) {
-      // 延迟执行确保组件已挂载
-      setTimeout(() => {
-        studentInfoRef.value?.openTagEditorByName(query['student-name'] as string)
-        // 清除 query 参数避免重复触发
-        router.replace({ path: '/setting', query: { tab: activeTab.value } })
-      }, 100)
-    }
-  },
-  { immediate: true }
-)
-
-watch(activeTab, (newTab) => {
-  router.replace({ path: '/setting', query: { tab: newTab } })
+useTabQuerySync({
+  route,
+  router,
+  activeTab,
+  validTabs,
+  onEditTags: (studentName: string) => {
+    studentInfoRef.value?.openTagEditorByName(studentName)
+  }
 })
 </script>
 
 <template>
-  <div class="setting-page">
+  <div class="setting-page app-page-shell">
     <el-tabs v-model="activeTab" class="setting-tabs__wrapper">
       <el-tab-pane name="student-info">
         <template #label>
@@ -141,9 +130,7 @@ watch(activeTab, (newTab) => {
 
 <style scoped lang="scss">
 .setting-page {
-  height: 100%;
-  padding: 8px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  min-height: 0;
 }
 
 .setting-tabs__wrapper {

@@ -28,7 +28,7 @@ describe('useScoreStatistics', () => {
     ])
     const scoreProp = computed(() => 'yu3_wen2')
 
-    const { threshold, belowThresholdStudents, scoreStats, getScore } = useScoreStatistics({
+    const { scoreStats } = useScoreStatistics({
       students,
       scoreProp
     })
@@ -66,7 +66,7 @@ describe('useScoreStatistics', () => {
     ])
     const scoreProp = computed(() => 'score')
 
-    const { belowThresholdStudents, threshold } = useScoreStatistics({
+    const { belowThresholdStudents } = useScoreStatistics({
       students,
       scoreProp
     })
@@ -81,7 +81,7 @@ describe('useScoreStatistics', () => {
     const students = computed(() => studentsRef.value)
     const scoreProp = computed(() => 'score')
 
-    const { scoreStats, threshold } = useScoreStatistics({
+    const { threshold } = useScoreStatistics({
       students,
       scoreProp
     })

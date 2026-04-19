@@ -1,6 +1,5 @@
 import domtoimage from 'dom-to-image'
 import { jsPDF } from 'jspdf'
-import { ElMessage, ElLoading } from 'element-plus'
 
 import { PagesEnum } from '@/types/Common'
 
@@ -8,6 +7,11 @@ import { PagesEnum } from '@/types/Common'
  * PDF 导出工具
  * 将 DOM 元素转换为 PDF 文件
  */
+
+interface ExportPDFResultType {
+  success: boolean
+  error?: Error
+}
 
 /**
  * 将 DOM 元素导出为 PDF 文件
@@ -17,17 +21,11 @@ import { PagesEnum } from '@/types/Common'
  * @param fileName 导出文件名，默认为当前日期时间
  */
 const exportPDF = async (
-  refs: any,
+  refs: ArrayLike<Element>,
   pageType: PagesEnum = PagesEnum.A4,
   scale: number = 4,
   fileName: string = new Date().toLocaleString() + '.pdf'
-) => {
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出PDF...',
-    background: 'rgba(0, 0, 0, 0.7)'
-  })
-
+): Promise<ExportPDFResultType> => {
   try {
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -35,8 +33,8 @@ const exportPDF = async (
       format: pageType
     })
 
-    for (const [index, ref] of Array.from(refs).entries()) {
-      const elm: HTMLElement = ref as HTMLElement
+    const elements = Array.from(refs).filter((ref): ref is HTMLElement => ref instanceof HTMLElement)
+    for (const [index, elm] of elements.entries()) {
 
       const imageUrl = await domtoimage.toJpeg(elm, {
         quality: 0.8,
@@ -56,19 +54,17 @@ const exportPDF = async (
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
       doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
 
-      if (index !== refs.length - 1) {
+      if (index !== elements.length - 1) {
         doc.addPage()
       }
     }
 
     doc.save(fileName)
-
-    loading.close()
+    return { success: true }
   } catch (err) {
-    console.error(err)
-
-    ElMessage.error('导出失败！')
-    loading.close()
+    const error = err instanceof Error ? err : new Error('导出失败')
+    console.error(error)
+    return { success: false, error }
   }
 }
 

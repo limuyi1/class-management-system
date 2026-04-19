@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { useThemeStore } from '@/stores/theme'
 import { themeOptions } from '@/config/theme'
+import type { ThemeName } from '@/config/theme'
 
 const themeStore = useThemeStore()
 
-const handleThemeChange = (themeName: string) => {
-  themeStore.setTheme(themeName as any)
+const handleThemeChange = (themeName: ThemeName) => {
+  themeStore.setTheme(themeName)
 }
 </script>
 

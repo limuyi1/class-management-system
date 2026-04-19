@@ -43,8 +43,10 @@ const isAllSelected = computed(() => {
   return props.questions.length > 0 && localSelectedIds.value.length === props.questions.length
 })
 
-const handleSelectAll = (checked: any) => {
-  if (checked) {
+const isCheckedValue = (value: string | number | boolean) => value === true || value === 1
+
+const handleSelectAll = (checked: string | number | boolean) => {
+  if (isCheckedValue(checked)) {
     localSelectedIds.value = props.questions.map((q) => q.id)
   } else {
     localSelectedIds.value = []
@@ -52,8 +54,8 @@ const handleSelectAll = (checked: any) => {
   emit('selection-change', localSelectedIds.value)
 }
 
-const toggleSelect = (id: string, checked: any) => {
-  if (checked) {
+const toggleSelect = (id: string, checked: string | number | boolean) => {
+  if (isCheckedValue(checked)) {
     if (!localSelectedIds.value.includes(id)) {
       localSelectedIds.value.push(id)
     }

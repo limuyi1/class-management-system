@@ -26,7 +26,7 @@ const isNotEmpty = computed(() => store.enabledData?.length)
 </script>
 
 <template>
-  <div class="home-page">
+  <div class="home-page app-page-shell">
     <page-header :icon="['solid', 'users']" title="学生信息" subtitle="双击单元格编辑学生信息" />
     <div class="home-page-content" v-if="isNotEmpty">
       <vxe-table
@@ -64,12 +64,7 @@ const isNotEmpty = computed(() => store.enabledData?.length)
 
 <style scoped lang="scss">
 .home-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  box-sizing: border-box;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  min-height: 0;
 }
 
 .home-page-content {

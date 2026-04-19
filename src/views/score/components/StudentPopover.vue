@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { ElLoading, ElMessage } from 'element-plus'
 import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { xlsxToImage } from '@/utils/xlsxUntil'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
@@ -16,34 +18,50 @@ type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info'
 interface Props {
   downloadFileName: string
   tagType: TagType
-  condition: Function
+  condition: (student: StudentDataType) => boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  condition: () => {}
+  condition: () => true
 })
 
 /**
  * 导出图片
  * @param command
  */
-const xlsxToImageCommand = (command: string) => {
-  xlsxToImage(
+const xlsxToImageCommand = async (command: string) => {
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在导出图片，请稍后...'
+  })
+  const result = await xlsxToImage(
     buildData(command === 'exist'),
     `${props.downloadFileName}-${new Date().toLocaleString()}.png`
   )
+  loading.close()
+  if (!result.success) {
+    ElMessage.error(result.error?.message || '导出图片失败')
+    return
+  }
+  ElMessage.success('导出成功')
 }
 
 /**
  * 获取数据
  */
-const getList = (): any[] => {
+const getList = (): StudentDataType[] => {
   if (!configuration.inputScoreTab) return []
   const scoreKey = configuration.inputScoreTab
   return originList.value
-    .filter((e: any) => e[scoreKey] !== null)
-    .filter((e: any) => props.condition(e))
-    .sort((a: any, b: any) => (b[scoreKey] || 0) - (a[scoreKey] || 0))
+    .filter((student) => typeof student[scoreKey] === 'number')
+    .filter((student) => props.condition(student))
+    .sort((a, b) => {
+      const rawScoreA = a[scoreKey]
+      const rawScoreB = b[scoreKey]
+      const scoreA = typeof rawScoreA === 'number' ? rawScoreA : 0
+      const scoreB = typeof rawScoreB === 'number' ? rawScoreB : 0
+      return scoreB - scoreA
+    })
 }
 
 /**
@@ -52,15 +70,17 @@ const getList = (): any[] => {
  */
 const buildData = (isScore: boolean = true) => {
   const headerData = isScore ? ['序号', '姓名', '分数'] : ['序号', '姓名']
-  const bodyData: any[][] = []
+  const bodyData: Array<Array<string | number | null>> = []
 
   const data = getList()
   const scoreKey = configuration.inputScoreTab
-  data.forEach((e: any, i: number) => {
+  data.forEach((student, i: number) => {
     if (isScore) {
-      bodyData.push([String(i + 1), e[NAME_PROP], scoreKey ? e[scoreKey] : ''])
+      const score =
+        scoreKey && typeof student[scoreKey] === 'number' ? Number(student[scoreKey]) : ''
+      bodyData.push([String(i + 1), student[NAME_PROP], score])
     } else {
-      bodyData.push([String(i + 1), e[NAME_PROP]])
+      bodyData.push([String(i + 1), student[NAME_PROP]])
     }
   })
 

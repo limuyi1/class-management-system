@@ -5,6 +5,11 @@ import { storeToRefs } from 'pinia'
 import data from '@/config/menu'
 import { useDataSourceStore } from '@/stores/data-source'
 
+type MenuItemType = (typeof data)[number] & {
+  targetPath?: string
+  hidden?: boolean
+}
+
 const router = useRouter()
 const store = useDataSourceStore()
 const { enabledData: tableData } = storeToRefs(store)
@@ -54,7 +59,7 @@ watch(
   { deep: true }
 )
 
-const handleMenuClick = (item: any) => {
+const handleMenuClick = (item: MenuItemType) => {
   if (item.disabled) return
   const targetPath = item.targetPath || item.path
   if (item.path === '/setting') {

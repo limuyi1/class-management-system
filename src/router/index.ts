@@ -9,6 +9,7 @@ import WrongBook from '@/views/wrong-book/WrongBookPage.vue'
 import EmptyPage from '@/views/empty/EmptyPage.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
+import type { NavigationGuardWithThis, RouteLocationNormalized } from 'vue-router'
 
 const router = createRouter({
   history: createWebHashHistory(),
@@ -57,21 +58,37 @@ const router = createRouter({
   ]
 })
 
-router.beforeEach(async (to, _from, next) => {
-  if (to.path === '/empty') {
+type DataSourceGuardStoreType = {
+  waitForInitReady: () => Promise<boolean>
+  enabledData: unknown[]
+}
+
+export function createDataGuard(
+  getStore: () => DataSourceGuardStoreType = useDataSourceStore
+): NavigationGuardWithThis<undefined> {
+  return async (
+    to: RouteLocationNormalized,
+    _from: RouteLocationNormalized,
+    next: (to?: string | false | void) => void
+  ) => {
+    if (to.path === '/empty') {
+      next()
+      return
+    }
+
+    const store = getStore()
+    await store.waitForInitReady()
+    const hasData = store.enabledData.length > 0
+
+    if (!hasData) {
+      next('/empty')
+      return
+    }
+
     next()
-    return
   }
+}
 
-  const store = useDataSourceStore()
-  const hasData = await store.waitForDataReady()
-
-  if (!hasData) {
-    next('/empty')
-    return
-  }
-
-  next()
-})
+router.beforeEach(createDataGuard())
 
 export default router

@@ -55,10 +55,22 @@ const handleInsertFormula = (formula: string) => {
   emit('insertFormula', formula)
 }
 
-const editorRef = ref<any>(null)
+const editorRef = ref<InstanceType<typeof MdEditor> | null>(null)
 
 const handleToggleFullscreen = () => {
-  editorRef.value?.toggleFullscreen?.()
+  const editor = editorRef.value as unknown as
+    | {
+        toggleFullscreen?: () => void
+        pageFullscreen?: () => void
+      }
+    | null
+
+  if (!editor) return
+  if (editor.toggleFullscreen) {
+    editor.toggleFullscreen()
+    return
+  }
+  editor.pageFullscreen?.()
 }
 
 defineExpose({

@@ -9,20 +9,21 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { mmToPixel, pageSizeInPixels } from '@/utils/pageSizeInPixelUntil'
 import { groupArray } from '@/utils/commonUntil'
+import type { StudentDataType } from '@/types/StudentData'
 
 /**
  * 点击评语卡片回调
  * 通知父组件激活对应学生的评语编辑
  */
 const emit = defineEmits<{
-  cardClick: [row: any]
+  cardClick: [row: StudentDataType]
 }>()
 
 /**
  * 处理卡片点击事件
  * @param row - 被点击的学生行数据
  */
-const handleCardClick = (row: any) => {
+const handleCardClick = (row: StudentDataType) => {
   emit('cardClick', row)
 }
 
@@ -38,7 +39,7 @@ const config = {
 }
 
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
-const dataSource = ref<any[][]>([])
+const dataSource = ref<StudentDataType[][]>([])
 const pageInfo = reactive({
   pageWidth: 0,
   pageHeight: 0,

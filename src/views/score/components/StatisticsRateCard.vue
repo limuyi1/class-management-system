@@ -81,7 +81,7 @@ watch(
             综合比率
             <el-tooltip
               effect="dark"
-              content="平均分*40% + 及格率*30% + 优秀率*30% + 特优率*5% - 低分率*5%"
+              content="平均分×40% + 及格率(%)×30% + 优秀率(%)×30% + 特优率(%)×5% - 低分率(%)×5%"
               placement="top"
             >
               <font-awesome-icon :icon="['solid', 'circle-question']" class="hint-icon" />

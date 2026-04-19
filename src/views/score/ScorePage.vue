@@ -16,6 +16,7 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUntil'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
@@ -95,7 +96,9 @@ const handleCropConfirm = async (croppedBase64: string) => {
     let notMatched: string[] = []
 
     for (const result of results) {
-      const student = originList.value.find((item: any) => item[NAME_PROP] === result.name)
+      const student = originList.value.find(
+        (item: StudentDataType) => String(item[NAME_PROP] || '') === result.name
+      )
 
       if (student && result.score !== null) {
         student[scoreTab] = result.score
@@ -127,7 +130,7 @@ defineExpose({ autoFocus })
 </script>
 
 <template>
-  <div class="score-page">
+  <div class="score-page app-page-shell">
     <page-header
       :icon="['solid', 'graduation-cap']"
       title="成绩录入"
@@ -166,12 +169,7 @@ defineExpose({ autoFocus })
 
 <style scoped lang="scss">
 .score-page {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 8px;
-  box-sizing: border-box;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  min-height: 0;
 }
 
 .score-page-content {

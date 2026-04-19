@@ -8,8 +8,9 @@ import { passingScoreRanges } from '@/config/score'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
-import { dayjs } from 'element-plus'
+import { dayjs, ElLoading, ElMessage } from 'element-plus'
 import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
@@ -19,31 +20,51 @@ const { items: originList } = storeToRefs(store)
 const { tableHeaders } = storeToRefs(settingStore)
 
 const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max: 59 }]
+type CellValueType = string | number | null
 
-const getScore = (item: any): number | null => {
+const exportWorkbook = (fileName: string, workbook: XLSX.WorkBook) => {
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在导出Excel...'
+  })
+
+  try {
+    const result = exportExcel(undefined, undefined, fileName, workbook)
+    if (!result.success) {
+      ElMessage.error(result.error?.message || '导出Excel失败')
+      return
+    }
+    ElMessage.success('导出成功')
+  } finally {
+    loading.close()
+  }
+}
+
+const getScore = (item: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
-  return item[configuration.inputScoreTab]
+  const score = item[configuration.inputScoreTab]
+  return typeof score === 'number' && Number.isFinite(score) ? score : null
 }
 
 const filterByRange = (range: { min: number; max: number }) => {
   return originList.value
-    .filter((e: any) => {
+    .filter((e) => {
       const score = getScore(e)
       return score !== null && score >= range.min && score <= range.max
     })
-    .sort((a: any, b: any) => (getScore(b) || 0) - (getScore(a) || 0))
+    .sort((a, b) => (getScore(b) || 0) - (getScore(a) || 0))
 }
 
 const buildSheetWithStats = (
   sheetName: string,
   filename: string,
   scoreLabels: string[],
-  buildScoreRow: (item: any) => any[],
-  footerRows: any[][]
+  buildScoreRow: (item: StudentDataType) => CellValueType[],
+  footerRows: CellValueType[][]
 ) => {
   const workbook = XLSX.utils.book_new()
   const header = ['序号', '姓名', ...scoreLabels]
-  const body = originList.value.map((e: any, i: number) => [
+  const body = originList.value.map((e, i: number) => [
     String(i + 1),
     e[NAME_PROP],
     ...buildScoreRow(e)
@@ -57,20 +78,20 @@ const buildSheetWithStats = (
   const sheet = XLSX.utils.aoa_to_sheet([header, ...body, ...footerRows])
   sheet['!merges'] = merges
   XLSX.utils.book_append_sheet(workbook, sheet, sheetName)
-  exportExcel(undefined, undefined, filename, workbook)
+  exportWorkbook(filename, workbook)
 }
 
 const exportExcelFun = () => {
   const workbook = XLSX.utils.book_new()
   const filename = `成绩_${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.xlsx`
 
-  const footer = [
+  const footer: CellValueType[][] = [
     ['平均分', null, Number(store.average.toFixed(2))],
     ['及格率', null, `${store.passRate.toFixed(2)}%`],
     ['优秀率', null, `${store.excellentRate.toFixed(2)}%`]
   ]
   const header = ['序号', '姓名', '分数']
-  const body = originList.value.map((e: any, i: number) => {
+  const body = originList.value.map((e, i: number) => {
     const score = getScore(e)
     return [String(i + 1), e[NAME_PROP], score !== null ? Number(score) : '']
   })
@@ -84,7 +105,7 @@ const exportExcelFun = () => {
 
   scoreRanges.forEach((range) => {
     const data = filterByRange(range)
-    const rangeBody = data.map((e: any, i: number) => {
+    const rangeBody = data.map((e, i: number) => {
       const score = getScore(e)
       return [String(i + 1), e[NAME_PROP], score !== null ? Number(score) : '']
     })
@@ -92,7 +113,7 @@ const exportExcelFun = () => {
     XLSX.utils.book_append_sheet(workbook, sheet, range.label)
   })
 
-  exportExcel(undefined, undefined, filename, workbook)
+  exportWorkbook(filename, workbook)
 }
 
 const exportAllExcelFun = () => {

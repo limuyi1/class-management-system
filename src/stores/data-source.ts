@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { watch } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
+import type { StudentDataType } from '@/types/StudentData'
 
 /**
  * 学生数据源状态管理
@@ -11,7 +12,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
-      items: [] as Array<any>,
+      items: [] as StudentDataType[],
       isInitialLoading: false
     }
   },
@@ -19,8 +20,8 @@ export const useDataSourceStore = defineStore('dataSource', {
     /**
      * 获取启用状态的学生数据（过滤掉禁用的学生）
      */
-    enabledData(): Array<any> {
-      return this.items.filter((item: any) => !item.disabled)
+    enabledData(): StudentDataType[] {
+      return this.items.filter((item) => item.disabled !== true)
     },
     /**
      * 获取所有有效成绩（过滤掉 null 和 undefined 和禁用的学生）
@@ -30,13 +31,13 @@ export const useDataSourceStore = defineStore('dataSource', {
       const scoreTab = configuration.inputScoreTab
       if (!scoreTab) return []
       return this.enabledData
-        .map((item: any) => item[scoreTab])
-        .filter((s: any): s is number => s !== null && s !== undefined)
+        .map((item) => item[scoreTab])
+        .filter((score): score is number => typeof score === 'number' && Number.isFinite(score))
     },
     /**
      * 学生总数（启用状态）
      */
-    totalCount: (state) => state.items.filter((item: any) => !item.disabled).length as number,
+    totalCount: (state) => state.items.filter((item) => item.disabled !== true).length as number,
     /**
      * 有效成绩数量（有分数的学生人数）
      */
@@ -101,10 +102,10 @@ export const useDataSourceStore = defineStore('dataSource', {
       if (this.validCount === 0) return 0
       return (
         this.average * 0.4 +
-        (this.passRate / 100) * 0.3 +
-        (this.excellentRate / 100) * 0.3 +
-        (this.optimumRate / 100) * 0.05 -
-        (this.lowScoreRate / 100) * 0.05
+        this.passRate * 0.3 +
+        this.excellentRate * 0.3 +
+        this.optimumRate * 0.05 -
+        this.lowScoreRate * 0.05
       )
     },
     /**
@@ -118,16 +119,18 @@ export const useDataSourceStore = defineStore('dataSource', {
     /**
      * 获取指定学生的当前录入分数
      */
-    getItemScore(item: any): number | null {
+    getItemScore(item: StudentDataType): number | null {
       const configuration = useConfigurationStore()
-      if (!configuration.inputScoreTab) return null
-      return item[configuration.inputScoreTab]
+      const scoreTab = configuration.inputScoreTab
+      if (!scoreTab) return null
+      const value = item[scoreTab]
+      return typeof value === 'number' && Number.isFinite(value) ? value : null
     },
 
     /**
      * 等待数据准备就绪
      */
-    async waitForDataReady(): Promise<boolean> {
+    async waitForInitReady(): Promise<boolean> {
       if (!this.isInitialLoading) {
         return new Promise((resolve) => {
           const unwatch = watch(
@@ -143,6 +146,14 @@ export const useDataSourceStore = defineStore('dataSource', {
         })
       }
       return true
+    },
+
+    /**
+     * 兼容旧调用
+     * @deprecated 请使用 waitForInitReady
+     */
+    async waitForDataReady(): Promise<boolean> {
+      return this.waitForInitReady()
     }
   }
 })

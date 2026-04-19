@@ -1,9 +1,6 @@
-import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
-export interface TagEditorDialogStudent {
-  [NAME_PROP]: string
-  tags?: Record<string, string[]>
-}
+export type TagEditorDialogStudent = StudentDataType
 
 export interface TagEditorDialogProps {
   visible: boolean
