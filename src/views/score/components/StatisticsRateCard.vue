@@ -75,7 +75,7 @@ watch(
     <div class="card-header">
       <div class="card-title">
         <font-awesome-icon :icon="['solid', 'chart-simple']" />
-        <span>成绩总览（辅助）</span>
+        <span>成绩总览</span>
       </div>
     </div>
 
@@ -86,7 +86,16 @@ watch(
           <div class="stat-value">{{ outputAverage.toFixed(2) }}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">综合比率</div>
+          <div class="stat-label with-tip">
+            综合比率
+            <el-tooltip
+              effect="dark"
+              content="平均分×40% + 及格率(%)×30% + 优秀率(%)×30% + 特优率(%)×5% - 低分率(%)×5%"
+              placement="top"
+            >
+              <font-awesome-icon :icon="['solid', 'circle-question']" class="hint-icon" />
+            </el-tooltip>
+          </div>
           <div class="stat-value">{{ outputComprehensiveRatingRate.toFixed(2) }}%</div>
         </div>
         <div class="stat-item">
@@ -163,6 +172,18 @@ watch(
         font-size: 11px;
         color: #64748b;
         margin-bottom: 2px;
+      }
+
+      .with-tip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+
+        .hint-icon {
+          font-size: 11px;
+          color: #94a3b8;
+          cursor: pointer;
+        }
       }
     }
   }

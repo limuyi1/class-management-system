@@ -149,6 +149,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
   })
 
   const effectiveThreshold = computed(() => {
+    // 低分阈值支持两种模式：平均分 / 自定义固定值
     if (thresholdMode.value === 'average') {
       return scoreStats.value ? Number(scoreStats.value.avgScore) : 60
     }

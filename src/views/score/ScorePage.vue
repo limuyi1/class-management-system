@@ -31,7 +31,6 @@ const { tableHeaders } = storeToRefs(settingStore)
 
 const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
 
-const uploading = ref(false)
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
 
@@ -96,7 +95,6 @@ const handleUploadClick = () => {
 
 const handleCropConfirm = async (croppedBase64: string) => {
   cropperVisible.value = false
-  uploading.value = true
 
   const loading = ElLoading.service({
     lock: true,
@@ -104,6 +102,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
   })
 
   try {
+    // 识图 -> 姓名匹配 -> 写入当前录入科目
     const results = await recognizeScoreFromImage(croppedBase64, aiConfigStore.prompts.imageScore, {
       modelType: aiConfigStore.modelType,
       model: aiConfigStore.model,
@@ -148,7 +147,6 @@ const handleCropConfirm = async (croppedBase64: string) => {
     ElMessage.error('识别失败：' + (error as Error).message)
   } finally {
     loading.close()
-    uploading.value = false
   }
 }
 
@@ -180,11 +178,6 @@ defineExpose({ autoFocus })
       <el-button class="danger-btn" plain @click="resetScore">
         <template #icon><font-awesome-icon :icon="['solid', 'rotate-right']" /></template>
         重置当前科目
-      </el-button>
-
-      <el-button type="primary" :loading="uploading" @click="handleUploadClick">
-        <template #icon><font-awesome-icon :icon="['solid', 'camera']" /></template>
-        图片识别导入
       </el-button>
 
       <download-btn class="download-btn" :disabled="!dataStore.hasAnyScore" />

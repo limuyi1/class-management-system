@@ -33,10 +33,6 @@ const { copyToClipboard } = useScoreDistributionActions({
 const copyDistribution = () => {
   copyToClipboard()
 }
-
-defineExpose({
-  copyDistribution
-})
 </script>
 
 <template>

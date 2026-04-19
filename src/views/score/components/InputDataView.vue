@@ -65,7 +65,12 @@ defineExpose({
         <span class="progress-percent">{{ percentage.toFixed(0) }}%</span>
       </div>
       <el-progress :stroke-width="10" :show-text="false" :percentage="percentage" />
-      <el-popover placement="bottom" :width="320" trigger="hover" :disabled="!hasNullScoreList.length">
+      <el-popover
+        placement="bottom"
+        :width="320"
+        trigger="hover"
+        :disabled="!hasNullScoreList.length"
+      >
         <template #reference>
           <div class="unfinished-hint" v-if="hasNullScoreList.length">
             <font-awesome-icon :icon="['solid', 'circle-exclamation']" />
@@ -137,6 +142,7 @@ defineExpose({
   .unfinished-hint {
     display: flex;
     align-items: center;
+    width: fit-content;
     gap: 6px;
     margin-top: 8px;
     font-size: 12px;

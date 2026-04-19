@@ -31,7 +31,6 @@ const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const { items: originList } = storeToRefs(store)
 
-const activeMode = ref<'ai' | 'manual'>('manual')
 const searchKeyword = ref('')
 const selectedStudentId = ref<number | null>(null)
 const scoreValue = ref<number | null>(null)
@@ -139,6 +138,13 @@ const addRecentEntry = (index: number, score: number) => {
   ].slice(0, 3)
 }
 
+/**
+ * 保存分数主流程：
+ * 1. 校验学生、科目、分数
+ * 2. 写入当前科目成绩
+ * 3. 记录最近录入
+ * 4. 默认回到姓名输入框，支持连续录入
+ */
 const saveScore = (mode: 'stay' | 'next' = 'stay') => {
   if (!selectedStudentId.value) {
     ElMessage.warning('请先选择学生')
@@ -171,11 +177,12 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
     }
     clearSelectedStudent()
     searchKeyword.value = ''
-    activeMode.value = 'manual'
     nextTick(() => focusSearchInput())
     return
   }
-  nextTick(() => focusScoreInput())
+  clearSelectedStudent()
+  searchKeyword.value = ''
+  nextTick(() => focusSearchInput())
 }
 
 const refillEntry = (entry: RecentEntryType) => {
@@ -185,13 +192,7 @@ const refillEntry = (entry: RecentEntryType) => {
 }
 
 const handleAIMode = () => {
-  activeMode.value = 'ai'
   emit('uploadImage')
-}
-
-const handleManualMode = () => {
-  activeMode.value = 'manual'
-  nextTick(() => focusSearchInput())
 }
 
 const autoFocus = () => {
@@ -202,6 +203,25 @@ const editData = (data: StudentDataType) => {
   const rowIndex = originList.value.findIndex((item) => item === data)
   if (rowIndex === -1) return
   selectStudentByIndex(rowIndex + 1)
+}
+
+/**
+ * 姓名输入框回车只用于“定位学生”，必须阻断事件冒泡，
+ * 避免触发分数框保存逻辑。
+ */
+const handleNameKeyDownEnter = (event: KeyboardEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+  handleSearchEnter()
+}
+
+/**
+ * 分数输入框回车只用于“保存分数”。
+ */
+const handleScoreKeyDownEnter = (event: KeyboardEvent) => {
+  event.preventDefault()
+  event.stopPropagation()
+  saveScore('stay')
 }
 
 watch(searchKeyword, (value) => {
@@ -219,17 +239,16 @@ defineExpose({
 <template>
   <div class="score-input-card">
     <div class="mode-switch">
-      <el-button class="mode-btn" :class="{ active: activeMode === 'ai' }" @click="handleAIMode">
-        <font-awesome-icon :icon="['solid', 'camera']" />
+      <div class="manual-entry">
+        <div class="manual-label">
+          <font-awesome-icon :icon="['solid', 'keyboard']" />
+          手动录入
+        </div>
+        <div class="manual-subtitle">默认模式</div>
+      </div>
+      <el-button class="ai-action-btn" plain @click="handleAIMode">
+        <template #icon><font-awesome-icon :icon="['solid', 'camera']" /></template>
         AI识图导入
-      </el-button>
-      <el-button
-        class="mode-btn"
-        :class="{ active: activeMode === 'manual' }"
-        @click="handleManualMode"
-      >
-        <font-awesome-icon :icon="['solid', 'keyboard']" />
-        手动录入
       </el-button>
     </div>
 
@@ -243,7 +262,7 @@ defineExpose({
         clearable
         @select="handleSuggestionSelect"
         @clear="clearSelectedStudent"
-        @keyup.enter="handleSearchEnter"
+        @keydown.enter="handleNameKeyDownEnter"
       />
     </div>
 
@@ -258,7 +277,7 @@ defineExpose({
         :precision="1"
         controls-position="right"
         placeholder="0~100分"
-        @keyup.enter="saveScore('stay')"
+        @keydown.enter="handleScoreKeyDownEnter"
       />
       <div class="score-actions">
         <el-button type="primary" class="save-btn" @click="saveScore('stay')">保存分数</el-button>
@@ -302,21 +321,36 @@ defineExpose({
 
 .mode-switch {
   display: flex;
-  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+}
 
-  .mode-btn {
-    flex: 1;
-    border-radius: 10px;
-    border: 1px solid var(--border-muted);
-    background: #fff;
-    color: var(--text-secondary);
+.manual-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 
-    &.active {
-      color: #fff;
-      border-color: var(--theme-primary);
-      background: var(--theme-gradient);
-    }
+  .manual-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 700;
   }
+
+  .manual-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+}
+
+.ai-action-btn {
+  border-radius: 10px;
+  border-color: var(--border-muted);
+  color: var(--text-secondary);
+  background: #fff;
 }
 
 .search-input {
