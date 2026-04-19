@@ -34,6 +34,7 @@ export interface ConfigurationRecord {
   pageType: string
   pageTypeList: string[]
   inputScoreTab: string | null
+  recentScoreEntries: Record<string, Array<{ index: number; name: string; score: number; time: string }>>
 }
 
 export interface ThemeRecord {

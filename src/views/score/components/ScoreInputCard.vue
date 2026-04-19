@@ -8,17 +8,11 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { NAME_PROP } from '@/types/Constants'
 import type { StudentDataType } from '@/types/StudentData'
+import type { RecentScoreEntryType } from '@/types/Configuration'
 
 interface SuggestionItemType {
   value: string
   index: number
-}
-
-interface RecentEntryType {
-  index: number
-  name: string
-  score: number
-  time: string
 }
 
 const emit = defineEmits<{
@@ -34,7 +28,7 @@ const { items: originList } = storeToRefs(store)
 const searchKeyword = ref('')
 const selectedStudentId = ref<number | null>(null)
 const scoreValue = ref<number | null>(null)
-const recentEntries = ref<RecentEntryType[]>([])
+const recentEntries = ref<RecentScoreEntryType[]>([])
 
 const searchInputRef = ref<{ focus: () => void } | null>(null)
 const scoreInputRef = ref<{ focus: () => void } | null>(null)
@@ -72,6 +66,15 @@ const getMatchedStudents = (query: string): SuggestionItemType[] => {
 
 const querySuggestions = (queryString: string, cb: (items: SuggestionItemType[]) => void) => {
   cb(getMatchedStudents(queryString))
+}
+
+const syncRecentEntriesByTab = () => {
+  const scoreTab = configuration.inputScoreTab
+  if (!scoreTab) {
+    recentEntries.value = []
+    return
+  }
+  recentEntries.value = [...(configuration.recentScoreEntries[scoreTab] || [])]
 }
 
 const clearSelectedStudent = () => {
@@ -127,15 +130,24 @@ const handleSearchEnter = () => {
 }
 
 const addRecentEntry = (index: number, score: number) => {
+  const scoreTab = configuration.inputScoreTab
+  if (!scoreTab) return
+
   const student = originList.value[index - 1]
   if (!student) return
   const name = getStudentName(student)
   const time = dayjs().format('HH:mm:ss')
 
-  recentEntries.value = [
+  const nextEntries: RecentScoreEntryType[] = [
     { index, name, score, time },
     ...recentEntries.value.filter((e) => e.index !== index)
-  ].slice(0, 3)
+  ].slice(0, 5)
+
+  configuration.recentScoreEntries = {
+    ...configuration.recentScoreEntries,
+    [scoreTab]: nextEntries
+  }
+  recentEntries.value = nextEntries
 }
 
 /**
@@ -185,7 +197,7 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
   nextTick(() => focusSearchInput())
 }
 
-const refillEntry = (entry: RecentEntryType) => {
+const refillEntry = (entry: RecentScoreEntryType) => {
   selectStudentByIndex(entry.index, false)
   scoreValue.value = entry.score
   nextTick(() => focusScoreInput())
@@ -229,6 +241,14 @@ watch(searchKeyword, (value) => {
   if (!selectedStudentId.value) return
   clearSelectedStudent()
 })
+
+watch(
+  () => configuration.inputScoreTab,
+  () => {
+    syncRecentEntriesByTab()
+  },
+  { immediate: true }
+)
 
 defineExpose({
   autoFocus,
