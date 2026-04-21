@@ -7,7 +7,8 @@ import EvaluationCard from '@/views/evaluation/components/EvaluationCard.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
-import { mmToPixel, pageSizeInPixels } from '@/utils/pageSizeInPixelUntil'
+import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
+import { buildEvaluationPdfLayout } from '@/utils/evaluationPdfLayoutUntil'
 import { groupArray } from '@/utils/commonUntil'
 import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
@@ -89,47 +90,27 @@ watch(
 /**
  * 初始化布局计算
  * 核心逻辑：
- * 1. 将毫米单位的卡片尺寸转换为像素
- * 2. 根据页面类型（A3/A4/B3/B4）获取页面像素尺寸
- * 3. 计算每行可容纳的列数：可用宽度 / 卡片宽度
- * 4. 计算居中 margins：两侧留白相同保证卡片居中
- * 5. 计算每页可容纳的层数：页面高度 / 卡片高度
- * 6. 根据每页容量对数据进行分组
+ * 1. 统一复用导出 PDF 的毫米布局规则
+ * 2. 仅在预览层做毫米到像素的精确换算
+ * 3. 确保预览分页、页面大小、评语块大小和导出同源
  */
 const init = () => {
-  const cellWidth = mmToPixel(configurationStore.evaluationCardWidth)
-  const cellHeight = mmToPixel(configurationStore.evaluationCardHeight)
-  pageInfo.cellWidth = cellWidth
-  pageInfo.cellHeight = cellHeight
+  // 预览与导出共用同一套毫米布局，避免“页面看着对，导出尺寸却不一致”。
+  const layout = buildEvaluationPdfLayout(configurationStore)
 
-  const { width, height } = pageSizeInPixels(configurationStore.pageType)
-  pageInfo.pageWidth = width
-  pageInfo.pageHeight = height
-
-  const marginX = mmToPixel(configurationStore.marginX)
-  const marginY = mmToPixel(configurationStore.marginY)
-  pageInfo.marginX = marginX
-  pageInfo.marginY = marginY
-
-  // 统一按 A4 基准边距计算可用宽度，避免 B3/B4 因纸张变大出现额外边距漂移
-  const availableWidth = Math.max(width - marginX * 2, cellWidth)
-  const columnCount = Math.max(1, Math.floor(availableWidth / cellWidth))
-  pageInfo.columnCount = columnCount
-  pageInfo.tableWidth = cellWidth * columnCount
-  const extraSpace = Math.max(availableWidth - pageInfo.tableWidth, 0)
-  if (configurationStore.evaluationTableAlign === 'center') {
-    pageInfo.tableOffsetX = Math.floor(extraSpace / 2)
-  } else if (configurationStore.evaluationTableAlign === 'right') {
-    pageInfo.tableOffsetX = extraSpace
-  } else {
-    pageInfo.tableOffsetX = 0
-  }
-
-  const availableHeight = Math.max(height - marginY * 2, cellHeight)
-  pageInfo.cellLevel = Math.max(1, Math.floor(availableHeight / cellHeight))
+  pageInfo.pageWidth = mmToPixelPrecise(layout.pageWidth)
+  pageInfo.pageHeight = mmToPixelPrecise(layout.pageHeight)
+  pageInfo.cellWidth = mmToPixelPrecise(layout.cellWidth)
+  pageInfo.cellHeight = mmToPixelPrecise(layout.cellHeight)
+  pageInfo.columnCount = layout.columnCount
+  pageInfo.marginX = mmToPixelPrecise(layout.marginX)
+  pageInfo.marginY = mmToPixelPrecise(layout.marginY)
+  pageInfo.tableWidth = mmToPixelPrecise(layout.tableWidth)
+  pageInfo.tableOffsetX = mmToPixelPrecise(layout.tableOffsetX)
+  pageInfo.cellLevel = layout.rowCount
 
   // 每页数据量 = 列数 × 层数，按此分组
-  dataSource.value = groupArray(tableData.value, pageInfo.cellLevel * columnCount)
+  dataSource.value = groupArray(tableData.value, layout.pageCapacity)
   updatePreviewScale()
 }
 
@@ -205,19 +186,24 @@ defineExpose({ scroll })
         }"
       >
         <div class="preview-paper" :style="{ width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` }">
-          <evaluation-card
-            :page-info="pageInfo"
-            :data="data"
-            :current-page="index + 1"
-            :total-pages="dataSource.length"
-            :active-student-name="props.activeStudentName"
-            :suppress-active-state="props.suppressActiveState"
+          <div
+            class="preview-paper__scale"
             :style="{
-              transform: `scale(${previewScale})`,
-              transformOrigin: 'top left'
+              width: `${pageInfo.pageWidth}px`,
+              height: `${pageInfo.pageHeight}px`,
+              transform: `scale(${previewScale})`
             }"
-            @click="handleCardClick"
-          />
+          >
+            <evaluation-card
+              :page-info="pageInfo"
+              :data="data"
+              :current-page="index + 1"
+              :total-pages="dataSource.length"
+              :active-student-name="props.activeStudentName"
+              :suppress-active-state="props.suppressActiveState"
+              @click="handleCardClick"
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -226,7 +212,7 @@ defineExpose({ scroll })
 
 <style scoped lang="scss">
 .evaluation-form-view__wrapper {
-  height: 100%;
+  min-height: 100%;
   padding: 12px;
   box-sizing: border-box;
   background:
@@ -236,12 +222,25 @@ defineExpose({ scroll })
 
 .preview-stage {
   width: 100%;
-  margin-bottom: 18px;
+  padding-bottom: 18px;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .preview-paper {
   position: relative;
   margin: 0 auto;
+  overflow: hidden;
+}
+
+.preview-paper__scale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+:deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 </style>

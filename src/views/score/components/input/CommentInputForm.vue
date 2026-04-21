@@ -79,10 +79,10 @@ defineExpose({ focus })
       :model-value="modelValue"
       size="default"
       type="textarea"
-      maxlength="160"
+      maxlength="120"
       show-word-limit
       placeholder="请输入对学生的评价..."
-      :rows="3"
+      :rows="5"
       :disabled="disabled"
       @update:model-value="(value: unknown) => emit('update:modelValue', value as string | null)"
     />

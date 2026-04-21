@@ -2,10 +2,13 @@
 import { computed } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
+import { getEvaluationTextLayoutConstantsPx, getFooterBlockHeightPx, layoutCommentText } from '@/utils/evaluationTextLayoutUntil'
 import type { EvaluationCardProps, EvaluationCardEmits } from '@/types/EvaluationCard'
+import type { StudentDataType } from '@/types/StudentData'
 import { NAME_PROP } from '@/types/Constants'
 
 const store = useConfigurationStore()
+const layoutConstantsPx = getEvaluationTextLayoutConstantsPx()
 
 /**
  * 点击评语卡片回调
@@ -27,20 +30,29 @@ const props = withDefaults(defineProps<EvaluationCardProps>(), {
   })
 })
 
-/**
- * 格式化评语文本
- * 将换行符转换为 HTML <br /> 标签，使其在表格中正确显示
- * @param str - 原始评语字符串
- * @returns 格式化后的 HTML 字符串
- */
-const getEvaluationText = (str: string | undefined | null) => {
-  if (str) return str.replace(/\n/g, '<br />')
-  return ''
-}
-
 const isActiveStudent = (student: Record<string, unknown> | undefined) => {
   if (!student || props.suppressActiveState || !props.activeStudentName) return false
   return String(student[NAME_PROP] || '') === props.activeStudentName
+}
+
+// 预览正文不再依赖浏览器自然换行，而是复用共享排版结果，保证与 PDF 的换行/截断一致。
+const getCommentLayout = (student: StudentDataType | undefined) => {
+  const comment = student?.comment || ''
+  const bodyWidthPx = Math.max(props.pageInfo.cellWidth - layoutConstantsPx.innerPaddingX * 2, 1)
+  const headerHeightPx = store.salutationFontSize * 1.2
+  const footerBlockHeightPx = getFooterBlockHeightPx(store)
+  const bodyHeightPx = Math.max(
+    4,
+    props.pageInfo.cellHeight -
+      layoutConstantsPx.innerPaddingY * 2 -
+      headerHeightPx -
+      layoutConstantsPx.headerGap -
+      layoutConstantsPx.bodyGap -
+      layoutConstantsPx.footerGap -
+      footerBlockHeightPx
+  )
+
+  return layoutCommentText(comment, store.textFontSize, bodyWidthPx, bodyHeightPx)
 }
 
 // 计算最终样式，确保数值是纯像素（无单位拼接错误）
@@ -48,6 +60,23 @@ const cellStyle = computed(() => ({
   width: `${props.pageInfo?.cellWidth}px`,
   height: `${props.pageInfo?.cellHeight}px`, // 目标高度（如261px）
   fontSize: `${store.fontSize}px`
+}))
+
+const tableWrapperStyle = computed(() => ({
+  width: `${props.pageInfo.pageWidth}px`,
+  height: `${props.pageInfo.pageHeight}px`,
+  padding: `${props.pageInfo.marginY}px 0`,
+  boxSizing: 'border-box' as const
+}))
+
+const tableStyle = computed(() => ({
+  width: `${props.pageInfo.tableWidth}px`,
+  marginLeft: `${props.pageInfo.tableOffsetX}px`
+}))
+
+const commentLineStyle = computed(() => ({
+  lineHeight: `${store.textFontSize * layoutConstantsPx.bodyLineHeightRatio}px`,
+  minHeight: `${store.textFontSize * layoutConstantsPx.bodyLineHeightRatio}px`
 }))
 
 </script>
@@ -61,17 +90,8 @@ const cellStyle = computed(() => ({
     <div v-if="totalPages" class="page-number">
       第 {{ currentPage }} 页 / 共 {{ totalPages }} 页
     </div>
-    <div
-      class="evaluation-card--table__wrapper"
-      :style="{ padding: `${pageInfo.marginY}px ${pageInfo.marginX}px` }"
-    >
-      <table
-        class="evaluation-card--table"
-        border="0"
-        cellspacing="0"
-        cellpadding="0"
-        :style="{ width: `${pageInfo.tableWidth}px`, marginLeft: `${pageInfo.tableOffsetX}px` }"
-      >
+    <div class="evaluation-card--table__wrapper" :style="tableWrapperStyle">
+      <table class="evaluation-card--table" border="0" cellspacing="0" cellpadding="0" :style="tableStyle">
         <template v-for="(item, index) in data">
           <tr v-if="index % pageInfo.columnCount == 0" :key="`${item[NAME_PROP]}_${index}`">
             <template v-for="e in pageInfo.columnCount">
@@ -90,11 +110,22 @@ const cellStyle = computed(() => ({
                   <div
                     class="table-body custom-font"
                     :style="{ fontSize: store.textFontSize + 'px' }"
-                    v-html="getEvaluationText(data[index + e - 1]?.comment)"
-                  ></div>
+                  >
+                    <div
+                      v-for="(line, lineIndex) in getCommentLayout(data[index + e - 1]).lines"
+                      :key="`${data[index + e - 1]?.[NAME_PROP]}_${lineIndex}`"
+                      class="table-body-line"
+                      :style="{
+                        ...commentLineStyle,
+                        paddingLeft: line.indent ? `${getCommentLayout(data[index + e - 1]).indentWidthPx}px` : '0'
+                      }"
+                    >
+                      {{ line.text }}
+                    </div>
+                  </div>
                   <div class="table-footer">
-                    <span :style="{ fontSize: store.sealFontSize + 'px' }">学校：（章）</span>
-                    <span :style="{ fontSize: store.classTeacherFontSize + 'px' }">
+                    <span class="label-font" :style="{ fontSize: store.sealFontSize + 'px' }">学校：（章）</span>
+                    <span class="label-font" :style="{ fontSize: store.classTeacherFontSize + 'px' }">
                       班主任：<span
                         class="custom-font"
                         :style="{ fontSize: store.inscribeFontSize + 'px' }"
@@ -117,7 +148,6 @@ const cellStyle = computed(() => ({
 .evaluation-card__wrapper {
   position: relative;
   height: 100%;
-  margin-bottom: 24px;
 
   // 清空el-card默认样式，避免干扰
   :deep(.el-card__body) {
@@ -137,8 +167,10 @@ const cellStyle = computed(() => ({
 
   .evaluation-card--table__wrapper {
     display: block;
+    width: 100%;
     height: 100%;
     overflow: hidden;
+    box-sizing: border-box;
   }
 
   .evaluation-card--table {
@@ -147,7 +179,6 @@ const cellStyle = computed(() => ({
     border-top: 1px dashed #000;
     border-left: 1px dashed #000;
     box-sizing: border-box;
-    width: 100%;
     min-height: 0 !important; // 移除最小高度
   }
 
@@ -196,14 +227,22 @@ const cellStyle = computed(() => ({
     .custom-font {
       font-family: FYFont, sans-serif;
     }
+
+    .label-font {
+      font-family: SHSerifSC, serif;
+    }
   }
 
   :deep(.table-body) {
     flex: 1;
-    text-indent: 2em;
     overflow: hidden;
-    word-break: break-all;
     line-height: normal;
+  }
+
+  :deep(.table-body-line) {
+    white-space: nowrap;
+    overflow: hidden;
+    box-sizing: border-box;
   }
 
   :deep(.table-footer) {

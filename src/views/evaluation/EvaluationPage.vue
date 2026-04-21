@@ -16,6 +16,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { generateBatchComments } from '@/ai/aiService'
 import { exportPDF } from '@/utils/pdfUntil'
+import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUntil'
 import { extractStudentTags } from '@/utils/studentUntil'
 import { NAME_PROP } from '@/types/Constants'
 import type { PreviewModeType } from '@/types/Configuration'
@@ -32,7 +33,7 @@ const route = useRoute()
 const router = useRouter()
 
 const dataStore = useDataSourceStore()
-const { items: students } = storeToRefs(dataStore)
+const { items: students, enabledData: enabledStudents } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
@@ -64,6 +65,7 @@ const previewMode = computed<PreviewModeType>({
  * 批量生成中状态
  */
 const batchGenerating = ref(false)
+const textPdfExporting = ref(false)
 
 /**
  * 自动聚焦到工具面板
@@ -100,6 +102,45 @@ const handleExportPDF = async () => {
     loading.close()
     suppressPreviewHighlight.value = false
     await nextTick()
+  }
+}
+
+const handleExportTextPDF = async () => {
+  if (!enabledStudents.value.length) {
+    ElMessage.warning('没有可导出的学生评语')
+    return
+  }
+
+  textPdfExporting.value = true
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在导出文字版PDF...',
+    background: 'rgba(0, 0, 0, 0.7)'
+  })
+
+  try {
+    const result = await exportEvaluationTextPDF({
+      students: enabledStudents.value,
+      configuration
+    })
+
+    if (!result.success) {
+      ElMessage.error(result.error?.message || '导出失败！')
+      return
+    }
+
+    ElMessage.success('文字版PDF导出成功')
+
+    if (result.truncatedStudents.length > 0) {
+      const previewNames = result.truncatedStudents.slice(0, 5).join('、')
+      const suffix = result.truncatedStudents.length > 5 ? ' 等' : ''
+      ElMessage.warning(
+        `有 ${result.truncatedStudents.length} 条评语因内容过长被截断：${previewNames}${suffix}`
+      )
+    }
+  } finally {
+    loading.close()
+    textPdfExporting.value = false
   }
 }
 
@@ -335,6 +376,10 @@ defineExpose({ autoFocus })
         <el-button @click="handleExportPDF">
           <template #icon><font-awesome-icon :icon="['solid', 'print']" /></template>
           导出PDF
+        </el-button>
+        <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
+          <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
+          导出文字版PDF
         </el-button>
       </div>
     </div>

@@ -10,13 +10,16 @@ const getDPI = () => {
   return dpi
 }
 
-const mmToPixel = (mm: number) => {
+const mmToPixelPrecise = (mm: number) => {
   const dpi = getDPI()
 
   // 1 inch = 25.4 mm
   const inches = mm / 25.4
-  const pixels = inches * dpi
-  return Math.round(pixels)
+  return inches * dpi
+}
+
+const mmToPixel = (mm: number) => {
+  return Math.round(mmToPixelPrecise(mm))
 }
 
 /**
@@ -37,4 +40,4 @@ const pageSizeInPixels = (pageSize: PagesEnum): { width: number; height: number 
   return { width: width_px, height: height_px }
 }
 
-export { pageSizeInPixels, mmToPixel, getDPI }
+export { pageSizeInPixels, mmToPixel, mmToPixelPrecise, getDPI }

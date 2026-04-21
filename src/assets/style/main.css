@@ -26,6 +26,14 @@
   font-display: swap; /* 优化页面加载闪烁 */
 }
 
+@font-face {
+  font-family: SHSerifSC;
+  src: url('../font/SourceHanSerifSC-Regular.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
 .app-page-shell {
   height: 100%;
   display: flex;
