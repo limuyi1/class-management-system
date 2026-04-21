@@ -1,3 +1,5 @@
+import { featureFlags } from '@/config/features'
+
 const menu = [
   {
     name: '主页',
@@ -22,7 +24,7 @@ const menu = [
     icon: 'clipboard-list',
     path: '/wrong-book',
     disabled: false,
-    hidden: true
+    hidden: !featureFlags.wrongBook
   },
   {
     name: '设置',

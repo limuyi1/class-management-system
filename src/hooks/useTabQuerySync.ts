@@ -6,11 +6,12 @@ interface UseTabQuerySyncOptions<T extends string> {
   router: Router
   activeTab: Ref<T>
   validTabs: readonly T[]
-  onEditTags?: (studentName: string) => void
+  onEditTags?: (studentName: string) => boolean | void | Promise<boolean | void>
+  onEditTagsContext?: (query: RouteLocationNormalizedLoaded['query']) => void
 }
 
 export function useTabQuerySync<T extends string>(options: UseTabQuerySyncOptions<T>) {
-  const { route, router, activeTab, validTabs, onEditTags } = options
+  const { route, router, activeTab, validTabs, onEditTags, onEditTagsContext } = options
 
   watch(
     () => route.query,
@@ -24,9 +25,12 @@ export function useTabQuerySync<T extends string>(options: UseTabQuerySyncOption
       const studentName = query['student-name']
 
       if (shouldEditTags && typeof studentName === 'string' && studentName) {
+        onEditTagsContext?.(query)
         await nextTick()
-        onEditTags?.(studentName)
-        await router.replace({ path: '/setting', query: { tab: activeTab.value } })
+        const handled = await onEditTags?.(studentName)
+        if (handled !== false) {
+          await router.replace({ path: '/setting', query: { tab: activeTab.value } })
+        }
       }
     },
     { immediate: true }

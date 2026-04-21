@@ -12,14 +12,21 @@ import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
   type?: InputEnum
+  autoNextOnSubmit?: boolean
+  promptUnsavedOnSwitch?: boolean
+  inlineCommentActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: InputEnum.SCORE
+  type: InputEnum.SCORE,
+  autoNextOnSubmit: false,
+  promptUnsavedOnSwitch: false,
+  inlineCommentActions: false
 })
 
 const emit = defineEmits<{
   scroll: [index: number]
+  activeStudentChange: [data: StudentDataType | null]
 }>()
 
 const {
@@ -42,11 +49,17 @@ const {
   handleGenerateComment
 } = useStudentInput({
   type: props.type,
+  autoNextOnSubmit: props.autoNextOnSubmit,
+  promptUnsavedOnSwitch: props.promptUnsavedOnSwitch,
+  onActiveStudentChange: (student) => emit('activeStudentChange', student),
   onScroll: (index) => emit('scroll', index)
 })
 
 const isCommentMode = computed(() => props.type === InputEnum.COMMENT)
 const canGenerateComment = computed(() => !!formData.id && hasAnyTags.value)
+const submitText = computed(() =>
+  isCommentMode.value && props.autoNextOnSubmit ? '保存并下一个' : '提 交'
+)
 
 const handleEditData = (data: StudentDataType) => {
   editData(data)
@@ -67,54 +80,85 @@ defineExpose({
 
     <div class="card-body">
       <el-form label-position="top" :model="formData">
-        <student-select-field
-          ref="nameInputRef"
-          :model-value="formData.id"
-          :options="optionsList"
-          :origin-list="originList"
-          :remote-method="remoteMethod"
-          @update:model-value="(value) => (formData.id = value)"
-          @change="selectChange"
-        />
+        <div class="editor-section">
+          <student-select-field
+            ref="nameInputRef"
+            :model-value="formData.id"
+            :options="optionsList"
+            :origin-list="originList"
+            :remote-method="remoteMethod"
+            @update:model-value="(value) => (formData.id = value)"
+            @change="selectChange"
+          />
 
-        <score-input-form
-          v-if="!isCommentMode"
-          ref="scoreInputRef"
-          :model-value="formData.score"
-          :disabled="!formData.id"
-          @update:model-value="(value) => (formData.score = value)"
-          @submit="onSubmit"
-        />
-
-        <comment-input-form
-          v-if="isCommentMode"
-          ref="commentInputRef"
-          :model-value="formData.comment"
-          :disabled="!formData.id"
-          :current-student-tags="currentStudentTags"
-          :hasAnyTags="hasAnyTags"
-          :tag-category-list="tagCategoryList"
-          :generating="generating"
-          :can-generate="canGenerateComment"
-          @update:model-value="(value) => (formData.comment = value)"
-          @go-edit-tags="goToEditTags"
-          @generate-comment="handleGenerateComment"
-        />
-
-        <el-form-item>
-          <el-button
-            class="submit-btn"
-            style="width: 100%"
-            type="primary"
-            size="default"
-            round
+          <score-input-form
+            v-if="!isCommentMode"
+            ref="scoreInputRef"
+            :model-value="formData.score"
             :disabled="!formData.id"
-            @click="onSubmit"
-          >
-            <template #icon><font-awesome-icon :icon="['solid', 'paper-plane']" /></template>
-            提 交
-          </el-button>
-        </el-form-item>
+            @update:model-value="(value) => (formData.score = value)"
+            @submit="onSubmit"
+          />
+
+          <comment-input-form
+            v-if="isCommentMode"
+            ref="commentInputRef"
+            :model-value="formData.comment"
+            :disabled="!formData.id"
+            :current-student-tags="currentStudentTags"
+            :hasAnyTags="hasAnyTags"
+            :tag-category-list="tagCategoryList"
+            :generating="generating"
+            :can-generate="canGenerateComment"
+            :show-generate-button="!props.inlineCommentActions"
+            @update:model-value="(value) => (formData.comment = value)"
+            @go-edit-tags="goToEditTags"
+            @generate-comment="handleGenerateComment"
+          />
+        </div>
+
+        <div class="action-section">
+          <el-form-item>
+            <div class="action-row" :class="{ 'single-action': !isCommentMode || !props.inlineCommentActions }">
+              <el-tooltip
+                v-if="isCommentMode && props.inlineCommentActions"
+                :disabled="!formData.id || hasAnyTags"
+                :content="formData.id && !hasAnyTags ? '该学生暂无标签，请先在设置页面添加标签' : ''"
+                placement="top"
+              >
+                <div class="action-item">
+                  <el-button
+                    class="ai-generate-btn"
+                    size="default"
+                    round
+                    :disabled="!canGenerateComment"
+                    :loading="generating"
+                    @click="handleGenerateComment"
+                  >
+                    <template #icon
+                      ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+                    /></template>
+                    AI 生成评语
+                  </el-button>
+                </div>
+              </el-tooltip>
+
+              <div class="action-item">
+                <el-button
+                  class="submit-btn"
+                  type="primary"
+                  size="default"
+                  round
+                  :disabled="!formData.id"
+                  @click="onSubmit"
+                >
+                  <template #icon><font-awesome-icon :icon="['solid', 'paper-plane']" /></template>
+                  {{ submitText }}
+                </el-button>
+              </div>
+            </div>
+          </el-form-item>
+        </div>
       </el-form>
     </div>
   </div>
@@ -130,6 +174,43 @@ defineExpose({
   .card-body {
     padding: 10px 12px;
   }
+}
+
+.editor-section,
+.action-section {
+  border: 1px solid #e7edf5;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.editor-section {
+  padding: 10px;
+}
+
+.action-section {
+  margin-top: 10px;
+  padding: 10px 10px 2px;
+}
+
+.action-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.action-row.single-action .submit-btn {
+  width: 100%;
+}
+
+.action-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.submit-btn,
+.ai-generate-btn {
+  width: 100%;
 }
 
 .card-header {
@@ -159,6 +240,21 @@ defineExpose({
 
   &:disabled {
     background: #cbd5e1;
+  }
+}
+
+.ai-generate-btn {
+  height: 36px;
+  font-size: 14px;
+}
+
+@media (max-width: 1320px) {
+  .action-row {
+    flex-wrap: wrap;
+  }
+
+  .action-item {
+    min-width: 100%;
   }
 }
 

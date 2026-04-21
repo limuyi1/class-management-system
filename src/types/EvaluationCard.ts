@@ -6,7 +6,10 @@ export interface PageInoType {
   cellWidth: number
   cellHeight: number
   columnCount: number
-  margin: number
+  marginX: number
+  marginY: number
+  tableWidth: number
+  tableOffsetX: number
 }
 
 export interface EvaluationCardProps {
@@ -14,6 +17,8 @@ export interface EvaluationCardProps {
   data: StudentDataType[]
   currentPage?: number
   totalPages?: number
+  activeStudentName?: string
+  suppressActiveState?: boolean
 }
 
 export interface EvaluationCardEmits {

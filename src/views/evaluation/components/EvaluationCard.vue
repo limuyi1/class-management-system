@@ -20,7 +20,10 @@ const props = withDefaults(defineProps<EvaluationCardProps>(), {
     cellWidth: 0,
     cellHeight: 0,
     columnCount: 0,
-    margin: 0
+    marginX: 0,
+    marginY: 0,
+    tableWidth: 0,
+    tableOffsetX: 0
   })
 })
 
@@ -35,12 +38,18 @@ const getEvaluationText = (str: string | undefined | null) => {
   return ''
 }
 
+const isActiveStudent = (student: Record<string, unknown> | undefined) => {
+  if (!student || props.suppressActiveState || !props.activeStudentName) return false
+  return String(student[NAME_PROP] || '') === props.activeStudentName
+}
+
 // 计算最终样式，确保数值是纯像素（无单位拼接错误）
 const cellStyle = computed(() => ({
   width: `${props.pageInfo?.cellWidth}px`,
   height: `${props.pageInfo?.cellHeight}px`, // 目标高度（如261px）
   fontSize: `${store.fontSize}px`
 }))
+
 </script>
 
 <template>
@@ -54,9 +63,15 @@ const cellStyle = computed(() => ({
     </div>
     <div
       class="evaluation-card--table__wrapper"
-      :style="{ padding: `${pageInfo.margin / 2}px ${pageInfo.margin}px` }"
+      :style="{ padding: `${pageInfo.marginY}px ${pageInfo.marginX}px` }"
     >
-      <table class="evaluation-card--table" border="0" cellspacing="0" cellpadding="0">
+      <table
+        class="evaluation-card--table"
+        border="0"
+        cellspacing="0"
+        cellpadding="0"
+        :style="{ width: `${pageInfo.tableWidth}px`, marginLeft: `${pageInfo.tableOffsetX}px` }"
+      >
         <template v-for="(item, index) in data">
           <tr v-if="index % pageInfo.columnCount == 0" :key="`${item[NAME_PROP]}_${index}`">
             <template v-for="e in pageInfo.columnCount">
@@ -64,6 +79,7 @@ const cellStyle = computed(() => ({
                 v-if="data[index + e - 1]?.[NAME_PROP]"
                 :key="e"
                 class="table-cell"
+                :class="{ 'table-cell--active': isActiveStudent(data[index + e - 1]) }"
                 :style="cellStyle"
                 @click="emit('click', data[index + e - 1])"
               >
@@ -158,6 +174,12 @@ const cellStyle = computed(() => ({
 
     &:hover {
       background-color: #f0f9ff;
+    }
+
+    &.table-cell--active {
+      background:
+        linear-gradient(180deg, rgba(224, 242, 254, 0.9) 0%, rgba(248, 250, 252, 0.95) 100%);
+      box-shadow: inset 0 0 0 2px rgba(14, 165, 233, 0.28);
     }
   }
 

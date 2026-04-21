@@ -1,37 +1,85 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
+import type { EvaluationTableAlignType, PreviewModeType } from '@/types/Configuration'
 
 const store = useConfigurationStore()
 
 const activeNames = ref<string[]>([])
+const expanded = ref(false)
+const alignOptions: Array<{ label: string; value: EvaluationTableAlignType }> = [
+  { label: '靠左', value: 'left' },
+  { label: '居中', value: 'center' },
+  { label: '靠右', value: 'right' }
+]
+const previewOptions: Array<{ label: string; value: PreviewModeType }> = [
+  { label: '适应窗口', value: 'fit' },
+  { label: '50%', value: '50' },
+  { label: '75%', value: '75' },
+  { label: '100%', value: '100' },
+  { label: '125%', value: '125' }
+]
+
+const summaryText = computed(() => {
+  const inscribe = store.inscribe?.trim() || '未设置落款'
+  const cardSizeText = `卡片 ${store.evaluationCardWidth}×${store.evaluationCardHeight}mm`
+  const marginText = `边距 ${store.marginX}/${store.marginY}mm`
+  const alignText =
+    alignOptions.find((item) => item.value === store.evaluationTableAlign)?.label || '靠左'
+  const previewText =
+    previewOptions.find((item) => item.value === store.previewMode)?.label || '100%'
+  return `${store.pageType} / ${previewText} / ${cardSizeText} / ${marginText} / 表格${alignText} / ${inscribe}`
+})
 
 const fontChange = (fontSize?: number) => {
   if (fontSize) {
     store.fontSizeChange(fontSize)
   }
 }
+
+const toggleExpanded = () => {
+  expanded.value = !expanded.value
+}
 </script>
 
 <template>
   <div class="config-panel">
-    <div class="config-header">
-      <span class="header-title">
-        <font-awesome-icon :icon="['solid', 'sliders']" />
-        配置
+    <button class="config-summary" type="button" @click="toggleExpanded">
+      <span class="summary-main">
+        <span class="summary-title">
+          <font-awesome-icon :icon="['solid', 'sliders']" />
+          页面设置
+        </span>
+        <span class="summary-text">{{ summaryText }}</span>
       </span>
-    </div>
+      <font-awesome-icon
+        class="summary-arrow"
+        :class="{ expanded }"
+        :icon="['solid', 'chevron-down']"
+      />
+    </button>
 
-    <div class="config-body">
-      <div class="config-row">
-        <div class="config-item">
+    <div v-show="expanded" class="config-body">
+      <div class="config-grid-panel config-grid-panel--top">
+        <div class="config-item config-item--shrink">
+          <label>预览缩放</label>
+          <el-select v-model="store.previewMode" placeholder="选择" style="width: 100%">
+            <el-option
+              v-for="item in previewOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
+        <div class="config-item config-item--shrink">
           <label>页面</label>
           <el-select v-model="store.pageType" placeholder="选择" style="width: 100%">
             <el-option v-for="item in store.pageTypeList" :key="item" :label="item" :value="item" />
           </el-select>
         </div>
-        <div class="config-item full">
+        <div class="config-item config-item--wide">
           <label>落款名</label>
           <el-input
             style="width: 100%"
@@ -40,6 +88,76 @@ const fontChange = (fontSize?: number) => {
             :minlength="1"
             :maxlength="6"
             placeholder="请输入"
+          />
+        </div>
+      </div>
+
+      <div class="config-grid-panel config-grid-panel--bottom">
+        <div class="config-item">
+          <label>表格位置</label>
+          <el-select
+            v-model="store.evaluationTableAlign"
+            placeholder="选择"
+            size="small"
+            style="width: 100%"
+          >
+            <el-option
+              v-for="item in alignOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </div>
+        <div class="config-item">
+          <label>横向边距(mm)</label>
+          <el-input-number
+            v-model="store.marginX"
+            style="width: 100%"
+            size="small"
+            :min="0"
+            :max="40"
+            :step="0.5"
+            :precision="1"
+          />
+        </div>
+        <div class="config-item">
+          <label>纵向边距(mm)</label>
+          <el-input-number
+            v-model="store.marginY"
+            style="width: 100%"
+            size="small"
+            :min="0"
+            :max="40"
+            :step="0.5"
+            :precision="1"
+          />
+        </div>
+      </div>
+
+      <div class="config-grid-panel config-grid-panel--bottom">
+        <div class="config-item">
+          <label>卡片宽度(mm)</label>
+          <el-input-number
+            v-model="store.evaluationCardWidth"
+            style="width: 100%"
+            size="small"
+            :min="40"
+            :max="160"
+            :step="1"
+            :precision="0"
+          />
+        </div>
+        <div class="config-item">
+          <label>卡片高度(mm)</label>
+          <el-input-number
+            v-model="store.evaluationCardHeight"
+            style="width: 100%"
+            size="small"
+            :min="40"
+            :max="160"
+            :step="1"
+            :precision="0"
           />
         </div>
       </div>
@@ -119,55 +237,110 @@ const fontChange = (fontSize?: number) => {
 .config-panel {
   background: #fff;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e7edf5;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
   overflow: hidden;
 }
 
-.config-header {
+.config-summary {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: linear-gradient(180deg, #fbfdff 0%, #f6faff 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
-  background: var(--theme-gradient);
-  color: #fff;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+}
 
-  .header-title {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-weight: 600;
-    font-size: 13px;
+.summary-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
 
-    svg {
-      font-size: 13px;
-    }
+.summary-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.summary-text {
+  font-size: 11px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.summary-arrow {
+  font-size: 12px;
+  color: #64748b;
+  transition: transform 0.2s ease;
+
+  &.expanded {
+    transform: rotate(180deg);
   }
 }
 
 .config-body {
   padding: 10px 12px;
+  border-top: 1px solid #eef2f7;
 }
 
-.config-row {
-  display: flex;
-  gap: 8px;
+.config-grid-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 8px;
   margin-bottom: 10px;
+}
 
-  .config-item {
-    flex: 1;
-    min-width: 0;
+.config-grid-panel--top {
+  grid-template-columns: minmax(92px, 0.9fr) minmax(84px, 0.8fr) minmax(132px, 1.5fr);
+}
 
-    &.full {
-      flex: 2;
-    }
+.config-grid-panel--bottom {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: -2px;
+  margin-bottom: 12px;
+}
 
-    label {
-      display: block;
-      margin-bottom: 3px;
-      font-size: 11px;
-      color: #64748b;
-    }
+.config-grid-panel--bottom .config-item {
+  label {
+    margin-bottom: 2px;
+    font-size: 10px;
+    line-height: 1.1;
   }
+}
+
+.config-item {
+  min-width: 0;
+
+  label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  :deep(.el-input-number) {
+    width: 100%;
+  }
+}
+
+.config-item--shrink {
+  min-width: 0;
+}
+
+.config-item--wide {
+  min-width: 0;
 }
 
 .font-collapse {

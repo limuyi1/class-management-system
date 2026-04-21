@@ -11,6 +11,7 @@ interface Props {
   tagCategoryList: TagCategoryType[]
   generating: boolean
   canGenerate: boolean
+  showGenerateButton?: boolean
 }
 
 interface Emits {
@@ -19,7 +20,9 @@ interface Emits {
   (event: 'generate-comment'): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showGenerateButton: true
+})
 const emit = defineEmits<Emits>()
 
 const commentInputRef = ref<{ focus: () => void } | null>(null)
@@ -38,26 +41,36 @@ defineExpose({ focus })
 </script>
 
 <template>
-  <el-form-item v-if="currentStudentTags" label="学生标签">
+  <div v-if="currentStudentTags" class="tag-panel">
+    <div class="tag-panel__header">
+      <span class="tag-panel__title">学生标签</span>
+      <el-button link type="primary" class="tag-panel__edit" @click="emit('go-edit-tags')">
+        查看/编辑
+      </el-button>
+    </div>
+
     <div v-if="hasAnyTags" class="student-tags" @click="emit('go-edit-tags')">
       <div v-for="cat in activeCategories" :key="cat.prop" class="tag-category">
-        <span class="category-label">{{ cat.label }}：</span>
-        <el-tag
-          v-for="tag in currentStudentTags?.[cat.prop] || []"
-          :key="tag"
-          size="small"
-          type="success"
-          class="student-tag"
-        >
-          {{ tag }}
-        </el-tag>
+        <div class="category-label">{{ cat.label }}</div>
+        <div class="category-tags">
+          <el-tag
+            v-for="tag in currentStudentTags?.[cat.prop] || []"
+            :key="tag"
+            size="small"
+            type="success"
+            class="student-tag"
+            disable-transitions
+          >
+            {{ tag }}
+          </el-tag>
+        </div>
       </div>
     </div>
     <div v-else class="empty-tags-tip" @click="emit('go-edit-tags')">
       <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
       <span>暂无标签，点击添加</span>
     </div>
-  </el-form-item>
+  </div>
 
   <el-form-item label="学生评语">
     <el-input
@@ -75,7 +88,7 @@ defineExpose({ focus })
     />
   </el-form-item>
 
-  <el-form-item>
+  <el-form-item v-if="showGenerateButton">
     <el-tooltip
       :disabled="disabled || hasAnyTags"
       :content="!disabled && !hasAnyTags ? '该学生暂无标签，请先在设置页面添加标签' : ''"
@@ -100,27 +113,58 @@ defineExpose({ focus })
 </template>
 
 <style scoped lang="scss">
+.tag-panel {
+  margin-bottom: 14px;
+}
+
+.tag-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.tag-panel__title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.tag-panel__edit {
+  padding: 0;
+  min-height: auto;
+  font-size: 12px;
+}
+
 .student-tags {
   display: flex;
   flex-direction: column;
-  background: #f8fafc;
-  border-radius: 6px;
-  padding: 6px;
-  gap: 2px;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid #e7edf5;
+  border-radius: 10px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
   cursor: pointer;
 
   .tag-category {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 2px;
+    display: grid;
+    grid-template-columns: 52px minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
     font-size: 12px;
 
     .category-label {
-      line-height: 20px;
+      padding-top: 2px;
       color: #64748b;
       font-weight: 500;
-      min-width: 42px;
+      letter-spacing: 0.02em;
+    }
+
+    .category-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 6px;
     }
 
     .student-tag {
@@ -133,10 +177,10 @@ defineExpose({ focus })
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
-  background: #fef3c7;
-  border: 1px dashed #f59e0b;
-  border-radius: 6px;
+  padding: 10px 12px;
+  background: #fff8e8;
+  border: 1px dashed #f7b955;
+  border-radius: 10px;
   color: #d97706;
   font-size: 12px;
   cursor: pointer;

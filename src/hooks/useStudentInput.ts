@@ -1,7 +1,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { match } from 'pinyin-pro'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { storeToRefs } from 'pinia'
 
 import { useEnterUp } from '@/hooks/useEnterUp'
@@ -20,6 +20,9 @@ import { NAME_PROP } from '@/types/Constants'
 interface UseStudentInputOptions {
   type: InputEnum
   onScroll: (index: number) => void
+  autoNextOnSubmit?: boolean
+  promptUnsavedOnSwitch?: boolean
+  onActiveStudentChange?: (student: StudentDataType | null) => void
 }
 
 interface InputFormDataType {
@@ -34,7 +37,13 @@ interface FocusableType {
 }
 
 export function useStudentInput(options: UseStudentInputOptions) {
-  const { type, onScroll } = options
+  const {
+    type,
+    onScroll,
+    autoNextOnSubmit = false,
+    promptUnsavedOnSwitch = false,
+    onActiveStudentChange
+  } = options
 
   const router = useRouter()
   const dataStore = useDataSourceStore()
@@ -114,10 +123,12 @@ export function useStudentInput(options: UseStudentInputOptions) {
     const item = originList.value[index - 1]
     if (!item) return
 
+    currentSelectedIndex.value = index
     formData.id = index
     formData.name = getStudentName(item)
     formData.score = getStudentScore(item)
     formData.comment = item.comment || null
+    onActiveStudentChange?.(item)
 
     onScroll(index)
 
@@ -128,9 +139,81 @@ export function useStudentInput(options: UseStudentInputOptions) {
     }
   }
 
+  const normalizeComment = (comment: string | null | undefined): string => {
+    if (!comment) return ''
+    return comment.trim()
+  }
+
+  const hasUnsavedChanges = () => {
+    if (!formData.id) return false
+    const currentItem = originList.value[formData.id - 1]
+    if (!currentItem) return false
+
+    if (type === InputEnum.COMMENT) {
+      return normalizeComment(formData.comment) !== normalizeComment(currentItem.comment || '')
+    }
+
+    if (type === InputEnum.SCORE && configuration.inputScoreTab) {
+      return formData.score !== getStudentScore(currentItem)
+    }
+
+    return false
+  }
+
+  const saveCurrentData = () => {
+    if (!formData.id) return false
+
+    const item = originList.value[formData.id - 1]
+    if (!item) return false
+
+    if (type === InputEnum.SCORE && configuration.inputScoreTab) {
+      item[configuration.inputScoreTab] = formData.score
+    }
+
+    if (type === InputEnum.COMMENT) {
+      item.comment = formData.comment?.trim() ? formData.comment : undefined
+    }
+
+    return true
+  }
+
+  const trySwitchStudent = async (nextIndex: number) => {
+    if (!nextIndex || nextIndex < 1 || nextIndex > originList.value.length) return
+    if (formData.id === nextIndex) {
+      fillStudentData(nextIndex)
+      return
+    }
+
+    if (!promptUnsavedOnSwitch || !hasUnsavedChanges()) {
+      fillStudentData(nextIndex)
+      return
+    }
+
+    try {
+      await ElMessageBox.confirm(
+        '当前评语有未保存内容，是否保存后再切换？',
+        '切换学生',
+        {
+          type: 'warning',
+          confirmButtonText: '保存并切换',
+          cancelButtonText: '放弃修改并切换',
+          distinguishCancelAndClose: true,
+          closeOnClickModal: false,
+          closeOnPressEscape: true
+        }
+      )
+
+      const saved = saveCurrentData()
+      if (saved) fillStudentData(nextIndex)
+    } catch (action) {
+      if (action === 'cancel') {
+        fillStudentData(nextIndex)
+      }
+    }
+  }
+
   const selectChange = (index: number) => {
-    currentSelectedIndex.value = index
-    fillStudentData(index)
+    trySwitchStudent(index)
   }
 
   useEnterUp('stuName', () => {
@@ -143,21 +226,25 @@ export function useStudentInput(options: UseStudentInputOptions) {
     formData.score = null
     formData.comment = null
     optionsList.value = []
+    onActiveStudentChange?.(null)
     autoFocus()
   }
 
   const onSubmit = () => {
-    if (!formData.id) return
+    const saved = saveCurrentData()
+    if (!saved || !formData.id) return
 
-    const item = originList.value[formData.id - 1]
-    if (!item) return
+    if (type === InputEnum.COMMENT && autoNextOnSubmit) {
+      const nextIndex = formData.id + 1
 
-    if (type === InputEnum.SCORE && configuration.inputScoreTab) {
-      item[configuration.inputScoreTab] = formData.score
-    }
+      if (nextIndex <= originList.value.length) {
+        fillStudentData(nextIndex)
+      } else {
+        ElMessage.info('已是最后一名学生')
+        fillStudentData(formData.id)
+      }
 
-    if (type === InputEnum.COMMENT) {
-      item.comment = formData.comment?.trim() ? formData.comment : undefined
+      return
     }
 
     resetForm()
@@ -170,16 +257,7 @@ export function useStudentInput(options: UseStudentInputOptions) {
     const rowIndex = originList.value.findIndex((item) => item === data)
     if (rowIndex === -1) return
 
-    formData.id = rowIndex + 1
-    formData.name = name
-    formData.score = getStudentScore(data)
-    formData.comment = data.comment || null
-
-    if (type === InputEnum.COMMENT) {
-      commentInputRef.value?.focus()
-    } else {
-      scoreInputRef.value?.focus()
-    }
+    trySwitchStudent(rowIndex + 1)
   }
 
   const goToEditTags = () => {
@@ -189,7 +267,9 @@ export function useStudentInput(options: UseStudentInputOptions) {
       query: {
         tab: 'student-info',
         'edit-tags': '1',
-        'student-name': formData.name
+        'student-name': formData.name,
+        'return-to': 'comment',
+        'return-student-name': formData.name
       }
     })
   }

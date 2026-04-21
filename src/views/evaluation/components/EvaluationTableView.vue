@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElScrollbar, ElEmpty } from 'element-plus'
 
@@ -9,7 +9,18 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { mmToPixel, pageSizeInPixels } from '@/utils/pageSizeInPixelUntil'
 import { groupArray } from '@/utils/commonUntil'
+import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
+
+interface Props {
+  activeStudentName?: string
+  suppressActiveState?: boolean
+  previewMode?: PreviewModeType
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  previewMode: '100'
+})
 
 /**
  * 点击评语卡片回调
@@ -32,31 +43,44 @@ const { enabledData: tableData } = storeToRefs(store)
 
 const configurationStore = useConfigurationStore()
 
-const config = {
-  width: 90,
-  height: 69,
-  margin: 12.7
-}
-
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
+const stageRef = ref<HTMLDivElement | null>(null)
 const dataSource = ref<StudentDataType[][]>([])
+const previewScale = ref(1)
 const pageInfo = reactive({
   pageWidth: 0,
   pageHeight: 0,
   cellWidth: 0,
   cellHeight: 0,
   columnCount: 0,
-  margin: 0,
+  marginX: 0,
+  marginY: 0,
+  tableWidth: 0,
+  tableOffsetX: 0,
   cellLevel: 0
 })
 
 onMounted(() => {
   init()
+  bindResizeObserver()
+})
+
+onBeforeUnmount(() => {
+  resizeObserver?.disconnect()
 })
 
 // 监听数据变化，重新计算分组
 watch(
-  () => [tableData.value.length, configurationStore.pageType],
+  () => [
+    tableData.value.length,
+    configurationStore.pageType,
+    configurationStore.evaluationCardWidth,
+    configurationStore.evaluationCardHeight,
+    configurationStore.marginX,
+    configurationStore.marginY,
+    configurationStore.evaluationTableAlign,
+    props.previewMode
+  ],
   () => {
     init()
   }
@@ -73,8 +97,8 @@ watch(
  * 6. 根据每页容量对数据进行分组
  */
 const init = () => {
-  const cellWidth = mmToPixel(config.width)
-  const cellHeight = mmToPixel(config.height)
+  const cellWidth = mmToPixel(configurationStore.evaluationCardWidth)
+  const cellHeight = mmToPixel(configurationStore.evaluationCardHeight)
   pageInfo.cellWidth = cellWidth
   pageInfo.cellHeight = cellHeight
 
@@ -82,19 +106,63 @@ const init = () => {
   pageInfo.pageWidth = width
   pageInfo.pageHeight = height
 
-  // 计算每行列数：可用宽度 / 卡片宽度（向下取整）
-  const columnCount = Math.floor((width - config.margin * 2) / cellWidth)
+  const marginX = mmToPixel(configurationStore.marginX)
+  const marginY = mmToPixel(configurationStore.marginY)
+  pageInfo.marginX = marginX
+  pageInfo.marginY = marginY
+
+  // 统一按 A4 基准边距计算可用宽度，避免 B3/B4 因纸张变大出现额外边距漂移
+  const availableWidth = Math.max(width - marginX * 2, cellWidth)
+  const columnCount = Math.max(1, Math.floor(availableWidth / cellWidth))
   pageInfo.columnCount = columnCount
+  pageInfo.tableWidth = cellWidth * columnCount
+  const extraSpace = Math.max(availableWidth - pageInfo.tableWidth, 0)
+  if (configurationStore.evaluationTableAlign === 'center') {
+    pageInfo.tableOffsetX = Math.floor(extraSpace / 2)
+  } else if (configurationStore.evaluationTableAlign === 'right') {
+    pageInfo.tableOffsetX = extraSpace
+  } else {
+    pageInfo.tableOffsetX = 0
+  }
 
-  // 计算居中 margins：总宽度 - 所有卡片宽度 = 剩余空间，两侧均分
-  const margin = Math.floor((width - cellWidth * columnCount) / 2)
-  pageInfo.margin = margin
-
-  // 计算每页层数：页面高度 / 卡片高度，顶部预留一半 margin 空间
-  pageInfo.cellLevel = Math.floor((height - margin / 2) / cellHeight)
+  const availableHeight = Math.max(height - marginY * 2, cellHeight)
+  pageInfo.cellLevel = Math.max(1, Math.floor(availableHeight / cellHeight))
 
   // 每页数据量 = 列数 × 层数，按此分组
   dataSource.value = groupArray(tableData.value, pageInfo.cellLevel * columnCount)
+  updatePreviewScale()
+}
+
+const scaledPageWidth = computed(() => pageInfo.pageWidth * previewScale.value)
+const scaledPageHeight = computed(() => pageInfo.pageHeight * previewScale.value)
+const scaledPageOuterHeight = computed(() => (pageInfo.pageHeight + 24) * previewScale.value)
+
+let resizeObserver: ResizeObserver | null = null
+
+const updatePreviewScale = () => {
+  const container = scrollbarRef.value?.wrapRef || stageRef.value
+  if (!container || !pageInfo.pageWidth) return
+
+  if (props.previewMode !== 'fit') {
+    previewScale.value = Number(props.previewMode) / 100
+    return
+  }
+
+  const availableWidth = Math.max(container.clientWidth - 24, 0)
+  if (!availableWidth) return
+
+  previewScale.value = availableWidth / pageInfo.pageWidth
+}
+
+const bindResizeObserver = () => {
+  const container = scrollbarRef.value?.wrapRef || stageRef.value
+  if (!container || typeof ResizeObserver === 'undefined') return
+
+  resizeObserver?.disconnect()
+  resizeObserver = new ResizeObserver(() => {
+    updatePreviewScale()
+  })
+  resizeObserver.observe(container)
 }
 
 /**
@@ -124,19 +192,34 @@ defineExpose({ scroll })
 </script>
 
 <template>
-  <el-scrollbar ref="scrollbarRef" always>
-    <div class="evaluation-form-view__wrapper">
+  <el-scrollbar ref="scrollbarRef">
+    <div ref="stageRef" class="evaluation-form-view__wrapper">
       <el-empty v-if="dataSource.length === 0" description="暂无学生数据" />
-      <evaluation-card
+      <div
         v-for="(data, index) in dataSource"
         v-else
-        :page-info="pageInfo"
-        :data="data"
-        :current-page="index + 1"
-        :total-pages="dataSource.length"
         :key="index"
-        @click="handleCardClick"
-      />
+        class="preview-stage"
+        :style="{
+          height: `${scaledPageOuterHeight}px`
+        }"
+      >
+        <div class="preview-paper" :style="{ width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` }">
+          <evaluation-card
+            :page-info="pageInfo"
+            :data="data"
+            :current-page="index + 1"
+            :total-pages="dataSource.length"
+            :active-student-name="props.activeStudentName"
+            :suppress-active-state="props.suppressActiveState"
+            :style="{
+              transform: `scale(${previewScale})`,
+              transformOrigin: 'top left'
+            }"
+            @click="handleCardClick"
+          />
+        </div>
+      </div>
     </div>
   </el-scrollbar>
 </template>
@@ -144,5 +227,21 @@ defineExpose({ scroll })
 <style scoped lang="scss">
 .evaluation-form-view__wrapper {
   height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at top, rgba(148, 163, 184, 0.08), transparent 32%),
+    linear-gradient(180deg, #f7fafc 0%, #eef3f8 100%);
+}
+
+.preview-stage {
+  width: 100%;
+  margin-bottom: 18px;
+  box-sizing: border-box;
+}
+
+.preview-paper {
+  position: relative;
+  margin: 0 auto;
 }
 </style>

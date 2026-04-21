@@ -25,6 +25,16 @@ interface TableColumnType {
   field?: string
 }
 
+interface Props {
+  returnTo?: string
+  returnStudentName?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  returnTo: '',
+  returnStudentName: ''
+})
+
 const router = useRouter()
 
 const store = useDataSourceStore()
@@ -140,6 +150,16 @@ const confirmTagEdit = (tags: Record<string, string[]>) => {
   tagCache.delete(name)
   currentEditRow.value.tags = tags
   closeTagEditor()
+
+  if (props.returnTo === 'comment' && props.returnStudentName) {
+    router.push({
+      path: '/comment',
+      query: {
+        'resume-edit': '1',
+        'student-name': props.returnStudentName
+      }
+    })
+  }
 }
 
 const openBatchEditor = () => {

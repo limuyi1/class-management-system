@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, defineAsyncComponent } from 'vue'
+import { defineAsyncComponent, ref, watch } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'
 import { useTabQuerySync } from '@/hooks/useTabQuerySync'
+import { featureFlags } from '@/config/features'
 
 const LabelMaintenance = defineAsyncComponent(
   () => import('@/views/setting/components/LabelMaintenance.vue')
@@ -23,27 +24,60 @@ const QuestionTypeMaintenance = defineAsyncComponent(
 
 const route = useRoute()
 const router = useRouter()
-const validTabs = [
+type SettingTabType =
+  | 'student-info'
+  | 'label-maintenance'
+  | 'unit-config'
+  | 'ai-config'
+  | 'system-backup'
+  | 'question-type'
+
+const validTabs: SettingTabType[] = [
   'student-info',
   'label-maintenance',
   'unit-config',
   'ai-config',
-  'system-backup',
-  'question-type'
-] as const
-type SettingTabType = (typeof validTabs)[number]
+  'system-backup'
+]
+
+if (featureFlags.questionTypeManagement) {
+  validTabs.push('question-type')
+}
 
 const activeTab = ref<SettingTabType>('student-info')
 const studentInfoRef = ref<InstanceType<typeof StudentInfo>>()
+const pendingTagEditorStudent = ref('')
+const returnTo = ref('')
+const returnStudentName = ref('')
 
 useTabQuerySync({
   route,
   router,
   activeTab,
   validTabs,
+  onEditTagsContext: (query) => {
+    returnTo.value = typeof query['return-to'] === 'string' ? query['return-to'] : ''
+    returnStudentName.value =
+      typeof query['return-student-name'] === 'string' ? query['return-student-name'] : ''
+  },
   onEditTags: (studentName: string) => {
-    studentInfoRef.value?.openTagEditorByName(studentName)
+    if (!studentInfoRef.value) {
+      pendingTagEditorStudent.value = studentName
+      return false
+    }
+
+    studentInfoRef.value.openTagEditorByName(studentName)
+    pendingTagEditorStudent.value = ''
+    return true
   }
+})
+
+watch(studentInfoRef, async (instance) => {
+  if (!instance || !pendingTagEditorStudent.value) return
+
+  instance.openTagEditorByName(pendingTagEditorStudent.value)
+  pendingTagEditorStudent.value = ''
+  await router.replace({ path: '/setting', query: { tab: activeTab.value } })
 })
 </script>
 
@@ -58,7 +92,11 @@ useTabQuerySync({
           </span>
         </template>
         <div class="tab-content">
-          <student-info ref="studentInfoRef" />
+          <student-info
+            ref="studentInfoRef"
+            :return-to="returnTo"
+            :return-student-name="returnStudentName"
+          />
         </div>
       </el-tab-pane>
       <el-tab-pane name="label-maintenance">
@@ -98,7 +136,7 @@ useTabQuerySync({
           </el-scrollbar>
         </div>
       </el-tab-pane>
-      <el-tab-pane name="question-type">
+      <el-tab-pane v-if="featureFlags.questionTypeManagement" name="question-type">
         <template #label>
           <span class="custom-tabs-label">
             <font-awesome-icon :icon="['solid', 'list-alt']" />

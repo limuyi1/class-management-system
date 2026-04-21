@@ -19,6 +19,12 @@ export const useConfigurationStore = defineStore('configuration', {
       inscribe: '',
       pageType: PagesEnum.A4,
       pageTypeList: [PagesEnum.A3, PagesEnum.A4, PagesEnum.B3, PagesEnum.B4],
+      evaluationCardWidth: 90,
+      evaluationCardHeight: 69,
+      marginX: 15,
+      marginY: 7.5,
+      evaluationTableAlign: 'left',
+      previewMode: '100',
       inputScoreTab: null,
       recentScoreEntries: {}
     }
