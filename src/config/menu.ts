@@ -2,9 +2,9 @@ import { featureFlags } from '@/config/features'
 
 const menu = [
   {
-    name: '主页',
-    icon: 'house',
-    path: '/home',
+    name: '总览',
+    icon: 'chart-line',
+    path: '/overview',
     disabled: false
   },
   {

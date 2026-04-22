@@ -31,6 +31,7 @@
     "dexie": "^4.4.1",
     "dexie-export-import": "^4.4.0",
     "dom-to-image": "^2.6.0",
+    "echarts": "^6.0.0",
     "element-plus": "^2.13.6",
     "katex": "^0.16.44",
     "marked": "^17.0.5",

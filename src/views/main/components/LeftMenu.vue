@@ -29,8 +29,8 @@ const activePath = computed(() => {
     return '/empty'
   }
 
-  if (currentPath === '/home') {
-    return '/home'
+  if (currentPath === '/overview') {
+    return '/overview'
   }
 
   return currentPath || data[0].path

@@ -1,6 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-import HomePage from '@/views/home/HomePage.vue'
+import OverviewPage from '@/views/overview/OverviewPage.vue'
 import MainPage from '@/views/main/MainPage.vue'
 import Math from '@/views/score/ScorePage.vue'
 import Comment from '@/views/evaluation/EvaluationPage.vue'
@@ -21,7 +21,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      redirect: '/home'
+      redirect: '/overview'
     },
     {
       path: '/main',
@@ -29,9 +29,9 @@ const router = createRouter({
       component: MainPage,
       children: [
         {
-          path: '/home',
-          name: 'Home',
-          component: HomePage
+          path: '/overview',
+          name: 'Overview',
+          component: OverviewPage
         },
         {
           path: '/math',

@@ -79,7 +79,7 @@ const uploadFile = async (file: UploadFile) => {
     configuration.inputScoreTab = headerArray[0]?.prop
 
     ElMessage.success('导入成功！')
-    router.push('/home')
+    router.push('/overview')
   } catch (err) {
     ElMessage.error('导入失败！')
   }
@@ -114,7 +114,7 @@ const handleBackupImport = async (event: Event) => {
       progressPercent.value = 100
       setTimeout(() => {
         progressVisible.value = false
-        router.push('/home')
+        router.push('/overview')
       }, 500)
     })
   } catch {
