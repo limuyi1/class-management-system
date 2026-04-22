@@ -30,16 +30,17 @@ defineProps<Props>()
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 8px;
-  padding: 16px 20px;
-  background: var(--theme-gradient);
+  margin-bottom: 10px;
+  padding: 12px 16px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 14%, #ffffff);
   border-radius: 12px;
-  color: #fff;
+  color: var(--el-text-color-primary);
 
   .header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
   }
 
   .header-right {
@@ -48,46 +49,47 @@ defineProps<Props>()
     gap: 8px;
 
     .el-button {
-      background: rgba(255, 255, 255, 0.2);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      color: #fff;
+      background: #fff;
+      border-color: var(--border-muted);
+      color: var(--el-text-color-primary);
 
       &:hover {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.5);
-        color: #fff;
+        border-color: var(--el-color-primary-light-5);
+        color: var(--el-color-primary);
       }
 
       &:focus {
-        background: rgba(255, 255, 255, 0.2);
-        border-color: rgba(255, 255, 255, 0.3);
-        color: #fff;
+        border-color: var(--el-color-primary-light-5);
+        color: var(--el-color-primary);
       }
     }
   }
 
   .header-icon {
-    width: 44px;
-    height: 44px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    font-size: 22px;
+    background: color-mix(in srgb, var(--el-color-primary) 12%, #ffffff);
+    border-radius: 9px;
+    color: var(--el-color-primary);
+    font-size: 16px;
   }
 
   .header-text {
     h2 {
-      margin: 0 0 2px 0;
-      font-size: 18px;
+      margin: 0 0 1px 0;
+      font-size: 17px;
       font-weight: 600;
+      line-height: 1.3;
     }
 
     p {
       margin: 0;
-      font-size: 13px;
-      opacity: 0.85;
+      font-size: 12px;
+      color: var(--el-text-color-secondary);
+      line-height: 1.4;
     }
   }
 }

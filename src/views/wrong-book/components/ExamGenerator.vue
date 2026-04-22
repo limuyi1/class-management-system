@@ -82,8 +82,7 @@ const handleExport = async () => {
   const fileName = `${examTitle.value || '错题试卷'}_${new Date().toLocaleDateString()}.pdf`
   const loading = ElLoading.service({
     lock: true,
-    text: '正在导出PDF...',
-    background: 'rgba(0, 0, 0, 0.7)'
+    text: '正在导出PDF...'
   })
   const result = await exportPDF(elements, pageType.value, 4, fileName)
   loading.close()

@@ -15,7 +15,6 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { generateBatchComments } from '@/ai/aiService'
-import { exportPDF } from '@/utils/pdfUntil'
 import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUntil'
 import { extractStudentTags } from '@/utils/studentUntil'
 import { NAME_PROP } from '@/types/Constants'
@@ -45,7 +44,6 @@ const { percentage, notCompletedCount } = useProgress({
 const totalCount = computed(() => students.value.length)
 const completedCount = computed(() => Math.max(0, totalCount.value - notCompletedCount.value))
 const activeStudentName = ref('')
-const suppressPreviewHighlight = ref(false)
 const normalizePreviewMode = (value: string): PreviewModeType => {
   if (value === 'fit' || value === '50' || value === '75' || value === '100' || value === '125') {
     return value
@@ -74,37 +72,6 @@ const autoFocus = () => {
   toolPanelViewRef.value?.autoFocus()
 }
 
-/**
- * 导出 PDF 处理函数
- * 获取所有评语卡片 DOM 元素并导出为 PDF
- */
-const handleExportPDF = async () => {
-  suppressPreviewHighlight.value = true
-  await nextTick()
-
-  const doms = document.getElementsByClassName('evaluation-card--table__wrapper')
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出PDF...',
-    background: 'rgba(0, 0, 0, 0.7)'
-  })
-
-  try {
-    const result = await exportPDF(doms, configuration.pageType)
-
-    if (!result.success) {
-      ElMessage.error(result.error?.message || '导出失败！')
-      return
-    }
-
-    ElMessage.success('导出成功')
-  } finally {
-    loading.close()
-    suppressPreviewHighlight.value = false
-    await nextTick()
-  }
-}
-
 const handleExportTextPDF = async () => {
   if (!enabledStudents.value.length) {
     ElMessage.warning('没有可导出的学生评语')
@@ -114,8 +81,7 @@ const handleExportTextPDF = async () => {
   textPdfExporting.value = true
   const loading = ElLoading.service({
     lock: true,
-    text: '正在导出文字版PDF...',
-    background: 'rgba(0, 0, 0, 0.7)'
+    text: '正在导出文字版PDF...'
   })
 
   try {
@@ -129,7 +95,7 @@ const handleExportTextPDF = async () => {
       return
     }
 
-    ElMessage.success('文字版PDF导出成功')
+    ElMessage.success('评语导出成功')
 
     if (result.truncatedStudents.length > 0) {
       const previewNames = result.truncatedStudents.slice(0, 5).join('、')
@@ -337,7 +303,7 @@ defineExpose({ autoFocus })
     <page-header
       :icon="['solid', 'comments']"
       title="期末评语"
-      subtitle="为每位学生撰写期末评语，支持一键导出PDF"
+      subtitle="为每位学生撰写期末评语，支持导出评语 PDF"
     />
 
     <div class="evaluation-toolbar">
@@ -373,13 +339,9 @@ defineExpose({ autoFocus })
           <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
           AI 批量生成评语
         </el-button>
-        <el-button @click="handleExportPDF">
-          <template #icon><font-awesome-icon :icon="['solid', 'print']" /></template>
-          导出PDF
-        </el-button>
         <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
           <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
-          导出文字版PDF
+          导出评语
         </el-button>
       </div>
     </div>
@@ -389,7 +351,6 @@ defineExpose({ autoFocus })
         <evaluation-table-view
           ref="evaluationTableViewRef"
           :active-student-name="activeStudentName"
-          :suppress-active-state="suppressPreviewHighlight"
           :preview-mode="previewMode"
           @card-click="handleCardClick"
         />

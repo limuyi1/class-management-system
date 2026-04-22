@@ -8,9 +8,19 @@ import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 import { delay } from '@/utils/commonUntil'
 import { NAME_PROP } from '@/types/Constants'
+import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
+interface Props {
+  scoreColumns: SettingType[]
+  scoreTab?: string | null
+}
+
+defineProps<Props>()
+
 const emit = defineEmits<{
+  'update:scoreTab': [value: string]
+  resetScore: []
   edit: [row: StudentDataType]
 }>()
 
@@ -146,20 +156,44 @@ defineExpose({
 <template>
   <div class="score-table-view">
     <div class="table-head-tools">
-      <div class="title">学生列表</div>
-      <el-switch
-        v-model="showOnlyUnentered"
-        inline-prompt
-        active-text="仅未录入"
-        inactive-text="全部"
-      />
+      <div class="table-head-main">
+        <div class="title">学生列表</div>
+        <el-switch
+          v-model="showOnlyUnentered"
+          inline-prompt
+          active-text="仅未录入"
+          inactive-text="全部"
+        />
+      </div>
+      <div class="table-head-sub">
+        <div class="score-context">
+          <span class="score-context__label">当前科目</span>
+          <el-select
+            :model-value="scoreTab"
+            class="score-context__select"
+            size="small"
+            placeholder="选择录入科目"
+            @update:model-value="(value: string) => emit('update:scoreTab', value)"
+          >
+            <el-option
+              v-for="item in scoreColumns"
+              :key="item.prop"
+              :label="item.label"
+              :value="item.prop"
+            />
+          </el-select>
+        </div>
+        <el-button class="reset-btn" text @click="emit('resetScore')">
+          重置当前科目
+        </el-button>
+      </div>
     </div>
 
     <el-table
       ref="tableRef"
       :data="displayData"
       size="large"
-      height="calc(100% - 48px)"
+      height="100%"
       border
       highlight-current-row
       :row-style="getRowStyle"
@@ -186,6 +220,8 @@ defineExpose({
 <style scoped lang="scss">
 .score-table-view {
   height: 100%;
+  display: flex;
+  flex-direction: column;
   border-radius: 12px;
   background: #fff;
   border: 1px solid var(--border-muted);
@@ -193,17 +229,68 @@ defineExpose({
   box-shadow: var(--shadow-card);
 
   .table-head-tools {
-    height: 38px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
     margin-bottom: 10px;
+    gap: 10px;
+  }
 
-    .title {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text-primary);
+  .table-head-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .table-head-sub {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-muted);
+    border-radius: 10px;
+    background: #f8fafc;
+  }
+
+  .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .score-context {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .score-context__label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .score-context__select {
+    width: 160px;
+  }
+
+  .reset-btn {
+    flex-shrink: 0;
+    padding: 0;
+    color: var(--text-secondary);
+
+    &:hover,
+    &:focus {
+      color: #b91c1c;
     }
+  }
+
+  :deep(.el-table) {
+    flex: 1;
+    min-height: 0;
   }
 }
 

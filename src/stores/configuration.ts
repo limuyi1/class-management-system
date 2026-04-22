@@ -17,6 +17,7 @@ export const useConfigurationStore = defineStore('configuration', {
       classTeacherFontSize: 18,
       inscribeFontSize: 18,
       inscribe: '',
+      showEvaluationPageNumber: true,
       pageType: PagesEnum.A4,
       pageTypeList: [PagesEnum.A3, PagesEnum.A4, PagesEnum.B3, PagesEnum.B4],
       evaluationCardWidth: 90,

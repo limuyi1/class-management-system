@@ -102,7 +102,7 @@ const commentLineStyle = computed(() => ({
     :style="{ width: pageInfo.pageWidth + 'px', height: pageInfo.pageHeight + 'px' }"
     shadow="always"
   >
-    <div v-if="totalPages" class="page-number">
+    <div v-if="store.showEvaluationPageNumber && totalPages" class="page-number">
       第 {{ currentPage }} 页 / 共 {{ totalPages }} 页
     </div>
     <div class="evaluation-card--table__wrapper" :style="tableWrapperStyle">

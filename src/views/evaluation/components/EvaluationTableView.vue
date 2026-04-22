@@ -101,7 +101,6 @@ const init = () => {
 
 const scaledPageWidth = computed(() => pageInfo.pageWidth * previewScale.value)
 const scaledPageHeight = computed(() => pageInfo.pageHeight * previewScale.value)
-const scaledPageOuterWidth = computed(() => (pageInfo.pageWidth + 24) * previewScale.value)
 const scaledPageOuterHeight = computed(() => (pageInfo.pageHeight + 24) * previewScale.value)
 
 let resizeObserver: ResizeObserver | null = null
@@ -162,13 +161,7 @@ defineExpose({ scroll })
 
 <template>
   <el-scrollbar ref="scrollbarRef">
-    <div
-      ref="stageRef"
-      class="evaluation-form-view__wrapper"
-      :style="{
-        width: `${scaledPageOuterWidth}px`
-      }"
-    >
+    <div ref="stageRef" class="evaluation-form-view__wrapper">
       <el-empty v-if="dataSource.length === 0" description="暂无学生数据" />
       <div
         v-for="(data, index) in dataSource"
@@ -221,6 +214,8 @@ defineExpose({ scroll })
   width: 100%;
   padding-bottom: 18px;
   box-sizing: border-box;
+  display: flex;
+  justify-content: center;
 }
 
 .preview-paper {

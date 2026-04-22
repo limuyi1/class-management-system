@@ -18,6 +18,7 @@ export interface ConfigurationType {
   classTeacherFontSize: number
   inscribeFontSize: number
   inscribe: string
+  showEvaluationPageNumber: boolean
   pageType: PagesEnum
   pageTypeList: Array<PagesEnum>
   evaluationCardWidth: number

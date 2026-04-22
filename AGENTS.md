@@ -41,7 +41,7 @@ Tests follow the pattern `*.test.ts` and import from `../../src/`.
 - **Language**: TypeScript 5.3, strict mode via `@vue/tsconfig`
 - **UI**: Element Plus, VxeTable (`vxe-table`/`vxe-pc-ui`), FontAwesome
 - **Styling**: Tailwind CSS 4 + SCSS (scoped styles in SFCs)
-- **State**: Pinia + `pinia-plugin-persistedstate` with Dexie (global persistence plugin)
+- **State**: Pinia + custom `createPersistedStateDexie()` plugin backed by Dexie
 - **Router**: Vue Router 4 with hash history (`createWebHashHistory`)
 - **Package Manager**: pnpm
 - **Path Alias**: `@` → `./src`

@@ -9,7 +9,6 @@ import ImageCropper from '@/components/ImageCropper.vue'
 import ScoreTableView from '@/views/score/components/ScoreTableView.vue'
 import InputDataView from '@/views/score/components/InputDataView.vue'
 import ScoreAnalysisView from '@/views/score/components/ScoreAnalysisView.vue'
-import DownloadBtn from '@/views/score/components/DownloadBtn.vue'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
@@ -162,30 +161,19 @@ defineExpose({ autoFocus })
     <page-header
       :icon="['solid', 'graduation-cap']"
       title="成绩录入"
-      subtitle="先选科目，再通过 AI 识图或手动搜索快速录入"
+      subtitle="选择当前科目后，可继续手动录入、AI 识图和查看统计"
     />
-
-    <div class="score-toolbar">
-      <el-select v-model="configuration.inputScoreTab" class="subject-select" placeholder="选择录入科目">
-        <el-option
-          v-for="item in scoreColumns"
-          :key="item.prop"
-          :label="item.label"
-          :value="item.prop"
-        />
-      </el-select>
-
-      <el-button class="danger-btn" plain @click="resetScore">
-        <template #icon><font-awesome-icon :icon="['solid', 'rotate-right']" /></template>
-        重置当前科目
-      </el-button>
-
-      <download-btn class="download-btn" :disabled="!dataStore.hasAnyScore" />
-    </div>
 
     <div class="score-page-content">
       <div class="panel panel-left">
-        <score-table-view ref="tableRef" @edit="(data) => inputDataRef?.editData(data)" />
+        <score-table-view
+          ref="tableRef"
+          :score-columns="scoreColumns"
+          :score-tab="configuration.inputScoreTab"
+          @update:score-tab="(value) => (configuration.inputScoreTab = value)"
+          @reset-score="resetScore"
+          @edit="(data) => inputDataRef?.editData(data)"
+        />
       </div>
       <div class="panel panel-middle">
         <input-data-view
@@ -196,7 +184,7 @@ defineExpose({ autoFocus })
         />
       </div>
       <div class="panel panel-right">
-        <score-analysis-view />
+        <score-analysis-view :can-export="dataStore.hasAnyScore" />
       </div>
     </div>
 
@@ -212,31 +200,6 @@ defineExpose({ autoFocus })
 <style scoped lang="scss">
 .score-page {
   min-height: 0;
-}
-
-.score-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  background: #fff;
-  border: 1px solid var(--border-muted);
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
-  margin-bottom: 10px;
-
-  .subject-select {
-    width: 210px;
-  }
-
-  .danger-btn {
-    border-color: #fca5a5;
-    color: #b91c1c;
-  }
-
-  .download-btn {
-    margin-left: auto;
-  }
 }
 
 .score-page-content {

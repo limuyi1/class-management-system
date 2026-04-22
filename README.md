@@ -64,7 +64,7 @@ https://class-management-system-r22i0tacg5.zh-cn.edgeone.cool/
 | 状态管理 | Pinia                                 |
 | 数据库   | Dexie (IndexedDB 封装)                |
 | 样式     | Tailwind CSS 4, SCSS                  |
-| 工具库   | xlsx, jsPDF, dom-to-image, pinyin-pro |
+| 工具库   | xlsx, pdf-lib, dom-to-image, pinyin-pro |
 | 图标     | FontAwesome                           |
 | AI 集成  | Gemini (Google), Doubao (字节)        |
 

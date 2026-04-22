@@ -260,11 +260,8 @@ defineExpose({
   <div class="score-input-card">
     <div class="mode-switch">
       <div class="manual-entry">
-        <div class="manual-label">
-          <font-awesome-icon :icon="['solid', 'keyboard']" />
-          手动录入
-        </div>
-        <div class="manual-subtitle">默认模式</div>
+        <font-awesome-icon :icon="['solid', 'keyboard']" />
+        <span>分数录入</span>
       </div>
       <el-button class="ai-action-btn" plain @click="handleAIMode">
         <template #icon><font-awesome-icon :icon="['solid', 'camera']" /></template>
@@ -348,21 +345,15 @@ defineExpose({
 
 .manual-entry {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #334155;
 
-  .manual-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 14px;
-    color: var(--text-primary);
-    font-weight: 700;
-  }
-
-  .manual-subtitle {
-    font-size: 12px;
-    color: var(--text-secondary);
+  svg {
+    color: var(--theme-primary);
+    font-size: 16px;
   }
 }
 

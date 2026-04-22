@@ -1,13 +1,23 @@
 <script setup lang="ts">
+import DownloadBtn from '@/views/score/components/DownloadBtn.vue'
 import StatisticsRateCard from '@/views/score/components/StatisticsRateCard.vue'
 import StatisticsNumCard from '@/views/score/components/StatisticsNumCard.vue'
 import LowScoreCard from '@/views/score/components/LowScoreCard.vue'
+
+interface Props {
+  canExport?: boolean
+}
+
+withDefaults(defineProps<Props>(), {
+  canExport: false
+})
 </script>
 
 <template>
   <div class="score-analysis-view__wrapper">
     <div class="analysis-header">
       <div class="title">成绩统计</div>
+      <download-btn :disabled="!canExport" />
     </div>
 
     <el-scrollbar>

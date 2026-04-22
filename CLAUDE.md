@@ -29,9 +29,9 @@ pnpm test:coverage # Run Vitest with coverage
 - **Language**: TypeScript 5.3, strict mode via `@vue/tsconfig`
 - **UI**: Element Plus, VxeTable (`vxe-table`/`vxe-pc-ui`), FontAwesome
 - **Styling**: Tailwind CSS 4 + scoped SCSS in SFCs
-- **State**: Pinia + `pinia-plugin-persistedstate` with Dexie (global persistence plugin)
+- **State**: Pinia + custom `createPersistedStateDexie()` plugin backed by Dexie
 - **Router**: Vue Router 4 with hash history (`createWebHashHistory`)
-- **Database**: Dexie (IndexedDB wrapper) via `pinia-plugin-persistedstate`
+- **Database**: Dexie (IndexedDB wrapper) for local-first persistence
 - **Package Manager**: pnpm
 - **Path Alias**: `@` → `./src`
 

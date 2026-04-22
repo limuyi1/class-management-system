@@ -119,6 +119,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     if (!item) return
 
     currentSelectedIndex.value = index
+    optionsList.value = [item]
     formData.id = index
     formData.name = getStudentName(item)
     formData.comment = item.comment || null

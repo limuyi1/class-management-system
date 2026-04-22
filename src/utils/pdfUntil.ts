@@ -1,7 +1,8 @@
 import domtoimage from 'dom-to-image'
-import { jsPDF } from 'jspdf'
+import { PDFDocument } from 'pdf-lib'
 
 import { PagesEnum } from '@/types/Common'
+import { pageSizeInPixels } from '@/utils/pageSizeInPixelUntil'
 
 /**
  * PDF 导出工具
@@ -27,15 +28,11 @@ const exportPDF = async (
   fileName: string = new Date().toLocaleString() + '.pdf'
 ): Promise<ExportPDFResultType> => {
   try {
-    const doc = new jsPDF({
-      orientation: 'portrait',
-      unit: 'px',
-      format: pageType
-    })
+    const pdfDoc = await PDFDocument.create()
+    const { width: pageWidth, height: pageHeight } = pageSizeInPixels(pageType)
 
     const elements = Array.from(refs).filter((ref): ref is HTMLElement => ref instanceof HTMLElement)
     for (const [index, elm] of elements.entries()) {
-
       const imageUrl = await domtoimage.toJpeg(elm, {
         quality: 0.8,
         width: elm?.offsetWidth * scale,
@@ -46,20 +43,29 @@ const exportPDF = async (
           transformOrigin: '0 0' // 指定变换的原点
         }
       })
-      const imgData = new Image()
-      imgData.src = imageUrl
+      const imageBytes = await fetch(imageUrl).then((response) => response.arrayBuffer())
+      const embeddedImage = await pdfDoc.embedJpg(imageBytes)
+      const imageScale = pageWidth / embeddedImage.width
+      const imageWidth = pageWidth
+      const imageHeight = embeddedImage.height * imageScale
+      const page = pdfDoc.addPage([pageWidth, pageHeight])
 
-      const imgProps = doc.getImageProperties(imgData)
-      const pdfWidth = doc.internal.pageSize.getWidth()
-      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-      doc.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight)
-
-      if (index !== elements.length - 1) {
-        doc.addPage()
-      }
+      page.drawImage(embeddedImage, {
+        x: 0,
+        y: pageHeight - imageHeight,
+        width: imageWidth,
+        height: imageHeight
+      })
     }
 
-    doc.save(fileName)
+    const bytes = await pdfDoc.save()
+    const blob = new Blob([bytes], { type: 'application/pdf' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = fileName
+    anchor.click()
+    URL.revokeObjectURL(url)
     return { success: true }
   } catch (err) {
     const error = err instanceof Error ? err : new Error('导出失败')

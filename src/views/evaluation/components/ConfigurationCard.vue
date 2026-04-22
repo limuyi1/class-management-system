@@ -29,7 +29,8 @@ const summaryText = computed(() => {
     alignOptions.find((item) => item.value === store.evaluationTableAlign)?.label || '靠左'
   const previewText =
     previewOptions.find((item) => item.value === store.previewMode)?.label || '100%'
-  return `${store.pageType} / ${previewText} / ${cardSizeText} / ${marginText} / 表格${alignText} / ${inscribe}`
+  const pageNumberText = store.showEvaluationPageNumber ? '显示页码' : '隐藏页码'
+  return `${store.pageType} / ${previewText} / ${cardSizeText} / ${marginText} / 表格${alignText} / ${pageNumberText} / ${inscribe}`
 })
 
 const fontChange = (fontSize?: number) => {
@@ -159,6 +160,17 @@ const toggleExpanded = () => {
             :step="1"
             :precision="0"
           />
+        </div>
+        <div class="config-item config-item--switch">
+          <label>页码</label>
+          <div class="switch-field">
+            <el-switch
+              v-model="store.showEvaluationPageNumber"
+              inline-prompt
+              active-text="显示"
+              inactive-text="隐藏"
+            />
+          </div>
         </div>
       </div>
 
@@ -341,6 +353,16 @@ const toggleExpanded = () => {
 
 .config-item--wide {
   min-width: 0;
+}
+
+.config-item--switch {
+  min-width: 88px;
+}
+
+.switch-field {
+  min-height: 32px;
+  display: flex;
+  align-items: center;
 }
 
 .font-collapse {
