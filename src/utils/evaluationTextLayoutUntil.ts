@@ -53,7 +53,10 @@ export const measureBrowserCharAdvanceWidth = (char: string, fontSizePx: number)
 }
 
 export const measureBrowserTextAdvanceWidth = (text: string, fontSizePx: number) => {
-  return Array.from(text).reduce((total, char) => total + measureBrowserCharAdvanceWidth(char, fontSizePx), 0)
+  return Array.from(text).reduce(
+    (total, char) => total + measureBrowserCharAdvanceWidth(char, fontSizePx),
+    0
+  )
 }
 
 // 按字符累加宽度而不是依赖浏览器自动换行，这样预览和 PDF 才能严格复用同一套断行规则。

@@ -14,11 +14,9 @@ import { generateSingleComment } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUntil'
 
 import type { StudentDataType } from '@/types/StudentData'
-import { InputEnum } from '@/types/Common'
 import { NAME_PROP } from '@/types/Constants'
 
-interface UseStudentInputOptions {
-  type: InputEnum
+interface UseEvaluationInputOptions {
   onScroll: (index: number) => void
   autoNextOnSubmit?: boolean
   promptUnsavedOnSwitch?: boolean
@@ -28,7 +26,6 @@ interface UseStudentInputOptions {
 interface InputFormDataType {
   id: number | null
   name: string
-  score: number | null
   comment: string | null
 }
 
@@ -36,9 +33,8 @@ interface FocusableType {
   focus: () => void
 }
 
-export function useStudentInput(options: UseStudentInputOptions) {
+export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const {
-    type,
     onScroll,
     autoNextOnSubmit = false,
     promptUnsavedOnSwitch = false,
@@ -59,13 +55,11 @@ export function useStudentInput(options: UseStudentInputOptions) {
   const currentSelectedIndex = ref<number | null>(null)
 
   const nameInputRef = ref<FocusableType | null>(null)
-  const scoreInputRef = ref<FocusableType | null>(null)
   const commentInputRef = ref<FocusableType | null>(null)
 
   const formData = reactive<InputFormDataType>({
     id: null,
     name: '',
-    score: null,
     comment: null
   })
 
@@ -95,13 +89,14 @@ export function useStudentInput(options: UseStudentInputOptions) {
     return name === null || name === undefined ? '' : String(name)
   }
 
+  // AI 生成评语时仍会补充当前录入科目的成绩，便于模型拿到更多学生上下文。
   const getStudentScore = (student: StudentDataType): number | null => {
     if (!configuration.inputScoreTab) return null
     const value = student[configuration.inputScoreTab]
     if (typeof value === 'number') return value
     if (typeof value === 'string') {
       const parsed = parseFloat(value)
-      return isNaN(parsed) ? null : parsed
+      return Number.isNaN(parsed) ? null : parsed
     }
     return null
   }
@@ -126,17 +121,12 @@ export function useStudentInput(options: UseStudentInputOptions) {
     currentSelectedIndex.value = index
     formData.id = index
     formData.name = getStudentName(item)
-    formData.score = getStudentScore(item)
     formData.comment = item.comment || null
     onActiveStudentChange?.(item)
 
     onScroll(index)
 
-    if (type === InputEnum.COMMENT) {
-      commentInputRef.value?.focus()
-    } else {
-      scoreInputRef.value?.focus()
-    }
+    commentInputRef.value?.focus()
   }
 
   const normalizeComment = (comment: string | null | undefined): string => {
@@ -149,15 +139,7 @@ export function useStudentInput(options: UseStudentInputOptions) {
     const currentItem = originList.value[formData.id - 1]
     if (!currentItem) return false
 
-    if (type === InputEnum.COMMENT) {
-      return normalizeComment(formData.comment) !== normalizeComment(currentItem.comment || '')
-    }
-
-    if (type === InputEnum.SCORE && configuration.inputScoreTab) {
-      return formData.score !== getStudentScore(currentItem)
-    }
-
-    return false
+    return normalizeComment(formData.comment) !== normalizeComment(currentItem.comment || '')
   }
 
   const saveCurrentData = () => {
@@ -166,13 +148,7 @@ export function useStudentInput(options: UseStudentInputOptions) {
     const item = originList.value[formData.id - 1]
     if (!item) return false
 
-    if (type === InputEnum.SCORE && configuration.inputScoreTab) {
-      item[configuration.inputScoreTab] = formData.score
-    }
-
-    if (type === InputEnum.COMMENT) {
-      item.comment = formData.comment?.trim() ? formData.comment : undefined
-    }
+    item.comment = formData.comment?.trim() ? formData.comment : undefined
 
     return true
   }
@@ -190,18 +166,14 @@ export function useStudentInput(options: UseStudentInputOptions) {
     }
 
     try {
-      await ElMessageBox.confirm(
-        '当前评语有未保存内容，是否保存后再切换？',
-        '切换学生',
-        {
-          type: 'warning',
-          confirmButtonText: '保存并切换',
-          cancelButtonText: '放弃修改并切换',
-          distinguishCancelAndClose: true,
-          closeOnClickModal: false,
-          closeOnPressEscape: true
-        }
-      )
+      await ElMessageBox.confirm('当前评语有未保存内容，是否保存后再切换？', '切换学生', {
+        type: 'warning',
+        confirmButtonText: '保存并切换',
+        cancelButtonText: '放弃修改并切换',
+        distinguishCancelAndClose: true,
+        closeOnClickModal: false,
+        closeOnPressEscape: true
+      })
 
       const saved = saveCurrentData()
       if (saved) fillStudentData(nextIndex)
@@ -223,7 +195,6 @@ export function useStudentInput(options: UseStudentInputOptions) {
   const resetForm = () => {
     formData.id = null
     formData.name = ''
-    formData.score = null
     formData.comment = null
     optionsList.value = []
     onActiveStudentChange?.(null)
@@ -234,7 +205,7 @@ export function useStudentInput(options: UseStudentInputOptions) {
     const saved = saveCurrentData()
     if (!saved || !formData.id) return
 
-    if (type === InputEnum.COMMENT && autoNextOnSubmit) {
+    if (autoNextOnSubmit) {
       const nextIndex = formData.id + 1
 
       if (nextIndex <= originList.value.length) {
@@ -325,7 +296,6 @@ export function useStudentInput(options: UseStudentInputOptions) {
     currentStudentTags,
     hasAnyTags,
     nameInputRef,
-    scoreInputRef,
     commentInputRef,
     autoFocus,
     remoteMethod,

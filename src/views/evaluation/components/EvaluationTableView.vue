@@ -3,7 +3,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElScrollbar, ElEmpty } from 'element-plus'
 
-import EvaluationCard from '@/views/evaluation/components/EvaluationCard.vue'
+import EvaluationPreviewCard from '@/views/evaluation/components/EvaluationCard.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -23,18 +23,10 @@ const props = withDefaults(defineProps<Props>(), {
   previewMode: '100'
 })
 
-/**
- * 点击评语卡片回调
- * 通知父组件激活对应学生的评语编辑
- */
 const emit = defineEmits<{
   cardClick: [row: StudentDataType]
 }>()
 
-/**
- * 处理卡片点击事件
- * @param row - 被点击的学生行数据
- */
 const handleCardClick = (row: StudentDataType) => {
   emit('cardClick', row)
 }
@@ -43,7 +35,6 @@ const store = useDataSourceStore()
 const { enabledData: tableData } = storeToRefs(store)
 
 const configurationStore = useConfigurationStore()
-
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
 const stageRef = ref<HTMLDivElement | null>(null)
 const dataSource = ref<StudentDataType[][]>([])
@@ -70,7 +61,6 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
 })
 
-// 监听数据变化，重新计算分组
 watch(
   () => [
     tableData.value.length,
@@ -88,14 +78,10 @@ watch(
 )
 
 /**
- * 初始化布局计算
- * 核心逻辑：
- * 1. 统一复用导出 PDF 的毫米布局规则
- * 2. 仅在预览层做毫米到像素的精确换算
- * 3. 确保预览分页、页面大小、评语块大小和导出同源
+ * 预览层直接复用导出 PDF 的毫米布局，只负责做像素换算和分页分组。
+ * 这样页面上看到的纸张尺寸、单元格数量、边距与导出结果始终同源。
  */
 const init = () => {
-  // 预览与导出共用同一套毫米布局，避免“页面看着对，导出尺寸却不一致”。
   const layout = buildEvaluationPdfLayout(configurationStore)
 
   pageInfo.pageWidth = mmToPixelPrecise(layout.pageWidth)
@@ -109,17 +95,18 @@ const init = () => {
   pageInfo.tableOffsetX = mmToPixelPrecise(layout.tableOffsetX)
   pageInfo.cellLevel = layout.rowCount
 
-  // 每页数据量 = 列数 × 层数，按此分组
   dataSource.value = groupArray(tableData.value, layout.pageCapacity)
   updatePreviewScale()
 }
 
 const scaledPageWidth = computed(() => pageInfo.pageWidth * previewScale.value)
 const scaledPageHeight = computed(() => pageInfo.pageHeight * previewScale.value)
+const scaledPageOuterWidth = computed(() => (pageInfo.pageWidth + 24) * previewScale.value)
 const scaledPageOuterHeight = computed(() => (pageInfo.pageHeight + 24) * previewScale.value)
 
 let resizeObserver: ResizeObserver | null = null
 
+// “适应宽度”模式只按容器宽度缩放预览，不改内部原始布局尺寸。
 const updatePreviewScale = () => {
   const container = scrollbarRef.value?.wrapRef || stageRef.value
   if (!container || !pageInfo.pageWidth) return
@@ -135,6 +122,7 @@ const updatePreviewScale = () => {
   previewScale.value = availableWidth / pageInfo.pageWidth
 }
 
+// 监听容器尺寸变化，侧栏收展或窗口变化时重新计算缩放比例。
 const bindResizeObserver = () => {
   const container = scrollbarRef.value?.wrapRef || stageRef.value
   if (!container || typeof ResizeObserver === 'undefined') return
@@ -147,8 +135,8 @@ const bindResizeObserver = () => {
 }
 
 /**
- * 滚动到指定行
- * @param index 学生索引
+ * 根据学生索引滚动到其所在评语行。
+ * 这里按表格行定位，所以索引换算依赖当前列数配置。
  */
 const scroll = (index: number) => {
   if (!scrollbarRef.value || !pageInfo.cellLevel || !pageInfo.columnCount) return
@@ -174,7 +162,13 @@ defineExpose({ scroll })
 
 <template>
   <el-scrollbar ref="scrollbarRef">
-    <div ref="stageRef" class="evaluation-form-view__wrapper">
+    <div
+      ref="stageRef"
+      class="evaluation-form-view__wrapper"
+      :style="{
+        width: `${scaledPageOuterWidth}px`
+      }"
+    >
       <el-empty v-if="dataSource.length === 0" description="暂无学生数据" />
       <div
         v-for="(data, index) in dataSource"
@@ -185,7 +179,10 @@ defineExpose({ scroll })
           height: `${scaledPageOuterHeight}px`
         }"
       >
-        <div class="preview-paper" :style="{ width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` }">
+        <div
+          class="preview-paper"
+          :style="{ width: `${scaledPageWidth}px`, height: `${scaledPageHeight}px` }"
+        >
           <div
             class="preview-paper__scale"
             :style="{
@@ -194,7 +191,7 @@ defineExpose({ scroll })
               transform: `scale(${previewScale})`
             }"
           >
-            <evaluation-card
+            <evaluation-preview-card
               :page-info="pageInfo"
               :data="data"
               :current-page="index + 1"
@@ -224,13 +221,11 @@ defineExpose({ scroll })
   width: 100%;
   padding-bottom: 18px;
   box-sizing: border-box;
-  overflow: hidden;
 }
 
 .preview-paper {
   position: relative;
   margin: 0 auto;
-  overflow: hidden;
 }
 
 .preview-paper__scale {
@@ -238,9 +233,5 @@ defineExpose({ scroll })
   top: 0;
   left: 0;
   transform-origin: top left;
-}
-
-:deep(.el-scrollbar__wrap) {
-  overflow-x: hidden;
 }
 </style>

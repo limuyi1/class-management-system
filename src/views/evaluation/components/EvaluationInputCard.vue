@@ -1,27 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { useStudentInput } from '@/hooks/useStudentInput'
+import { useEvaluationInput } from '@/hooks/useEvaluationInput'
 
-import StudentSelectField from '@/views/score/components/input/StudentSelectField.vue'
-import ScoreInputForm from '@/views/score/components/input/ScoreInputForm.vue'
-import CommentInputForm from '@/views/score/components/input/CommentInputForm.vue'
+import StudentSelectField from '@/views/evaluation/components/input/StudentSelectField.vue'
+import CommentInputForm from '@/views/evaluation/components/input/CommentInputForm.vue'
 
-import { InputEnum } from '@/types/Common'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
-  type?: InputEnum
   autoNextOnSubmit?: boolean
   promptUnsavedOnSwitch?: boolean
   inlineCommentActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  type: InputEnum.SCORE,
-  autoNextOnSubmit: false,
-  promptUnsavedOnSwitch: false,
-  inlineCommentActions: false
+  autoNextOnSubmit: true,
+  promptUnsavedOnSwitch: true,
+  inlineCommentActions: true
 })
 
 const emit = defineEmits<{
@@ -38,7 +34,6 @@ const {
   currentStudentTags,
   hasAnyTags,
   nameInputRef,
-  scoreInputRef,
   commentInputRef,
   autoFocus,
   remoteMethod,
@@ -47,19 +42,15 @@ const {
   editData,
   goToEditTags,
   handleGenerateComment
-} = useStudentInput({
-  type: props.type,
+} = useEvaluationInput({
   autoNextOnSubmit: props.autoNextOnSubmit,
   promptUnsavedOnSwitch: props.promptUnsavedOnSwitch,
   onActiveStudentChange: (student) => emit('activeStudentChange', student),
   onScroll: (index) => emit('scroll', index)
 })
 
-const isCommentMode = computed(() => props.type === InputEnum.COMMENT)
 const canGenerateComment = computed(() => !!formData.id && hasAnyTags.value)
-const submitText = computed(() =>
-  isCommentMode.value && props.autoNextOnSubmit ? '保存并下一个' : '提 交'
-)
+const submitText = computed(() => (props.autoNextOnSubmit ? '保存并下一个' : '提 交'))
 
 const handleEditData = (data: StudentDataType) => {
   editData(data)
@@ -72,10 +63,10 @@ defineExpose({
 </script>
 
 <template>
-  <div class="input-card">
+  <div class="evaluation-input-card">
     <div class="card-header">
       <font-awesome-icon :icon="['solid', 'pen-to-square']" />
-      <span>{{ isCommentMode ? '填写评语' : '输入分数' }}</span>
+      <span>填写评语</span>
     </div>
 
     <div class="card-body">
@@ -91,17 +82,7 @@ defineExpose({
             @change="selectChange"
           />
 
-          <score-input-form
-            v-if="!isCommentMode"
-            ref="scoreInputRef"
-            :model-value="formData.score"
-            :disabled="!formData.id"
-            @update:model-value="(value) => (formData.score = value)"
-            @submit="onSubmit"
-          />
-
           <comment-input-form
-            v-if="isCommentMode"
             ref="commentInputRef"
             :model-value="formData.comment"
             :disabled="!formData.id"
@@ -119,11 +100,13 @@ defineExpose({
 
         <div class="action-section">
           <el-form-item>
-            <div class="action-row" :class="{ 'single-action': !isCommentMode || !props.inlineCommentActions }">
+            <div class="action-row" :class="{ 'single-action': !props.inlineCommentActions }">
               <el-tooltip
-                v-if="isCommentMode && props.inlineCommentActions"
+                v-if="props.inlineCommentActions"
                 :disabled="!formData.id || hasAnyTags"
-                :content="formData.id && !hasAnyTags ? '该学生暂无标签，请先在设置页面添加标签' : ''"
+                :content="
+                  formData.id && !hasAnyTags ? '该学生暂无标签，请先在设置页面添加标签' : ''
+                "
                 placement="top"
               >
                 <div class="action-item">
@@ -165,7 +148,7 @@ defineExpose({
 </template>
 
 <style scoped lang="scss">
-.input-card {
+.evaluation-input-card {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);

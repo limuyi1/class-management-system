@@ -2,17 +2,19 @@
 import { ref } from 'vue'
 
 import ConfigurationCard from '@/views/evaluation/components/ConfigurationCard.vue'
-import InputCard from '@/views/score/components/InputCard.vue'
+import EvaluationInputCard from '@/views/evaluation/components/EvaluationInputCard.vue'
 
-import { InputEnum } from '@/types/Common'
 import type { StudentDataType } from '@/types/StudentData'
 
-const emit = defineEmits(['scroll', 'active-student-change'])
+const emit = defineEmits<{
+  scroll: [index: number]
+  'active-student-change': [student: StudentDataType | null]
+}>()
 
-const inputCardRef = ref<InstanceType<typeof InputCard>>()
+const evaluationInputCardRef = ref<InstanceType<typeof EvaluationInputCard>>()
 
 const autoFocus = () => {
-  inputCardRef.value?.autoFocus()
+  evaluationInputCardRef.value?.autoFocus()
 }
 
 /**
@@ -21,7 +23,7 @@ const autoFocus = () => {
  * @param row - 学生行数据
  */
 const fillStudentData = (row: StudentDataType) => {
-  inputCardRef.value?.editData(row)
+  evaluationInputCardRef.value?.editData(row)
 }
 
 defineExpose({
@@ -35,9 +37,8 @@ defineExpose({
     <configuration-card />
 
     <div class="input-section">
-      <input-card
-        ref="inputCardRef"
-        :type="InputEnum.COMMENT"
+      <evaluation-input-card
+        ref="evaluationInputCardRef"
         :auto-next-on-submit="true"
         :prompt-unsaved-on-switch="true"
         :inline-comment-actions="true"

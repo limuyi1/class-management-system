@@ -1,6 +1,6 @@
 import type { StudentDataType } from '@/types/StudentData'
 
-export interface PageInoType {
+export interface EvaluationPageInfoType {
   pageWidth: number
   pageHeight: number
   cellWidth: number
@@ -12,8 +12,8 @@ export interface PageInoType {
   tableOffsetX: number
 }
 
-export interface EvaluationCardProps {
-  pageInfo: PageInoType
+export interface EvaluationPreviewCardPropsType {
+  pageInfo: EvaluationPageInfoType
   data: StudentDataType[]
   currentPage?: number
   totalPages?: number
@@ -21,6 +21,6 @@ export interface EvaluationCardProps {
   suppressActiveState?: boolean
 }
 
-export interface EvaluationCardEmits {
+export interface EvaluationPreviewCardEmitsType {
   click: [row: StudentDataType]
 }
