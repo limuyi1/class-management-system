@@ -31,7 +31,7 @@ const scoreValue = ref<number | null>(null)
 const recentEntries = ref<RecentScoreEntryType[]>([])
 
 const searchInputRef = ref<{ focus: () => void } | null>(null)
-const scoreInputRef = ref<{ focus: () => void } | null>(null)
+const scoreInputRef = ref<{ focus: () => void; blur?: () => void } | null>(null)
 
 const getStudentName = (student: StudentDataType): string => {
   const name = student[NAME_PROP]
@@ -91,6 +91,10 @@ const focusScoreInput = () => {
   scoreInputRef.value?.focus()
 }
 
+const blurScoreInput = () => {
+  scoreInputRef.value?.blur?.()
+}
+
 const selectStudentByIndex = (index: number, shouldFocusScore: boolean = true) => {
   const item = originList.value[index - 1]
   if (!item) return
@@ -111,7 +115,6 @@ const handleSuggestionSelect = (item: SuggestionItemType) => {
 
 const handleSearchEnter = () => {
   if (!searchKeyword.value.trim()) {
-    ElMessage.warning('请输入学生姓名或拼音')
     focusSearchInput()
     return
   }
@@ -150,6 +153,14 @@ const addRecentEntry = (index: number, score: number) => {
   recentEntries.value = nextEntries
 }
 
+const resetEntryForm = () => {
+  blurScoreInput()
+  selectedStudentId.value = null
+  searchKeyword.value = ''
+  scoreValue.value = null
+  emit('clearSelection')
+}
+
 /**
  * 保存分数主流程：
  * 1. 校验学生、科目、分数
@@ -178,8 +189,9 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
   const student = originList.value[selectedStudentId.value - 1]
   if (!student) return
 
-  student[configuration.inputScoreTab] = scoreValue.value
-  addRecentEntry(selectedStudentId.value, scoreValue.value)
+  const savedScore = scoreValue.value
+  student[configuration.inputScoreTab] = savedScore
+  addRecentEntry(selectedStudentId.value, savedScore)
 
   if (mode === 'next') {
     const nextIndex = selectedStudentId.value + 1
@@ -187,13 +199,11 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
       selectStudentByIndex(nextIndex)
       return
     }
-    clearSelectedStudent()
-    searchKeyword.value = ''
+    resetEntryForm()
     nextTick(() => focusSearchInput())
     return
   }
-  clearSelectedStudent()
-  searchKeyword.value = ''
+  resetEntryForm()
   nextTick(() => focusSearchInput())
 }
 

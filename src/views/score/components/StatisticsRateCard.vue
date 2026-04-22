@@ -157,10 +157,15 @@ watch(
 
     .stat-item {
       flex: 1;
-      text-align: left;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
       padding: 8px 10px;
       background: #f1f5f9;
       border-radius: 8px;
+      min-height: 68px;
 
       .stat-value {
         font-size: 16px;
@@ -177,6 +182,7 @@ watch(
       .with-tip {
         display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 4px;
 
         .hint-icon {

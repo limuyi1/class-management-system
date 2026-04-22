@@ -11,31 +11,33 @@ defineProps<Props>()
 <template>
   <div class="summary-row">
     <div class="summary-item highlight">
-      <span class="item-label">最高</span>
-      <span class="item-value">{{ scoreStats.maxScore }}</span>
-      <span class="item-unit">分</span>
-      <div class="item-tags">
+      <div class="item-main">
+        <span class="item-label">最高</span>
+        <span class="item-value">{{ scoreStats.maxScore }}</span>
+        <span class="item-unit">分</span>
+      </div>
+      <div class="item-tags" v-if="scoreStats.topStudents.length">
         <el-tag
-          v-for="(name, idx) in scoreStats.topStudents.slice(0, 3)"
+          v-for="(name, idx) in scoreStats.topStudents.slice(0, 2)"
           :key="idx"
           type="success"
           size="small"
-          effect="dark"
+          effect="plain"
         >
           {{ name }}
         </el-tag>
         <el-popover
-          v-if="scoreStats.topStudents.length > 3"
+          v-if="scoreStats.topStudents.length > 2"
           placement="bottom"
           trigger="hover"
           :width="180"
         >
           <template #reference>
-            <span class="more-tag">+{{ scoreStats.topStudents.length - 3 }}</span>
+            <span class="more-tag">+{{ scoreStats.topStudents.length - 2 }}</span>
           </template>
           <div class="popover-tags">
             <el-tag
-              v-for="name in scoreStats.topStudents.slice(3)"
+              v-for="name in scoreStats.topStudents.slice(2)"
               :key="name"
               type="success"
               size="small"
@@ -48,31 +50,33 @@ defineProps<Props>()
     </div>
 
     <div class="summary-item danger">
-      <span class="item-label">最低</span>
-      <span class="item-value">{{ scoreStats.minScore }}</span>
-      <span class="item-unit">分</span>
-      <div class="item-tags">
+      <div class="item-main">
+        <span class="item-label">最低</span>
+        <span class="item-value">{{ scoreStats.minScore }}</span>
+        <span class="item-unit">分</span>
+      </div>
+      <div class="item-tags" v-if="scoreStats.bottomStudents.length">
         <el-tag
-          v-for="(name, idx) in scoreStats.bottomStudents.slice(0, 3)"
+          v-for="(name, idx) in scoreStats.bottomStudents.slice(0, 2)"
           :key="idx"
           type="danger"
           size="small"
-          effect="dark"
+          effect="plain"
         >
           {{ name }}
         </el-tag>
         <el-popover
-          v-if="scoreStats.bottomStudents.length > 3"
+          v-if="scoreStats.bottomStudents.length > 2"
           placement="bottom"
-          trigger="click"
+          trigger="hover"
           :width="180"
         >
           <template #reference>
-            <span class="more-tag">+{{ scoreStats.bottomStudents.length - 3 }}</span>
+            <span class="more-tag">+{{ scoreStats.bottomStudents.length - 2 }}</span>
           </template>
           <div class="popover-tags">
             <el-tag
-              v-for="name in scoreStats.bottomStudents.slice(3)"
+              v-for="name in scoreStats.bottomStudents.slice(2)"
               :key="name"
               type="danger"
               size="small"
@@ -85,9 +89,11 @@ defineProps<Props>()
     </div>
 
     <div class="summary-item plain">
-      <span class="item-label">平均</span>
-      <span class="item-value">{{ scoreStats.avgScore }}</span>
-      <span class="item-unit">分</span>
+      <div class="item-main">
+        <span class="item-label">平均</span>
+        <span class="item-value">{{ scoreStats.avgScore }}</span>
+        <span class="item-unit">分</span>
+      </div>
     </div>
   </div>
 </template>
@@ -101,11 +107,14 @@ defineProps<Props>()
   .summary-item {
     flex: 1;
     display: flex;
+    flex-direction: column;
+    justify-content: center;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    padding: 8px 10px;
+    gap: 3px;
+    padding: 8px 8px 7px;
     border-radius: 8px;
+    min-height: 60px;
+    text-align: center;
 
     &.highlight {
       background: linear-gradient(135deg, var(--theme-primary) 0%, var(--theme-primary-light) 100%);
@@ -149,6 +158,14 @@ defineProps<Props>()
       }
     }
 
+    .item-main {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+      min-height: 24px;
+    }
+
     .item-label {
       font-size: 12px;
     }
@@ -164,15 +181,30 @@ defineProps<Props>()
 
     .item-tags {
       display: flex;
-      flex-wrap: wrap;
-      gap: 2px;
-      margin-left: 4px;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: nowrap;
+      gap: 4px;
+      min-height: 20px;
+      max-width: 100%;
+      overflow: hidden;
+
+      :deep(.el-tag) {
+        max-width: 68px;
+      }
+
+      :deep(.el-tag__content) {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
 
     .more-tag {
       font-size: 11px;
-      color: #fff;
-      background: rgba(255, 255, 255, 0.25);
+      color: currentColor;
+      background: rgba(255, 255, 255, 0.22);
       padding: 2px 6px;
       border-radius: 4px;
       cursor: pointer;
