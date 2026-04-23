@@ -38,7 +38,6 @@ const handleCardClick = (target: 'comment' | 'setting') => {
   <el-card class="home-side-card evaluation-overview-card">
     <div class="panel-header">
       <div class="panel-title">评语工作总览</div>
-      <div class="panel-subtitle">保持轻量，只看完成情况和 AI 配置状态</div>
     </div>
 
     <div class="overview-grid">
@@ -70,43 +69,38 @@ const handleCardClick = (target: 'comment' | 'setting') => {
   :deep(.el-card__body) {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 }
 
 .evaluation-overview-card {
   :deep(.el-card__body) {
-    padding: 12px;
+    padding: 9px 10px;
   }
 }
 
 .panel-header {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
 }
 
 .panel-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.panel-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
+  white-space: nowrap;
 }
 
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 6px;
+  gap: 5px;
 }
 
 .overview-item {
   width: 100%;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 7px 8px;
+  border-radius: 9px;
   background: #f8fafc;
   border: 1px solid #e5edf5;
   text-align: left;
@@ -132,15 +126,15 @@ const handleCardClick = (target: 'comment' | 'setting') => {
 }
 
 .item-value {
-  margin-top: 4px;
-  font-size: 16px;
+  margin-top: 2px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
 .item-sub {
-  margin-top: 2px;
+  margin-top: 1px;
   font-size: 11px;
   color: #94a3b8;
 }

@@ -9,7 +9,20 @@ defineProps<Props>()
 </script>
 
 <template>
-  <el-collapse accordion class="low-score-collapse">
+  <div v-if="scoreStats.lowScoreTotal === 0" class="low-score-collapse is-disabled">
+    <div class="low-score-static-header">
+      <div class="collapse-title">
+        <span class="collapse-label">60分以下</span>
+        <span class="collapse-count">({{ scoreStats.lowScoreTotal }}人)</span>
+      </div>
+    </div>
+  </div>
+
+  <el-collapse
+    v-else
+    accordion
+    class="low-score-collapse"
+  >
     <el-collapse-item name="low">
       <template #title>
         <div class="collapse-title">
@@ -88,6 +101,12 @@ defineProps<Props>()
     padding: 0 12px 12px;
   }
 
+  .low-score-static-header {
+    line-height: 1.8;
+    color: #dc2626;
+    padding: 8px 12px;
+  }
+
   .collapse-title {
     display: flex;
     align-items: center;
@@ -139,6 +158,16 @@ defineProps<Props>()
         cursor: pointer;
       }
     }
+  }
+}
+
+.is-disabled {
+  :deep(.el-collapse-item__header) {
+    cursor: default;
+  }
+
+  :deep(.el-collapse-item__arrow) {
+    display: none;
   }
 }
 

@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { ElMessage } from 'element-plus'
 
 import { homeDashboardConfig } from '@/config/home-dashboard'
 import { useAIConfigStore } from '@/stores/ai-config'
@@ -25,7 +26,7 @@ export function useHomeDashboard() {
   const unitHeaders = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
 
   /**
-   * 默认选中第一个有成绩的学生，保证首页首次打开时右下角趋势卡可以直接展示内容
+   * 默认选中第一个有成绩的学生，保证打开趋势分析抽屉时可以直接展示内容
    */
   watch(
     () =>
@@ -64,7 +65,14 @@ export function useHomeDashboard() {
   )
 
   /**
-   * 从右侧预警/榜单点击学生时，按“加入对比”处理，最多保留固定人数
+   * 从总览主页点击学生时，聚焦查看单个学生，不沿用之前的对比名单
+   */
+  const focusStudent = (name: string | null) => {
+    selectedStudentNames.value = name ? [name] : []
+  }
+
+  /**
+   * 趋势抽屉内部仍按“加入对比”处理，最多保留固定人数
    */
   const selectStudent = (name: string | null) => {
     if (!name) {
@@ -72,16 +80,22 @@ export function useHomeDashboard() {
       return
     }
 
+    if (
+      !selectedStudentNames.value.includes(name) &&
+      selectedStudentNames.value.length >= homeDashboardConfig.studentTrend.maxCompareCount
+    ) {
+      ElMessage.warning(`最多只能对比 ${homeDashboardConfig.studentTrend.maxCompareCount} 名学生`)
+      return
+    }
+
     const withoutCurrent = selectedStudentNames.value.filter((item) => item !== name)
-    selectedStudentNames.value = [name, ...withoutCurrent].slice(
-      0,
-      homeDashboardConfig.studentTrend.maxCompareCount
-    )
+    selectedStudentNames.value = [name, ...withoutCurrent]
   }
 
   return {
     selectedStudentNames,
     dashboardData,
+    focusStudent,
     selectStudent
   }
 }

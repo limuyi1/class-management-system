@@ -26,9 +26,16 @@ defineProps<Props>()
         </div>
       </div>
       <div class="range-right">
-        <el-popover placement="right" :width="200" trigger="hover" :disabled="range.count === 0">
+        <el-popover
+          placement="right"
+          :width="200"
+          trigger="hover"
+          :disabled="range.count === 0"
+        >
           <template #reference>
-            <span class="count-text" :style="{ color: range.color }"> {{ range.count }} 人 </span>
+            <span class="count-text" :style="{ color: range.color }">
+              {{ range.count }} 人
+            </span>
           </template>
           <div class="student-list">
             <el-tag

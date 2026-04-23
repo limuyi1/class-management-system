@@ -23,8 +23,10 @@ interface StudentMetricType {
   lowestScore: number
   scoreRange: number
   latestScore: number | null
+  previousScore: number | null
   historyAverage: number | null
   latestDelta: number
+  latestDrop: number
   trendDelta: number
   stableTopCount: number
 }
@@ -126,6 +128,7 @@ const buildStudentMetrics = (
       const frontHalf = scores.slice(0, halfIndex)
       const backHalf = scores.slice(halfIndex)
       const latestScore = scores.length ? scores[scores.length - 1] : null
+      const previousScore = scores.length >= 2 ? scores[scores.length - 2] : null
       const historyScores = scores.slice(0, -1)
       const highestScore = Math.max(...scores)
       const lowestScore = Math.min(...scores)
@@ -140,10 +143,15 @@ const buildStudentMetrics = (
         lowestScore,
         scoreRange: highestScore - lowestScore,
         latestScore,
+        previousScore,
         historyAverage: historyScores.length ? Number(averageOf(historyScores).toFixed(2)) : null,
         latestDelta:
           latestScore !== null && historyScores.length
             ? Number((latestScore - averageOf(historyScores)).toFixed(2))
+            : 0,
+        latestDrop:
+          latestScore !== null && previousScore !== null && latestScore < previousScore
+            ? Number((previousScore - latestScore).toFixed(2))
             : 0,
         trendDelta:
           backHalf.length && frontHalf.length
@@ -165,6 +173,31 @@ const toStudentListItem = (
   badge
 })
 
+const formatDeclineValue = (value: number): string => Math.abs(value).toFixed(1)
+
+const MIN_UNITS_FOR_DISTINCT_STAGE_DECLINE = 4
+
+const getDeclineSeverity = (metric: StudentMetricType, config: HomeDashboardConfigType): number => {
+  const values: number[] = []
+
+  if (
+    metric.historyAverage !== null &&
+    metric.latestDelta <= -config.alerts.declineMinDrop &&
+    metric.latestDrop > 0
+  ) {
+    values.push(metric.latestDrop)
+  }
+
+  if (
+    metric.points.length >= MIN_UNITS_FOR_DISTINCT_STAGE_DECLINE &&
+    metric.trendDelta <= -config.alerts.declineMinDrop
+  ) {
+    values.push(Math.abs(metric.trendDelta))
+  }
+
+  return values.length ? Math.max(...values) : 0
+}
+
 const buildAlertGroups = (
   metrics: StudentMetricType[],
   config: HomeDashboardConfigType
@@ -176,6 +209,10 @@ const buildAlertGroups = (
   const persistentLowScore = metrics
     .filter((metric) => metric.lowScoreCount >= config.alerts.persistentLowScoreMinCount)
     .sort((a, b) => {
+      const aLatestLowScore = a.latestScore !== null && a.latestScore < config.alerts.lowScoreLine
+      const bLatestLowScore = b.latestScore !== null && b.latestScore < config.alerts.lowScoreLine
+
+      if (aLatestLowScore !== bLatestLowScore) return bLatestLowScore ? 1 : -1
       if (b.lowScoreCount !== a.lowScoreCount) return b.lowScoreCount - a.lowScoreCount
       return a.averageScore - b.averageScore
     })
@@ -188,8 +225,21 @@ const buildAlertGroups = (
     )
 
   const largestFluctuation = metrics
-    .filter((metric) => metric.points.length >= config.alerts.maxFluctuationMinUnits)
-    .sort((a, b) => b.scoreRange - a.scoreRange)
+    .filter(
+      (metric) =>
+        metric.points.length >= config.alerts.maxFluctuationMinUnits &&
+        metric.scoreRange >= config.alerts.maxFluctuationMinRange
+    )
+    .sort((a, b) => {
+      const aLatestDeclining = a.latestDrop > 0
+      const bLatestDeclining = b.latestDrop > 0
+      const aBelowHistory = a.historyAverage !== null && a.latestDelta < 0
+      const bBelowHistory = b.historyAverage !== null && b.latestDelta < 0
+
+      if (aLatestDeclining !== bLatestDeclining) return bLatestDeclining ? 1 : -1
+      if (aBelowHistory !== bBelowHistory) return bBelowHistory ? 1 : -1
+      return b.scoreRange - a.scoreRange
+    })
     .map((metric) =>
       toStudentListItem(
         metric,
@@ -199,23 +249,55 @@ const buildAlertGroups = (
     )
 
   const declining = metrics
-    .filter(
-      (metric) =>
-        metric.historyAverage !== null && metric.latestDelta <= -config.alerts.declineMinDrop
-    )
-    .sort((a, b) => a.latestDelta - b.latestDelta)
-    .map((metric) =>
-      toStudentListItem(
+    .filter((metric) => {
+      const hasLatestDecline =
+        metric.historyAverage !== null &&
+        metric.latestDelta <= -config.alerts.declineMinDrop &&
+        metric.latestDrop > 0
+      const hasTrendDecline =
+        metric.points.length >= MIN_UNITS_FOR_DISTINCT_STAGE_DECLINE &&
+        metric.trendDelta <= -config.alerts.declineMinDrop
+
+      return hasLatestDecline || hasTrendDecline
+    })
+    .sort((a, b) => getDeclineSeverity(b, config) - getDeclineSeverity(a, config))
+    .map((metric) => {
+      const detailParts: string[] = []
+      const declineValues: number[] = []
+
+      if (
+        metric.historyAverage !== null &&
+        metric.latestDelta <= -config.alerts.declineMinDrop &&
+        metric.latestDrop > 0
+      ) {
+        detailParts.push(`最近较上次下滑：${formatDeclineValue(metric.latestDrop)} 分`)
+
+        if (metric.latestDrop > 0) {
+          declineValues.push(metric.latestDrop)
+        }
+      }
+
+      if (
+        metric.points.length >= MIN_UNITS_FOR_DISTINCT_STAGE_DECLINE &&
+        metric.trendDelta <= -config.alerts.declineMinDrop
+      ) {
+        detailParts.push(`后半程低于前半程：${formatDeclineValue(metric.trendDelta)} 分`)
+        declineValues.push(Math.abs(metric.trendDelta))
+      }
+
+      const maxDecline = Math.max(...declineValues)
+
+      return toStudentListItem(
         metric,
-        `最近一次 ${metric.latestScore ?? '--'} 分，历史均分 ${metric.historyAverage?.toFixed(1) ?? '--'}`,
-        metric.latestDelta <= 0 ? `下降 ${Math.abs(metric.latestDelta).toFixed(1)} 分` : `回升 ${metric.latestDelta.toFixed(1)} 分`
+        detailParts.join('\n'),
+        `下滑 ${maxDecline.toFixed(1)} 分`
       )
-    )
+    })
 
   return [
     { key: 'persistentLowScore', label: '持续低分', items: persistentLowScore },
     { key: 'largestFluctuation', label: '波动最大', items: largestFluctuation },
-    { key: 'declining', label: '明显下滑', items: declining }
+    { key: 'declining', label: '下滑关注', items: declining }
   ]
 }
 
@@ -223,6 +305,8 @@ const buildRankingGroups = (
   metrics: StudentMetricType[],
   config: HomeDashboardConfigType
 ): DashboardRankingGroupType[] => {
+  const rankingLimit = Math.max(config.rankings.displayCount, config.rankings.compactDisplayCount)
+
   /**
    * 榜单和预警的职责不同：
    * 榜单强调“变化排序”，预警强调“需要优先关注”
@@ -230,42 +314,29 @@ const buildRankingGroups = (
   const mostImproved = metrics
     .filter((metric) => metric.points.length >= config.rankings.minUnitsForTrend && metric.trendDelta > 0)
     .sort((a, b) => b.trendDelta - a.trendDelta)
-    .slice(0, config.rankings.displayCount)
+    .slice(0, rankingLimit)
     .map((metric) =>
       toStudentListItem(metric, `后半程较前半程提升 ${metric.trendDelta.toFixed(1)} 分`, `均分 ${metric.averageScore.toFixed(1)}`)
-    )
-
-  const mostDeclined = metrics
-    .filter((metric) => metric.points.length >= config.rankings.minUnitsForTrend && metric.trendDelta < 0)
-    .sort((a, b) => a.trendDelta - b.trendDelta)
-    .slice(0, config.rankings.displayCount)
-    .map((metric) =>
-      toStudentListItem(
-        metric,
-        `后半程较前半程下降 ${Math.abs(metric.trendDelta).toFixed(1)} 分`,
-        `均分 ${metric.averageScore.toFixed(1)}`
-      )
     )
 
   const stableTopFive = metrics
     .filter((metric) => metric.stableTopCount > 0)
     .sort((a, b) => {
-      if (b.stableTopCount !== a.stableTopCount) return b.stableTopCount - a.stableTopCount
-      return b.averageScore - a.averageScore
+      if (b.averageScore !== a.averageScore) return b.averageScore - a.averageScore
+      return b.stableTopCount - a.stableTopCount
     })
-    .slice(0, config.rankings.displayCount)
+    .slice(0, rankingLimit)
     .map((metric) =>
       toStudentListItem(
         metric,
-        `进入班级前 ${config.rankings.stableTopRankLimit} ${metric.stableTopCount} 次`,
+        `进入班级前五 共 ${metric.stableTopCount} 次`,
         `均分 ${metric.averageScore.toFixed(1)}`
       )
     )
 
   return [
-    { key: 'stableTopFive', label: '稳定前五', items: stableTopFive },
-    { key: 'mostImproved', label: '进步最大', items: mostImproved },
-    { key: 'mostDeclined', label: '退步明显', items: mostDeclined }
+    { key: 'stableTopFive', label: '高分稳定', items: stableTopFive },
+    { key: 'mostImproved', label: '进步最大', items: mostImproved }
   ]
 }
 
@@ -325,7 +396,7 @@ const buildStudentTrend = (
     students: selectedMetrics.map((metric) => {
       const commentPreview =
         typeof metric.student.comment === 'string' && metric.student.comment.trim()
-          ? metric.student.comment.trim().slice(0, 60)
+          ? metric.student.comment.trim()
           : ''
 
       return {

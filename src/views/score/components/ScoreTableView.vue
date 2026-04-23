@@ -171,7 +171,6 @@ defineExpose({
           <el-select
             :model-value="scoreTab"
             class="score-context__select"
-            size="small"
             placeholder="选择录入科目"
             @update:model-value="(value: string) => emit('update:scoreTab', value)"
           >
@@ -183,9 +182,7 @@ defineExpose({
             />
           </el-select>
         </div>
-        <el-button class="reset-btn" text @click="emit('resetScore')">
-          重置当前科目
-        </el-button>
+        <el-button class="reset-btn" text @click="emit('resetScore')"> 重置当前科目 </el-button>
       </div>
     </div>
 

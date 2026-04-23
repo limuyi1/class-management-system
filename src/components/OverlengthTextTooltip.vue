@@ -71,7 +71,12 @@ const getStyle = computed(() => {
 </script>
 
 <template>
-  <el-tooltip :content="String(content)" placement="top" :disabled="!isEllipsis">
+  <el-tooltip
+    :content="String(content)"
+    placement="top"
+    :disabled="!isEllipsis"
+    popper-class="overlength-text-tooltip__popper"
+  >
     <div ref="text" :class="['overlength-text-tooltip', customClass]" :style="getStyle">
       {{ content }}
     </div>
@@ -84,5 +89,12 @@ const getStyle = computed(() => {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+}
+
+:global(.overlength-text-tooltip__popper) {
+  max-width: 320px;
+  line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
 }
 </style>

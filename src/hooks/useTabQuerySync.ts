@@ -37,6 +37,8 @@ export function useTabQuerySync<T extends string>(options: UseTabQuerySyncOption
   )
 
   watch(activeTab, async (newTab) => {
+    if (route.query.tab === newTab) return
+
     await router.replace({ path: '/setting', query: { tab: newTab } })
   })
 }

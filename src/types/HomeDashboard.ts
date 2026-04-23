@@ -18,18 +18,26 @@ export interface HomeDashboardAlertConfigType {
   persistentLowScoreMinCount: number
   /** 波动预警至少要求有多少个单元成绩 */
   maxFluctuationMinUnits: number
-  /** 最近一次成绩相对历史均分下降多少分，才算明显下滑 */
+  /** 最高分与最低分相差达到多少分，才进入波动预警 */
+  maxFluctuationMinRange: number
+  /** 最近一次成绩相对历史均分下降多少分，才进入下滑关注 */
   declineMinDrop: number
   /** 重点学生预警每类默认展示的人数 */
   displayCount: number
+  /** 首屏紧凑模式下每类预览的人数 */
+  compactDisplayCount: number
+  /** 重点学生预警每类展开后最多展示的人数 */
+  expandedDisplayCount: number
 }
 
 export interface HomeDashboardRankingConfigType {
   /** 榜单默认展示人数 */
   displayCount: number
+  /** 首屏紧凑模式下每类预览的人数 */
+  compactDisplayCount: number
   /** 统计“稳定前五”时使用的排名阈值 */
   stableTopRankLimit: number
-  /** 参与阶段趋势榜单至少需要多少个单元成绩 */
+  /** 参与阶段趋势判断至少需要多少个单元成绩 */
   minUnitsForTrend: number
 }
 
@@ -52,6 +60,10 @@ export interface HomeDashboardConfigType {
   unitOverview: {
     /** 单元总览图中展示的分数段配置 */
     scoreBands: DashboardScoreBandType[]
+    /** 单元数量超过该值时，单元总览图才显示横向滚动条 */
+    dataZoomThreshold: number
+    /** 横向滚动开启后，默认可见的单元数量 */
+    dataZoomVisibleCount: number
   }
   /** 重点学生预警相关阈值 */
   alerts: HomeDashboardAlertConfigType
@@ -87,7 +99,7 @@ export interface DashboardAlertGroupType {
 }
 
 export interface DashboardRankingGroupType {
-  key: 'mostImproved' | 'mostDeclined' | 'stableTopFive'
+  key: 'mostImproved' | 'stableTopFive'
   label: string
   items: DashboardStudentListItemType[]
 }

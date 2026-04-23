@@ -2,7 +2,7 @@
 interface Props {
   icon: string[]
   title: string
-  subtitle: string
+  subtitle?: string
 }
 defineProps<Props>()
 </script>
@@ -15,7 +15,7 @@ defineProps<Props>()
       </div>
       <div class="header-text">
         <h2>{{ title }}</h2>
-        <p>{{ subtitle }}</p>
+        <p v-if="subtitle">{{ subtitle }}</p>
       </div>
     </div>
     <div class="header-right">

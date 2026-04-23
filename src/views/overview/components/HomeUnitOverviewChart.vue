@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 
+import { homeDashboardConfig } from '@/config/home-dashboard'
 import AppEChart from '@/components/AppEChart.vue'
 import type { DashboardUnitOverviewType } from '@/types/HomeDashboard'
 
@@ -11,12 +12,37 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const formatTooltipRows = (params: unknown, validCountMap: Map<string, number>) => {
+  const items = Array.isArray(params)
+    ? (params as Array<{ axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown }>)
+    : []
+  const title = items[0]?.axisValueLabel || ''
+  const validCount = validCountMap.get(title) || 0
+  const rows = items
+    .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
+    .map((item) => {
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:6px;">
+        <span>${item.marker || ''}${item.seriesName || ''}</span>
+        <strong style="color:#0f172a;">${item.value}</strong>
+      </div>`
+    })
+    .join('')
+
+  return `<div style="min-width:150px;">
+    <div style="font-weight:600;color:#0f172a;margin-bottom:2px;">${title}</div>
+    <div style="font-size:12px;color:#64748b;">有效人数 ${validCount} 人</div>
+    ${rows}
+  </div>`
+}
+
 /**
  * 单元总览图改为共用横坐标的双纵轴图：
  * 左侧纵轴展示平均分，右侧纵轴展示各分数段人数
  */
 const chartOption = computed<EChartsOption>(() => {
   const labels = props.unitOverview.map((item) => item.label)
+  const showDataZoom = labels.length > homeDashboardConfig.unitOverview.dataZoomThreshold
+  const validCountMap = new Map(props.unitOverview.map((item) => [item.label, item.validCount]))
   const bandLabels = props.unitOverview[0]?.scoreBands.map((item) => item.label) || []
   const series: Array<BarSeriesOption | LineSeriesOption> = [
     {
@@ -46,14 +72,17 @@ const chartOption = computed<EChartsOption>(() => {
       name: label,
       type: 'bar' as const,
       yAxisIndex: 1,
-      barMaxWidth: 14,
-      barGap: '12%',
+      barMaxWidth: 20,
+      barGap: '8%',
+      itemStyle: {
+        borderRadius: [6, 6, 0, 0]
+      },
       label: {
         show: true,
-        position: 'insideTop' as const,
-        distance: 4,
+        position: 'inside' as const,
         color: '#ffffff',
         fontSize: 11,
+        fontWeight: 600,
         formatter: (params: { value: unknown }) => {
           const value = typeof params.value === 'number' ? params.value : Number(params.value || 0)
           return value > 0 ? String(value) : ''
@@ -67,13 +96,27 @@ const chartOption = computed<EChartsOption>(() => {
   ]
 
   return {
-    animationDuration: 600,
+    animationDuration: 800,
+    animationEasing: 'cubicOut',
     color: ['#0f766e', ...(props.unitOverview[0]?.scoreBands.map((item) => item.color) || [])],
     tooltip: {
       trigger: 'axis',
+      confine: true,
+      padding: [10, 12],
+      borderWidth: 1,
+      borderColor: '#e2e8f0',
+      backgroundColor: 'rgba(255, 255, 255, 0.96)',
+      textStyle: {
+        color: '#334155'
+      },
       axisPointer: {
-        type: 'line'
-      }
+        type: 'line',
+        lineStyle: {
+          color: '#94a3b8',
+          type: 'dashed'
+        }
+      },
+      formatter: (params: unknown) => formatTooltipRows(params, validCountMap)
     },
     legend: {
       top: 0,
@@ -87,42 +130,62 @@ const chartOption = computed<EChartsOption>(() => {
       left: 52,
       right: 52,
       top: 48,
-      bottom: 64
+      bottom: showDataZoom ? 70 : 42
     },
-    dataZoom: [
-      {
-        type: 'inside',
-        xAxisIndex: 0,
-        startValue: 0,
-        endValue: Math.min(labels.length - 1, 5)
-      },
-      {
-        type: 'slider',
-        xAxisIndex: 0,
-        bottom: 18,
-        height: 20,
-        brushSelect: false
-      }
-    ],
+    dataZoom: showDataZoom
+      ? [
+          {
+            type: 'inside',
+            xAxisIndex: 0,
+            startValue: 0,
+            endValue: homeDashboardConfig.unitOverview.dataZoomVisibleCount - 1
+          },
+          {
+            type: 'slider',
+            xAxisIndex: 0,
+            bottom: 12,
+            height: 20,
+            brushSelect: false
+          }
+        ]
+      : [],
     xAxis: {
       type: 'category',
       data: labels,
       axisTick: { show: false },
       axisLine: { lineStyle: { color: '#cbd5e1' } },
-      axisLabel: { color: '#64748b' }
+      axisLabel: {
+        color: '#64748b',
+        interval: 0,
+        margin: 6,
+        formatter: (value: string) => `{name|${value}}\n{count|${validCountMap.get(value) || 0}人}`,
+        rich: {
+          name: {
+            color: '#64748b',
+            fontSize: 12,
+            lineHeight: 14
+          },
+          count: {
+            color: '#94a3b8',
+            fontSize: 11,
+            lineHeight: 13
+          }
+        }
+      }
     },
     yAxis: [
       {
         type: 'value',
         min: 0,
         max: 100,
+        splitNumber: 5,
         name: '平均分',
         nameTextStyle: {
           color: '#64748b'
         },
         splitLine: {
           lineStyle: {
-            color: '#e2e8f0'
+            color: '#edf2f7'
           }
         },
         axisLabel: { color: '#64748b' }
@@ -130,14 +193,17 @@ const chartOption = computed<EChartsOption>(() => {
       {
         type: 'value',
         position: 'right',
+        alignTicks: true,
+        splitNumber: 5,
         minInterval: 1,
         name: '人数',
         nameTextStyle: {
           color: '#64748b'
         },
         splitLine: {
+          show: false,
           lineStyle: {
-            color: '#e2e8f0'
+            color: '#edf2f7'
           }
         },
         axisLabel: { color: '#64748b' }
@@ -153,7 +219,6 @@ const chartOption = computed<EChartsOption>(() => {
     <div class="card-header">
       <div>
         <div class="card-title">单元成绩概览</div>
-        <div class="card-subtitle">共用横轴，左侧看平均分走势，右侧看各分数段人数</div>
       </div>
       <el-tag effect="plain" round>共 {{ unitOverview.length }} 个单元</el-tag>
     </div>
@@ -192,12 +257,6 @@ const chartOption = computed<EChartsOption>(() => {
   font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-}
-
-.card-subtitle {
-  margin-top: 4px;
-  font-size: 12px;
-  color: var(--text-secondary);
 }
 
 .chart-wrapper {
