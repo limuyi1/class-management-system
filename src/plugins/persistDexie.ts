@@ -46,6 +46,8 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
 
 const updatingStores = new Set<string>()
 
+const cloneState = <T>(state: T): T => JSON.parse(JSON.stringify(state)) as T
+
 export function createPersistedStateDexie() {
   return async ({ store }: PiniaPluginContext) => {
     const storeId = store.$id
@@ -57,11 +59,28 @@ export function createPersistedStateDexie() {
 
     const isDataSource = storeId === 'dataSource'
     const dataSourceStore = store as unknown as DataSourceLikeStoreType
+    // 保存插件接入前的初始 state，用于 IndexedDB 记录被删除后恢复 store 默认值。
+    // 不能依赖所有 store 都有 $reset：setup store（如 theme）没有 Pinia 自动生成的 $reset。
+    const defaultState = cloneState(store.$state)
     const patchStateFromRecord = (record: PersistableRecordType) => {
       const stateRecord = record as unknown as Record<string, unknown>
       const { id, ...state } = stateRecord
       void id
       store.$patch(state as _DeepPartial<StateTree>)
+    }
+    const resetStoreState = () => {
+      // dataSource 在库中使用 { id, data } 结构，和 store.$state 字段不同，单独恢复。
+      if (isDataSource) {
+        dataSourceStore.$patch({ items: [] })
+        return
+      }
+
+      store.$patch(cloneState(defaultState) as _DeepPartial<StateTree>)
+
+      // 主题 store 还会把颜色写入 documentElement CSS 变量，仅 patch state 不会刷新页面外观。
+      if (storeId === 'theme') {
+        ;(store as unknown as { applyTheme?: () => void }).applyTheme?.()
+      }
     }
 
     const loadFromDB = async () => {
@@ -118,18 +137,25 @@ export function createPersistedStateDexie() {
     ) as Observable<PersistableRecordType | undefined>
     observable$.subscribe({
       next: (record) => {
-        if (!record) return
-
         updatingStores.add(storeId)
 
-        if (isDataSource) {
-          const dataRecord = record as DataSourceRecord
-          dataSourceStore.$patch({ items: dataRecord.data || [] })
-        } else {
-          patchStateFromRecord(record)
-        }
+        try {
+          // 清空系统数据会删除整张表记录；liveQuery 会推送 undefined。
+          // 这里必须恢复内存 store，否则页面仍会显示清空前的状态，并可能被订阅写回数据库。
+          if (!record) {
+            resetStoreState()
+            return
+          }
 
-        updatingStores.delete(storeId)
+          if (isDataSource) {
+            const dataRecord = record as DataSourceRecord
+            dataSourceStore.$patch({ items: dataRecord.data || [] })
+          } else {
+            patchStateFromRecord(record)
+          }
+        } finally {
+          updatingStores.delete(storeId)
+        }
       },
       error: (err) => {
         console.error(`[PersistDexie] LiveQuery error for ${storeId}:`, err)

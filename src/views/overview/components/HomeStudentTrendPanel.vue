@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
 import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 import { ElMessage } from 'element-plus'
 
@@ -20,9 +19,9 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: string[]]
+  'go-evaluation': []
 }>()
 
-const router = useRouter()
 const chartMode = ref<'line' | 'bar'>('line')
 const emptyCommentText = '暂无评语，可前往评语页继续处理'
 const maxCompareCount = homeDashboardConfig.studentTrend.maxCompareCount
@@ -78,6 +77,7 @@ const formatTooltipRows = (params: unknown) => {
 
 const chartOption = computed<EChartsOption>(() => {
   const students = props.studentTrend?.students || []
+  const shouldShowLineScoreLabel = props.studentTrend?.mode === 'single'
   const xAxisLabels = Array.from(
     new Set(students.flatMap((student) => student.trendPoints.map((point) => point.label)))
   )
@@ -123,6 +123,14 @@ const chartOption = computed<EChartsOption>(() => {
       },
       areaStyle: {
         color: chartAreaColors[index % chartAreaColors.length]
+      },
+      label: {
+        show: shouldShowLineScoreLabel,
+        position: 'top',
+        color,
+        fontSize: 11,
+        fontWeight: 600,
+        formatter: ({ value }) => (typeof value === 'number' ? String(value) : '')
       },
       data
     }
@@ -202,7 +210,7 @@ const clearSelected = () => {
 }
 
 const goToEvaluation = () => {
-  router.push('/comment')
+  emit('go-evaluation')
 }
 </script>
 

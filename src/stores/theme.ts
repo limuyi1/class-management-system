@@ -11,6 +11,11 @@ export const useThemeStore = defineStore('theme', () => {
     currentTheme.value = theme
   }
 
+  const resetTheme = () => {
+    currentTheme.value = defaultTheme
+    applyTheme()
+  }
+
   const applyTheme = () => {
     const config = themes[currentTheme.value]
     const root = document.documentElement
@@ -47,6 +52,7 @@ export const useThemeStore = defineStore('theme', () => {
     currentTheme,
     themeConfig,
     setTheme,
+    resetTheme,
     applyTheme,
     initTheme
   }

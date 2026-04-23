@@ -223,4 +223,65 @@ describe('createPersistedStateDexie', () => {
 
     errorSpy.mockRestore()
   })
+
+  it('should reset store state when persisted record is deleted', async () => {
+    const store = {
+      $id: 'setting',
+      $state: {
+        tableHeaders: [] as Array<Record<string, unknown>>,
+        tagCategory: [] as Array<Record<string, unknown>>,
+        tags: {} as Record<string, string[]>
+      },
+      $patch: (state: Record<string, unknown>) => {
+        store.$state = {
+          ...store.$state,
+          ...state
+        }
+      },
+      $subscribe: vi.fn()
+    }
+
+    const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
+    const plugin = createPersistedStateDexie()
+
+    await plugin({ store } as never)
+
+    observers[0].next({
+      id: 'main',
+      tableHeaders: [{ prop: 'xing4_ming2', label: '姓名' }],
+      tagCategory: [{ prop: 'you1_dian3', label: '优点' }],
+      tags: { you1_dian3: ['认真'] }
+    })
+    expect(store.$state.tableHeaders).toEqual([{ prop: 'xing4_ming2', label: '姓名' }])
+
+    observers[0].next(undefined)
+    expect(store.$state).toEqual({
+      tableHeaders: [],
+      tagCategory: [],
+      tags: {}
+    })
+  })
+
+  it('should reset dataSource to empty items when persisted record is deleted', async () => {
+    const store = {
+      $id: 'dataSource',
+      $state: { items: [] as Array<Record<string, unknown>> },
+      isInitialLoading: false,
+      $patch: (state: { items: Array<Record<string, unknown>> }) => {
+        store.$state.items = state.items
+      },
+      $subscribe: vi.fn()
+    }
+
+    const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
+    const plugin = createPersistedStateDexie()
+
+    await plugin({ store } as never)
+
+    observers[0].next({ id: 'main', data: [{ xing4_ming2: '张三' }] })
+    expect(store.$state.items).toEqual([{ xing4_ming2: '张三' }])
+
+    observers[0].next(undefined)
+    expect(store.$state.items).toEqual([])
+  })
 })

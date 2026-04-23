@@ -26,9 +26,14 @@ const fillStudentData = (row: StudentDataType) => {
   evaluationInputCardRef.value?.editData(row)
 }
 
+const resetForm = () => {
+  evaluationInputCardRef.value?.resetForm()
+}
+
 defineExpose({
   autoFocus,
-  fillStudentData
+  fillStudentData,
+  resetForm
 })
 </script>
 

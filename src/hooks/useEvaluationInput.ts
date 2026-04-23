@@ -302,6 +302,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     remoteMethod,
     selectChange,
     onSubmit,
+    resetForm,
     editData,
     goToEditTags,
     handleGenerateComment

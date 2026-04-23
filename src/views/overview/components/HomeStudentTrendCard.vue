@@ -13,6 +13,7 @@ defineProps<Props>()
 
 defineEmits<{
   'update:modelValue': [value: string[]]
+  'go-evaluation': []
 }>()
 </script>
 
@@ -28,6 +29,7 @@ defineEmits<{
       :student-options="studentOptions"
       :quick-student-names="quickStudentNames"
       @update:model-value="$emit('update:modelValue', $event)"
+      @go-evaluation="$emit('go-evaluation')"
     />
   </el-card>
 </template>

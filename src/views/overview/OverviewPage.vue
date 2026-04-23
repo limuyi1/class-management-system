@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
@@ -34,6 +34,12 @@ const goToAiSetting = () => {
       tab: 'ai-config'
     }
   })
+}
+
+const goToEvaluationFromTrend = async () => {
+  trendDrawerVisible.value = false
+  await nextTick()
+  router.push('/comment')
 }
 </script>
 
@@ -104,6 +110,7 @@ const goToAiSetting = () => {
         :student-trend="dashboardData.studentTrend"
         :student-options="dashboardData.studentOptions"
         :quick-student-names="dashboardData.quickStudentNames"
+        @go-evaluation="goToEvaluationFromTrend"
       />
     </el-drawer>
 

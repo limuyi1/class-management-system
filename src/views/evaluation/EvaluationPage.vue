@@ -123,6 +123,36 @@ const handleActiveStudentChange = (row: StudentDataType | null) => {
   activeStudentName.value = row ? getStudentName(row) : ''
 }
 
+const handleResetComments = async () => {
+  const existingCount = students.value.filter((item) => item.comment && item.comment.trim()).length
+
+  if (existingCount === 0) {
+    ElMessage.info('当前没有可清空的评语')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要清空全部 ${existingCount} 条已填写评语吗？此操作不可恢复。`,
+      '重置评语',
+      {
+        confirmButtonText: '清空评语',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger'
+      }
+    )
+
+    students.value.forEach((item) => {
+      item.comment = undefined
+    })
+    toolPanelViewRef.value?.resetForm()
+    ElMessage.success('已清空所有评语')
+  } catch {
+    // 用户取消操作时不提示
+  }
+}
+
 const resumeEditingStudent = async (studentName: string) => {
   await nextTick()
   const student = students.value.find((item) => getStudentName(item) === studentName)
@@ -335,6 +365,10 @@ defineExpose({ autoFocus })
       </div>
 
       <div class="toolbar-actions">
+        <el-button type="danger" plain @click="handleResetComments">
+          <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
+          重置
+        </el-button>
         <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
           <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
           AI 批量生成评语

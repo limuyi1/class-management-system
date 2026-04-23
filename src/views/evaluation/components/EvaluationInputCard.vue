@@ -39,6 +39,7 @@ const {
   remoteMethod,
   selectChange,
   onSubmit,
+  resetForm,
   editData,
   goToEditTags,
   handleGenerateComment
@@ -58,6 +59,7 @@ const handleEditData = (data: StudentDataType) => {
 
 defineExpose({
   editData: handleEditData,
+  resetForm,
   autoFocus
 })
 </script>
