@@ -6,6 +6,7 @@ import type {
   AIConfigRecord,
   ConfigurationRecord,
   DataSourceRecord,
+  OverviewAnalysisRecord,
   SettingRecord,
   ThemeRecord,
   WrongBookRecord
@@ -18,6 +19,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useThemeStore } from '@/stores/theme'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useWrongBookStore } from '@/stores/wrong-book'
+import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 
 type PersistableRecordType =
   | DataSourceRecord
@@ -26,6 +28,7 @@ type PersistableRecordType =
   | ConfigurationRecord
   | ThemeRecord
   | AIConfigRecord
+  | OverviewAnalysisRecord
 
 interface DataSourceLikeStoreType {
   isInitialLoading: boolean
@@ -41,6 +44,7 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   configuration: db.configuration,
   theme: db.theme,
   aiConfig: db.aiConfig,
+  overviewAnalysis: db.overviewAnalysis,
   dataSource: db.dataSource
 }
 
@@ -113,7 +117,9 @@ export function createPersistedStateDexie() {
       }
       try {
         if (isDataSource) {
-          const clonableData = JSON.parse(JSON.stringify(dataSourceStore.$state.items)) as StudentDataType[]
+          const clonableData = JSON.parse(
+            JSON.stringify(dataSourceStore.$state.items)
+          ) as StudentDataType[]
           await table.put({ id: DB_ID, data: clonableData } as DataSourceRecord)
         } else {
           const rawState = store.$state
@@ -176,7 +182,8 @@ export function preloadAllStores() {
     useConfigurationStore(),
     useThemeStore(),
     useAIConfigStore(),
-    useWrongBookStore()
+    useWrongBookStore(),
+    useOverviewAnalysisStore()
   ]
   console.log('[PersistDexie] All stores preloaded')
 }

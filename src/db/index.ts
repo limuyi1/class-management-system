@@ -4,6 +4,7 @@ import type {
   AIConfigRecord,
   ConfigurationRecord,
   DataSourceRecord,
+  OverviewAnalysisRecord,
   SettingRecord,
   ThemeRecord,
   WrongBookRecord
@@ -16,6 +17,7 @@ export class SCSDatabase extends Dexie {
   configuration!: Table<ConfigurationRecord>
   theme!: Table<ThemeRecord>
   aiConfig!: Table<AIConfigRecord>
+  overviewAnalysis!: Table<OverviewAnalysisRecord>
 
   constructor() {
     super('scs-database')
@@ -26,6 +28,15 @@ export class SCSDatabase extends Dexie {
       configuration: 'id',
       theme: 'id',
       aiConfig: 'id'
+    })
+    this.version(2).stores({
+      dataSource: 'id',
+      wrongBook: 'id',
+      setting: 'id',
+      configuration: 'id',
+      theme: 'id',
+      aiConfig: 'id',
+      overviewAnalysis: 'id'
     })
   }
 }
@@ -38,6 +49,7 @@ export type {
   AIConfigRecord,
   ConfigurationRecord,
   DataSourceRecord,
+  OverviewAnalysisRecord,
   SettingRecord,
   ThemeRecord,
   WrongBookRecord

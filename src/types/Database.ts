@@ -34,7 +34,10 @@ export interface ConfigurationRecord {
   pageType: string
   pageTypeList: string[]
   inputScoreTab: string | null
-  recentScoreEntries: Record<string, Array<{ index: number; name: string; score: number; time: string }>>
+  recentScoreEntries: Record<
+    string,
+    Array<{ index: number; name: string; score: number; time: string }>
+  >
 }
 
 export interface ThemeRecord {
@@ -50,4 +53,10 @@ export interface AIConfigRecord {
   baseUrl: string
   prompts: Record<string, string>
   availableModels: string[]
+}
+
+export interface OverviewAnalysisRecord {
+  id: string
+  analysisText: string
+  generatedAt: string
 }

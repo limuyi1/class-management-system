@@ -3,6 +3,7 @@ import type {
   DashboardAlertGroupType,
   DashboardDataType,
   DashboardEvaluationOverviewType,
+  DashboardKpiType,
   DashboardRankingGroupType,
   DashboardStudentListItemType,
   DashboardStudentOptionType,
@@ -80,7 +81,11 @@ const buildUnitOverview = (
   })
 }
 
-const buildStableTopCountMap = (students: StudentDataType[], unitHeaders: SettingType[], topN: number) => {
+const buildStableTopCountMap = (
+  students: StudentDataType[],
+  unitHeaders: SettingType[],
+  topN: number
+) => {
   const counts = new Map<string, number>()
 
   unitHeaders.forEach((header) => {
@@ -119,7 +124,9 @@ const buildStudentMetrics = (
           label: header.label,
           score: getNumericScore(student, header.prop)
         }))
-        .filter((item): item is { prop: string; label: string; score: number } => item.score !== null)
+        .filter(
+          (item): item is { prop: string; label: string; score: number } => item.score !== null
+        )
 
       if (!points.length) return null
 
@@ -287,11 +294,7 @@ const buildAlertGroups = (
 
       const maxDecline = Math.max(...declineValues)
 
-      return toStudentListItem(
-        metric,
-        detailParts.join('\n'),
-        `下滑 ${maxDecline.toFixed(1)} 分`
-      )
+      return toStudentListItem(metric, detailParts.join('\n'), `下滑 ${maxDecline.toFixed(1)} 分`)
     })
 
   return [
@@ -312,11 +315,17 @@ const buildRankingGroups = (
    * 榜单强调“变化排序”，预警强调“需要优先关注”
    */
   const mostImproved = metrics
-    .filter((metric) => metric.points.length >= config.rankings.minUnitsForTrend && metric.trendDelta > 0)
+    .filter(
+      (metric) => metric.points.length >= config.rankings.minUnitsForTrend && metric.trendDelta > 0
+    )
     .sort((a, b) => b.trendDelta - a.trendDelta)
     .slice(0, rankingLimit)
     .map((metric) =>
-      toStudentListItem(metric, `后半程较前半程提升 ${metric.trendDelta.toFixed(1)} 分`, `均分 ${metric.averageScore.toFixed(1)}`)
+      toStudentListItem(
+        metric,
+        `后半程较前半程提升 ${metric.trendDelta.toFixed(1)} 分`,
+        `均分 ${metric.averageScore.toFixed(1)}`
+      )
     )
 
   const stableTopFive = metrics
@@ -360,7 +369,9 @@ const buildStudentTrend = (
     const metric = selectedMetrics[0]
 
     if (metric.latestDelta <= -config.studentTrend.significantDrop) {
-      summaries.push(`近期成绩下降明显，最近一次较历史均分低 ${Math.abs(metric.latestDelta).toFixed(1)} 分`)
+      summaries.push(
+        `近期成绩下降明显，最近一次较历史均分低 ${Math.abs(metric.latestDelta).toFixed(1)} 分`
+      )
     } else if (metric.latestDelta >= config.studentTrend.significantRise) {
       summaries.push(`近期成绩回升明显，最近一次较历史均分高 ${metric.latestDelta.toFixed(1)} 分`)
     } else if (metric.scoreRange >= config.studentTrend.highFluctuationRange) {
@@ -370,12 +381,16 @@ const buildStudentTrend = (
     }
 
     if (metric.lowScoreCount > 0) {
-      summaries.push(`共有 ${metric.lowScoreCount} 个单元低于 ${config.studentTrend.lowScoreLine} 分`)
+      summaries.push(
+        `共有 ${metric.lowScoreCount} 个单元低于 ${config.studentTrend.lowScoreLine} 分`
+      )
     } else {
       summaries.push(`所有已录入单元均高于 ${config.studentTrend.lowScoreLine} 分`)
     }
 
-    summaries.push(`当前已录入 ${metric.points.length} 个单元，均分 ${metric.averageScore.toFixed(1)} 分`)
+    summaries.push(
+      `当前已录入 ${metric.points.length} 个单元，均分 ${metric.averageScore.toFixed(1)} 分`
+    )
   } else {
     const highestAverage = [...selectedMetrics].sort((a, b) => b.averageScore - a.averageScore)[0]
     const largestFluctuation = [...selectedMetrics].sort((a, b) => b.scoreRange - a.scoreRange)[0]
@@ -384,7 +399,9 @@ const buildStudentTrend = (
       .sort((a, b) => (b.latestScore || 0) - (a.latestScore || 0))[0]
 
     summaries.push(`当前对比 ${selectedMetrics.length} 名学生，均分最高的是 ${highestAverage.name}`)
-    summaries.push(`波动最大的是 ${largestFluctuation.name}，分差 ${largestFluctuation.scoreRange} 分`)
+    summaries.push(
+      `波动最大的是 ${largestFluctuation.name}，分差 ${largestFluctuation.scoreRange} 分`
+    )
 
     if (latestBest) {
       summaries.push(`最近一次成绩最高的是 ${latestBest.name}，为 ${latestBest.latestScore} 分`)
@@ -444,6 +461,43 @@ const buildEvaluationOverview = (
   }
 }
 
+const buildDashboardKpi = (
+  unitOverview: DashboardUnitOverviewType[],
+  metrics: StudentMetricType[],
+  config: HomeDashboardConfigType
+): DashboardKpiType => {
+  const allScores = metrics.flatMap((metric) => metric.points.map((point) => point.score))
+  const averageScore = averageOf(allScores)
+  const passRates = unitOverview.map((unit) => {
+    const passedCount = unit.scoreBands
+      .filter((band) => band.min >= config.alerts.lowScoreLine)
+      .reduce((sum, band) => sum + band.count, 0)
+
+    return unit.validCount ? (passedCount / unit.validCount) * 100 : 0
+  })
+  const attentionStudentCount = new Set(
+    metrics
+      .filter((metric) => metric.points.some((point) => point.score < 70))
+      .map((metric) => metric.name)
+  ).size
+  const unitWithLargestAverageRange = [...unitOverview].sort(
+    (a, b) => Math.abs(b.averageScore - averageScore) - Math.abs(a.averageScore - averageScore)
+  )[0]
+  const averagePassRate = averageOf(passRates)
+  const passRateFluctuation = passRates.length ? Math.max(...passRates) - Math.min(...passRates) : 0
+  const biggestFluctuationUnitLabel = unitWithLargestAverageRange?.label || '--'
+
+  return {
+    averageScore: Number(averageScore.toFixed(1)),
+    averagePassRate: Number(averagePassRate.toFixed(1)),
+    passRateFluctuation: Number(passRateFluctuation.toFixed(1)),
+    attentionStudentCount,
+    completedUnitCount: unitOverview.length,
+    biggestFluctuationUnitLabel,
+    diagnosticText: `本学期已完成 ${unitOverview.length} 个单元，及格边缘学生共 ${attentionStudentCount} 人，${biggestFluctuationUnitLabel === '--' ? '暂无明显波动单元' : `${biggestFluctuationUnitLabel} 波动最大`}`
+  }
+}
+
 export const buildHomeDashboardData = (options: BuildDashboardDataOptions): DashboardDataType => {
   const {
     students,
@@ -452,7 +506,9 @@ export const buildHomeDashboardData = (options: BuildDashboardDataOptions): Dash
     aiConfigured,
     config
   } = options as BuildDashboardDataOptions & { selectedStudentNames?: string[] }
-  const unitOverview = buildUnitOverview(students, unitHeaders, config).filter((item) => item.validCount > 0)
+  const unitOverview = buildUnitOverview(students, unitHeaders, config).filter(
+    (item) => item.validCount > 0
+  )
   const metrics = buildStudentMetrics(students, unitHeaders, config)
   const alertGroups = buildAlertGroups(metrics, config)
   const rankingGroups = buildRankingGroups(metrics, config)
@@ -468,6 +524,7 @@ export const buildHomeDashboardData = (options: BuildDashboardDataOptions): Dash
   return {
     unitHeaders,
     unitOverview,
+    kpi: buildDashboardKpi(unitOverview, metrics, config),
     alertGroups,
     rankingGroups,
     studentOptions: buildStudentOptions(students),

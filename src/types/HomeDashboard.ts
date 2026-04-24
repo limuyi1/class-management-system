@@ -131,9 +131,20 @@ export interface DashboardEvaluationOverviewType {
   aiConfigured: boolean
 }
 
+export interface DashboardKpiType {
+  averageScore: number
+  averagePassRate: number
+  passRateFluctuation: number
+  attentionStudentCount: number
+  completedUnitCount: number
+  biggestFluctuationUnitLabel: string
+  diagnosticText: string
+}
+
 export interface DashboardDataType {
   unitHeaders: SettingType[]
   unitOverview: DashboardUnitOverviewType[]
+  kpi: DashboardKpiType
   alertGroups: DashboardAlertGroupType[]
   rankingGroups: DashboardRankingGroupType[]
   studentOptions: DashboardStudentOptionType[]

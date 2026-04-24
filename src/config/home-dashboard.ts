@@ -8,11 +8,11 @@ export const homeDashboardConfig: HomeDashboardConfigType = {
   unitOverview: {
     // 单元概览图固定展示的分数段，平均分之外的辅助信息都从这里读取
     scoreBands: [
-      { label: '90-100', min: 90, max: 100, color: '#16a34a' },
-      { label: '80-89', min: 80, max: 89, color: '#2563eb' },
-      { label: '70-79', min: 70, max: 79, color: '#f59e0b' },
-      { label: '60-69', min: 60, max: 69, color: '#f97316' },
-      { label: '60以下', min: 0, max: 59, color: '#ef4444' }
+      { label: '90-100', min: 90, max: 100, color: '#52c41a' },
+      { label: '80-89', min: 80, max: 89, color: '#b7eb8f' },
+      { label: '70-79', min: 70, max: 79, color: '#1890ff' },
+      { label: '60-69', min: 60, max: 69, color: '#faad14' },
+      { label: '60以下', min: 0, max: 59, color: '#f5222d' }
     ],
     // 单元数量超过该值时才出现横向滚动条，避免只有少量单元时也显示滑块
     dataZoomThreshold: 6,

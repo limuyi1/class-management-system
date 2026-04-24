@@ -25,7 +25,8 @@ const promptTabs = [
   { key: 'batchComment', label: '批量评语', placeholder: DefaultAIPrompts.batchComment },
   { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore },
   { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate },
-  { key: 'answerGenerate', label: 'AI答题', placeholder: DefaultAIPrompts.answerGenerate }
+  { key: 'answerGenerate', label: 'AI答题', placeholder: DefaultAIPrompts.answerGenerate },
+  { key: 'learningAnalysis', label: '学情分析', placeholder: DefaultAIPrompts.learningAnalysis }
 ]
 
 const handleModelChange = async (val: AIModelTypeEnum) => {
@@ -259,6 +260,9 @@ const handleResetPrompt = () => {
             </div>
             <div class="tip-item">
               • <code v-pre>{{ requirement }}</code> - 自定义生成要求
+            </div>
+            <div class="tip-item">
+              • <code v-pre>{{ dashboard }}</code> - 班级总览数据（JSON对象）
             </div>
           </div>
         </el-card>

@@ -44,6 +44,7 @@ export interface AIPromptsType {
   imageScore: string
   tagGenerate: string
   answerGenerate: string
+  learningAnalysis: string
 }
 
 export const DefaultAIPrompts: AIPromptsType = {
@@ -129,5 +130,16 @@ export const DefaultAIPrompts: AIPromptsType = {
 4. 如果是解答题，要给出完整解题过程
 5. 使用通俗易懂的语言，符合小学生认知水平
 6. 数学公式必须使用LaTeX格式表示（如 $x^2$、$\\frac{a}{b}$）
-7. 仅返回JSON对象，不要有其他任何文字`
+7. 仅返回JSON对象，不要有其他任何文字`,
+  learningAnalysis: `你是一位有经验的小学班主任和学科老师。请根据以下班级成绩总览数据，生成一份面向老师的 Markdown 学情分析：
+{{dashboard}}
+
+分析要求：
+1. 只返回 Markdown 正文，不要返回 JSON，不要包裹代码块
+2. 固定使用以下三级标题：### 整体判断、### 关注重点、### 后续建议
+3. 每个标题下写 2-3 条短句，优先使用无序列表
+4. 语言具体、克制，不夸大，不使用空泛口号
+5. 总字数控制在180-260字
+6. 不要输出 HTML 标签
+7. 只分析成绩分布、预警学生、异动和教学建议，不要提及评语、过程性评价、评价数据录入或 AI 配置状态`
 }

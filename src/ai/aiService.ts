@@ -1,7 +1,13 @@
 import { AIModelTypeEnum } from '@/types/AIConfig'
 
 import type { AIServiceConfig } from '@/ai/types'
-import { createGeminiModel, generateText, getContentFromOpenAIResponse, openaiGet, openaiPost } from '@/ai/providers'
+import {
+  createGeminiModel,
+  generateText,
+  getContentFromOpenAIResponse,
+  openaiGet,
+  openaiPost
+} from '@/ai/providers'
 import { parseJsonArray, parseJsonObject } from '@/ai/responseParser'
 
 /**
@@ -64,7 +70,11 @@ function parseArrayWithFallback<T>(responseText: string, fallback: T[], scene: s
   return fallback
 }
 
-async function generateVisionText(config: AIServiceConfig, prompt: string, imageBase64: string): Promise<string> {
+async function generateVisionText(
+  config: AIServiceConfig,
+  prompt: string,
+  imageBase64: string
+): Promise<string> {
   if (config.modelType === AIModelTypeEnum.GEMINI) {
     const model = createGeminiModel(config)
     const imagePart = {
@@ -115,9 +125,9 @@ async function generateVisionTextWithMultiImages(
     return result.response.text()
   }
 
-  const userContent: Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }> = [
-    { type: 'text', text: prompt }
-  ]
+  const userContent: Array<
+    { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }
+  > = [{ type: 'text', text: prompt }]
 
   for (const image of questionImages) {
     userContent.push({
@@ -257,6 +267,21 @@ export async function generateTags(
 
   const responseText = await generateText(config, promptText)
   return parseArrayWithFallback<string>(responseText, [], 'generateTags')
+}
+
+/**
+ * 生成班级学情分析
+ */
+export async function generateLearningAnalysis(
+  dashboard: Record<string, unknown>,
+  prompt: string,
+  config: AIServiceConfig
+): Promise<string> {
+  const promptText = replaceTemplate(prompt, {
+    dashboard: JSON.stringify(dashboard, null, 2)
+  })
+
+  return generateText(config, promptText)
 }
 
 /**
