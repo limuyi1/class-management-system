@@ -48,7 +48,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const aiConfigStore = useAIConfigStore()
 
   const { items: originList } = storeToRefs(dataStore)
-  const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
+  const { tagCategory: tagCategoryList, tableHeaders } = storeToRefs(settingStore)
 
   const generating = ref(false)
   const optionsList = ref<StudentDataType[]>([])
@@ -89,16 +89,31 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     return name === null || name === undefined ? '' : String(name)
   }
 
-  // AI 生成评语时仍会补充当前录入科目的成绩，便于模型拿到更多学生上下文。
-  const getStudentScore = (student: StudentDataType): number | null => {
-    if (!configuration.inputScoreTab) return null
-    const value = student[configuration.inputScoreTab]
-    if (typeof value === 'number') return value
-    if (typeof value === 'string') {
-      const parsed = parseFloat(value)
-      return Number.isNaN(parsed) ? null : parsed
-    }
-    return null
+  /**
+   * AI 评语统一补充完整成绩轨迹，保持单个评语和批量评语的 score 语义一致。
+   */
+  const getStudentScoreHistory = (
+    student: StudentDataType
+  ): Array<{ label: string; value: number }> => {
+    return tableHeaders.value
+      .filter((header) => header.prop !== NAME_PROP)
+      .map((header) => {
+        const rawValue = student[header.prop]
+        const score =
+          typeof rawValue === 'number'
+            ? rawValue
+            : typeof rawValue === 'string'
+              ? Number(rawValue)
+              : NaN
+
+        if (!Number.isFinite(score)) return null
+
+        return {
+          label: header.label,
+          value: score
+        }
+      })
+      .filter((item): item is { label: string; value: number } => item !== null)
   }
 
   const remoteMethod = (query: string) => {
@@ -264,7 +279,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
       const student = {
         name: getStudentName(item),
         tags: allTags,
-        score: getStudentScore(item) ?? undefined
+        score: getStudentScoreHistory(item)
       }
 
       const comment = await generateSingleComment(student, aiConfigStore.prompts.singleComment, {

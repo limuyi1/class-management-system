@@ -19,7 +19,10 @@ import { parseJsonArray, parseJsonObject } from '@/ai/responseParser'
 interface StudentData {
   name: string
   tags?: string[]
-  score?: number
+  /**
+   * 单人评语沿用单个成绩，批量评语允许传入结构化成绩数组。
+   */
+  score?: number | Array<{ label: string; value: number }>
   comment?: string | null
 }
 
@@ -41,17 +44,26 @@ interface AnswerGenerateResult {
   explanation: string
 }
 
+function formatTemplateValue(value: unknown): string {
+  if (Array.isArray(value)) {
+    if (!value.length) return '暂无'
+
+    const containsObject = value.some((item) => typeof item === 'object' && item !== null)
+    return containsObject ? JSON.stringify(value, null, 2) : value.join('、')
+  }
+
+  if (value === null || value === undefined) {
+    return '暂无'
+  }
+
+  return String(value)
+}
+
 function replaceTemplate(template: string, data: Record<string, unknown>): string {
   let result = template
   for (const [key, value] of Object.entries(data)) {
     const regex = new RegExp(`{{${key}}}`, 'g')
-    if (Array.isArray(value)) {
-      result = result.replace(regex, value.join('、'))
-    } else if (value === null || value === undefined) {
-      result = result.replace(regex, '暂无')
-    } else {
-      result = result.replace(regex, String(value))
-    }
+    result = result.replace(regex, formatTemplateValue(value))
   }
   return result
 }

@@ -247,7 +247,10 @@ const handleResetPrompt = () => {
               • <code v-pre>{{ tags }}</code> - 学生标签（数组）
             </div>
             <div class="tip-item">
-              • <code v-pre>{{ score }}</code> - 考试成绩
+              • <code v-pre>{{ score }}</code> - 成绩数组，建议按 <code>{`{ label, value }`}</code> 理解
+            </div>
+            <div class="tip-item">
+              批量结构示例：<code>[{`{ label: '第一次月考', value: 82 }`}]</code>
             </div>
             <div class="tip-item">
               • <code v-pre>{{ students }}</code> - 批量学生数据（JSON数组）

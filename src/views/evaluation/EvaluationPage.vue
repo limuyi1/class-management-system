@@ -35,7 +35,7 @@ const dataStore = useDataSourceStore()
 const { items: students, enabledData: enabledStudents } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
-const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
+const { tagCategory: tagCategoryList, tableHeaders } = storeToRefs(settingStore)
 const aiConfigStore = useAIConfigStore()
 const { percentage, notCompletedCount } = useProgress({
   data: students,
@@ -173,6 +173,31 @@ const getStudentScore = (student: StudentDataType): number | undefined => {
   return typeof score === 'number' && Number.isFinite(score) ? score : undefined
 }
 
+/**
+ * 批量评语需要携带完整成绩轨迹，便于模型结合多个单元表现生成更稳的评语。
+ */
+const getStudentScoreHistory = (student: StudentDataType): Array<{ label: string; value: number }> => {
+  return tableHeaders.value
+    .filter((header) => header.prop !== NAME_PROP)
+    .map((header) => {
+      const rawValue = student[header.prop]
+      const score =
+        typeof rawValue === 'number'
+          ? rawValue
+          : typeof rawValue === 'string'
+            ? Number(rawValue)
+            : NaN
+
+      if (!Number.isFinite(score)) return null
+
+      return {
+        label: header.label,
+        value: score
+      }
+    })
+    .filter((item): item is { label: string; value: number } => item !== null)
+}
+
 const handleBatchGenerate = async () => {
   if (!aiConfigStore.isConfigured) {
     ElMessage.warning('请先在设置页面配置 AI')
@@ -254,7 +279,7 @@ const handleBatchGenerate = async () => {
       return {
         name: getStudentName(item),
         tags: allTags,
-        score: getStudentScore(item),
+        score: getStudentScoreHistory(item),
         comment: mode === 'overwrite' ? '' : (item.comment || '')
       }
     })
