@@ -32,8 +32,15 @@ export function useOverviewDashboard() {
   const unitHeaders = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
 
   /**
-   * 数据源变化后，重新校验当前选中学生。
-   * 如果原选择失效，则自动回落到首个可用学生，保证抽屉打开后有可展示内容。
+   * 数据源变化后，重新校验当前选中学生是否仍然有效。
+   *
+   * 监听逻辑：
+   * 1. 从 buildDashboardData 获取当前有效的学生列表（studentOptions）
+   * 2. 检查 selectedStudentNames 中的学生是否仍在有效列表中
+   * 3. 若全部失效，自动选择首个学生作为兜底
+   * 4. 若超出最大对比人数，自动截断
+   *
+   * 使用 studentOptions 而非直接监听 enabledData，是因为需要确保学生姓名稳定。
    */
   watch(
     () =>

@@ -5,19 +5,22 @@ import { useRouter } from 'vue-router'
 import type { DashboardEvaluationOverviewType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 评语完成情况概览数据 */
   overview: DashboardEvaluationOverviewType
 }
 
 const props = defineProps<Props>()
 const router = useRouter()
 
+/** 完成评语的人数格式：已完成/总数 */
 const completionLabel = computed(() => {
   return `${props.overview.completedCount} / ${props.overview.totalCount}`
 })
 
 /**
- * 评语总览弱化成轻量状态块：
- * 点击块本身完成跳转，不再额外占用按钮空间
+ * 点击卡片跳转到对应页面。
+ * - comment：跳转评语页
+ * - setting：跳转 AI 配置页
  */
 const handleCardClick = (target: 'comment' | 'setting') => {
   if (target === 'comment') {

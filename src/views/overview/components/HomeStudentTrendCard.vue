@@ -3,9 +3,13 @@ import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendP
 import type { DashboardStudentOptionType, DashboardStudentTrendType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 当前选中的学生姓名数组（v-model） */
   modelValue: string[]
+  /** 趋势分析数据 */
   studentTrend: DashboardStudentTrendType | null
+  /** 学生下拉选项列表 */
   studentOptions: DashboardStudentOptionType[]
+  /** 快捷添加的学生名单 */
   quickStudentNames: string[]
 }
 

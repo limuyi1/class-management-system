@@ -9,9 +9,13 @@ import OverlengthTextTooltip from '@/components/OverlengthTextTooltip.vue'
 import type { DashboardStudentOptionType, DashboardStudentTrendType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 当前选中的学生姓名数组（v-model） */
   modelValue: string[]
+  /** 趋势分析数据，支持单人和多人对比 */
   studentTrend: DashboardStudentTrendType | null
+  /** 学生下拉选项列表 */
   studentOptions: DashboardStudentOptionType[]
+  /** 快捷添加按钮的学生名单（来自关注列表） */
   quickStudentNames: string[]
 }
 
@@ -30,6 +34,10 @@ const showMaxCompareWarning = () => {
   ElMessage.warning(`最多只能对比 ${maxCompareCount} 名学生`)
 }
 
+/**
+ * 选中学生的计算属性，支持上限拦截。
+ * 超过最大对比人数时自动拒绝并提示。
+ */
 const selectedValue = computed({
   get: () => props.modelValue,
   set: (value: string[]) => {
@@ -43,7 +51,8 @@ const selectedValue = computed({
 })
 
 /**
- * 多人模式按颜色区分学生，折线和柱状两种图共用同一组配色
+ * 多人模式按颜色区分学生，折线和柱状两种图共用同一组配色。
+ * 最多支持 5 名学生同时对比。
  */
 const chartColors = ['#0f766e', '#2563eb', '#f97316', '#dc2626', '#7c3aed']
 const chartAreaColors = [
@@ -75,6 +84,15 @@ const formatTooltipRows = (params: unknown) => {
   </div>`
 }
 
+/**
+ * 图表配置，支持折线和柱状两种模式。
+ *
+ * 图表特点：
+ * - 单人模式：折线图显示分数标签
+ * - 多人模式：各学生使用不同颜色区分
+ * - X 轴显示单元名称
+ * - Y 轴固定 0-100 分范围
+ */
 const chartOption = computed<EChartsOption>(() => {
   const students = props.studentTrend?.students || []
   const shouldShowLineScoreLabel = props.studentTrend?.mode === 'single'
@@ -195,6 +213,10 @@ const chartOption = computed<EChartsOption>(() => {
   }
 })
 
+/**
+ * 快捷添加学生到对比列表。
+ * 已选中学生会被移到列表首位，未选中学生会追加到末尾。
+ */
 const addQuickStudent = (name: string) => {
   if (!selectedValue.value.includes(name) && selectedValue.value.length >= maxCompareCount) {
     showMaxCompareWarning()

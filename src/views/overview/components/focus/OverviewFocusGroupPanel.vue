@@ -10,6 +10,7 @@ import type {
 } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 单个关注分组数据，包含多个标签区块 */
   group: DashboardFocusGroupType
 }
 
@@ -19,6 +20,7 @@ const emit = defineEmits<{
   select: [name: string]
 }>()
 
+/** 默认展示的学生数量，超过则显示"查看全部"按钮 */
 const DEFAULT_VISIBLE_COUNT = 5
 
 const state = reactive({
@@ -26,6 +28,11 @@ const state = reactive({
   activeSectionKey: ''
 })
 
+/**
+ * 区块显示顺序映射。
+ * 中段变化：下滑在前，上升在后。
+ * 波动观察：下行在前，上行在后。
+ */
 const sectionOrderMaps: Partial<Record<DashboardFocusGroupKeyType, Record<string, number>>> = {
   middleChange: {
     middleFalling: 0,

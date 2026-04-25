@@ -2,7 +2,9 @@
 import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 汇总卡片数据，包含标签、人数、详情等 */
   card: DashboardSummaryCardType
+  /** Grid 列跨度，控制卡片宽度 */
   span: number
 }
 

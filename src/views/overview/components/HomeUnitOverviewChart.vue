@@ -7,12 +7,18 @@ import AppEChart from '@/components/AppEChart.vue'
 import type { DashboardTeachingInsightType, DashboardUnitOverviewType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 单元概览数据，包含每个单元的均分、分数段分布 */
   unitOverview: DashboardUnitOverviewType[]
+  /** 教学提示数据（暂未使用，预留用于图表注释） */
   teachingInsights: DashboardTeachingInsightType[]
 }
 
 const props = defineProps<Props>()
 
+/**
+ * 格式化 ECharts 提示框内容。
+ * 显示单元名称、有效人数、各分数段人数。
+ */
 const formatTooltipRows = (params: unknown, validCountMap: Map<string, number>) => {
   const items = Array.isArray(params)
     ? (params as Array<{ axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown }>)
@@ -36,6 +42,18 @@ const formatTooltipRows = (params: unknown, validCountMap: Map<string, number>) 
   </div>`
 }
 
+/**
+ * 图表配置。
+ *
+ * 图表结构：
+ * - X 轴：单元名称 + 有效人数
+ * - 左侧 Y 轴：平均分（折线图）
+ * - 右侧 Y 轴：各分数段人数（柱状图）
+ *
+ * 响应式：
+ * - 单元数超过阈值时启用缩放组件
+ * - 分数段人数为 0 时隐藏标签
+ */
 const chartOption = computed<EChartsOption>(() => {
   const labels = props.unitOverview.map((item) => item.label)
   const showDataZoom = labels.length > overviewDashboardConfig.unitOverview.dataZoomThreshold

@@ -5,9 +5,13 @@ import { renderMarkdown } from '@/utils/katexUntil'
 import type { DashboardEvaluationOverviewType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 评语完成情况概览数据 */
   evaluationOverview: DashboardEvaluationOverviewType
+  /** AI 生成的学情分析文本 */
   analysisText: string
+  /** 分析文本的生成时间 */
   analysisGeneratedAt: string
+  /** 是否正在生成分析 */
   analysisLoading: boolean
 }
 
@@ -22,6 +26,9 @@ const analysisDialogVisible = ref(false)
 
 const diagnosisTitle = computed(() => 'AI 学情分析')
 
+/**
+ * 根据配置状态和生成状态返回不同的提示文案。
+ */
 const diagnosisText = computed(() => {
   if (!props.evaluationOverview.aiConfigured) {
     return '暂未配置 AI，配置后可基于当前班级总览自动生成学情分析。'
@@ -30,6 +37,10 @@ const diagnosisText = computed(() => {
   return props.analysisText || '暂未生成学情分析，点击下方按钮即可生成。'
 })
 
+/**
+ * 去除 Markdown 格式，生成纯文本预览。
+ * 用于卡片中的三行截断展示。
+ */
 const diagnosisPreviewText = computed(() => {
   return diagnosisText.value
     .replace(/^#{1,6}\s+/gm, '')

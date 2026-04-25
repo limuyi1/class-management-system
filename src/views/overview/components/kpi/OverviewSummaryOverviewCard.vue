@@ -2,7 +2,9 @@
 import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 班级概况卡片数据（特殊布局，与其他汇总卡片不同） */
   card: DashboardSummaryCardType
+  /** Grid 列跨度 */
   span: number
 }
 

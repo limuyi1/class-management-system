@@ -2,8 +2,11 @@
 import type { DashboardStudentListItemType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 学生列表项数据 */
   item: DashboardStudentListItemType
+  /** 色调类型，对应不同的关注级别 */
   tone: 'danger' | 'warning' | 'success' | 'info'
+  /** 展示变体：panel 用于观察站，list 用于关键学生列表 */
   variant?: 'panel' | 'list'
 }
 
@@ -15,6 +18,10 @@ const emit = defineEmits<{
   select: [name: string]
 }>()
 
+/**
+ * 原因标签前缀映射。
+ * 根据色调类型显示不同的操作提示。
+ */
 const prefixMap: Record<Props['tone'], string> = {
   danger: '需关注',
   warning: '波动中',
@@ -26,6 +33,7 @@ const handleSelect = () => {
   emit('select', props.item.name)
 }
 
+/** 获取头像文本，取姓名首字母大写 */
 const getAvatarText = (name: string) => {
   const trimmedName = name.trim()
 

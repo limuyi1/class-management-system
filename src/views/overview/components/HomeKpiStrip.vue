@@ -7,16 +7,24 @@ import OverviewSummaryOverviewCard from '@/views/overview/components/kpi/Overvie
 import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 汇总卡片数据，包含四类分组卡片 + 班级概况卡片 */
   summaryCards: DashboardSummaryCardType[]
 }
 
 const props = defineProps<Props>()
 
+/** 统计类卡片：立即关注、值得鼓励、中段变化、波动观察（不含班级概况） */
 const statCards = computed(() => props.summaryCards.filter((card) => card.key !== 'overview'))
+/** 班级概况卡片，单独展示 */
 const overviewCard = computed(
   () => props.summaryCards.find((card) => card.key === 'overview') || null
 )
 
+/**
+ * 根据卡片类型返回 grid 列跨度。
+ * attention 和 overview 占 2 列，其他卡片占 1 列。
+ * 响应式布局下统一为 1 列。
+ */
 const getCardSpan = (card: DashboardSummaryCardType) => {
   switch (card.key) {
     case 'attention':

@@ -32,7 +32,12 @@ import type {
 } from '@/views/overview/services/dashboard/types'
 
 /**
- * 生成总览页右侧“学生观察站”的分组结构。
+ * 生成总览页右侧”学生观察站”的分组结构。
+ *
+ * 分组结构：四类标签组（立即关注/值得鼓励/中段变化/波动观察），
+ * 每组下包含多个标签区块（如”突发异常”、”下滑关注”等）。
+ * 区块内的学生按推荐分数排序，同一标签优先展示。
+ * 波动标签会被细分为”波动上行”和”波动下行”两个区块。
  */
 export const buildFocusGroups = (
   metrics: StudentMetricType[],
@@ -131,6 +136,16 @@ export const buildFocusGroups = (
   }))
 }
 
+/**
+ * 生成总览页左侧的汇总卡片数据。
+ *
+ * 包含五类卡片：
+ * - 立即关注：需要优先处理的学生数量及细分标签
+ * - 值得鼓励：进步学生数量（不含"高分稳定"，因稳定不属于进步）
+ * - 中段变化：中段层学生的变化情况
+ * - 波动观察：波动学生的上行/下行分布
+ * - 班级概况：整体均分、及格率、单元完成进度
+ */
 export const buildSummaryCards = (
   metrics: StudentMetricType[],
   kpi: DashboardKpiType,
@@ -229,6 +244,13 @@ export const buildSummaryCards = (
   ]
 }
 
+/**
+ * 生成关键学生列表（用于概览页左侧下方的学生列表展示）。
+ *
+ * 从三个分组（attention/encouragement/volatilityWatch）中各取最多 N 名学生。
+ * 选取规则：按推荐分数排序，推荐分数相同则按标签优先级排序。
+ * 波动观察组内再按中段变化类型细分排序。
+ */
 export const buildKeyStudentLists = (
   metrics: StudentMetricType[],
   config: HomeDashboardConfigType
@@ -315,6 +337,15 @@ export const buildKeyStudentLists = (
   )
 }
 
+/**
+ * 生成教学提示：每个单元的突出特点。
+ *
+ * 四个维度：
+ * - 班均最低：该单元班级均分最低，需重点关注
+ * - 低分人数最多：该单元不及格学生最多，教学难度大
+ * - 差异最大：该单元标准差最大，学生分化严重
+ * - 波动最明显：该单元与前一单元均分差异最大
+ */
 export const buildTeachingInsights = (unitMetrics: UnitMetricType[]): DashboardTeachingInsightType[] => {
   if (!unitMetrics.length) return []
 
@@ -354,6 +385,20 @@ export const buildTeachingInsights = (unitMetrics: UnitMetricType[]): DashboardT
   ]
 }
 
+/**
+ * 生成趋势分析数据，支持单人聚焦和多人对比两种模式。
+ *
+ * 单人模式：
+ * - 根据最新成绩较历史均分的差值生成描述
+ * - 列出学生命中的所有标签
+ * - 显示已录入单元数和均分
+ *
+ * 多人对比模式：
+ * - 找出均分最高和波动最大的学生
+ * - 生成对比摘要
+ *
+ * 两种模式都会限制摘要条数（由配置控制）。
+ */
 export const buildStudentTrend = (
   metrics: StudentMetricType[],
   selectedStudentNames: string[],
@@ -422,6 +467,11 @@ export const buildStudentTrend = (
   }
 }
 
+/**
+ * 生成学生下拉选项列表。
+ * 用于趋势分析抽屉的学生选择器。
+ * 去重并按中文拼音排序。
+ */
 export const buildStudentOptions = (students: StudentDataType[]): DashboardStudentOptionType[] => {
   return students
     .map((student) => getStudentName(student))
@@ -433,6 +483,11 @@ export const buildStudentOptions = (students: StudentDataType[]): DashboardStude
     }))
 }
 
+/**
+ * 生成评语完成情况概览。
+ * 统计已写评语人数、待写人数和完成率。
+ * aiConfigured 用于提示用户是否已配置 AI 可辅助生成评语。
+ */
 export const buildEvaluationOverview = (
   students: StudentDataType[],
   aiConfigured: boolean
@@ -452,6 +507,17 @@ export const buildEvaluationOverview = (
   }
 }
 
+/**
+ * 生成 KPI 指标数据。
+ *
+ * 计算内容：
+ * - averageScore：所有单元所有成绩的总体均分
+ * - averagePassRate：各单元及格率的均分
+ * - passRateFluctuation：各单元及格率的最大差异
+ * - attentionStudentCount：命中"立即关注"标签的学生数
+ * - biggestFluctuationUnitLabel：均分偏离总体均分最大的单元
+ * - diagnosticText：诊断文本，用于 AI 分析输入
+ */
 export const buildDashboardKpi = (
   unitMetrics: UnitMetricType[],
   metrics: StudentMetricType[],
@@ -489,6 +555,23 @@ export const buildDashboardKpi = (
   }
 }
 
+/**
+ * 总览数据构建总入口。
+ *
+ * 编排所有子模块的构建结果，组装成完整的 DashboardDataType。
+ * 各子模块的数据流：
+ *   unitMetrics ─┬─> buildDashboardKpi ─> summaryCards
+ *                ├─> buildFocusGroups
+ *                ├─> buildKeyStudentLists
+ *                └─> buildTeachingInsights
+ *
+ *   metrics ─────┬─> buildFocusGroups
+ *                ├─> buildKeyStudentLists
+ *                ├─> buildStudentTrend
+ *                └─> buildSummaryCards
+ *
+ * quickStudentNames 用于快速定位，收集关注学生和关键学生列表中出现的姓名（去重，最多16个）。
+ */
 export const buildOverviewDashboardData = (
   options: BuildOverviewDashboardDataOptions,
   unitMetrics: UnitMetricType[],

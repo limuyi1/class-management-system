@@ -4,15 +4,24 @@ import OverviewStudentRow from '@/views/overview/components/OverviewStudentRow.v
 import type { DashboardFocusGroupKeyType, DashboardKeyStudentListType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 三类关键学生列表：立即关注、值得鼓励、波动观察 */
   lists: DashboardKeyStudentListType[]
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 点击学生行时触发，打开趋势分析抽屉 */
   select: [name: string]
 }>()
 
+/**
+ * 卡片色调映射，对应 UI 的语义颜色：
+ * - attention → danger（红色警示）
+ * - encouragement → success（绿色鼓励）
+ * - middleChange → info（蓝色中性）
+ * - volatilityWatch → warning（橙色观察）
+ */
 const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'success' | 'info'> = {
   attention: 'danger',
   encouragement: 'success',

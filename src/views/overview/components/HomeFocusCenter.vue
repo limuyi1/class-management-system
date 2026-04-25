@@ -6,16 +6,20 @@ import OverviewFocusGroupPanel from '@/views/overview/components/focus/OverviewF
 import type { DashboardFocusGroupType } from '@/types/HomeDashboard'
 
 interface Props {
+  /** 四类学生观察分组：立即关注、值得鼓励、中段变化、波动观察 */
   focusGroups: DashboardFocusGroupType[]
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 点击学生时触发，打开趋势分析抽屉 */
   select: [name: string]
 }>()
 
+/** 是否有任何可见的分组内容 */
 const hasVisibleItems = () => props.focusGroups.some((group) => group.sections.length > 0)
+/** 是否有分组内容超过 5 条，用于判断是否启用展开模式 */
 const hasExpandedGroup = computed(() =>
   props.focusGroups.some((group) => group.sections.some((section) => section.items.length > 5))
 )
