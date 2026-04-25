@@ -464,6 +464,7 @@ const buildEvaluationOverview = (
 const buildDashboardKpi = (
   unitOverview: DashboardUnitOverviewType[],
   metrics: StudentMetricType[],
+  alertGroups: DashboardAlertGroupType[],
   config: HomeDashboardConfigType
 ): DashboardKpiType => {
   const allScores = metrics.flatMap((metric) => metric.points.map((point) => point.score))
@@ -476,9 +477,7 @@ const buildDashboardKpi = (
     return unit.validCount ? (passedCount / unit.validCount) * 100 : 0
   })
   const attentionStudentCount = new Set(
-    metrics
-      .filter((metric) => metric.points.some((point) => point.score < 70))
-      .map((metric) => metric.name)
+    alertGroups.flatMap((group) => group.items).map((item) => item.name)
   ).size
   const unitWithLargestAverageRange = [...unitOverview].sort(
     (a, b) => Math.abs(b.averageScore - averageScore) - Math.abs(a.averageScore - averageScore)
@@ -494,7 +493,7 @@ const buildDashboardKpi = (
     attentionStudentCount,
     completedUnitCount: unitOverview.length,
     biggestFluctuationUnitLabel,
-    diagnosticText: `本学期已完成 ${unitOverview.length} 个单元，及格边缘学生共 ${attentionStudentCount} 人，${biggestFluctuationUnitLabel === '--' ? '暂无明显波动单元' : `${biggestFluctuationUnitLabel} 波动最大`}`
+    diagnosticText: `本学期已完成 ${unitOverview.length} 个单元，重点关注学生共 ${attentionStudentCount} 人，${biggestFluctuationUnitLabel === '--' ? '暂无明显波动单元' : `${biggestFluctuationUnitLabel} 波动最大`}`
   }
 }
 
@@ -524,7 +523,7 @@ export const buildHomeDashboardData = (options: BuildDashboardDataOptions): Dash
   return {
     unitHeaders,
     unitOverview,
-    kpi: buildDashboardKpi(unitOverview, metrics, config),
+    kpi: buildDashboardKpi(unitOverview, metrics, alertGroups, config),
     alertGroups,
     rankingGroups,
     studentOptions: buildStudentOptions(students),

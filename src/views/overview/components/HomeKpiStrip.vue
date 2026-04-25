@@ -3,7 +3,11 @@ import { computed, nextTick, ref, watch } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 
 import { renderMarkdown } from '@/utils/katexUntil'
-import type { DashboardEvaluationOverviewType, DashboardKpiType } from '@/types/HomeDashboard'
+import type {
+  DashboardEvaluationOverviewType,
+  DashboardKpiType,
+  DashboardStudentListItemType
+} from '@/types/HomeDashboard'
 
 interface Props {
   kpi: DashboardKpiType
@@ -11,6 +15,7 @@ interface Props {
   analysisText: string
   analysisGeneratedAt: string
   analysisLoading: boolean
+  attentionStudents: DashboardStudentListItemType[]
 }
 
 const props = defineProps<Props>()
@@ -18,10 +23,12 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   generateAnalysis: []
   goAiSetting: []
+  selectAttentionStudent: [name: string]
 }>()
 
 const diagnosisTextRef = ref<HTMLElement>()
 const analysisDialogVisible = ref(false)
+const attentionDialogVisible = ref(false)
 const diagnosisOverflow = ref(false)
 
 const diagnosisTitle = computed(() => {
@@ -53,6 +60,10 @@ const showInlineGenerateAction = computed(() => {
   return props.evaluationOverview.aiConfigured && !props.analysisText
 })
 
+const showDiagnosisLoadingMask = computed(() => {
+  return props.evaluationOverview.aiConfigured && !props.analysisText && props.analysisLoading
+})
+
 const formattedAnalysisTime = computed(() => {
   if (!props.analysisGeneratedAt) return ''
   const date = new Date(props.analysisGeneratedAt)
@@ -78,6 +89,15 @@ const checkDiagnosisOverflow = async () => {
 
 const openAnalysisDialog = () => {
   analysisDialogVisible.value = true
+}
+
+const openAttentionDialog = () => {
+  attentionDialogVisible.value = true
+}
+
+const handleAttentionStudentSelect = (name: string) => {
+  attentionDialogVisible.value = false
+  emit('selectAttentionStudent', name)
 }
 
 watch(
@@ -109,13 +129,28 @@ useResizeObserver(diagnosisTextRef, () => {
       </div>
 
       <div class="kpi-card is-warning">
-        <div class="kpi-label">需关注学生</div>
+        <div class="kpi-card-header">
+          <div class="kpi-label">需关注学生</div>
+          <button
+            class="kpi-link-btn"
+            type="button"
+            :disabled="!attentionStudents.length"
+            @click="openAttentionDialog"
+          >
+            {{ attentionStudents.length ? '查看名单' : '暂无名单' }}
+          </button>
+        </div>
         <div class="kpi-value">{{ kpi.attentionStudentCount }}</div>
-        <div class="kpi-caption">曾进入不及格或临界区间</div>
+        <div class="kpi-caption">命中右侧预警规则</div>
       </div>
     </div>
 
-    <div class="kpi-card is-diagnosis">
+    <div
+      v-loading="showDiagnosisLoadingMask"
+      class="kpi-card is-diagnosis"
+      element-loading-text="AI 正在生成学情分析"
+      element-loading-background="rgba(248, 250, 252, 0.82)"
+    >
       <div class="diagnosis-header">
         <div class="kpi-label">
           {{ diagnosisTitle }}
@@ -162,7 +197,9 @@ useResizeObserver(diagnosisTextRef, () => {
       :title="diagnosisTitle"
       width="680px"
     >
-      <div class="analysis-dialog-content markdown-body" v-html="renderedDiagnosisHtml"></div>
+      <el-scrollbar max-height="52vh">
+        <div class="analysis-dialog-content markdown-body" v-html="renderedDiagnosisHtml"></div>
+      </el-scrollbar>
       <template #footer>
         <el-button @click="analysisDialogVisible = false">关闭</el-button>
         <el-button
@@ -174,6 +211,34 @@ useResizeObserver(diagnosisTextRef, () => {
           {{ analysisText ? '重新生成' : '生成分析' }}
         </el-button>
         <el-button v-else type="primary" @click="emit('goAiSetting')">配置 AI</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="attentionDialogVisible"
+      class="attention-dialog"
+      title="需关注学生名单"
+      width="560px"
+    >
+      <el-scrollbar max-height="50vh">
+        <div v-if="attentionStudents.length" class="attention-dialog-list">
+          <button
+            v-for="item in attentionStudents"
+            :key="item.name"
+            class="attention-student-row"
+            @click="handleAttentionStudentSelect(item.name)"
+          >
+            <span class="attention-student-header">
+              <span class="attention-student-name">{{ item.name }}</span>
+              <span class="attention-student-badge">{{ item.badge }}</span>
+            </span>
+            <span class="attention-student-subtitle">{{ item.subtitle }}</span>
+          </button>
+        </div>
+        <el-empty v-else :image-size="72" description="暂无需关注学生"></el-empty>
+      </el-scrollbar>
+      <template #footer>
+        <el-button @click="attentionDialogVisible = false">关闭</el-button>
       </template>
     </el-dialog>
   </section>
@@ -208,6 +273,13 @@ useResizeObserver(diagnosisTextRef, () => {
   color: var(--text-secondary);
 }
 
+.kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .kpi-value {
   margin-top: 6px;
   color: var(--text-primary);
@@ -221,6 +293,27 @@ useResizeObserver(diagnosisTextRef, () => {
   color: #64748b;
   font-size: 12px;
   line-height: 1.45;
+}
+
+.kpi-link-btn {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--theme-primary);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+
+  &:disabled {
+    color: #94a3b8;
+    cursor: default;
+  }
+
+  &:not(:disabled):hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
 }
 
 .diagnosis-header {
@@ -311,8 +404,6 @@ useResizeObserver(diagnosisTextRef, () => {
 }
 
 .analysis-dialog-content {
-  max-height: 52vh;
-  overflow: auto;
   padding: 14px 16px;
   border: 1px solid #e5edf5;
   border-radius: 8px;
@@ -355,6 +446,82 @@ useResizeObserver(diagnosisTextRef, () => {
 
   :deep(strong) {
     color: #0f172a;
+  }
+}
+
+.attention-dialog-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.attention-student-row {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #e5edf5;
+  border-radius: 8px;
+  background: #f8fafc;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--theme-primary) 24%, #ffffff);
+    background: #ffffff;
+  }
+}
+
+.attention-student-header {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.attention-student-name {
+  min-width: 0;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attention-student-subtitle {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-line;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.attention-student-badge {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+@media (max-width: 720px) {
+  .attention-dialog-list {
+    grid-template-columns: 1fr;
   }
 }
 

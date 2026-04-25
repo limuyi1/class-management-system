@@ -81,12 +81,7 @@ const getSubtitleLines = (subtitle: string) => {
 
 <template>
   <el-card class="focus-center-card">
-    <div class="focus-header">
-      <div>
-        <div class="focus-title">学生观察站</div>
-        <div class="focus-subtitle">按预警、异动和荣誉分组聚焦学生</div>
-      </div>
-    </div>
+    <div class="focus-title">学生观察站</div>
 
     <el-tabs class="focus-tabs">
       <el-tab-pane label="重点预警">
@@ -223,23 +218,10 @@ const getSubtitleLines = (subtitle: string) => {
   }
 }
 
-.focus-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .focus-title {
   color: var(--text-primary);
   font-size: 16px;
   font-weight: 700;
-}
-
-.focus-subtitle {
-  margin-top: 4px;
-  color: var(--text-secondary);
-  font-size: 12px;
 }
 
 .focus-tabs {

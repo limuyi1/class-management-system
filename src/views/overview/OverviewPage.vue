@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
@@ -16,6 +16,7 @@ import { useHomeDashboard } from '@/hooks/useHomeDashboard'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { DefaultAIPrompts } from '@/types/AIConfig'
+import type { DashboardStudentListItemType } from '@/types/HomeDashboard'
 
 const { selectedStudentNames, dashboardData, focusStudent } = useHomeDashboard()
 const router = useRouter()
@@ -25,6 +26,59 @@ const { analysisText: learningAnalysisText, generatedAt: learningAnalysisGenerat
   storeToRefs(overviewAnalysisStore)
 const trendDrawerVisible = ref(false)
 const learningAnalysisLoading = ref(false)
+const attentionPriorityMap: Record<string, number> = {
+  持续低分: 0,
+  下滑关注: 1,
+  波动最大: 2
+}
+
+const attentionStudents = computed<DashboardStudentListItemType[]>(() => {
+  const studentReasonMap = new Map<
+    string,
+    {
+      subtitles: string[]
+      badges: string[]
+      labels: string[]
+    }
+  >()
+
+  dashboardData.value.alertGroups.forEach((group) => {
+    group.items.forEach((item) => {
+      const current = studentReasonMap.get(item.name) || {
+        subtitles: [],
+        badges: [],
+        labels: []
+      }
+
+      current.labels.push(group.label)
+      current.subtitles.push(`${group.label}：${item.subtitle}`)
+      current.badges.push(item.badge)
+      studentReasonMap.set(item.name, current)
+    })
+  })
+
+  return Array.from(studentReasonMap.entries())
+    .map(([name, reason]) => ({
+      name,
+      subtitle: reason.subtitles.join('\n'),
+      badge: reason.labels.length > 1 ? `${reason.labels.length} 类关注` : reason.badges[0],
+      priority: Math.min(
+        ...reason.labels.map((label) => attentionPriorityMap[label] ?? Number.MAX_SAFE_INTEGER)
+      ),
+      reasonCount: reason.labels.length
+    }))
+    .sort((a, b) => {
+      if (b.reasonCount !== a.reasonCount) return b.reasonCount - a.reasonCount
+      if (a.priority !== b.priority) return a.priority - b.priority
+
+      return a.name.localeCompare(b.name, 'zh-CN')
+    })
+    .map(({ name, subtitle, badge }) => ({
+      name,
+      subtitle,
+      badge
+    }))
+})
 
 const openStudentTrend = (name?: string) => {
   if (name) {
@@ -143,8 +197,10 @@ const handleGenerateLearningAnalysis = async () => {
         :analysis-text="learningAnalysisText"
         :analysis-generated-at="learningAnalysisGeneratedAt"
         :analysis-loading="learningAnalysisLoading"
+        :attention-students="attentionStudents"
         @generate-analysis="handleGenerateLearningAnalysis"
         @go-ai-setting="goToAiSetting"
+        @select-attention-student="openStudentTrend"
       />
 
       <div class="dashboard-primary">
