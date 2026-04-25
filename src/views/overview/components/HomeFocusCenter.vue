@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, reactive, watchEffect } from 'vue'
+
+import OverviewStudentRow from '@/views/overview/components/OverviewStudentRow.vue'
 
 import type {
-  DashboardAlertGroupType,
-  DashboardRankingGroupType,
-  DashboardStudentListItemType
+  DashboardFocusGroupKeyType,
+  DashboardFocusGroupType,
+  DashboardFocusSectionType
 } from '@/types/HomeDashboard'
 
 interface Props {
-  alertGroups: DashboardAlertGroupType[]
-  rankingGroups: DashboardRankingGroupType[]
+  focusGroups: DashboardFocusGroupType[]
 }
 
 const props = defineProps<Props>()
@@ -18,199 +19,190 @@ const emit = defineEmits<{
   select: [name: string]
 }>()
 
-interface FocusGroupType {
-  key: string
-  label: string
-  tone: 'warning' | 'danger' | 'success' | 'info'
-  items: DashboardStudentListItemType[]
+const DEFAULT_VISIBLE_COUNT = 5
+
+const expandedMap = reactive<Record<DashboardFocusGroupKeyType, boolean>>({
+  attention: false,
+  encouragement: false,
+  middleChange: false,
+  volatilityWatch: false
+})
+
+const activeSectionMap = reactive<Record<DashboardFocusGroupKeyType, string>>({
+  attention: '',
+  encouragement: '',
+  middleChange: '',
+  volatilityWatch: ''
+})
+
+const middleChangeOrder: Record<string, number> = {
+  middleFalling: 0,
+  middleRising: 1
 }
 
-const getAlertGroup = (key: DashboardAlertGroupType['key']) => {
-  return props.alertGroups.find((group) => group.key === key)
+const volatilityWatchOrder: Record<string, number> = {
+  volatilityFalling: 0,
+  volatilityRising: 1
 }
 
-const getRankingGroup = (key: DashboardRankingGroupType['key']) => {
-  return props.rankingGroups.find((group) => group.key === key)
+const getSortedSections = (group: DashboardFocusGroupType) =>
+  [...group.sections].sort((a, b) => {
+    if (group.key === 'middleChange') {
+      const sectionOrderDiff =
+        (middleChangeOrder[a.key] ?? Number.MAX_SAFE_INTEGER) -
+        (middleChangeOrder[b.key] ?? Number.MAX_SAFE_INTEGER)
+
+      if (sectionOrderDiff !== 0) {
+        return sectionOrderDiff
+      }
+    }
+
+    if (group.key === 'volatilityWatch') {
+      const sectionOrderDiff =
+        (volatilityWatchOrder[a.key] ?? Number.MAX_SAFE_INTEGER) -
+        (volatilityWatchOrder[b.key] ?? Number.MAX_SAFE_INTEGER)
+
+      if (sectionOrderDiff !== 0) {
+        return sectionOrderDiff
+      }
+    }
+
+    if (a.count !== b.count) {
+      return b.count - a.count
+    }
+
+    return a.label.localeCompare(b.label, 'zh-CN')
+  })
+
+const getActiveSection = (group: DashboardFocusGroupType): DashboardFocusSectionType | null => {
+  const sections = getSortedSections(group)
+  if (!sections.length) return null
+
+  return sections.find((section) => section.key === activeSectionMap[group.key]) || sections[0]
 }
 
-const warningGroups = computed<FocusGroupType[]>(() => [
-  {
-    key: 'largestFluctuation',
-    label: '临界 / 波动学生',
-    tone: 'warning',
-    items: getAlertGroup('largestFluctuation')?.items || []
-  },
-  {
-    key: 'persistentLowScore',
-    label: '持续低分',
-    tone: 'danger',
-    items: getAlertGroup('persistentLowScore')?.items || []
-  }
-])
+const getVisibleItems = (group: DashboardFocusGroupType) => {
+  const activeSection = getActiveSection(group)
+  const items = activeSection?.items || []
 
-const movementGroups = computed<FocusGroupType[]>(() => [
-  {
-    key: 'declining',
-    label: '下滑关注',
-    tone: 'danger',
-    items: getAlertGroup('declining')?.items || []
-  },
-  {
-    key: 'mostImproved',
-    label: '进步明显',
-    tone: 'success',
-    items: getRankingGroup('mostImproved')?.items || []
-  }
-])
-
-const honorGroups = computed<FocusGroupType[]>(() => [
-  {
-    key: 'stableTopFive',
-    label: '高分稳定',
-    tone: 'info',
-    items: getRankingGroup('stableTopFive')?.items || []
-  }
-])
-
-const getVisibleItems = (items: DashboardStudentListItemType[]) => items.slice(0, 6)
-
-const getSubtitleLines = (subtitle: string) => {
-  return subtitle.split('\n').filter(Boolean)
+  return expandedMap[group.key] ? items : items.slice(0, DEFAULT_VISIBLE_COUNT)
 }
+
+const shouldShowToggle = (group: DashboardFocusGroupType) =>
+  (getActiveSection(group)?.items.length || 0) > DEFAULT_VISIBLE_COUNT
+
+const toggleGroupExpanded = (groupKey: DashboardFocusGroupKeyType) => {
+  expandedMap[groupKey] = !expandedMap[groupKey]
+}
+
+const selectSection = (groupKey: DashboardFocusGroupKeyType, sectionKey: string) => {
+  activeSectionMap[groupKey] = sectionKey
+  expandedMap[groupKey] = false
+}
+
+const hasVisibleItems = () => props.focusGroups.some((group) => group.sections.length > 0)
+const hasExpandedGroup = computed(() => Object.values(expandedMap).some(Boolean))
+
+watchEffect(() => {
+  props.focusGroups.forEach((group) => {
+    const sections = getSortedSections(group)
+    const currentSectionKey = activeSectionMap[group.key]
+
+    if (!sections.length) {
+      activeSectionMap[group.key] = ''
+      expandedMap[group.key] = false
+      return
+    }
+
+    if (!sections.some((section) => section.key === currentSectionKey)) {
+      activeSectionMap[group.key] = sections[0].key
+      expandedMap[group.key] = false
+    }
+  })
+})
 </script>
 
 <template>
-  <el-card class="focus-center-card">
-    <div class="focus-title">学生观察站</div>
+  <el-card class="focus-center-card" :class="{ 'is-expanded': hasExpandedGroup }">
+    <div class="focus-header">
+      <div class="focus-title">
+        <font-awesome-icon :icon="['solid', 'binoculars']" />
+        <span>学生观察站</span>
+      </div>
+    </div>
 
-    <el-tabs class="focus-tabs">
-      <el-tab-pane label="重点预警">
-        <div class="focus-group-list">
-          <section
-            v-for="group in warningGroups"
-            :key="group.key"
-            class="focus-group"
-            :class="`is-${group.tone}`"
+    <el-tabs v-if="hasVisibleItems()" class="focus-tabs">
+      <el-tab-pane
+        v-for="group in focusGroups"
+        :key="group.key"
+        :label="group.label"
+      >
+        <div v-if="group.sections.length" class="focus-panel" :class="{ 'is-expanded': expandedMap[group.key] }">
+          <div class="focus-section-tabs">
+            <button
+              v-for="section in getSortedSections(group)"
+              :key="section.key"
+              class="focus-section-tab"
+              :class="[
+                `is-${section.key}`,
+                { 'is-active': getActiveSection(group)?.key === section.key }
+              ]"
+              type="button"
+              @click="selectSection(group.key, section.key)"
+            >
+              <span>{{ section.label }}</span>
+              <strong>{{ section.count }}</strong>
+            </button>
+          </div>
+
+          <div v-if="getActiveSection(group)" class="focus-section-meta">
+            {{ getActiveSection(group)?.description }}
+          </div>
+
+          <el-scrollbar class="focus-scrollbar">
+            <div class="focus-list">
+              <overview-student-row
+                v-for="item in getVisibleItems(group)"
+                :key="`${group.key}-${getActiveSection(group)?.key}-${item.name}`"
+                :item="item"
+                :tone="group.tone"
+                variant="panel"
+                @select="emit('select', $event)"
+              />
+            </div>
+          </el-scrollbar>
+
+          <button
+            v-if="shouldShowToggle(group)"
+            class="focus-toggle"
+            type="button"
+            @click="toggleGroupExpanded(group.key)"
           >
-            <div class="group-heading">
-              <span>{{ group.label }}</span>
-              <em>{{ group.items.length }} 人</em>
-            </div>
-
-            <div v-if="group.items.length" class="student-list">
-              <button
-                v-for="item in getVisibleItems(group.items)"
-                :key="`${group.key}-${item.name}`"
-                class="student-row"
-                @click="emit('select', item.name)"
-              >
-                <span class="student-avatar">{{ item.name.slice(0, 1) }}</span>
-                <span class="student-main">
-                  <span class="student-name">{{ item.name }}</span>
-                  <span class="student-subtitle">
-                    <span v-for="line in getSubtitleLines(item.subtitle)" :key="line">{{
-                      line
-                    }}</span>
-                  </span>
-                </span>
-                <span class="student-badge">{{ item.badge }}</span>
-              </button>
-            </div>
-
-            <el-empty v-else :image-size="44" description="暂无符合条件的学生"></el-empty>
-          </section>
+            <span v-if="expandedMap[group.key]">收起全部</span>
+            <span v-else>查看全部（{{ getActiveSection(group)?.count || 0 }}人）</span>
+            <font-awesome-icon
+              :icon="['solid', expandedMap[group.key] ? 'angle-up' : 'angle-right']"
+            />
+          </button>
         </div>
-      </el-tab-pane>
-
-      <el-tab-pane label="异动分析">
-        <div class="focus-group-list">
-          <section
-            v-for="group in movementGroups"
-            :key="group.key"
-            class="focus-group"
-            :class="`is-${group.tone}`"
-          >
-            <div class="group-heading">
-              <span>{{ group.label }}</span>
-              <em>{{ group.items.length }} 人</em>
-            </div>
-
-            <div v-if="group.items.length" class="student-list">
-              <button
-                v-for="item in getVisibleItems(group.items)"
-                :key="`${group.key}-${item.name}`"
-                class="student-row"
-                @click="emit('select', item.name)"
-              >
-                <span class="student-avatar">{{ item.name.slice(0, 1) }}</span>
-                <span class="student-main">
-                  <span class="student-name">{{ item.name }}</span>
-                  <span class="student-subtitle">
-                    <span v-for="line in getSubtitleLines(item.subtitle)" :key="line">{{
-                      line
-                    }}</span>
-                  </span>
-                </span>
-                <span class="student-badge">{{ item.badge }}</span>
-              </button>
-            </div>
-
-            <el-empty v-else :image-size="44" description="暂无符合条件的学生"></el-empty>
-          </section>
-        </div>
-      </el-tab-pane>
-
-      <el-tab-pane label="荣誉榜单">
-        <div class="focus-group-list">
-          <section
-            v-for="group in honorGroups"
-            :key="group.key"
-            class="focus-group"
-            :class="`is-${group.tone}`"
-          >
-            <div class="group-heading">
-              <span>{{ group.label }}</span>
-              <em>{{ group.items.length }} 人</em>
-            </div>
-
-            <div v-if="group.items.length" class="student-list">
-              <button
-                v-for="item in getVisibleItems(group.items)"
-                :key="`${group.key}-${item.name}`"
-                class="student-row"
-                @click="emit('select', item.name)"
-              >
-                <span class="student-avatar">{{ item.name.slice(0, 1) }}</span>
-                <span class="student-main">
-                  <span class="student-name">{{ item.name }}</span>
-                  <span class="student-subtitle">
-                    <span v-for="line in getSubtitleLines(item.subtitle)" :key="line">{{
-                      line
-                    }}</span>
-                  </span>
-                </span>
-                <span class="student-badge">{{ item.badge }}</span>
-              </button>
-            </div>
-
-            <el-empty v-else :image-size="44" description="暂无符合条件的学生"></el-empty>
-          </section>
-        </div>
+        <el-empty v-else :image-size="44" description="暂无符合条件的学生"></el-empty>
       </el-tab-pane>
     </el-tabs>
+
+    <el-empty v-else :image-size="56" description="暂无符合条件的学生"></el-empty>
   </el-card>
 </template>
 
 <style scoped lang="scss">
 .focus-center-card {
-  height: 100%;
   min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
   border: 1px solid var(--border-muted);
-  border-radius: 8px;
+  border-radius: 14px;
   box-shadow: var(--shadow-card);
 
   :deep(.el-card__body) {
-    height: 100%;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -218,20 +210,86 @@ const getSubtitleLines = (subtitle: string) => {
   }
 }
 
+.focus-center-card.is-expanded {
+  height: 100%;
+
+  :deep(.el-card__body) {
+    height: 100%;
+  }
+}
+
 .focus-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--text-primary);
   font-size: 16px;
   font-weight: 700;
 }
 
+.focus-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .focus-tabs {
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
-  margin-top: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+
+  :deep(.el-tabs__nav-wrap::after) {
+    display: none;
+  }
+
+  :deep(.el-tabs__header) {
+    margin-bottom: 10px;
+  }
+
+  :deep(.el-tabs__nav) {
+    width: 100%;
+    border: 1px solid var(--border-muted);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  :deep(.el-tabs__item) {
+    flex: 1;
+    height: 38px;
+    padding: 0 14px;
+    color: var(--text-secondary);
+    font-size: 14px;
+  }
+
+  :deep(.el-tabs__item.is-active) {
+    background: #f8fbff;
+    color: #2563eb;
+    font-weight: 700;
+  }
+
+  :deep(.el-tabs__active-bar) {
+    display: none;
+  }
 
   :deep(.el-tabs__content) {
-    height: calc(100% - 48px);
+    min-height: 0;
     overflow: hidden;
+  }
+
+  :deep(.el-tab-pane) {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.focus-center-card.is-expanded .focus-tabs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+
+  :deep(.el-tabs__content) {
+    flex: 1;
   }
 
   :deep(.el-tab-pane) {
@@ -239,158 +297,101 @@ const getSubtitleLines = (subtitle: string) => {
   }
 }
 
-.focus-group-list {
-  height: 100%;
+.focus-panel {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  overflow: auto;
-  padding-right: 2px;
+  overflow: hidden;
 }
 
-.focus-group {
-  --focus-main: var(--theme-primary);
-  --focus-soft: color-mix(in srgb, var(--focus-main) 8%, #ffffff);
-  --focus-border: color-mix(in srgb, var(--focus-main) 24%, #ffffff);
-
-  padding: 10px;
-  border: 1px solid var(--focus-border);
-  border-radius: 8px;
-  background: var(--focus-soft);
+.focus-panel.is-expanded {
+  height: 100%;
 }
 
-.is-warning {
-  --focus-main: #d97706;
-  --focus-soft: #fffbe6;
-  --focus-border: #fde68a;
-}
-
-.is-danger {
-  --focus-main: #dc2626;
-  --focus-soft: #fff1f0;
-  --focus-border: #fecaca;
-}
-
-.is-success {
-  --focus-main: #059669;
-  --focus-soft: #ecfdf5;
-  --focus-border: #a7f3d0;
-}
-
-.is-info {
-  --focus-main: #2563eb;
-  --focus-soft: #eff6ff;
-  --focus-border: #bfdbfe;
-}
-
-.group-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 8px;
-  color: var(--focus-main);
-  font-size: 13px;
-  font-weight: 700;
-
-  em {
-    font-style: normal;
-    font-size: 11px;
-    font-weight: 500;
-    color: #64748b;
-  }
-}
-
-.student-list {
+.focus-list {
   display: flex;
   flex-direction: column;
+  gap: 0;
+  padding-right: 4px;
+}
+
+.focus-section-tabs {
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  margin-bottom: 8px;
 }
 
-.student-row {
-  width: 100%;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 8px;
-  align-items: center;
-  padding: 8px;
-  border: 1px solid #e5edf5;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.88);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    background-color 0.2s ease;
-
-  &:hover {
-    transform: translateY(-1px);
-    border-color: var(--focus-border);
-    background: #ffffff;
-  }
-}
-
-.student-avatar {
-  width: 28px;
-  height: 28px;
+.focus-section-tab {
+  padding: 4px 8px;
+  border: 1px solid #dbe5f0;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--focus-main);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.student-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.student-name {
-  min-width: 0;
-  color: var(--text-primary);
-  font-size: 13px;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.student-subtitle {
-  color: var(--text-secondary);
+  gap: 6px;
   font-size: 11px;
-  line-height: 1.35;
+  line-height: 1;
+  cursor: pointer;
 
-  span {
-    display: block;
+  strong {
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 700;
   }
 }
 
-.student-badge {
-  max-width: 88px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: var(--focus-main);
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.focus-section-tab.is-active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #2563eb;
 }
 
-:deep(.el-empty) {
-  padding: 8px 0 0;
+.focus-section-tab.is-volatilityFalling {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
 }
 
-:deep(.el-empty__description p) {
-  font-size: 11px;
+.focus-section-tab.is-volatilityRising {
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.focus-section-meta {
+  margin-bottom: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.focus-scrollbar {
+  min-height: 0;
+}
+
+.focus-panel.is-expanded .focus-scrollbar {
+  flex: 1;
+}
+
+.focus-toggle {
+  flex-shrink: 0;
+  margin-top: 8px;
+  align-self: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #2563eb;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+:deep(.focus-list .overview-student-row) {
+  border-bottom: 1px solid #e8eef6;
 }
 </style>

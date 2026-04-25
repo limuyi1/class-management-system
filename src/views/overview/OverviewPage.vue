@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
 
+import HomeDiagnosisCard from '@/views/overview/components/HomeDiagnosisCard.vue'
 import HomeFocusCenter from '@/views/overview/components/HomeFocusCenter.vue'
+import HomeKeyStudentLists from '@/views/overview/components/HomeKeyStudentLists.vue'
 import HomeKpiStrip from '@/views/overview/components/HomeKpiStrip.vue'
 import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendPanel.vue'
 import HomeUnitOverviewChart from '@/views/overview/components/HomeUnitOverviewChart.vue'
@@ -16,7 +18,6 @@ import { useHomeDashboard } from '@/hooks/useHomeDashboard'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { DefaultAIPrompts } from '@/types/AIConfig'
-import type { DashboardStudentListItemType } from '@/types/HomeDashboard'
 
 const { selectedStudentNames, dashboardData, focusStudent } = useHomeDashboard()
 const router = useRouter()
@@ -26,59 +27,6 @@ const { analysisText: learningAnalysisText, generatedAt: learningAnalysisGenerat
   storeToRefs(overviewAnalysisStore)
 const trendDrawerVisible = ref(false)
 const learningAnalysisLoading = ref(false)
-const attentionPriorityMap: Record<string, number> = {
-  持续低分: 0,
-  下滑关注: 1,
-  波动最大: 2
-}
-
-const attentionStudents = computed<DashboardStudentListItemType[]>(() => {
-  const studentReasonMap = new Map<
-    string,
-    {
-      subtitles: string[]
-      badges: string[]
-      labels: string[]
-    }
-  >()
-
-  dashboardData.value.alertGroups.forEach((group) => {
-    group.items.forEach((item) => {
-      const current = studentReasonMap.get(item.name) || {
-        subtitles: [],
-        badges: [],
-        labels: []
-      }
-
-      current.labels.push(group.label)
-      current.subtitles.push(`${group.label}：${item.subtitle}`)
-      current.badges.push(item.badge)
-      studentReasonMap.set(item.name, current)
-    })
-  })
-
-  return Array.from(studentReasonMap.entries())
-    .map(([name, reason]) => ({
-      name,
-      subtitle: reason.subtitles.join('\n'),
-      badge: reason.labels.length > 1 ? `${reason.labels.length} 类关注` : reason.badges[0],
-      priority: Math.min(
-        ...reason.labels.map((label) => attentionPriorityMap[label] ?? Number.MAX_SAFE_INTEGER)
-      ),
-      reasonCount: reason.labels.length
-    }))
-    .sort((a, b) => {
-      if (b.reasonCount !== a.reasonCount) return b.reasonCount - a.reasonCount
-      if (a.priority !== b.priority) return a.priority - b.priority
-
-      return a.name.localeCompare(b.name, 'zh-CN')
-    })
-    .map(({ name, subtitle, badge }) => ({
-      name,
-      subtitle,
-      badge
-    }))
-})
 
 const openStudentTrend = (name?: string) => {
   if (name) {
@@ -114,6 +62,7 @@ const buildLearningAnalysisPayload = (): Record<string, unknown> => {
       attentionStudentCount: data.kpi.attentionStudentCount,
       completedUnitCount: data.kpi.completedUnitCount
     },
+    summaryCards: data.summaryCards,
     unitOverview: data.unitOverview.map((unit) => ({
       label: unit.label,
       averageScore: unit.averageScore,
@@ -123,16 +72,18 @@ const buildLearningAnalysisPayload = (): Record<string, unknown> => {
         count: band.count
       }))
     })),
-    focusStudents: {
-      alertGroups: data.alertGroups.map((group) => ({
-        label: group.label,
-        items: group.items.slice(0, 8)
-      })),
-      rankingGroups: data.rankingGroups.map((group) => ({
-        label: group.label,
-        items: group.items.slice(0, 8)
+    teachingInsights: data.teachingInsights,
+    focusGroups: data.focusGroups.map((group) => ({
+      label: group.label,
+      sections: group.sections.map((section) => ({
+        label: section.label,
+        items: section.items.slice(0, 6)
       }))
-    }
+    })),
+    keyStudentLists: data.keyStudentLists.map((list) => ({
+      label: list.label,
+      items: list.items.slice(0, 6)
+    }))
   }
 }
 
@@ -181,38 +132,46 @@ const handleGenerateLearningAnalysis = async () => {
           </button>
           <button class="header-action-pill is-light" @click="goToAiSetting">
             <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
-            <span
-              >AI {{ dashboardData.evaluationOverview.aiConfigured ? '已配置' : '未配置' }}</span
-            >
+            <span>AI {{ dashboardData.evaluationOverview.aiConfigured ? '已配置' : '未配置' }}</span>
           </button>
         </div>
       </template>
     </page-header>
 
     <div class="home-dashboard">
-      <home-kpi-strip
-        class="dashboard-kpi"
-        :kpi="dashboardData.kpi"
-        :evaluation-overview="dashboardData.evaluationOverview"
-        :analysis-text="learningAnalysisText"
-        :analysis-generated-at="learningAnalysisGeneratedAt"
-        :analysis-loading="learningAnalysisLoading"
-        :attention-students="attentionStudents"
-        @generate-analysis="handleGenerateLearningAnalysis"
-        @go-ai-setting="goToAiSetting"
-        @select-attention-student="openStudentTrend"
-      />
+      <div class="dashboard-left">
+        <home-kpi-strip class="dashboard-kpi" :summary-cards="dashboardData.summaryCards" />
 
-      <div class="dashboard-primary">
-        <home-unit-overview-chart :unit-overview="dashboardData.unitOverview" />
+        <div class="dashboard-primary-stack">
+          <div class="dashboard-primary">
+            <home-unit-overview-chart
+              :unit-overview="dashboardData.unitOverview"
+              :teaching-insights="dashboardData.teachingInsights"
+            />
+          </div>
+
+          <home-key-student-lists
+            class="dashboard-key-lists"
+            :lists="dashboardData.keyStudentLists"
+            @select="openStudentTrend"
+          />
+        </div>
       </div>
 
-      <div class="dashboard-side">
-        <home-focus-center
-          :alert-groups="dashboardData.alertGroups"
-          :ranking-groups="dashboardData.rankingGroups"
-          @select="openStudentTrend"
+      <div class="dashboard-right">
+        <home-diagnosis-card
+          class="dashboard-diagnosis"
+          :evaluation-overview="dashboardData.evaluationOverview"
+          :analysis-text="learningAnalysisText"
+          :analysis-generated-at="learningAnalysisGeneratedAt"
+          :analysis-loading="learningAnalysisLoading"
+          @generate-analysis="handleGenerateLearningAnalysis"
+          @go-ai-setting="goToAiSetting"
         />
+
+        <div class="dashboard-side">
+          <home-focus-center :focus-groups="dashboardData.focusGroups" @select="openStudentTrend" />
+        </div>
       </div>
     </div>
 
@@ -237,7 +196,9 @@ const handleGenerateLearningAnalysis = async () => {
 
 <style scoped lang="scss">
 .home-page {
+  height: 100%;
   min-height: 0;
+  overflow: hidden;
 }
 
 .home-dashboard {
@@ -245,34 +206,69 @@ const handleGenerateLearningAnalysis = async () => {
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(340px, 3fr);
-  grid-template-rows: auto minmax(430px, 1fr);
-  grid-template-areas:
-    'kpi kpi'
-    'primary side';
   gap: 12px;
+  overflow: hidden;
+}
+
+.dashboard-left,
+.dashboard-right {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  overflow: hidden;
+}
+
+.dashboard-left {
+  gap: 8px;
+}
+
+.dashboard-right {
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dashboard-kpi {
-  grid-area: kpi;
+  flex-shrink: 0;
+}
+
+.dashboard-primary-stack {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
 }
 
 .dashboard-primary {
-  grid-area: primary;
+  flex: 0 0 400px;
   min-height: 0;
+  overflow: hidden;
 
   :deep(.unit-overview-card) {
     height: 100%;
-    min-height: 430px;
-  }
-
-  :deep(.unit-overview-card .el-card__body) {
-    height: 100%;
+    min-height: 400px;
   }
 }
 
 .dashboard-side {
-  grid-area: side;
   min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.dashboard-diagnosis {
+  flex-shrink: 0;
+}
+
+.dashboard-key-lists {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header-actions {
@@ -331,28 +327,28 @@ const handleGenerateLearningAnalysis = async () => {
 @media (max-width: 1280px) {
   .home-dashboard {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    grid-template-areas:
-      'kpi'
-      'primary'
-      'side';
+    overflow: auto;
   }
 
   .dashboard-side {
+    height: auto;
     min-height: 520px;
+  }
+
+  .dashboard-primary {
+    flex-basis: 400px;
+  }
+
+  .home-page {
+    overflow: auto;
   }
 }
 
-:global(.overview-analysis-drawer .el-drawer__body),
-:global(.overview-list-drawer .el-drawer__body) {
+:global(.overview-analysis-drawer .el-drawer__body) {
   background: #f8fafc;
 }
 
 .drawer-trend-panel {
   min-height: 100%;
-}
-
-:global(.overview-list-drawer) {
-  max-width: 86vw;
 }
 </style>

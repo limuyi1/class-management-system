@@ -4,10 +4,11 @@ import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 
 import { homeDashboardConfig } from '@/config/home-dashboard'
 import AppEChart from '@/components/AppEChart.vue'
-import type { DashboardUnitOverviewType } from '@/types/HomeDashboard'
+import type { DashboardTeachingInsightType, DashboardUnitOverviewType } from '@/types/HomeDashboard'
 
 interface Props {
   unitOverview: DashboardUnitOverviewType[]
+  teachingInsights: DashboardTeachingInsightType[]
 }
 
 const props = defineProps<Props>()
@@ -35,10 +36,6 @@ const formatTooltipRows = (params: unknown, validCountMap: Map<string, number>) 
   </div>`
 }
 
-/**
- * 单元总览图改为共用横坐标的双纵轴图：
- * 左侧纵轴展示平均分，右侧纵轴展示各分数段人数
- */
 const chartOption = computed<EChartsOption>(() => {
   const labels = props.unitOverview.map((item) => item.label)
   const showDataZoom = labels.length > homeDashboardConfig.unitOverview.dataZoomThreshold
@@ -201,10 +198,7 @@ const chartOption = computed<EChartsOption>(() => {
           color: '#64748b'
         },
         splitLine: {
-          show: false,
-          lineStyle: {
-            color: '#edf2f7'
-          }
+          show: false
         },
         axisLabel: { color: '#64748b' }
       }
@@ -233,7 +227,8 @@ const chartOption = computed<EChartsOption>(() => {
 
 <style scoped lang="scss">
 .unit-overview-card {
-  min-height: 420px;
+  height: 100%;
+  min-height: 400px;
   border-radius: 14px;
   border: 1px solid var(--border-muted);
   box-shadow: var(--shadow-card);
@@ -243,6 +238,7 @@ const chartOption = computed<EChartsOption>(() => {
     flex-direction: column;
     gap: 12px;
     box-sizing: border-box;
+    height: 100%;
   }
 }
 
@@ -261,6 +257,6 @@ const chartOption = computed<EChartsOption>(() => {
 
 .chart-wrapper {
   flex: 1;
-  min-height: 360px;
+  min-height: 320px;
 }
 </style>

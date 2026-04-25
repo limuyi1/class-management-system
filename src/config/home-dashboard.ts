@@ -2,11 +2,10 @@ import type { HomeDashboardConfigType } from '@/types/HomeDashboard'
 
 /**
  * 首页学情总览配置
- * 集中维护首页统计规则，避免阈值散落在组件和 hook 中
+ * 标签阈值、优先级和首页分组统一放在这里，后续只改配置即可调整规则
  */
 export const homeDashboardConfig: HomeDashboardConfigType = {
   unitOverview: {
-    // 单元概览图固定展示的分数段，平均分之外的辅助信息都从这里读取
     scoreBands: [
       { label: '90-100', min: 90, max: 100, color: '#52c41a' },
       { label: '80-89', min: 80, max: 89, color: '#b7eb8f' },
@@ -14,51 +13,161 @@ export const homeDashboardConfig: HomeDashboardConfigType = {
       { label: '60-69', min: 60, max: 69, color: '#faad14' },
       { label: '60以下', min: 0, max: 59, color: '#f5222d' }
     ],
-    // 单元数量超过该值时才出现横向滚动条，避免只有少量单元时也显示滑块
     dataZoomThreshold: 6,
-    // 横向滚动开启后，默认一屏展示的单元数量
     dataZoomVisibleCount: 6
   },
-  alerts: {
-    // 低于该分数线会被视作低分，用于持续低分和个人摘要判断
-    lowScoreLine: 60,
-    // 至少有 2 个单元低于低分线，才认定为持续低分
-    persistentLowScoreMinCount: 2,
-    // 至少有 2 个单元成绩，才有资格参与“波动最大”预警
-    maxFluctuationMinUnits: 2,
-    // 最高分与最低分相差达到 20 分及以上，才进入“波动最大”预警
-    maxFluctuationMinRange: 20,
-    // 最近一次成绩比历史均分低 8 分及以上，才进入“下滑关注”
-    declineMinDrop: 8,
-    // 首页预警卡片默认预览前 3 人
-    displayCount: 3,
-    // 首页首屏紧凑模式每类露出前 6 人，按三列两行展示
-    compactDisplayCount: 6,
-    // 展开后仍控制列表高度，每类最多展示前 5 人
-    expandedDisplayCount: 5
-  },
-  rankings: {
-    // 首页榜单每类只展示前 3 名，控制首页密度
-    displayCount: 3,
-    // 首页首屏紧凑模式每类露出前 4 名，单项内按两列两行展示
-    compactDisplayCount: 4,
-    // “稳定前五”表示统计进入班级前 5 的次数
-    stableTopRankLimit: 5,
-    // 至少有 2 个单元成绩，才参与“进步最大”和“下滑关注”的阶段趋势判断
-    minUnitsForTrend: 2
+  tagRules: {
+    passLine: 60,
+    middleScoreMin: 60,
+    middleScoreMax: 84,
+    tagGroups: {
+      attention: {
+        label: '立即关注',
+        tone: 'danger'
+      },
+      encouragement: {
+        label: '值得鼓励',
+        tone: 'success'
+      },
+      middleChange: {
+        label: '中段变化',
+        tone: 'info'
+      },
+      volatilityWatch: {
+        label: '波动观察',
+        tone: 'warning'
+      }
+    },
+    tags: {
+      abnormal: {
+        label: '突发异常',
+        enabled: true,
+        group: 'attention',
+        priority: 1,
+        recentWindow: 3,
+        description: '本次成绩明显异常，和个人平时水平不符',
+        abnormalDrop: 12,
+        minValidScores: 3
+      },
+      persistentLowScore: {
+        label: '持续低分',
+        enabled: true,
+        group: 'attention',
+        priority: 2,
+        recentWindow: 3,
+        description: '最近阶段连续处于低分状态',
+        minHitCount: 2,
+        minValidScores: 2
+      },
+      declining: {
+        label: '下滑关注',
+        enabled: true,
+        group: 'attention',
+        priority: 3,
+        recentWindow: 3,
+        description: '近期成绩持续走低，低于个人正常水平',
+        minDelta: 8,
+        minValidScores: 2
+      },
+      critical: {
+        label: '临界生',
+        enabled: true,
+        group: 'attention',
+        priority: 4,
+        recentWindow: 1,
+        description: '接近及格线，稍加辅导有机会跨线',
+        minScore: 55,
+        maxScore: 64,
+        minValidScores: 1
+      },
+      lowRecovery: {
+        label: '低位回升',
+        enabled: true,
+        group: 'encouragement',
+        priority: 5,
+        recentWindow: 3,
+        description: '原本成绩偏低，最近开始明显回升',
+        minHitCount: 2,
+        minValidScores: 3
+      },
+      improving: {
+        label: '进步明显',
+        enabled: true,
+        group: 'encouragement',
+        priority: 6,
+        recentWindow: 3,
+        description: '最近阶段持续进步，提升明显',
+        minDelta: 8,
+        minValidScores: 2
+      },
+      middleFalling: {
+        label: '中段下滑',
+        enabled: true,
+        group: 'middleChange',
+        priority: 7,
+        recentWindow: 3,
+        description: '处于班级中间层，但最近持续退步',
+        minDelta: 8,
+        minValidScores: 3
+      },
+      middleRising: {
+        label: '中段上升',
+        enabled: true,
+        group: 'middleChange',
+        priority: 8,
+        recentWindow: 3,
+        description: '处于班级中间层，但最近持续进步',
+        minDelta: 8,
+        minValidScores: 3
+      },
+      volatility: {
+        label: '波动生',
+        enabled: true,
+        group: 'volatilityWatch',
+        priority: 9,
+        recentWindow: 4,
+        description: '最近几次成绩起伏较大，状态不稳定',
+        stdDevThreshold: 10,
+        minValidScores: 3
+      },
+      stableTop: {
+        label: '高分稳定',
+        enabled: true,
+        group: 'encouragement',
+        priority: 10,
+        recentWindow: 3,
+        description: '近期稳定处于班级前列',
+        minTopRankHits: 2,
+        topRankLimit: 5,
+        minValidScores: 3
+      }
+    }
   },
   studentTrend: {
-    // 个人趋势卡里沿用首页统一低分线
     lowScoreLine: 60,
-    // 分差达到 20 分及以上时，摘要提示“波动较大”
     highFluctuationRange: 20,
-    // 最近成绩高于历史均分 8 分及以上，提示“回升明显”
     significantRise: 8,
-    // 最近成绩低于历史均分 8 分及以上，提示“下降明显”
     significantDrop: 8,
-    // 首页个人趋势卡只保留最多 3 条摘要，避免信息过载
     summaryLimit: 3,
-    // 学生趋势对比控制在 5 人内，兼顾对比范围和图表可读性
     maxCompareCount: 5
+  },
+  recommendation: {
+    maxItemsPerGroup: 3,
+    attentionWeights: {
+      abnormalDrop: 3,
+      lowScoreHit: 2,
+      declineDelta: 2,
+      multiTagBonus: 1
+    },
+    encouragementWeights: {
+      riseDelta: 3,
+      recoveryBonus: 2,
+      stableTopBonus: 1
+    },
+    middleChangeWeights: {
+      fallingDelta: 3,
+      volatility: 2,
+      risingDelta: 1
+    }
   }
 }

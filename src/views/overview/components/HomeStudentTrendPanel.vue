@@ -264,6 +264,17 @@ const goToEvaluation = () => {
             {{ studentTrend.mode === 'compare' ? `共 ${studentTrend.students.length} 人` : '单人模式' }}
           </el-tag>
         </div>
+        <div v-if="studentTrend.mode === 'single' && studentTrend.students[0]?.tags.length" class="meta-tags">
+          <el-tag
+            v-for="tag in studentTrend.students[0].tags"
+            :key="`${studentTrend.students[0]?.name}-${tag.key}`"
+            size="small"
+            round
+            effect="plain"
+          >
+            {{ tag.label }}
+          </el-tag>
+        </div>
       </div>
 
       <div class="chart-wrapper">
@@ -287,12 +298,19 @@ const goToEvaluation = () => {
           <div v-if="studentTrend.mode === 'compare'" class="compare-comment-list">
             <div v-for="student in studentTrend.students" :key="student.name" class="compare-comment-item">
               <div class="comment-name">{{ student.name }}</div>
-              <overlength-text-tooltip
-                :content="student.commentPreview || emptyCommentText"
-                :level="1"
-                custom-class="comment-status"
-                :custom-style="{ width: '100%', color: 'var(--text-secondary)', lineHeight: '1.6' }"
-              />
+              <div class="comment-body">
+                <div v-if="student.tags.length" class="compare-tags">
+                  <el-tag v-for="tag in student.tags" :key="`${student.name}-${tag.key}`" size="small" round>
+                    {{ tag.label }}
+                  </el-tag>
+                </div>
+                <overlength-text-tooltip
+                  :content="student.commentPreview || emptyCommentText"
+                  :level="1"
+                  custom-class="comment-status"
+                  :custom-style="{ width: '100%', color: 'var(--text-secondary)', lineHeight: '1.6' }"
+                />
+              </div>
             </div>
           </div>
           <overlength-text-tooltip
@@ -378,6 +396,12 @@ const goToEvaluation = () => {
   color: var(--text-primary);
 }
 
+.meta-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .chart-wrapper {
   height: 320px;
   min-height: 320px;
@@ -436,6 +460,19 @@ const goToEvaluation = () => {
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   font-size: 12px;
+}
+
+.comment-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.compare-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .comment-name {
