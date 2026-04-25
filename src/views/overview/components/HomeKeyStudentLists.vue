@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import OverviewStudentRow from '@/views/overview/components/OverviewStudentRow.vue'
 
-import type { DashboardKeyStudentListType } from '@/types/HomeDashboard'
+import type { DashboardFocusGroupKeyType, DashboardKeyStudentListType } from '@/types/HomeDashboard'
 
 interface Props {
   lists: DashboardKeyStudentListType[]
@@ -13,11 +13,12 @@ const emit = defineEmits<{
   select: [name: string]
 }>()
 
-const toneMap = {
+const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'success' | 'info'> = {
   attention: 'danger',
   encouragement: 'success',
+  middleChange: 'info',
   volatilityWatch: 'warning'
-} as const
+}
 </script>
 
 <template>

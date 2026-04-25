@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-import { ElMessage } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
 
@@ -13,20 +11,22 @@ import HomeKpiStrip from '@/views/overview/components/HomeKpiStrip.vue'
 import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendPanel.vue'
 import HomeUnitOverviewChart from '@/views/overview/components/HomeUnitOverviewChart.vue'
 
-import { generateLearningAnalysis } from '@/ai/aiService'
-import { useHomeDashboard } from '@/hooks/useHomeDashboard'
-import { useAIConfigStore } from '@/stores/ai-config'
-import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
-import { DefaultAIPrompts } from '@/types/AIConfig'
+import { useOverviewAnalysis } from '@/views/overview/composables/useOverviewAnalysis'
+import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 
-const { selectedStudentNames, dashboardData, focusStudent } = useHomeDashboard()
+/**
+ * 页面层仅负责页面编排、路由和抽屉开关。
+ * 业务数据和 AI 逻辑全部下沉到 composable，减少页面脚本负担。
+ */
+const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
 const router = useRouter()
-const aiConfigStore = useAIConfigStore()
-const overviewAnalysisStore = useOverviewAnalysisStore()
-const { analysisText: learningAnalysisText, generatedAt: learningAnalysisGeneratedAt } =
-  storeToRefs(overviewAnalysisStore)
 const trendDrawerVisible = ref(false)
-const learningAnalysisLoading = ref(false)
+const {
+  analysisText: learningAnalysisText,
+  generatedAt: learningAnalysisGeneratedAt,
+  loading: learningAnalysisLoading,
+  generateAnalysis
+} = useOverviewAnalysis(dashboardData)
 
 const openStudentTrend = (name?: string) => {
   if (name) {
@@ -51,69 +51,13 @@ const goToEvaluationFromTrend = async () => {
   router.push('/comment')
 }
 
-const buildLearningAnalysisPayload = (): Record<string, unknown> => {
-  const data = dashboardData.value
-
-  return {
-    kpi: {
-      averageScore: data.kpi.averageScore,
-      averagePassRate: data.kpi.averagePassRate,
-      passRateFluctuation: data.kpi.passRateFluctuation,
-      attentionStudentCount: data.kpi.attentionStudentCount,
-      completedUnitCount: data.kpi.completedUnitCount
-    },
-    summaryCards: data.summaryCards,
-    unitOverview: data.unitOverview.map((unit) => ({
-      label: unit.label,
-      averageScore: unit.averageScore,
-      validCount: unit.validCount,
-      scoreBands: unit.scoreBands.map((band) => ({
-        label: band.label,
-        count: band.count
-      }))
-    })),
-    teachingInsights: data.teachingInsights,
-    focusGroups: data.focusGroups.map((group) => ({
-      label: group.label,
-      sections: group.sections.map((section) => ({
-        label: section.label,
-        items: section.items.slice(0, 6)
-      }))
-    })),
-    keyStudentLists: data.keyStudentLists.map((list) => ({
-      label: list.label,
-      items: list.items.slice(0, 6)
-    }))
-  }
-}
-
 const handleGenerateLearningAnalysis = async () => {
-  if (!aiConfigStore.isConfigured) {
+  if (!dashboardData.value.evaluationOverview.aiConfigured) {
     goToAiSetting()
     return
   }
 
-  learningAnalysisLoading.value = true
-  try {
-    const result = await generateLearningAnalysis(
-      buildLearningAnalysisPayload(),
-      aiConfigStore.prompts.learningAnalysis || DefaultAIPrompts.learningAnalysis,
-      {
-        modelType: aiConfigStore.modelType,
-        model: aiConfigStore.model,
-        apiKey: aiConfigStore.apiKey,
-        baseUrl: aiConfigStore.baseUrl
-      }
-    )
-
-    overviewAnalysisStore.setAnalysis(result.trim())
-    ElMessage.success('AI 学情分析已生成')
-  } catch (error) {
-    console.error('Failed to generate learning analysis:', error)
-    ElMessage.error('生成学情分析失败，请检查 AI 配置')
-  } finally {
-    learningAnalysisLoading.value = false
-  }
+  await generateAnalysis()
 }
 </script>
 

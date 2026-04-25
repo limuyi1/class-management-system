@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 import { ElMessage } from 'element-plus'
 
-import { homeDashboardConfig } from '@/config/home-dashboard'
+import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'
 import AppEChart from '@/components/AppEChart.vue'
 import OverlengthTextTooltip from '@/components/OverlengthTextTooltip.vue'
 import type { DashboardStudentOptionType, DashboardStudentTrendType } from '@/types/HomeDashboard'
@@ -24,7 +24,7 @@ const emit = defineEmits<{
 
 const chartMode = ref<'line' | 'bar'>('line')
 const emptyCommentText = '暂无评语，可前往评语页继续处理'
-const maxCompareCount = homeDashboardConfig.studentTrend.maxCompareCount
+const maxCompareCount = overviewDashboardConfig.studentTrend.maxCompareCount
 
 const showMaxCompareWarning = () => {
   ElMessage.warning(`最多只能对比 ${maxCompareCount} 名学生`)

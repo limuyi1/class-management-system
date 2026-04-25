@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 
-import { homeDashboardConfig } from '@/config/home-dashboard'
+import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'
 import AppEChart from '@/components/AppEChart.vue'
 import type { DashboardTeachingInsightType, DashboardUnitOverviewType } from '@/types/HomeDashboard'
 
@@ -38,7 +38,7 @@ const formatTooltipRows = (params: unknown, validCountMap: Map<string, number>) 
 
 const chartOption = computed<EChartsOption>(() => {
   const labels = props.unitOverview.map((item) => item.label)
-  const showDataZoom = labels.length > homeDashboardConfig.unitOverview.dataZoomThreshold
+  const showDataZoom = labels.length > overviewDashboardConfig.unitOverview.dataZoomThreshold
   const validCountMap = new Map(props.unitOverview.map((item) => [item.label, item.validCount]))
   const bandLabels = props.unitOverview[0]?.scoreBands.map((item) => item.label) || []
   const series: Array<BarSeriesOption | LineSeriesOption> = [
@@ -135,7 +135,7 @@ const chartOption = computed<EChartsOption>(() => {
             type: 'inside',
             xAxisIndex: 0,
             startValue: 0,
-            endValue: homeDashboardConfig.unitOverview.dataZoomVisibleCount - 1
+            endValue: overviewDashboardConfig.unitOverview.dataZoomVisibleCount - 1
           },
           {
             type: 'slider',
