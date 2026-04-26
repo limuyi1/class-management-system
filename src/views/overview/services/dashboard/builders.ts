@@ -31,6 +31,12 @@ import type {
   UnitMetricType
 } from '@/views/overview/services/dashboard/types'
 
+const isDownwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
+  direction === 'down' || direction === 'volatileDown'
+
+const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
+  direction === 'up' || direction === 'volatileUp'
+
 /**
  * 生成总览页右侧”学生观察站”的分组结构。
  *
@@ -113,6 +119,9 @@ export const buildFocusGroups = (
           key: sectionKey,
           label: section.label,
           description: section.description,
+          // 区块排序以标签 priority 为主，展示层不再自行写死“立即关注”等分组顺序。
+          // 这样后续只需要调整 dashboard 常量里的 priority，就能统一影响卡片、标签和区块顺序。
+          priority: tag.priority,
           count: items.length,
           items
         })
@@ -213,7 +222,7 @@ export const buildSummaryCards = (
           value: metrics.filter(
             (metric) =>
               metric.matchedTags.some((tag) => tag.key === 'volatility') &&
-              metric.volatilityDirection === 'down'
+              isDownwardDirection(metric.volatilityDirection)
           ).length
         },
         {
@@ -221,7 +230,7 @@ export const buildSummaryCards = (
           value: metrics.filter(
             (metric) =>
               metric.matchedTags.some((tag) => tag.key === 'volatility') &&
-              metric.volatilityDirection === 'up'
+              isUpwardDirection(metric.volatilityDirection)
           ).length
         }
       ].filter((item) => Number(item.value) > 0)

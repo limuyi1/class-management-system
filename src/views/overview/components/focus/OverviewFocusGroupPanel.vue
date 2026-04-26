@@ -17,6 +17,7 @@ interface Props {
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  expandChange: [expanded: boolean]
   select: [name: string]
 }>()
 
@@ -30,8 +31,9 @@ const state = reactive({
 
 /**
  * 区块显示顺序映射。
- * 中段变化：下滑在前，上升在后。
- * 波动观察：下行在前，上行在后。
+ * 这里不再承担主排序职责，只在同一 priority 下提供细分顺序。
+ * 例如“中段变化”“波动观察”会由同一个标签拆成两个子区块，
+ * 此时仍然需要一个稳定的前后顺序，避免同优先级时出现随机感。
  */
 const sectionOrderMaps: Partial<Record<DashboardFocusGroupKeyType, Record<string, number>>> = {
   middleChange: {
@@ -45,12 +47,21 @@ const sectionOrderMaps: Partial<Record<DashboardFocusGroupKeyType, Record<string
 }
 
 /**
- * 指定顺序的分组优先走预设顺序，其余再按人数和名称排序。
+ * 区块排序以配置里的 priority 为主。
+ * 这样业务想调整“立即关注”等分组顺序时，只改 dashboard 常量即可，
+ * 展示层不需要再额外维护一份硬编码顺序。
+ *
+ * 只有当两个区块 priority 相同，才回退到分组内的细分顺序；
+ * 如果仍然相同，再按人数和名称兜底，保证排序稳定。
  */
 const sortedSections = computed(() => {
   const orderMap = sectionOrderMaps[props.group.key]
 
   return [...props.group.sections].sort((a, b) => {
+    if (a.priority !== b.priority) {
+      return a.priority - b.priority
+    }
+
     if (orderMap) {
       const sectionOrderDiff =
         (orderMap[a.key] ?? Number.MAX_SAFE_INTEGER) - (orderMap[b.key] ?? Number.MAX_SAFE_INTEGER)
@@ -88,23 +99,33 @@ const shouldShowToggle = computed(
 
 const toggleExpanded = () => {
   state.expanded = !state.expanded
+  emit('expandChange', state.expanded)
 }
 
 const selectSection = (sectionKey: string) => {
   state.activeSectionKey = sectionKey
-  state.expanded = false
+  if (state.expanded) {
+    state.expanded = false
+    emit('expandChange', false)
+  }
 }
 
 watchEffect(() => {
   if (!sortedSections.value.length) {
     state.activeSectionKey = ''
-    state.expanded = false
+    if (state.expanded) {
+      state.expanded = false
+      emit('expandChange', false)
+    }
     return
   }
 
   if (!sortedSections.value.some((section) => section.key === state.activeSectionKey)) {
     state.activeSectionKey = sortedSections.value[0].key
-    state.expanded = false
+    if (state.expanded) {
+      state.expanded = false
+      emit('expandChange', false)
+    }
   }
 })
 </script>

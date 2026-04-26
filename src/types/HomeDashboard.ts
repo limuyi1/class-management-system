@@ -23,7 +23,8 @@ export type DashboardFocusSectionKeyType =
   | 'volatilityRising'
   | 'volatilityFalling'
 
-export type DashboardVolatilityDirectionType = 'up' | 'down'
+export type DashboardVolatilityDirectionType = 'up' | 'down' | 'volatileUp' | 'volatileDown'
+export type DashboardUnitDifficultyShiftType = 'easy' | 'hard' | 'normal'
 
 export interface DashboardScoreBandType {
   label: string
@@ -48,6 +49,8 @@ export interface HomeDashboardTagRuleConfigType {
   maxScore?: number
   minHitCount?: number
   minDelta?: number
+  minCumulativeDrop?: number
+  minSingleDrop?: number
   abnormalDrop?: number
   stdDevThreshold?: number
   minTopRankHits?: number
@@ -59,6 +62,7 @@ export interface HomeDashboardTagConfigType {
   passLine: number
   middleScoreMin: number
   middleScoreMax: number
+  latestUnitDifficultyShiftThreshold: number
   tagGroups: Record<DashboardFocusGroupKeyType, HomeDashboardTagGroupConfigType>
   tags: Record<DashboardTagKeyType, HomeDashboardTagRuleConfigType>
 }
@@ -132,6 +136,10 @@ export interface DashboardStudentTagType {
 export interface DashboardStudentListItemType {
   name: string
   trendText: string
+  trendSegments: Array<{
+    text: string
+    difficultyShift: DashboardUnitDifficultyShiftType
+  }>
   subtitle: string
   badge: string
   reasonText: string
@@ -144,6 +152,7 @@ export interface DashboardFocusSectionType {
   key: DashboardFocusSectionKeyType
   label: string
   description: string
+  priority: number
   count: number
   items: DashboardStudentListItemType[]
 }

@@ -8,7 +8,7 @@ import type { BuildOverviewDashboardDataOptions } from '@/views/overview/service
  */
 export const buildDashboardData = (options: BuildOverviewDashboardDataOptions) => {
   const unitMetrics = buildUnitMetrics(options.students, options.unitHeaders, options.config)
-  const studentMetrics = buildStudentMetrics(options.students, options.unitHeaders, options.config)
+  const studentMetrics = buildStudentMetrics(options.students, options.unitHeaders, unitMetrics, options.config)
 
   return buildOverviewDashboardData(options, unitMetrics, studentMetrics)
 }

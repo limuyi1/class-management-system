@@ -2,6 +2,7 @@ import { NAME_PROP } from '@/types/Constants'
 import type {
   DashboardStudentTagType,
   DashboardTagKeyType,
+  DashboardUnitDifficultyShiftType,
   DashboardVolatilityDirectionType,
   HomeDashboardConfigType
 } from '@/types/HomeDashboard'
@@ -62,10 +63,25 @@ export const formatScore = (score: number): string => Number(score.toFixed(1)).t
  * 格式化趋势文本，用箭头连接多个分数。
  * 例如：[85, 78, 82] => "85.0 → 78.0 → 82.0"
  */
-export const formatTrendText = (scores: number[]): string => {
-  if (!scores.length) return '--'
+export const formatTrendText = (scores: number[]): string =>
+  scores.length ? scores.map((score) => formatScore(score)).join(' → ') : '--'
 
-  return scores.map((score) => formatScore(score)).join(' → ')
+/**
+ * 将趋势分数拆成可渲染片段，便于对单个单元分数做颜色标记。
+ * 这里只负责把文本和难易标签配对，具体颜色交给展示层决定。
+ */
+export const buildTrendSegments = (
+  points: Array<{ score: number; difficultyShift: DashboardUnitDifficultyShiftType }>
+): Array<{ text: string; difficultyShift: DashboardUnitDifficultyShiftType }> => {
+  if (!points.length) return [{ text: '--', difficultyShift: 'normal' }]
+
+  return points.flatMap((point, index) => [
+    {
+      text: formatScore(point.score),
+      difficultyShift: point.difficultyShift
+    },
+    ...(index < points.length - 1 ? [{ text: ' → ', difficultyShift: 'normal' as const }] : [])
+  ])
 }
 
 /**
@@ -163,24 +179,42 @@ export const getRecentChange = (scores: number[]): number => {
 }
 
 /**
- * 判断波动方向：
- * - 若首尾差值 > 0 则为上行
- * - 若首尾差值 < 0 则为下行
- * - 若首尾差值 = 0，再看最新成绩是否高于均值：高于均值为上行，低于均值为下行
- * 用于波动生标签的细分展示（波动上行/波动下行）。
+ * 判断走势方向：
+ * - 严格递增：上行
+ * - 严格递减：下行
+ * - 非单调：进入波动判断
+ *
+ * 波动判断同时看“整体变化”和“最近动量”：
+ * - 若修正后终点明显高于起点，优先归为波动上行
+ * - 若修正后终点明显低于起点，优先归为波动下行
+ * - 若整体变化接近打平，再看最近一次变化方向
+ * - 最后再用最新成绩相对均值的位置兜底
+ *
+ * 这样可以避免“只看最后一跳”带来的误判：
+ * - 35 -> 91 -> 32 => 整体仍低于起点，归为波动下行
+ * - 46 -> 88 -> 69 => 虽然最后一跳回落，但整体仍高于起点，归为波动上行
  */
 export const getVolatilityDirection = (scores: number[]): DashboardVolatilityDirectionType | null => {
-  if (!scores.length) return null
+  if (scores.length < 2) return null
 
-  const recentChange = getRecentChange(scores)
-  if (recentChange > 0) return 'up'
-  if (recentChange < 0) return 'down'
+  if (isStrictlyAscending(scores)) return 'up'
+  if (isStrictlyDescending(scores)) return 'down'
 
+  const overallChange = getRecentChange(scores)
   const average = averageOf(scores)
   const latestScore = scores[scores.length - 1]
+  const previousScore = scores[scores.length - 2]
+  const latestMomentum = latestScore - previousScore
+  const flatThreshold = 3
 
-  if (latestScore > average) return 'up'
-  if (latestScore < average) return 'down'
+  if (overallChange > flatThreshold) return 'volatileUp'
+  if (overallChange < -flatThreshold) return 'volatileDown'
+
+  if (latestMomentum > 0) return 'volatileUp'
+  if (latestMomentum < 0) return 'volatileDown'
+
+  if (latestScore > average) return 'volatileUp'
+  if (latestScore < average) return 'volatileDown'
 
   return null
 }

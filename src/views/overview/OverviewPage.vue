@@ -114,7 +114,11 @@ const handleGenerateLearningAnalysis = async () => {
         />
 
         <div class="dashboard-side">
-          <home-focus-center :focus-groups="dashboardData.focusGroups" @select="openStudentTrend" />
+          <home-focus-center
+            :focus-groups="dashboardData.focusGroups"
+            :completed-unit-count="dashboardData.kpi.completedUnitCount"
+            @select="openStudentTrend"
+          />
         </div>
       </div>
     </div>

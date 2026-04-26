@@ -1,4 +1,5 @@
 import type {
+  DashboardUnitDifficultyShiftType,
   DashboardUnitOverviewType,
   DashboardVolatilityDirectionType,
   DashboardStudentTagType,
@@ -20,6 +21,7 @@ export interface StudentPointType {
   label: string
   score: number
   rank: number | null
+  difficultyShift: DashboardUnitDifficultyShiftType
 }
 
 export interface UnitMetricType extends DashboardUnitOverviewType {
@@ -48,4 +50,36 @@ export interface StudentMetricType {
   recentStdDev: number
   volatilityDirection: DashboardVolatilityDirectionType | null
   matchedTags: DashboardStudentTagType[]
+}
+
+/**
+ * 学生趋势信号层。
+ *
+ * 这层不直接产生标签，只负责把“当前发生了什么”标准化成一组可复用信号，
+ * 供下游标签命中和归一化统一消费。
+ *
+ * 设计目标：
+ * - 避免每个标签各自重复计算趋势条件
+ * - 保证方向、区间、低位修复、持续进退步等概念使用同一套基础判断
+ * - 让后续维护时能先看信号，再看标签组合，降低规则冲突排查成本
+ */
+export interface StudentSignalSnapshotType {
+  isUpwardDirection: boolean
+  isDownwardDirection: boolean
+  latestMomentumUp: boolean
+  latestMomentumDown: boolean
+  recentAscending: boolean
+  recentDescending: boolean
+  recentDelta: number
+  risingDelta: number
+  fallingDelta: number
+  latestAboveAverage: boolean
+  latestBelowAverage: boolean
+  hasSignificantContinuousDecline: boolean
+  hasSignificantSingleDrop: boolean
+  trendDecline: boolean
+  recentMiddleProfile: boolean
+  hadEarlierLowPattern: boolean
+  latestRising: boolean
+  lowRecoveryScoreEligible: boolean
 }

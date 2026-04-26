@@ -7,6 +7,7 @@ import type {
 } from '@/types/HomeDashboard'
 
 import {
+  buildTrendSegments,
   formatScore,
   formatTrendText,
   getRecentChange,
@@ -16,6 +17,12 @@ import type { StudentMetricType } from '@/views/overview/services/dashboard/type
 
 const scoresToHitCount = (scores: number[], passLine: number): number =>
   scores.filter((score) => score < passLine).length
+
+const isDownwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
+  direction === 'down' || direction === 'volatileDown'
+
+const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
+  direction === 'up' || direction === 'volatileUp'
 
 /**
  * 为同一标签内的学生计算推荐排序分数。
@@ -71,7 +78,11 @@ export const getTagSortScore = (
         (
           metric.recentStdDev * 10 +
           metric.scoreRange +
-          (metric.volatilityDirection === 'down' ? 8 : metric.volatilityDirection === 'up' ? 4 : 0)
+          (isDownwardDirection(metric.volatilityDirection)
+            ? 8
+            : isUpwardDirection(metric.volatilityDirection)
+              ? 4
+              : 0)
         ).toFixed(2)
       )
     case 'stableTop':
@@ -125,9 +136,9 @@ export const buildReasonText = (
     case 'middleRising':
       return '当前仍处中段，但最近阶段稳步上升，值得继续观察'
     case 'volatility':
-      return metric.volatilityDirection === 'up'
-        ? '最近几次起伏较大，整体偏上行波动'
-        : '最近几次起伏较大，整体偏下行波动'
+      return isUpwardDirection(metric.volatilityDirection)
+        ? '最近几次起伏较大，当前更接近波动上行'
+        : '最近几次起伏较大，当前更接近波动下行'
     case 'stableTop':
       return `最近 3 次中有 ${metric.stableTopRecentCount} 次进入班级前五，表现稳定`
     default:
@@ -160,6 +171,7 @@ export const toStudentListItem = (
   return {
     name: metric.name,
     trendText: formatTrendText(metric.recentThreeScores),
+    trendSegments: buildTrendSegments(metric.points.slice(-metric.recentThreeScores.length)),
     subtitle:
       secondaryTags.length > 0
         ? secondaryTags.map((tag) => tag.label).join('、')
@@ -192,18 +204,18 @@ export const getSectionMeta = (
     }
   }
 
-  if (metric?.volatilityDirection === 'up') {
+  if (isUpwardDirection(metric?.volatilityDirection)) {
     return {
       key: 'volatilityRising',
       label: '波动上行',
-      description: '最近几次波动较大，但整体趋势偏上行'
+      description: '最近几次有明显起伏，但当前走势更接近向上修复'
     }
   }
 
   return {
     key: 'volatilityFalling',
     label: '波动下行',
-    description: '最近几次波动较大，且整体趋势偏下行'
+    description: '最近几次有明显起伏，且当前走势更接近继续下探'
   }
 }
 
@@ -223,7 +235,7 @@ export const getMiddleChangeDisplayKey = (metric: StudentMetricType): DashboardF
   }
 
   if (metric.matchedTags.some((tag) => tag.key === 'volatility')) {
-    return metric.volatilityDirection === 'up' ? 'volatilityRising' : 'volatilityFalling'
+    return isUpwardDirection(metric.volatilityDirection) ? 'volatilityRising' : 'volatilityFalling'
   }
 
   return 'middleRising'
@@ -334,7 +346,7 @@ export const getVolatilityWatchRecommendScore = (
 
   if (metric.matchedTags.some((tag) => tag.key === 'volatility')) {
     score += metric.recentStdDev * (weights.volatility || 0)
-    score += metric.volatilityDirection === 'down' ? 12 : 6
+    score += isDownwardDirection(metric.volatilityDirection) ? 12 : 6
   }
 
   return Number(score.toFixed(2))

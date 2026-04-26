@@ -29,6 +29,8 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
     passLine: 60,      // 及格线，低于此分数视为低分
     middleScoreMin: 60, // 中段分数下限
     middleScoreMax: 84,  // 中段分数上限（不含）
+    // 最近单元班均较上一单元变化达到该阈值时，认为本次整体偏难/偏易
+    latestUnitDifficultyShiftThreshold: 5,
     // 四类标签分组，用于 UI 颜色和展示位置区分
     tagGroups: {
       attention: {
@@ -53,7 +55,7 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
         label: '突发异常',
         enabled: true,
         group: 'attention',
-        priority: 1,
+        priority: 2,
         recentWindow: 3,
         description: '本次成绩明显异常，和个人平时水平不符',
         abnormalDrop: 12,
@@ -63,7 +65,7 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
         label: '持续低分',
         enabled: true,
         group: 'attention',
-        priority: 2,
+        priority: 4,
         recentWindow: 3,
         description: '最近阶段连续处于低分状态',
         minHitCount: 2,
@@ -73,17 +75,19 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
         label: '下滑关注',
         enabled: true,
         group: 'attention',
-        priority: 3,
+        priority: 1,
         recentWindow: 3,
-        description: '近期成绩持续走低，低于个人正常水平',
+        description: '近期成绩连续走低且跌幅明显，或单次出现较大下滑',
+        minCumulativeDrop: 5,
+        minSingleDrop: 5,
         minDelta: 8,
-        minValidScores: 2
+        minValidScores: 3
       },
       critical: {
         label: '临界生',
         enabled: true,
         group: 'attention',
-        priority: 4,
+        priority: 3,
         recentWindow: 1,
         description: '接近及格线，稍加辅导有机会跨线',
         minScore: 55,

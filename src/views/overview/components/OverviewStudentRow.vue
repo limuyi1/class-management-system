@@ -41,6 +41,20 @@ const getAvatarText = (name: string) => {
 
   return trimmedName.slice(0, 1).toUpperCase()
 }
+
+const directionLabelMap = {
+  up: '上行',
+  down: '下行',
+  volatileUp: '波动上行',
+  volatileDown: '波动下行'
+} as const
+
+const directionIconNameMap = {
+  up: 'arrow-trend-up',
+  down: 'arrow-trend-down',
+  volatileUp: 'arrow-trend-up',
+  volatileDown: 'arrow-trend-down'
+} as const
 </script>
 
 <template>
@@ -61,9 +75,9 @@ const getAvatarText = (name: string) => {
           :class="`is-${item.volatilityDirection}`"
         >
           <font-awesome-icon
-            :icon="['solid', item.volatilityDirection === 'down' ? 'arrow-trend-down' : 'arrow-trend-up']"
+            :icon="['solid', directionIconNameMap[item.volatilityDirection]]"
           />
-          <span>{{ item.volatilityDirection === 'down' ? '下行' : '上行' }}</span>
+          <span>{{ directionLabelMap[item.volatilityDirection] }}</span>
         </span>
       </span>
 
@@ -74,7 +88,15 @@ const getAvatarText = (name: string) => {
     </span>
 
     <span class="trend-block">
-      <span class="trend-text">{{ item.trendText }}</span>
+      <span class="trend-text">
+        <span
+          v-for="(segment, index) in item.trendSegments"
+          :key="`${item.name}-${index}-${segment.text}`"
+          :class="[`is-${segment.difficultyShift}`]"
+        >
+          {{ segment.text }}
+        </span>
+      </span>
     </span>
 
     <span class="row-action">
@@ -200,6 +222,16 @@ const getAvatarText = (name: string) => {
   color: #047857;
 }
 
+.direction-tag.is-volatileDown {
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.direction-tag.is-volatileUp {
+  background: #ecfeff;
+  color: #0f766e;
+}
+
 .trend-block {
   display: inline-flex;
   align-items: center;
@@ -213,6 +245,18 @@ const getAvatarText = (name: string) => {
   font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
+
+  .is-hard {
+    color: #dc2626;
+  }
+
+  .is-easy {
+    color: #059669;
+  }
+
+  .is-normal {
+    color: inherit;
+  }
 }
 
 .reason-block {
