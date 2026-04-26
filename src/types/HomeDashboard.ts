@@ -192,6 +192,7 @@ export interface DashboardStudentTrendType {
   mode: 'single' | 'compare'
   students: DashboardStudentTrendStudentType[]
   summaries: string[]
+  classAverageScore?: number
 }
 
 export interface DashboardEvaluationOverviewType {

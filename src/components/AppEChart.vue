@@ -1,14 +1,29 @@
 <script setup lang="ts">
 import { useResizeObserver } from '@vueuse/core'
 import { BarChart, LineChart } from 'echarts/charts'
-import { DataZoomComponent, GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import {
+  DataZoomComponent,
+  GridComponent,
+  LegendComponent,
+  MarkLineComponent,
+  TooltipComponent
+} from 'echarts/components'
 import { init, use } from 'echarts/core'
 import type { EChartsType } from 'echarts/core'
 import type { EChartsOption } from 'echarts'
 import { CanvasRenderer } from 'echarts/renderers'
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-use([BarChart, LineChart, GridComponent, TooltipComponent, LegendComponent, DataZoomComponent, CanvasRenderer])
+use([
+  BarChart,
+  LineChart,
+  GridComponent,
+  TooltipComponent,
+  LegendComponent,
+  MarkLineComponent,
+  DataZoomComponent,
+  CanvasRenderer
+])
 
 interface Props {
   option: EChartsOption

@@ -62,6 +62,10 @@ const chartAreaColors = [
   'rgba(220, 38, 38, 0.1)',
   'rgba(124, 58, 237, 0.1)'
 ]
+const singleTrendReferenceLineColors = {
+  classAverage: '#2563eb',
+  studentAverage: '#dc2626'
+}
 
 const formatTooltipRows = (params: unknown) => {
   const items = Array.isArray(params)
@@ -84,6 +88,36 @@ const formatTooltipRows = (params: unknown) => {
   </div>`
 }
 
+const displaySummaries = computed(() => {
+  const trend = props.studentTrend
+  if (!trend) return []
+
+  const summaries = [...trend.summaries]
+  if (trend.mode !== 'single') return summaries
+
+  const student = trend.students[0]
+  if (!student?.trendPoints.length) return summaries
+
+  const scores = student.trendPoints.map((point) => point.score)
+  const studentAverageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length
+
+  if (trend.classAverageScore !== undefined) {
+    const belowClassAverageCount = scores.filter((score) => score < trend.classAverageScore!).length
+    const aboveClassAverageCount = scores.filter((score) => score >= trend.classAverageScore!).length
+    summaries.push(
+      `${belowClassAverageCount} 个单元低于班级均分，${aboveClassAverageCount} 个单元高于或等于班级均分`
+    )
+  }
+
+  const belowStudentAverageCount = scores.filter((score) => score < studentAverageScore).length
+  const aboveStudentAverageCount = scores.filter((score) => score >= studentAverageScore).length
+  summaries.push(
+    `${belowStudentAverageCount} 个单元低于个人均分，${aboveStudentAverageCount} 个单元高于或等于个人均分`
+  )
+
+  return summaries
+})
+
 /**
  * 图表配置，支持折线和柱状两种模式。
  *
@@ -99,6 +133,65 @@ const chartOption = computed<EChartsOption>(() => {
   const xAxisLabels = Array.from(
     new Set(students.flatMap((student) => student.trendPoints.map((point) => point.label)))
   )
+  const showDataZoom = xAxisLabels.length > overviewDashboardConfig.unitOverview.dataZoomThreshold
+
+  const studentAverageScore =
+    students.length === 1 && students[0].trendPoints.length > 0
+      ? students[0].trendPoints.reduce((sum, p) => sum + p.score, 0) / students[0].trendPoints.length
+      : null
+
+  const referenceSeries: LineSeriesOption[] = []
+
+  if (props.studentTrend?.mode === 'single') {
+    if (props.studentTrend.classAverageScore !== undefined) {
+      referenceSeries.push({
+        name: '班级整体均分',
+        type: 'line',
+        smooth: false,
+        symbol: 'none',
+        lineStyle: {
+          color: singleTrendReferenceLineColors.classAverage,
+          type: 'dashed',
+          width: 2
+        },
+        itemStyle: {
+          color: singleTrendReferenceLineColors.classAverage
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          disabled: true
+        },
+        data: xAxisLabels.map(() => Number(props.studentTrend?.classAverageScore?.toFixed(1) || 0)),
+        z: 1
+      })
+    }
+    if (studentAverageScore !== null) {
+      referenceSeries.push({
+        name: '个人平均分',
+        type: 'line',
+        smooth: false,
+        symbol: 'none',
+        lineStyle: {
+          color: singleTrendReferenceLineColors.studentAverage,
+          type: 'dashed',
+          width: 2
+        },
+        itemStyle: {
+          color: singleTrendReferenceLineColors.studentAverage
+        },
+        label: {
+          show: false
+        },
+        emphasis: {
+          disabled: true
+        },
+        data: xAxisLabels.map(() => Number(studentAverageScore.toFixed(1))),
+        z: 1
+      })
+    }
+  }
 
   const series: Array<LineSeriesOption | BarSeriesOption> = students.map((student, index) => {
     const studentScoreMap = new Map(student.trendPoints.map((point) => [point.label, point.score]))
@@ -126,7 +219,7 @@ const chartOption = computed<EChartsOption>(() => {
       }
     }
 
-    return {
+    const seriesItem: LineSeriesOption = {
       name: student.name,
       type: 'line',
       smooth: true,
@@ -152,6 +245,8 @@ const chartOption = computed<EChartsOption>(() => {
       },
       data
     }
+
+    return seriesItem
   })
 
   return {
@@ -189,8 +284,27 @@ const chartOption = computed<EChartsOption>(() => {
       left: 48,
       right: 20,
       top: 46,
-      bottom: 40
+      bottom: showDataZoom ? 70 : 40
     },
+    dataZoom: showDataZoom
+      ? [
+          {
+            type: 'inside',
+            xAxisIndex: 0,
+            start: 0,
+            end: 100
+          },
+          {
+            type: 'slider',
+            xAxisIndex: 0,
+            bottom: 12,
+            height: 20,
+            brushSelect: false,
+            start: 0,
+            end: 100
+          }
+        ]
+      : [],
     xAxis: {
       type: 'category',
       data: xAxisLabels,
@@ -209,7 +323,7 @@ const chartOption = computed<EChartsOption>(() => {
       },
       axisLabel: { color: '#64748b' }
     },
-    series
+    series: [...series, ...referenceSeries]
   }
 })
 
@@ -309,7 +423,7 @@ const goToEvaluation = () => {
             {{ studentTrend.mode === 'compare' ? '对比摘要' : '学情摘要' }}
           </div>
           <ul class="summary-list">
-            <li v-for="summary in studentTrend.summaries" :key="summary">{{ summary }}</li>
+            <li v-for="summary in displaySummaries" :key="summary">{{ summary }}</li>
           </ul>
         </div>
 

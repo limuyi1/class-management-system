@@ -402,7 +402,8 @@ export const buildTeachingInsights = (unitMetrics: UnitMetricType[]): DashboardT
 export const buildStudentTrend = (
   metrics: StudentMetricType[],
   selectedStudentNames: string[],
-  config: HomeDashboardConfigType
+  config: HomeDashboardConfigType,
+  kpi?: DashboardKpiType
 ): DashboardStudentTrendType | null => {
   const selectedMetrics = selectedStudentNames
     .map((name) => metrics.find((metric) => metric.name === name))
@@ -463,7 +464,8 @@ export const buildStudentTrend = (
         }))
       }
     }),
-    summaries: summaries.slice(0, config.studentTrend.summaryLimit)
+    summaries: summaries.slice(0, config.studentTrend.summaryLimit),
+    classAverageScore: kpi?.averageScore
   }
 }
 
@@ -605,7 +607,8 @@ export const buildOverviewDashboardData = (
     studentTrend: buildStudentTrend(
       metrics,
       selectedStudentNames.slice(0, config.studentTrend.maxCompareCount),
-      config
+      config,
+      kpi
     ),
     evaluationOverview: buildEvaluationOverview(students, aiConfigured)
   }
