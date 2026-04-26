@@ -72,7 +72,7 @@ defineExpose({ focus })
     </div>
   </div>
 
-  <el-form-item label="学生评语">
+  <el-form-item label="期末评语">
     <el-input
       ref="commentInputRef"
       style="width: 100%"
@@ -81,7 +81,7 @@ defineExpose({ focus })
       type="textarea"
       maxlength="120"
       show-word-limit
-      placeholder="请输入对学生的评价..."
+      placeholder="请输入学生期末评语..."
       :rows="5"
       :disabled="disabled"
       @update:model-value="(value: unknown) => emit('update:modelValue', value as string | null)"
@@ -105,7 +105,7 @@ defineExpose({ focus })
           @click="emit('generate-comment')"
         >
           <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
-          AI 生成评语
+          AI 生成期末评语
         </el-button>
       </div>
     </el-tooltip>

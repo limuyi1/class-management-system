@@ -24,34 +24,62 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
     const data = dashboardData.value
 
     return {
-      kpi: {
-        averageScore: data.kpi.averageScore,
-        averagePassRate: data.kpi.averagePassRate,
-        passRateFluctuation: data.kpi.passRateFluctuation,
-        attentionStudentCount: data.kpi.attentionStudentCount,
-        completedUnitCount: data.kpi.completedUnitCount
+      指标概览: {
+        班级均分: data.kpi.averageScore,
+        平均及格率: `${data.kpi.averagePassRate}%`,
+        单元及格率波动值: `${data.kpi.passRateFluctuation}%`,
+        重点关注学生人数: data.kpi.attentionStudentCount,
+        已完成单元数: data.kpi.completedUnitCount,
+        单元总数: data.kpi.totalUnitCount,
+        波动最明显单元: data.kpi.biggestFluctuationUnitLabel,
+        诊断摘要: data.kpi.diagnosticText
       },
-      summaryCards: data.summaryCards,
-      unitOverview: data.unitOverview.map((unit) => ({
-        label: unit.label,
-        averageScore: unit.averageScore,
-        validCount: unit.validCount,
-        scoreBands: unit.scoreBands.map((band) => ({
-          label: band.label,
-          count: band.count
+      概览卡片: data.summaryCards.map((card) => ({
+        名称: card.label,
+        数值: card.unit ? `${card.value}${card.unit}` : card.value,
+        摘要: card.summary,
+        明细: card.details.map((detail) => ({
+          名称: detail.label,
+          数值: detail.value
         }))
       })),
-      teachingInsights: data.teachingInsights,
-      focusGroups: data.focusGroups.map((group) => ({
-        label: group.label,
-        sections: group.sections.map((section) => ({
-          label: section.label,
-          items: section.items.slice(0, 6)
+      单元表现: data.unitOverview.map((unit) => ({
+        单元名称: unit.label,
+        平均分: unit.averageScore,
+        有效人数: unit.validCount,
+        分段分布: unit.scoreBands.map((band) => ({
+          分段: band.label,
+          人数: band.count
         }))
       })),
-      keyStudentLists: data.keyStudentLists.map((list) => ({
-        label: list.label,
-        items: list.items.slice(0, 6)
+      教学提示: data.teachingInsights.map((item) => ({
+        主题: item.label,
+        内容: item.value
+      })),
+      关注分组: data.focusGroups.map((group) => ({
+        分组名称: group.label,
+        小节: group.sections.map((section) => ({
+          小节名称: section.label,
+          说明: section.description,
+          学生列表: section.items.slice(0, 6).map((item) => ({
+            姓名: item.name,
+            趋势: item.trendText,
+            摘要: item.subtitle,
+            提示标签: item.badge,
+            原因: item.reasonText
+          }))
+        }))
+      })),
+      重点学生名单: data.keyStudentLists.map((list) => ({
+        名单名称: list.label,
+        说明: list.description,
+        学生列表: list.items.slice(0, 6).map((item) => ({
+          姓名: item.name,
+          趋势: item.trendText,
+          摘要: item.subtitle,
+          提示标签: item.badge,
+          原因: item.reasonText
+        }))
       }))
     }
   })

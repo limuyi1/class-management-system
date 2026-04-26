@@ -244,13 +244,10 @@ const handleResetPrompt = () => {
               • <code v-pre>{{ name }}</code> - 学生姓名
             </div>
             <div class="tip-item">
-              • <code v-pre>{{ tags }}</code> - 学生标签（数组）
+              • <code v-pre>{{ tags }}</code> - 单个评语为学生标签；批量评语为轻量化标签短字符串
             </div>
             <div class="tip-item">
-              • <code v-pre>{{ score }}</code> - 成绩数组，建议按 <code>{`{ label, value }`}</code> 理解
-            </div>
-            <div class="tip-item">
-              批量结构示例：<code>[{`{ label: '第一次月考', value: 82 }`}]</code>
+              单个/批量期末评语默认不使用成绩字段，请围绕学生标签和学期表现编写提示词
             </div>
             <div class="tip-item">
               • <code v-pre>{{ students }}</code> - 批量学生数据（JSON数组）

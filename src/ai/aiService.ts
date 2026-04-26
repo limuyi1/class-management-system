@@ -18,10 +18,7 @@ import { parseJsonArray, parseJsonObject } from '@/ai/responseParser'
 
 interface StudentData {
   name: string
-  tags?: string[]
-  /**
-   * 单人评语沿用单个成绩，批量评语允许传入结构化成绩数组。
-   */
+  tags?: string | string[]
   score?: number | Array<{ label: string; value: number }>
   comment?: string | null
 }

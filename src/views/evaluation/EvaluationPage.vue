@@ -23,7 +23,7 @@ import type { StudentDataType } from '@/types/StudentData'
 
 /**
  * 期末评语管理页面
- * 展示学生评语列表，提供编辑、AI 生成和 PDF 导出功能
+ * 展示学生期末评语列表，提供编辑、AI 生成和 PDF 导出功能
  */
 
 const evaluationTableViewRef = ref<InstanceType<typeof EvaluationTableView>>()
@@ -35,7 +35,7 @@ const dataStore = useDataSourceStore()
 const { items: students, enabledData: enabledStudents } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
-const { tagCategory: tagCategoryList, tableHeaders } = storeToRefs(settingStore)
+const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
 const aiConfigStore = useAIConfigStore()
 const { percentage, notCompletedCount } = useProgress({
   data: students,
@@ -74,7 +74,7 @@ const autoFocus = () => {
 
 const handleExportTextPDF = async () => {
   if (!enabledStudents.value.length) {
-    ElMessage.warning('没有可导出的学生评语')
+    ElMessage.warning('没有可导出的学生期末评语')
     return
   }
 
@@ -112,7 +112,7 @@ const handleExportTextPDF = async () => {
 
 /**
  * 处理评语卡片点击事件
- * 点击左侧学生评语卡片时，激活右侧输入区进行编辑
+ * 点击左侧学生期末评语卡片时，激活右侧输入区进行编辑
  * @param row - 被点击的学生行数据
  */
 const handleCardClick = (row: StudentDataType) => {
@@ -167,35 +167,9 @@ const getStudentName = (student: StudentDataType): string => {
   return name === null || name === undefined ? '' : String(name)
 }
 
-const getStudentScore = (student: StudentDataType): number | undefined => {
-  if (!configuration.inputScoreTab) return undefined
-  const score = student[configuration.inputScoreTab]
-  return typeof score === 'number' && Number.isFinite(score) ? score : undefined
-}
-
-/**
- * 批量评语需要携带完整成绩轨迹，便于模型结合多个单元表现生成更稳的评语。
- */
-const getStudentScoreHistory = (student: StudentDataType): Array<{ label: string; value: number }> => {
-  return tableHeaders.value
-    .filter((header) => header.prop !== NAME_PROP)
-    .map((header) => {
-      const rawValue = student[header.prop]
-      const score =
-        typeof rawValue === 'number'
-          ? rawValue
-          : typeof rawValue === 'string'
-            ? Number(rawValue)
-            : NaN
-
-      if (!Number.isFinite(score)) return null
-
-      return {
-        label: header.label,
-        value: score
-      }
-    })
-    .filter((item): item is { label: string; value: number } => item !== null)
+const formatBatchTags = (tags: string[]): string => {
+  const uniqueTags = Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)))
+  return uniqueTags.length ? uniqueTags.join('、') : '暂无'
 }
 
 const handleBatchGenerate = async () => {
@@ -223,8 +197,8 @@ const handleBatchGenerate = async () => {
     // 全部已有评语，只询问是否覆盖
     try {
       await ElMessageBox.confirm(
-        '所有学生已有评语，是否全部重新生成？',
-        'AI 批量生成评语',
+        '所有学生已有期末评语，是否全部重新生成？',
+        'AI 批量生成期末评语',
         {
           confirmButtonText: '覆盖所有',
           cancelButtonText: '取消',
@@ -241,10 +215,10 @@ const handleBatchGenerate = async () => {
     try {
       await ElMessageBox.confirm(
         `检测到 ${students.value.length} 名学生中已有 ${existingCount} 名学生有评语，请选择生成方式`,
-        'AI 批量生成评语',
+        'AI 批量生成期末评语',
         {
           confirmButtonText: '覆盖所有',
-          cancelButtonText: '仅填充空评语',
+          cancelButtonText: '仅填充空白期末评语',
           type: 'info',
           distinguishCancelAndClose: true
         }
@@ -262,7 +236,7 @@ const handleBatchGenerate = async () => {
   batchGenerating.value = true
   const loading = ElLoading.service({
     lock: true,
-    text: '正在批量生成评语...'
+    text: '正在批量生成期末评语...'
   })
 
   try {
@@ -278,14 +252,13 @@ const handleBatchGenerate = async () => {
 
       return {
         name: getStudentName(item),
-        tags: allTags,
-        score: getStudentScoreHistory(item),
+        tags: formatBatchTags(allTags),
         comment: mode === 'overwrite' ? '' : (item.comment || '')
       }
     })
 
-    // 分批处理，每批15个学生
-    const BATCH_SIZE = 15
+    // 分批处理，每批10个学生，降低单次请求体积和失败影响范围。
+    const BATCH_SIZE = 10
     const totalBatches = Math.ceil(studentsData.length / BATCH_SIZE)
     const allResults: Array<{ name: string; comment: string | null }> = []
     let failedBatches: number[] = []
@@ -295,7 +268,7 @@ const handleBatchGenerate = async () => {
       const end = Math.min(start + BATCH_SIZE, studentsData.length)
       const batchData = studentsData.slice(start, end)
 
-      loading.setText(`正在生成第 ${batchIndex + 1}/${totalBatches} 批评语...`)
+      loading.setText(`正在生成第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
 
       try {
         const result = await generateBatchComments(batchData, aiConfigStore.prompts.batchComment, {
@@ -327,10 +300,10 @@ const handleBatchGenerate = async () => {
       }
     }
 
-    ElMessage.success(`批量生成完成，已更新 ${updatedCount} 条评语`)
+    ElMessage.success(`批量生成完成，已更新 ${updatedCount} 条期末评语`)
   } catch (error) {
-    console.error('批量生成评语失败:', error)
-    ElMessage.error('批量生成失败：' + (error as Error).message)
+    console.error('批量生成期末评语失败:', error)
+    ElMessage.error('批量生成期末评语失败：' + (error as Error).message)
   } finally {
     loading.close()
     batchGenerating.value = false
@@ -366,7 +339,7 @@ defineExpose({ autoFocus })
         <div class="progress-title">
           <span class="label">
             <font-awesome-icon :icon="['solid', 'chart-pie']" />
-            评语进度
+            期末评语进度
           </span>
         </div>
         <div class="progress-bar-wrap">
@@ -392,15 +365,15 @@ defineExpose({ autoFocus })
       <div class="toolbar-actions">
         <el-button type="danger" plain @click="handleResetComments">
           <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
-          重置
+          重置期末评语
         </el-button>
         <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
           <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
-          AI 批量生成评语
+          AI 批量生成期末评语
         </el-button>
         <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
           <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
-          导出评语
+          导出期末评语
         </el-button>
       </div>
     </div>

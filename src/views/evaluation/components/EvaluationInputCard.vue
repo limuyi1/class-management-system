@@ -68,7 +68,7 @@ defineExpose({
   <div class="evaluation-input-card">
     <div class="card-header">
       <font-awesome-icon :icon="['solid', 'pen-to-square']" />
-      <span>填写评语</span>
+      <span>填写期末评语</span>
     </div>
 
     <div class="card-body">
@@ -123,7 +123,7 @@ defineExpose({
                     <template #icon
                       ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
                     /></template>
-                    AI 生成评语
+                    AI 生成期末评语
                   </el-button>
                 </div>
               </el-tooltip>

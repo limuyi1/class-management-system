@@ -6,7 +6,6 @@ import { storeToRefs } from 'pinia'
 
 import { useEnterUp } from '@/hooks/useEnterUp'
 import { useDataSourceStore } from '@/stores/data-source'
-import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 
@@ -43,12 +42,11 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
 
   const router = useRouter()
   const dataStore = useDataSourceStore()
-  const configuration = useConfigurationStore()
   const settingStore = useSettingStore()
   const aiConfigStore = useAIConfigStore()
 
   const { items: originList } = storeToRefs(dataStore)
-  const { tagCategory: tagCategoryList, tableHeaders } = storeToRefs(settingStore)
+  const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
 
   const generating = ref(false)
   const optionsList = ref<StudentDataType[]>([])
@@ -87,33 +85,6 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const getStudentName = (student: StudentDataType): string => {
     const name = student[NAME_PROP]
     return name === null || name === undefined ? '' : String(name)
-  }
-
-  /**
-   * AI 评语统一补充完整成绩轨迹，保持单个评语和批量评语的 score 语义一致。
-   */
-  const getStudentScoreHistory = (
-    student: StudentDataType
-  ): Array<{ label: string; value: number }> => {
-    return tableHeaders.value
-      .filter((header) => header.prop !== NAME_PROP)
-      .map((header) => {
-        const rawValue = student[header.prop]
-        const score =
-          typeof rawValue === 'number'
-            ? rawValue
-            : typeof rawValue === 'string'
-              ? Number(rawValue)
-              : NaN
-
-        if (!Number.isFinite(score)) return null
-
-        return {
-          label: header.label,
-          value: score
-        }
-      })
-      .filter((item): item is { label: string; value: number } => item !== null)
   }
 
   const remoteMethod = (query: string) => {
@@ -278,8 +249,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
 
       const student = {
         name: getStudentName(item),
-        tags: allTags,
-        score: getStudentScoreHistory(item)
+        tags: allTags
       }
 
       const comment = await generateSingleComment(student, aiConfigStore.prompts.singleComment, {
