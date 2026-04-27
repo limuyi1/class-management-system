@@ -53,7 +53,6 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
               />
               <span>{{ list.label }}</span>
             </span>
-            <span class="heading-desc">{{ list.description }}</span>
           </div>
           <em>优先推荐 {{ Math.min(list.items.length, 3) }} 人</em>
         </div>
@@ -144,13 +143,6 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
   display: inline-flex;
   align-items: center;
   gap: 8px;
-}
-
-.heading-desc {
-  font-size: 11px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--text-secondary);
 }
 
 .student-scrollbar {

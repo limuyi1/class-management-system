@@ -179,7 +179,6 @@ export interface DashboardSummaryCardType {
 export interface DashboardKeyStudentListType {
   key: DashboardFocusGroupKeyType
   label: string
-  description: string
   items: DashboardStudentListItemType[]
 }
 

@@ -554,10 +554,14 @@ export const buildStudentMetrics = (
           normalizedLatestScore !== null &&
           historyScores.length >= 1 &&
           normalizedLatestScore >= averageOf(historyScores) + (tagConfigs.improving.minDelta || 8)
+        // 原始分数的累计提升（用于排除归一化后"假进步"的情况）
+        const actualRecentDelta =
+          recentThreeScores.length >= 2 ? recentThreeScores[recentThreeScores.length - 1] - recentThreeScores[0] : 0
 
         if (
           signals.isUpwardDirection &&
           signals.latestMomentumUp &&
+          actualRecentDelta > 0 &&
           (signals.recentAscending ||
             signals.risingDelta >= (tagConfigs.improving.minDelta || 8) ||
             latestAboveHistoryAverage)

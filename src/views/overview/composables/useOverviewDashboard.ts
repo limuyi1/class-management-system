@@ -106,7 +106,7 @@ export function useOverviewDashboard() {
     }
 
     const withoutCurrent = selectedStudentNames.value.filter((item) => item !== name)
-    selectedStudentNames.value = [name, ...withoutCurrent]
+    selectedStudentNames.value = [...withoutCurrent, name]
   }
 
   return {

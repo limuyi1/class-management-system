@@ -264,22 +264,18 @@ export const buildKeyStudentLists = (
   metrics: StudentMetricType[],
   config: HomeDashboardConfigType
 ): DashboardKeyStudentListType[] => {
-  const labels: Record<DashboardFocusGroupKeyType, { label: string; description: string }> = {
+  const labels: Record<DashboardFocusGroupKeyType, { label: string }> = {
     attention: {
-      label: '需要马上关注',
-      description: '优先安排谈话、补救和错题复盘'
+      label: '需要马上关注'
     },
     encouragement: {
-      label: '最近值得鼓励',
-      description: '适合表扬、强化评语和课堂反馈'
+      label: '最近值得鼓励'
     },
     middleChange: {
-      label: '波动观察',
-      description: '重点盯住波动下行，也看见正在上行的波动学生'
+      label: '波动观察'
     },
     volatilityWatch: {
-      label: '波动观察',
-      description: '重点盯住波动下行，也看见正在上行的波动学生'
+      label: '波动观察'
     }
   }
 
@@ -302,7 +298,6 @@ export const buildKeyStudentLists = (
     (groupKey) => ({
       key: groupKey,
       label: labels[groupKey].label,
-      description: labels[groupKey].description,
       items: metrics
         .filter((metric) => metric.matchedTags.some((tag) => tag.group === groupKey))
         .map((metric) => ({

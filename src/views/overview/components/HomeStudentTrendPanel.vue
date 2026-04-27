@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
+import { match } from 'pinyin-pro'
 import { ElMessage } from 'element-plus'
 
 import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'
@@ -27,6 +28,7 @@ const emit = defineEmits<{
 }>()
 
 const chartMode = ref<'line' | 'bar'>('line')
+const studentSearchKeyword = ref('')
 const emptyCommentText = '暂无评语，可前往评语页继续处理'
 const maxCompareCount = overviewDashboardConfig.studentTrend.maxCompareCount
 
@@ -348,6 +350,20 @@ const clearSelected = () => {
 const goToEvaluation = () => {
   emit('go-evaluation')
 }
+
+const filteredStudentOptions = computed(() => {
+  const keyword = studentSearchKeyword.value.trim()
+  if (!keyword) return props.studentOptions
+
+  return props.studentOptions.filter((option) => {
+    const studentName = option.label || option.value
+    return studentName.includes(keyword) || !!match(studentName, keyword)?.length
+  })
+})
+
+const handleStudentFilter = (query: string) => {
+  studentSearchKeyword.value = query
+}
 </script>
 
 <template>
@@ -359,10 +375,12 @@ const goToEvaluation = () => {
         multiple
         filterable
         clearable
-        placeholder="选择学生进行趋势对比"
+        :reserve-keyword="false"
+        placeholder="输入姓名或拼音搜索并多选"
+        :filter-method="handleStudentFilter"
       >
         <el-option
-          v-for="option in studentOptions"
+          v-for="option in filteredStudentOptions"
           :key="option.value"
           :label="option.label"
           :value="option.value"

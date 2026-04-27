@@ -164,7 +164,7 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
     significantRise: 8,
     significantDrop: 8,
     summaryLimit: 3,
-    maxCompareCount: 5
+    maxCompareCount: 3
   },
   // 推荐排序权重配置，用于计算学生在本组内的推荐优先级
   recommendation: {

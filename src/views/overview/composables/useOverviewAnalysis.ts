@@ -72,7 +72,6 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
       })),
       重点学生名单: data.keyStudentLists.map((list) => ({
         名单名称: list.label,
-        说明: list.description,
         学生列表: list.items.slice(0, 6).map((item) => ({
           姓名: item.name,
           趋势: item.trendText,
