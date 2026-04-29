@@ -27,6 +27,12 @@ const menu = [
     hidden: !featureFlags.wrongBook
   },
   {
+    name: '工具',
+    icon: 'toolbox',
+    path: '/tools',
+    disabled: false
+  },
+  {
     name: '设置',
     icon: 'gear',
     path: '/setting',

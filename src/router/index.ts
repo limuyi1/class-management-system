@@ -6,6 +6,7 @@ import Math from '@/views/score/ScorePage.vue'
 import Comment from '@/views/evaluation/EvaluationPage.vue'
 import Setting from '@/views/setting/SettingPage.vue'
 import WrongBook from '@/views/wrong-book/WrongBookPage.vue'
+import Tools from '@/views/tools/ToolsPage.vue'
 import EmptyPage from '@/views/empty/EmptyPage.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
@@ -47,6 +48,11 @@ const router = createRouter({
           path: '/wrong-book',
           name: 'WrongBook',
           component: WrongBook
+        },
+        {
+          path: '/tools',
+          name: 'Tools',
+          component: Tools
         },
         {
           path: '/setting',

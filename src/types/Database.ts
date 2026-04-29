@@ -1,6 +1,7 @@
 import type { StudentDataType } from './StudentData'
 import type { WrongFolder, WrongQuestion } from './WrongBook'
 import type { SettingType, TagCategoryType, TagType } from './Setting'
+import type { PaperLayoutSettingsType } from './Tools'
 
 export interface DataSourceRecord {
   id: string
@@ -59,4 +60,9 @@ export interface OverviewAnalysisRecord {
   id: string
   analysisText: string
   generatedAt: string
+}
+
+export interface ToolsRecord {
+  id: string
+  paperLayout: PaperLayoutSettingsType
 }

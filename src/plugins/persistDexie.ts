@@ -9,6 +9,7 @@ import type {
   OverviewAnalysisRecord,
   SettingRecord,
   ThemeRecord,
+  ToolsRecord,
   WrongBookRecord
 } from '@/types/Database'
 import type { StudentDataType } from '@/types/StudentData'
@@ -20,6 +21,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
+import { useToolsStore } from '@/stores/tools'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 
 type PersistableRecordType =
@@ -30,6 +32,7 @@ type PersistableRecordType =
   | ThemeRecord
   | AIConfigRecord
   | OverviewAnalysisRecord
+  | ToolsRecord
 
 interface DataSourceLikeStoreType {
   isInitialLoading: boolean
@@ -46,6 +49,7 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   theme: db.theme,
   aiConfig: db.aiConfig,
   overviewAnalysis: db.overviewAnalysis,
+  tools: db.tools,
   dataSource: db.dataSource
 }
 
@@ -187,7 +191,8 @@ export function preloadAllStores() {
     useThemeStore(),
     useAIConfigStore(),
     useWrongBookStore(),
-    useOverviewAnalysisStore()
+    useOverviewAnalysisStore(),
+    useToolsStore()
   ]
   console.log('[PersistDexie] All stores preloaded')
 }
