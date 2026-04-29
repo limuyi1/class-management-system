@@ -177,12 +177,17 @@ const directionIconNameMap = {
 }
 
 .name-block {
+  width: 100%;
   min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
 
   strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     font-size: 14px;
     color: var(--text-primary);
     line-height: 1.2;
@@ -191,6 +196,10 @@ const directionIconNameMap = {
 
 .primary-tag {
   flex-shrink: 0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   padding: 3px 8px;
   border-radius: 8px;
   background: color-mix(in srgb, var(--row-main) 10%, #fff7ed);
@@ -302,11 +311,87 @@ const directionIconNameMap = {
   }
 
   .name-block {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .trend-text {
     font-size: 13px;
+  }
+}
+
+@container (max-width: 420px) {
+  .overview-student-row {
+    grid-template-columns: 34px minmax(0, 1fr) 12px;
+    align-items: start;
+    gap: 6px 10px;
+  }
+
+  .row-leading,
+  .row-action {
+    padding-top: 2px;
+  }
+
+  .row-action {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .row-main {
+    grid-column: 2;
+    grid-row: 1;
+    gap: 5px;
+  }
+
+  .name-block {
+    gap: 6px;
+  }
+
+  .primary-tag {
+    max-width: 86px;
+  }
+
+  .direction-tag {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .trend-block {
+    grid-column: 2 / 4;
+    grid-row: 2;
+    justify-content: flex-start;
+    min-height: auto;
+  }
+
+  .trend-text {
+    font-size: 12px;
+    line-height: 1.3;
+  }
+
+  .reason-block {
+    gap: 6px;
+  }
+}
+
+@container (max-width: 340px) {
+  .overview-student-row {
+    grid-template-columns: 30px minmax(0, 1fr) 10px;
+    gap: 6px 8px;
+  }
+
+  .avatar-token {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+
+  .primary-tag {
+    max-width: 72px;
+  }
+
+  .direction-tag {
+    max-width: 58px;
   }
 }
 </style>

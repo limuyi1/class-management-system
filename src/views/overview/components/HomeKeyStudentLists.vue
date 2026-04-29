@@ -151,6 +151,7 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
 }
 
 .student-list {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 0;

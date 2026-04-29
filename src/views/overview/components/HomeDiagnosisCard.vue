@@ -26,6 +26,18 @@ const analysisDialogVisible = ref(false)
 
 const diagnosisTitle = computed(() => 'AI 学情分析')
 
+const diagnosisStatusLabel = computed(() => {
+  if (!props.evaluationOverview.aiConfigured) return '未配置'
+  if (props.analysisLoading) return '生成中'
+  return hasAnalysisText.value ? '已生成' : '待生成'
+})
+
+const diagnosisStatusType = computed(() => {
+  if (!props.evaluationOverview.aiConfigured) return 'warning'
+  if (props.analysisLoading) return 'primary'
+  return hasAnalysisText.value ? 'success' : 'info'
+})
+
 /**
  * 根据配置状态和生成状态返回不同的提示文案。
  */
@@ -101,9 +113,35 @@ const openAnalysisDialog = () => {
         <div class="diagnosis-icon">
           <font-awesome-icon :icon="['solid', 'robot']" />
         </div>
-        <div class="diagnosis-title">{{ diagnosisTitle }}</div>
+        <div class="diagnosis-title-block">
+          <div class="diagnosis-title">{{ diagnosisTitle }}</div>
+          <el-tag class="diagnosis-status" :type="diagnosisStatusType" size="small" effect="plain" round>
+            {{ diagnosisStatusLabel }}
+          </el-tag>
+        </div>
       </div>
       <div class="diagnosis-actions">
+        <el-button
+          v-if="evaluationOverview.aiConfigured"
+          class="header-generate-btn"
+          size="small"
+          type="primary"
+          plain
+          :loading="analysisLoading"
+          @click="emit('generateAnalysis')"
+        >
+          {{ diagnosisPrimaryActionLabel }}
+        </el-button>
+        <el-button
+          v-else
+          class="header-generate-btn"
+          size="small"
+          type="primary"
+          plain
+          @click="emit('goAiSetting')"
+        >
+          配置 AI
+        </el-button>
         <button class="expand-btn" type="button" @click="openAnalysisDialog">
           <font-awesome-icon :icon="['solid', 'up-right-and-down-left-from-center']" />
         </button>
@@ -119,29 +157,6 @@ const openAnalysisDialog = () => {
 
     <div class="diagnosis-footer">
       <span class="generated-time"> 生成时间：{{ formattedAnalysisTime || '--' }} </span>
-      <div class="diagnosis-footer-actions">
-        <el-button
-          v-if="evaluationOverview.aiConfigured"
-          class="footer-btn"
-          size="small"
-          type="primary"
-          plain
-          :loading="analysisLoading"
-          @click="emit('generateAnalysis')"
-        >
-          {{ diagnosisPrimaryActionLabel }}
-        </el-button>
-        <el-button
-          v-else
-          class="footer-btn"
-          size="default"
-          type="primary"
-          plain
-          @click="emit('goAiSetting')"
-        >
-          配置 AI
-        </el-button>
-      </div>
     </div>
 
     <el-dialog
@@ -172,10 +187,12 @@ const openAnalysisDialog = () => {
 <style scoped lang="scss">
 .diagnosis-card {
   border-radius: 14px;
-  border: 1px solid var(--border-muted);
-  background: #ffffff;
+  border: 1px solid color-mix(in srgb, #3b82f6 14%, var(--border-muted));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #3b82f6 5%, #ffffff) 0%, #ffffff 68%),
+    #ffffff;
   box-shadow: var(--shadow-card);
-  padding: 10px 12px;
+  padding: 11px 12px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -190,15 +207,16 @@ const openAnalysisDialog = () => {
 }
 
 .diagnosis-title-wrap {
+  min-width: 0;
   display: inline-flex;
   align-items: center;
   gap: 8px;
 }
 
 .diagnosis-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -215,10 +233,28 @@ const openAnalysisDialog = () => {
   color: #303133;
 }
 
+.diagnosis-title-block {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 6px;
+}
+
+.diagnosis-status {
+  height: 20px;
+}
+
 .diagnosis-actions {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.header-generate-btn {
+  min-width: 72px;
+  margin-left: 0;
 }
 
 .generated-time {
@@ -235,7 +271,7 @@ const openAnalysisDialog = () => {
   line-height: 1.5;
   color: #606266;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
@@ -246,22 +282,12 @@ const openAnalysisDialog = () => {
 .diagnosis-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   padding-top: 6px;
   border-top: 1px solid #e8edf5;
 }
 
-.diagnosis-footer-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.footer-btn {
-  min-width: 84px;
-  margin-left: 0;
-}
 
 .expand-btn {
   width: 24px;
@@ -383,17 +409,16 @@ const openAnalysisDialog = () => {
 }
 
 @media (max-width: 768px) {
-  .diagnosis-footer {
+  .diagnosis-header {
     align-items: flex-start;
-    flex-direction: column;
   }
 
-  .diagnosis-footer-actions {
-    width: 100%;
+  .diagnosis-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
-  .footer-btn {
-    flex: 1;
+  .header-generate-btn {
     min-width: 0;
   }
 }

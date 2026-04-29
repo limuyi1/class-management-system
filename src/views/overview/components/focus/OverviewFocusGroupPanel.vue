@@ -131,7 +131,7 @@ watchEffect(() => {
 </script>
 
 <template>
-  <div class="focus-panel" :class="{ 'is-expanded': state.expanded }">
+  <div class="focus-panel" :class="[`is-${group.tone}`, { 'is-expanded': state.expanded }]">
     <div class="focus-section-tabs">
       <button
         v-for="section in sortedSections"
@@ -173,10 +173,30 @@ watchEffect(() => {
 
 <style scoped lang="scss">
 .focus-panel {
+  --focus-main: #2563eb;
+  --focus-soft: color-mix(in srgb, var(--focus-main) 7%, #ffffff);
+  --focus-border: color-mix(in srgb, var(--focus-main) 22%, #dbe5f0);
+
   min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+.focus-panel.is-danger {
+  --focus-main: #dc2626;
+}
+
+.focus-panel.is-success {
+  --focus-main: #059669;
+}
+
+.focus-panel.is-info {
+  --focus-main: #2563eb;
+}
+
+.focus-panel.is-warning {
+  --focus-main: #d97706;
 }
 
 .focus-panel.is-expanded {
@@ -184,6 +204,7 @@ watchEffect(() => {
 }
 
 .focus-list {
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: 0;
@@ -218,21 +239,13 @@ watchEffect(() => {
 }
 
 .focus-section-tab.is-active {
-  border-color: #93c5fd;
-  background: #eff6ff;
-  color: #2563eb;
-}
+  border-color: var(--focus-border);
+  background: var(--focus-soft);
+  color: var(--focus-main);
 
-.focus-section-tab.is-volatilityFalling {
-  border-color: #fed7aa;
-  background: #fff7ed;
-  color: #c2410c;
-}
-
-.focus-section-tab.is-volatilityRising {
-  border-color: #a7f3d0;
-  background: #ecfdf5;
-  color: #047857;
+  strong {
+    color: var(--focus-main);
+  }
 }
 
 .focus-section-meta {
@@ -260,7 +273,7 @@ watchEffect(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #2563eb;
+  color: var(--focus-main);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;

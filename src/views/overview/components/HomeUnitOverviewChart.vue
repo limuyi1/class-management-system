@@ -15,6 +15,8 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const averageScoreColor = '#7c3aed'
+
 /**
  * 格式化 ECharts 提示框内容。
  * 显示单元名称、有效人数、各分数段人数。
@@ -57,6 +59,9 @@ const formatTooltipRows = (params: unknown, validCountMap: Map<string, number>) 
 const chartOption = computed<EChartsOption>(() => {
   const labels = props.unitOverview.map((item) => item.label)
   const showDataZoom = labels.length > overviewDashboardConfig.unitOverview.dataZoomThreshold
+  const dataZoomVisibleCount = overviewDashboardConfig.unitOverview.dataZoomVisibleCount
+  const dataZoomStartValue = Math.max(0, labels.length - dataZoomVisibleCount)
+  const dataZoomEndValue = Math.max(0, labels.length - 1)
   const validCountMap = new Map(props.unitOverview.map((item) => [item.label, item.validCount]))
   const bandLabels = props.unitOverview[0]?.scoreBands.map((item) => item.label) || []
   const series: Array<BarSeriesOption | LineSeriesOption> = [
@@ -67,14 +72,14 @@ const chartOption = computed<EChartsOption>(() => {
       smooth: true,
       symbolSize: 10,
       itemStyle: {
-        color: '#0f766e'
+        color: averageScoreColor
       },
       lineStyle: {
         width: 3,
-        color: '#0f766e'
+        color: averageScoreColor
       },
       areaStyle: {
-        color: 'rgba(15, 118, 110, 0.12)'
+        color: 'rgba(124, 58, 237, 0.1)'
       },
       label: {
         show: true,
@@ -90,10 +95,12 @@ const chartOption = computed<EChartsOption>(() => {
       barMaxWidth: 20,
       barGap: '8%',
       itemStyle: {
+        color: props.unitOverview[0]?.scoreBands[index]?.color,
         borderRadius: [6, 6, 0, 0]
       },
       label: {
         show: true,
+        hideOverlap: true,
         position: 'inside' as const,
         color: '#ffffff',
         fontSize: 11,
@@ -113,7 +120,7 @@ const chartOption = computed<EChartsOption>(() => {
   return {
     animationDuration: 800,
     animationEasing: 'cubicOut',
-    color: ['#0f766e', ...(props.unitOverview[0]?.scoreBands.map((item) => item.color) || [])],
+    color: [averageScoreColor, ...(props.unitOverview[0]?.scoreBands.map((item) => item.color) || [])],
     tooltip: {
       trigger: 'axis',
       confine: true,
@@ -152,15 +159,16 @@ const chartOption = computed<EChartsOption>(() => {
           {
             type: 'inside',
             xAxisIndex: 0,
-            startValue: 0,
-            endValue: overviewDashboardConfig.unitOverview.dataZoomVisibleCount - 1
+            startValue: dataZoomStartValue,
+            endValue: dataZoomEndValue
           },
           {
             type: 'slider',
             xAxisIndex: 0,
             bottom: 12,
             height: 20,
-            brushSelect: false
+            brushSelect: false,
+            showDetail: false
           }
         ]
       : [],

@@ -48,10 +48,12 @@ defineProps<Props>()
   --summary-main: #3b82f6;
   --summary-soft: color-mix(in srgb, var(--summary-main) 6%, #ffffff);
   border-radius: 14px;
-  border: 1px solid var(--border-muted);
-  background: linear-gradient(180deg, var(--summary-soft) 0%, #ffffff 62%), #ffffff;
-  box-shadow: var(--shadow-card);
-  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--summary-main) 18%, var(--border-muted));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--summary-main) 8%, #ffffff) 0%, #ffffff 70%),
+    #ffffff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -65,15 +67,15 @@ defineProps<Props>()
 }
 
 .summary-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 999px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--summary-main) 10%, #ffffff);
-  border: 1px solid color-mix(in srgb, var(--summary-main) 20%, #ffffff);
+  background: color-mix(in srgb, var(--summary-main) 14%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--summary-main) 26%, #ffffff);
   color: var(--summary-main);
   font-size: 14px;
 }
@@ -87,7 +89,7 @@ defineProps<Props>()
 }
 
 .summary-label {
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.2;
   font-weight: 600;
   color: #303133;
@@ -105,6 +107,9 @@ defineProps<Props>()
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--summary-main) 7%, #ffffff);
   white-space: nowrap;
 }
 
@@ -140,7 +145,7 @@ defineProps<Props>()
   min-height: 54px;
   padding: 6px 8px;
   border-radius: 8px;
-  background: color-mix(in srgb, #3b82f6 6%, #ffffff);
+  background: color-mix(in srgb, var(--summary-main) 6%, #ffffff);
   flex-direction: column;
   justify-content: center;
   align-items: center;
@@ -154,7 +159,7 @@ defineProps<Props>()
 
 .overview-value,
 .overview-progress-value {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #2563eb;
 }

@@ -65,7 +65,7 @@ const chartAreaColors = [
   'rgba(124, 58, 237, 0.1)'
 ]
 const singleTrendReferenceLineColors = {
-  classAverage: '#2563eb',
+  classAverage: '#7c3aed',
   studentAverage: '#dc2626'
 }
 
@@ -387,14 +387,20 @@ const handleStudentFilter = (query: string) => {
         />
       </el-select>
 
-      <el-segmented
-        v-model="chartMode"
-        :options="[
-          { label: '折线图', value: 'line' },
-          { label: '柱状图', value: 'bar' }
-        ]"
-      />
-      <el-button text type="primary" @click="goToEvaluation">去评语页</el-button>
+      <div class="toolbar-actions">
+        <el-segmented
+          v-model="chartMode"
+          class="chart-mode-segmented"
+          :options="[
+            { label: '折线图', value: 'line' },
+            { label: '柱状图', value: 'bar' }
+          ]"
+        />
+        <el-button class="evaluation-link-btn" type="primary" plain @click="goToEvaluation">
+          <font-awesome-icon :icon="['solid', 'pen-to-square']" />
+          <span>去评语页</span>
+        </el-button>
+      </div>
     </div>
 
     <div v-if="quickStudentNames.length" class="quick-students">
@@ -495,18 +501,40 @@ const handleStudentFilter = (query: string) => {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .toolbar-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 10px;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  gap: 12px;
   align-items: center;
+  padding: 10px;
+  border: 1px solid #e5edf5;
+  border-radius: 12px;
+  background: #ffffff;
 }
 
 .student-select {
   width: 100%;
+}
+
+.toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chart-mode-segmented {
+  flex-shrink: 0;
+}
+
+.evaluation-link-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .quick-students {
@@ -557,9 +585,9 @@ const handleStudentFilter = (query: string) => {
 }
 
 .chart-wrapper {
-  height: 320px;
-  min-height: 320px;
-  flex: 0 0 320px;
+  height: clamp(260px, 38vh, 340px);
+  min-height: 260px;
+  flex: 0 0 clamp(260px, 38vh, 340px);
 }
 
 .summary-panels {
@@ -667,6 +695,15 @@ const handleStudentFilter = (query: string) => {
     grid-template-columns: 1fr;
   }
 
+  .toolbar-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .evaluation-link-btn {
+    min-width: 104px;
+  }
+
   .chart-wrapper {
     height: 280px;
     min-height: 280px;
@@ -675,6 +712,44 @@ const handleStudentFilter = (query: string) => {
 
   .summary-panels {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .toolbar-row {
+    padding: 8px;
+  }
+
+  .toolbar-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .chart-mode-segmented,
+  .evaluation-link-btn {
+    width: 100%;
+  }
+
+  .evaluation-link-btn {
+    justify-content: center;
+  }
+
+  .quick-students {
+    gap: 6px;
+  }
+
+  .quick-btn {
+    padding: 5px 8px;
+  }
+
+  .meta-title {
+    flex-wrap: wrap;
+  }
+
+  .chart-wrapper {
+    height: 240px;
+    min-height: 240px;
+    flex-basis: 240px;
   }
 }
 </style>

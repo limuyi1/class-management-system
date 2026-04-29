@@ -14,7 +14,12 @@ defineProps<Props>()
 <template>
   <article
     class="summary-card"
-    :class="[`is-${card.tone}`, `layout-${card.layout}`, `details-count-${card.details.length}`]"
+    :class="[
+      `is-${card.tone}`,
+      `is-${card.key}`,
+      `layout-${card.layout}`,
+      `details-count-${card.details.length}`
+    ]"
     :style="{ gridColumn: `span ${span}` }"
   >
     <div class="summary-header">
@@ -46,9 +51,12 @@ defineProps<Props>()
 .summary-card {
   --summary-main: #2563eb;
   --summary-soft: color-mix(in srgb, var(--summary-main) 6%, #ffffff);
+  --summary-strong: color-mix(in srgb, var(--summary-main) 16%, #ffffff);
   border-radius: 14px;
-  border: 1px solid var(--border-muted);
-  background: linear-gradient(180deg, var(--summary-soft) 0%, #ffffff 62%), #ffffff;
+  border: 1px solid color-mix(in srgb, var(--summary-main) 12%, var(--border-muted));
+  background:
+    linear-gradient(180deg, var(--summary-soft) 0%, #ffffff 68%),
+    #ffffff;
   box-shadow: var(--shadow-card);
   padding: 8px 10px;
   display: flex;
@@ -66,11 +74,27 @@ defineProps<Props>()
 }
 
 .summary-card.is-info {
-  --summary-main: #f59e0b;
+  --summary-main: #2563eb;
 }
 
 .summary-card.is-warning {
-  --summary-main: #3b82f6;
+  --summary-main: #f59e0b;
+}
+
+.summary-card.is-attention {
+  border-color: color-mix(in srgb, var(--summary-main) 24%, #fecaca);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--summary-main) 9%, #ffffff) 0%, #ffffff 70%),
+    #ffffff;
+
+  .summary-icon {
+    background: color-mix(in srgb, var(--summary-main) 14%, #ffffff);
+    border-color: color-mix(in srgb, var(--summary-main) 26%, #ffffff);
+  }
+
+  .summary-value {
+    font-size: 20px;
+  }
 }
 
 .summary-header {
@@ -112,7 +136,7 @@ defineProps<Props>()
   display: inline-flex;
   align-items: baseline;
   gap: 4px;
-  color: #2563eb;
+  color: var(--summary-main);
 }
 
 .summary-value {
@@ -185,7 +209,7 @@ defineProps<Props>()
   padding: 4px 8px;
   border: 0;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--summary-main) 6%, #ffffff);
+  background: color-mix(in srgb, var(--summary-main) 5%, #ffffff);
 }
 
 .summary-card.layout-double .summary-detail-item {
@@ -201,5 +225,6 @@ defineProps<Props>()
 
 .detail-value {
   color: #303133;
+  font-weight: 700;
 }
 </style>

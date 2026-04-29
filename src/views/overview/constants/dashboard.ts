@@ -14,11 +14,11 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
   unitOverview: {
     // 分数段定义，用于柱状图的颜色分区和人数统计
     scoreBands: [
-      { label: '90-100', min: 90, max: 100, color: '#52c41a' },
-      { label: '80-89', min: 80, max: 89, color: '#b7eb8f' },
-      { label: '70-79', min: 70, max: 79, color: '#1890ff' },
-      { label: '60-69', min: 60, max: 69, color: '#faad14' },
-      { label: '60以下', min: 0, max: 59, color: '#f5222d' }
+      { label: '90-100', min: 90, max: 100, color: '#16a34a' },
+      { label: '80-89', min: 80, max: 89, color: '#0d9488' },
+      { label: '70-79', min: 70, max: 79, color: '#2563eb' },
+      { label: '60-69', min: 60, max: 69, color: '#d97706' },
+      { label: '60以下', min: 0, max: 59, color: '#dc2626' }
     ],
     // 当单元数超过此阈值时，显示缩放控制器
     dataZoomThreshold: 6,

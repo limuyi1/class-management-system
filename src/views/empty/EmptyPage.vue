@@ -8,13 +8,16 @@ import { useConfigurationStore } from '@/stores/configuration'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { UploadFile } from 'element-plus'
-import { pinyin } from 'pinyin-pro'
 import { storeToRefs } from 'pinia'
 import { parseExcel } from '@/utils/xlsxUntil'
 import { importDatabase } from '@/utils/backup'
+import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
 import ImportProgress from '@/views/setting/components/ImportProgress.vue'
-import { NAME_PROP } from '@/types/Constants'
-import type { StudentDataType } from '@/types/StudentData'
+import {
+  buildInitialScoreImport,
+  findDuplicateNames,
+  type ExcelRowType
+} from '@/utils/scoreImportUntil'
 
 const router = useRouter()
 const store = useDataSourceStore()
@@ -27,62 +30,62 @@ const importing = ref(false)
 const progressVisible = ref(false)
 const progressTitle = ref('')
 const progressPercent = ref(0)
+const columnSelectorVisible = ref(false)
+const excelHeaders = ref<string[]>([])
+const excelRows = ref<ExcelRowType[]>([])
 
 const updateProgress = (percent: number) => {
   progressPercent.value = percent
-}
-
-const normalizeValue = (value: unknown): string | number | boolean | null | undefined => {
-  if (value === null || value === undefined) return null
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    return value
-  }
-  return String(value)
 }
 
 const uploadFile = async (file: UploadFile) => {
   try {
     const { header, data } = await parseExcel(file)
 
-    if (!header.includes('姓名')) {
-      ElMessage.error('表格中必须包含[姓名]列！')
+    if (header.length === 0) {
+      ElMessage.error('Excel 表头不能为空')
       return
     }
 
-    const filteredHeader = header.filter((label: string) => label !== '序号' && label !== '姓名')
-
-    const headerArray = filteredHeader.map((label: string) => ({
-      prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
-      label
-    }))
-
-    const headerObj: StudentDataType = headerArray.reduce(
-      (acc, cur) => {
-        acc[cur.prop] = null
-        return acc
-      },
-      { [NAME_PROP]: null } as StudentDataType
-    )
-
-    const result: StudentDataType[] = data.map((row) => {
-      const student: StudentDataType = { ...headerObj, [NAME_PROP]: null }
-      const nameValue = row['姓名']
-      student[NAME_PROP] = nameValue === null || nameValue === undefined ? null : String(nameValue)
-      headerArray.forEach((headerItem: { prop: string; label: string }) => {
-        student[headerItem.prop] = normalizeValue(row[headerItem.label])
-      })
-      return student
-    })
-
-    tableHeaders.value = headerArray
-    store.items = result
-    configuration.inputScoreTab = headerArray[0]?.prop
-
-    ElMessage.success('导入成功！')
-    router.push('/overview')
+    excelHeaders.value = header
+    excelRows.value = data
+    columnSelectorVisible.value = true
   } catch (err) {
     ElMessage.error('导入失败！')
   }
+}
+
+const handleColumnConfirm = (value: { nameColumn?: string; scoreColumns: string[] }) => {
+  if (!value.nameColumn) return
+
+  const duplicateNames = findDuplicateNames(excelRows.value, value.nameColumn)
+  if (duplicateNames.length > 0) {
+    ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
+    return
+  }
+
+  const result = buildInitialScoreImport({
+    rows: excelRows.value,
+    nameColumn: value.nameColumn,
+    scoreColumns: value.scoreColumns
+  })
+
+  if (result.students.length === 0) {
+    ElMessage.error('没有可导入的学生数据')
+    return
+  }
+
+  tableHeaders.value = result.headers
+  store.items = result.students
+  configuration.inputScoreTab = result.headers[0]?.prop
+  columnSelectorVisible.value = false
+
+  if (result.invalidScoreCount > 0) {
+    ElMessage.warning(`导入成功，${result.invalidScoreCount} 个成绩无法识别，已置为空`)
+  } else {
+    ElMessage.success('导入成功！')
+  }
+  router.push('/overview')
 }
 
 const triggerBackupImport = () => {
@@ -179,6 +182,13 @@ const handleBackupImport = async (event: Event) => {
     v-model:visible="progressVisible"
     :title="progressTitle"
     :percent="progressPercent"
+  />
+  <ExcelColumnSelector
+    v-model="columnSelectorVisible"
+    mode="initial"
+    :headers="excelHeaders"
+    :rows="excelRows"
+    @confirm="handleColumnConfirm"
   />
 </template>
 

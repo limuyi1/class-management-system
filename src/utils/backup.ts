@@ -1,12 +1,14 @@
 import 'dexie-export-import'
-import { db } from '@/db'
+import { db, DB_ID } from '@/db'
 import { dayjs, ElMessage } from 'element-plus'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useDataSourceStore } from '@/stores/data-source'
+import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useSettingStore } from '@/stores/setting'
 import { useThemeStore } from '@/stores/theme'
 import { useWrongBookStore } from '@/stores/wrong-book'
+import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 
 /**
  * 清空 IndexedDB 只会删除持久化记录，不会自动重置当前页面已经加载的 Pinia 内存状态。
@@ -28,6 +30,74 @@ const resetRuntimeStores = () => {
   wrongBookStore.$reset()
   // theme 是 setup store，重置时还需要同步刷新 documentElement 上的主题 CSS 变量。
   themeStore.resetTheme()
+}
+
+const hydrateRuntimeStores = async () => {
+  const dataStore = useDataSourceStore()
+  const settingStore = useSettingStore()
+  const configurationStore = useConfigurationStore()
+  const themeStore = useThemeStore()
+  const aiConfigStore = useAIConfigStore()
+  const wrongBookStore = useWrongBookStore()
+  const overviewAnalysisStore = useOverviewAnalysisStore()
+
+  const [dataSource, setting, configuration, theme, aiConfig, wrongBook, overviewAnalysis] =
+    await Promise.all([
+      db.dataSource.get(DB_ID),
+      db.setting.get(DB_ID),
+      db.configuration.get(DB_ID),
+      db.theme.get(DB_ID),
+      db.aiConfig.get(DB_ID),
+      db.wrongBook.get(DB_ID),
+      db.overviewAnalysis.get(DB_ID)
+    ])
+
+  dataStore.items = dataSource?.data || []
+  dataStore.isInitialLoading = true
+
+  if (setting) {
+    const { id, ...state } = setting
+    void id
+    settingStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+  }
+  if (configuration) {
+    const { id, ...state } = configuration
+    void id
+    configurationStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+  }
+  if (theme) {
+    const { id, ...state } = theme
+    void id
+    themeStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+    themeStore.applyTheme()
+  }
+  if (aiConfig) {
+    const { id, ...state } = aiConfig
+    void id
+    aiConfigStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+  }
+  if (wrongBook) {
+    const { id, ...state } = wrongBook
+    void id
+    wrongBookStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+  }
+  if (overviewAnalysis) {
+    const { id, ...state } = overviewAnalysis
+    void id
+    overviewAnalysisStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+  }
 }
 
 export async function exportDatabase(onProgress?: (percent: number) => void) {
@@ -61,6 +131,7 @@ export async function importDatabase(
 ) {
   try {
     const blob = file.slice(0, file.size, 'application/octet-stream')
+    setDatabaseImporting(true)
     await db.import(blob, {
       clearTablesBeforeImport: true,
       progressCallback: (info) => {
@@ -71,11 +142,14 @@ export async function importDatabase(
         return true
       }
     })
+    await hydrateRuntimeStores()
     ElMessage.success('导入成功')
     complete?.()
   } catch (error) {
     console.error('Import failed:', error)
     ElMessage.error(`导入失败：${error instanceof Error ? error.message : '未知错误'}`)
+  } finally {
+    setDatabaseImporting(false)
   }
 }
 

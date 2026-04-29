@@ -41,6 +41,10 @@ const emptyDescription = computed(() =>
 
 const shouldFillRemainingSpace = computed(() => Boolean(state.expandedByGroup[state.activeGroupKey]))
 
+const activeGroupTone = computed(() => {
+  return props.focusGroups.find((group) => group.key === state.activeGroupKey)?.tone || 'info'
+})
+
 const handleExpandChange = (groupKey: string, expanded: boolean) => {
   state.expandedByGroup[groupKey] = expanded
 }
@@ -68,7 +72,10 @@ watchEffect(() => {
 </script>
 
 <template>
-  <el-card class="focus-center-card" :class="{ 'is-expanded': shouldFillRemainingSpace }">
+  <el-card
+    class="focus-center-card"
+    :class="[`is-${activeGroupTone}`, { 'is-expanded': shouldFillRemainingSpace }]"
+  >
     <div class="focus-header">
       <div class="focus-title">
         <font-awesome-icon :icon="['solid', 'binoculars']" />
@@ -103,10 +110,13 @@ watchEffect(() => {
 
 <style scoped lang="scss">
 .focus-center-card {
+  --focus-main: #2563eb;
+  --focus-soft: color-mix(in srgb, var(--focus-main) 7%, #ffffff);
+
   min-height: 0;
   max-height: 100%;
   overflow: hidden;
-  border: 1px solid var(--border-muted);
+  border: 1px solid color-mix(in srgb, var(--focus-main) 14%, var(--border-muted));
   border-radius: 14px;
   box-shadow: var(--shadow-card);
 
@@ -116,6 +126,22 @@ watchEffect(() => {
     flex-direction: column;
     box-sizing: border-box;
   }
+}
+
+.focus-center-card.is-danger {
+  --focus-main: #dc2626;
+}
+
+.focus-center-card.is-success {
+  --focus-main: #059669;
+}
+
+.focus-center-card.is-info {
+  --focus-main: #2563eb;
+}
+
+.focus-center-card.is-warning {
+  --focus-main: #d97706;
 }
 
 .focus-center-card.is-expanded {
@@ -130,7 +156,7 @@ watchEffect(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--text-primary);
+  color: var(--focus-main);
   font-size: 16px;
   font-weight: 700;
 }
@@ -171,8 +197,8 @@ watchEffect(() => {
   }
 
   :deep(.el-tabs__item.is-active) {
-    background: #f8fbff;
-    color: #2563eb;
+    background: var(--focus-soft);
+    color: var(--focus-main);
     font-weight: 700;
   }
 

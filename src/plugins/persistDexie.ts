@@ -20,6 +20,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
+import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 
 type PersistableRecordType =
   | DataSourceRecord
@@ -112,7 +113,7 @@ export function createPersistedStateDexie() {
     }
 
     const saveToDB = async () => {
-      if (updatingStores.has(storeId)) {
+      if (updatingStores.has(storeId) || isDatabaseImporting()) {
         return
       }
       try {
@@ -149,6 +150,9 @@ export function createPersistedStateDexie() {
           // 清空系统数据会删除整张表记录；liveQuery 会推送 undefined。
           // 这里必须恢复内存 store，否则页面仍会显示清空前的状态，并可能被订阅写回数据库。
           if (!record) {
+            if (isDatabaseImporting()) {
+              return
+            }
             resetStoreState()
             return
           }

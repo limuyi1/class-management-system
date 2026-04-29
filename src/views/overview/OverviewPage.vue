@@ -296,6 +296,26 @@ const handleGenerateLearningAnalysis = async () => {
   background: #f8fafc;
 }
 
+:global(.overview-analysis-drawer) {
+  max-width: 100vw;
+}
+
+@media (max-width: 1200px) {
+  :global(.overview-analysis-drawer) {
+    width: 86% !important;
+  }
+}
+
+@media (max-width: 768px) {
+  :global(.overview-analysis-drawer) {
+    width: 100% !important;
+  }
+
+  :global(.overview-analysis-drawer .el-drawer__body) {
+    padding: 12px;
+  }
+}
+
 .drawer-trend-panel {
   min-height: 100%;
 }
