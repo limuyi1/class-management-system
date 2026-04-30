@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 
-import { PagesEnum } from '@/types/Common'
 import type { ToolsStateType } from '@/types/Tools'
+import { createDefaultPaperLayoutSettings } from '@/views/tools/constants/paperLayout'
 
 /**
  * 工具模块配置
@@ -9,12 +9,6 @@ import type { ToolsStateType } from '@/types/Tools'
  */
 export const useToolsStore = defineStore('tools', {
   state: (): ToolsStateType => ({
-    paperLayout: {
-      pageType: PagesEnum.A4,
-      orientation: 'landscape',
-      columns: 2,
-      margin: 10,
-      gap: 6
-    }
+    paperLayout: createDefaultPaperLayoutSettings()
   })
 })

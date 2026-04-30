@@ -57,4 +57,25 @@ const blobToBase64 = (blob: Blob): Promise<string> => {
   })
 }
 
-export { fileToBase64, fileToBlob, blobToBase64 }
+const blobToDataUrl = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      resolve(String(reader.result || ''))
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+const base64ToBlob = (base64: string, mimeType = 'image/jpeg'): Blob => {
+  const binaryString = window.atob(base64)
+  const bytes = new Uint8Array(binaryString.length)
+  for (let index = 0; index < binaryString.length; index += 1) {
+    bytes[index] = binaryString.charCodeAt(index)
+  }
+
+  return new Blob([bytes], { type: mimeType })
+}
+
+export { fileToBase64, fileToBlob, blobToBase64, blobToDataUrl, base64ToBlob }

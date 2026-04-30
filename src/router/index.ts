@@ -7,6 +7,8 @@ import Comment from '@/views/evaluation/EvaluationPage.vue'
 import Setting from '@/views/setting/SettingPage.vue'
 import WrongBook from '@/views/wrong-book/WrongBookPage.vue'
 import Tools from '@/views/tools/ToolsPage.vue'
+import AttachmentLibraryPage from '@/views/tools/AttachmentLibraryPage.vue'
+import PaperLayoutPage from '@/views/tools/PaperLayoutPage.vue'
 import EmptyPage from '@/views/empty/EmptyPage.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
@@ -53,6 +55,16 @@ const router = createRouter({
           path: '/tools',
           name: 'Tools',
           component: Tools
+        },
+        {
+          path: '/tools/attachments',
+          name: 'AttachmentLibrary',
+          component: AttachmentLibraryPage
+        },
+        {
+          path: '/tools/paper-layout',
+          name: 'PaperLayout',
+          component: PaperLayoutPage
         },
         {
           path: '/setting',

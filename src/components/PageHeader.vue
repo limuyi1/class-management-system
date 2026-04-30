@@ -10,6 +10,7 @@ defineProps<Props>()
 <template>
   <div class="page-header">
     <div class="header-left">
+      <slot name="left"></slot>
       <div class="header-icon">
         <font-awesome-icon :icon="icon" />
       </div>
@@ -41,6 +42,18 @@ defineProps<Props>()
     display: flex;
     align-items: center;
     gap: 10px;
+
+    :deep(.el-button) {
+      background: #fff;
+      border-color: var(--border-muted);
+      color: var(--el-text-color-primary);
+
+      &:hover,
+      &:focus {
+        border-color: var(--el-color-primary-light-5);
+        color: var(--el-color-primary);
+      }
+    }
   }
 
   .header-right {

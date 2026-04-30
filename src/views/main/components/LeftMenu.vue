@@ -33,6 +33,10 @@ const activePath = computed(() => {
     return '/overview'
   }
 
+  if (currentPath?.startsWith('/tools')) {
+    return '/tools'
+  }
+
   return currentPath || data[0].path
 })
 

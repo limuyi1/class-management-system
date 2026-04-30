@@ -1,39 +1,81 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { PDFDocument, type PDFImage } from 'pdf-lib'
 
+import AttachmentSelectorDialog from '@/views/tools/components/AttachmentSelectorDialog.vue'
+import PaperLayoutDraftDialog from '@/views/tools/components/PaperLayoutDraftDialog.vue'
+import {
+  getPaperLayoutPreset,
+  normalizePaperLayoutSettings
+} from '@/views/tools/constants/paperLayout'
 import { PagesEnum } from '@/types/Common'
 import { useToolsStore } from '@/stores/tools'
 import { getPdfPageSize } from '@/utils/evaluationPdfLayoutUntil'
 import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
+import { attachmentToObjectUrl, getAttachments } from '@/views/tools/services/attachmentService'
+import {
+  getPaperLayoutDrafts,
+  savePaperLayoutDraft
+} from '@/views/tools/services/paperLayoutDraftService'
+import type { AttachmentRecordType, PaperLayoutDraftRecordType } from '@/types/Tools'
 
-interface UploadedImageType {
-  id: string
-  name: string
-  dataUrl: string
-  width: number
-  height: number
-  mimeType: string
+interface Props {
+  fullscreen?: boolean
 }
 
-interface LayoutImageType {
-  image: UploadedImageType
+defineProps<Props>()
+const emit = defineEmits<{
+  toggleFullscreen: []
+}>()
+
+interface CanvasItemType {
+  id: string
+  attachmentId: string
+  name: string
+  blob: Blob
+  dataUrl: string
+  mimeType: string
+  naturalWidth: number
+  naturalHeight: number
+  pageIndex: number
   x: number
   y: number
   width: number
   height: number
+  zIndex: number
 }
 
-interface LayoutPageType {
-  id: string
-  items: LayoutImageType[]
+interface DragStateType {
+  itemId: string
+  mode: 'move' | 'resize'
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+  startWidth: number
+  startHeight: number
 }
 
 const pointPerMm = 72 / 25.4
-const fileInputRef = ref<HTMLInputElement | null>(null)
-const images = ref<UploadedImageType[]>([])
+const minVisibleMm = 8
+const minItemWidthMm = 18
+const previewPanelRef = ref<HTMLElement | null>(null)
+const canvasItems = ref<CanvasItemType[]>([])
+const selectedItemId = ref('')
 const exporting = ref(false)
+const previewScale = ref(1)
+const selectorVisible = ref(false)
+const draftDialogVisible = ref(false)
+const attachmentCount = ref(0)
+const draftCount = ref(0)
+const activePageNumber = ref(1)
+const dragState = ref<DragStateType | null>(null)
+const currentDraftId = ref('')
+const currentDraftName = ref('')
+
+const router = useRouter()
 const toolsStore = useToolsStore()
 const settings = toolsStore.paperLayout
 
@@ -48,179 +90,399 @@ const pageSize = computed(() => {
   return size
 })
 
-const contentWidth = computed(() => pageSize.value.width - settings.margin * 2)
-const contentHeight = computed(() => pageSize.value.height - settings.margin * 2)
-
+const layoutPreset = computed(() => getPaperLayoutPreset(settings.orientation))
+const contentWidth = computed(() => pageSize.value.width - layoutPreset.value.margin * 2)
+const contentHeight = computed(() => pageSize.value.height - layoutPreset.value.margin * 2)
 const columnWidth = computed(() => {
-  return (contentWidth.value - settings.gap * (settings.columns - 1)) / settings.columns
+  return (
+    (contentWidth.value - layoutPreset.value.gap * (layoutPreset.value.columns - 1)) /
+    layoutPreset.value.columns
+  )
 })
+
+const pageCount = computed(() => {
+  if (canvasItems.value.length === 0) return 0
+  return Math.max(...canvasItems.value.map((item) => item.pageIndex)) + 1
+})
+
+const pages = computed(() => {
+  return Array.from({ length: pageCount.value }, (_, index) => ({
+    index,
+    items: canvasItems.value
+      .filter((item) => item.pageIndex === index)
+      .sort((first, second) => first.zIndex - second.zIndex)
+  }))
+})
+
+const selectedItem = computed(() => {
+  return canvasItems.value.find((item) => item.id === selectedItemId.value)
+})
+
+const activePageIndex = computed(() => selectedItem.value?.pageIndex ?? activePageNumber.value - 1)
 
 const pageStyle = computed(() => ({
   width: `${mmToPixelPrecise(pageSize.value.width)}px`,
   height: `${mmToPixelPrecise(pageSize.value.height)}px`,
-  '--paper-margin': `${mmToPixelPrecise(settings.margin)}px`
+  '--paper-margin': `${mmToPixelPrecise(layoutPreset.value.margin)}px`
 }))
 
-const layoutPages = computed<LayoutPageType[]>(() => {
-  if (images.value.length === 0) return []
+const scaledPageStyle = computed(() => ({
+  width: `${mmToPixelPrecise(pageSize.value.width) * previewScale.value}px`,
+  height: `${mmToPixelPrecise(pageSize.value.height) * previewScale.value}px`
+}))
 
-  const pages: LayoutPageType[] = [{ id: createId('page'), items: [] }]
-  let currentY = settings.margin
+const previewPercent = computed(() => `${Math.round(previewScale.value * 100)}%`)
 
-  for (let index = 0; index < images.value.length; index += settings.columns) {
-    const rowImages = images.value.slice(index, index + settings.columns)
-    let cursorX = settings.margin
-    const rowItems = rowImages.map((image) => {
-      const imageHeight = columnWidth.value * (image.height / image.width)
-      const fitScale = imageHeight > contentHeight.value ? contentHeight.value / imageHeight : 1
-      const width = columnWidth.value * fitScale
-      const height = imageHeight * fitScale
-      const x = cursorX
-      cursorX += width + settings.gap
+const currentImagesHint = computed(() => {
+  if (canvasItems.value.length === 0) return '从附件库选择图片后开始排版'
+  return `${canvasItems.value.length} 张图片 / ${pageCount.value} 页`
+})
 
-      return {
-        image,
-        x,
-        y: currentY,
-        width,
-        height
-      }
-    })
+onMounted(() => {
+  window.addEventListener('resize', fitPreviewWidth)
+  window.addEventListener('pointermove', handlePointerMove)
+  window.addEventListener('pointerup', handlePointerUp)
+  fitPreviewWidth()
+  refreshAttachmentCount()
+  refreshDraftCount()
+})
 
-    const rowHeight = Math.max(...rowItems.map((item) => item.height))
-    if (currentY > settings.margin && currentY + rowHeight > pageSize.value.height - settings.margin) {
-      pages.push({ id: createId('page'), items: [] })
-      currentY = settings.margin
-      rowItems.forEach((item) => {
-        item.y = currentY
-      })
-    }
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', fitPreviewWidth)
+  window.removeEventListener('pointermove', handlePointerMove)
+  window.removeEventListener('pointerup', handlePointerUp)
+  revokeItemUrls()
+})
 
-    pages[pages.length - 1].items.push(...rowItems)
-    currentY += rowHeight + settings.gap
+watch(
+  () => [pageSize.value.width, pageSize.value.height],
+  () => {
+    fitPreviewWidth()
   }
+)
 
-  return pages
-})
-
-const uploadHint = computed(() => {
-  if (images.value.length === 0) return '支持 PNG、JPG、JPEG、WEBP'
-  return `已上传 ${images.value.length} 张，自动生成 ${layoutPages.value.length} 页`
-})
+watch(
+  () => settings.orientation,
+  (orientation) => {
+    Object.assign(settings, getPaperLayoutPreset(orientation))
+  },
+  { immediate: true }
+)
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
-function handleUploadClick(): void {
-  fileInputRef.value?.click()
+function goAttachmentLibrary(): void {
+  router.push('/tools/attachments')
 }
 
-async function handleFileChange(event: Event): Promise<void> {
-  const target = event.target as HTMLInputElement
-  const files = Array.from(target.files || [])
-  target.value = ''
+async function refreshAttachmentCount(): Promise<void> {
+  attachmentCount.value = (await getAttachments()).length
+}
 
-  if (files.length === 0) return
+async function refreshDraftCount(): Promise<void> {
+  draftCount.value = (await getPaperLayoutDrafts()).length
+}
 
-  const validFiles = files.filter((file) => file.type.startsWith('image/'))
-  if (validFiles.length !== files.length) {
-    ElMessage.warning('已忽略非图片文件')
+async function openAttachmentSelector(): Promise<void> {
+  await refreshAttachmentCount()
+  if (attachmentCount.value === 0) {
+    goAttachmentLibrary()
+    return
   }
+  selectorVisible.value = true
+}
 
-  try {
-    const nextImages = await Promise.all(validFiles.map(readImageFile))
-    images.value = [...images.value, ...nextImages]
-  } catch (error) {
-    console.error('读取图片失败:', error)
-    ElMessage.error('读取图片失败')
+function toCanvasItem(attachment: AttachmentRecordType, index: number): CanvasItemType {
+  return {
+    id: createId('paper-item'),
+    attachmentId: attachment.id,
+    name: attachment.name,
+    blob: attachment.blob,
+    dataUrl: attachmentToObjectUrl(attachment),
+    mimeType: attachment.mimeType,
+    naturalWidth: attachment.width,
+    naturalHeight: attachment.height,
+    pageIndex: 0,
+    x: layoutPreset.value.margin,
+    y: layoutPreset.value.margin,
+    width: columnWidth.value,
+    height: columnWidth.value * (attachment.height / attachment.width),
+    zIndex: index + 1
   }
 }
 
-function readImageFile(file: File): Promise<UploadedImageType> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const rawDataUrl = String(reader.result || '')
-      const image = new Image()
-      image.onload = async () => {
-        try {
-          const normalized = await normalizeImageDataUrl(rawDataUrl, file.type)
-          resolve({
-            id: createId('image'),
-            name: file.name,
-            dataUrl: normalized.dataUrl,
-            width: image.naturalWidth,
-            height: image.naturalHeight,
-            mimeType: normalized.mimeType
-          })
-        } catch (error) {
-          reject(error)
-        }
-      }
-      image.onerror = () => reject(new Error('图片加载失败'))
-      image.src = rawDataUrl
-    }
-    reader.onerror = () => reject(new Error('文件读取失败'))
-    reader.readAsDataURL(file)
+function revokeItemUrls(): void {
+  canvasItems.value.forEach((item) => {
+    URL.revokeObjectURL(item.dataUrl)
   })
 }
 
-function normalizeImageDataUrl(
-  dataUrl: string,
-  mimeType: string
-): Promise<{ dataUrl: string; mimeType: string }> {
-  if (mimeType === 'image/png' || mimeType === 'image/jpeg') {
-    return Promise.resolve({ dataUrl, mimeType })
+function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
+  if (attachments.length > 0 && canvasItems.value.length === 0) {
+    currentDraftId.value = ''
+    currentDraftName.value = ''
   }
 
-  return new Promise((resolve, reject) => {
-    const image = new Image()
-    image.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = image.naturalWidth
-      canvas.height = image.naturalHeight
-      const context = canvas.getContext('2d')
-      if (!context) {
-        reject(new Error('无法创建图片画布'))
-        return
-      }
+  const nextItems = attachments.map((attachment, index) =>
+    toCanvasItem(attachment, canvasItems.value.length + index)
+  )
+  canvasItems.value = [...canvasItems.value, ...nextItems]
+  autoArrange()
+}
 
-      context.fillStyle = '#ffffff'
-      context.fillRect(0, 0, canvas.width, canvas.height)
-      context.drawImage(image, 0, 0)
-      resolve({
-        dataUrl: canvas.toDataURL('image/png'),
-        mimeType: 'image/png'
-      })
+function autoArrange(): void {
+  let pageIndex = 0
+  let currentY = layoutPreset.value.margin
+  let cursorX = layoutPreset.value.margin
+  let rowItemCount = 0
+  let rowHeight = 0
+
+  canvasItems.value = canvasItems.value.map((item, index) => {
+    const imageHeight = columnWidth.value * (item.naturalHeight / item.naturalWidth)
+    const fitScale = imageHeight > contentHeight.value ? contentHeight.value / imageHeight : 1
+    const width = columnWidth.value * fitScale
+    const height = imageHeight * fitScale
+
+    if (rowItemCount >= layoutPreset.value.columns) {
+      rowItemCount = 0
+      cursorX = layoutPreset.value.margin
+      currentY += rowHeight + layoutPreset.value.gap
+      rowHeight = 0
     }
-    image.onerror = () => reject(new Error('图片格式转换失败'))
-    image.src = dataUrl
+
+    if (
+      currentY > layoutPreset.value.margin &&
+      currentY + height > pageSize.value.height - layoutPreset.value.margin
+    ) {
+      pageIndex += 1
+      rowItemCount = 0
+      cursorX = layoutPreset.value.margin
+      currentY = layoutPreset.value.margin
+      rowHeight = 0
+    }
+
+    const arrangedItem = {
+      ...item,
+      pageIndex,
+      x: cursorX,
+      y: currentY,
+      width,
+      height,
+      zIndex: index + 1
+    }
+
+    rowItemCount += 1
+    cursorX += width + layoutPreset.value.gap
+    rowHeight = Math.max(rowHeight, height)
+    return arrangedItem
   })
 }
 
-function removeImage(id: string): void {
-  images.value = images.value.filter((image) => image.id !== id)
+function selectItem(id: string): void {
+  selectedItemId.value = id
 }
 
-async function clearImages(): Promise<void> {
-  if (images.value.length === 0) return
+function handleToolClick(event: MouseEvent): void {
+  const target = event.target as HTMLElement | null
+  if (target?.closest('.paper-image-frame')) return
+  if (target?.closest('.selected-item-action')) return
+  selectedItemId.value = ''
+}
+
+function startMove(event: PointerEvent, item: CanvasItemType): void {
+  selectItem(item.id)
+  dragState.value = {
+    itemId: item.id,
+    mode: 'move',
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    startX: item.x,
+    startY: item.y,
+    startWidth: item.width,
+    startHeight: item.height
+  }
+}
+
+function startResize(event: PointerEvent, item: CanvasItemType): void {
+  event.stopPropagation()
+  selectItem(item.id)
+  dragState.value = {
+    itemId: item.id,
+    mode: 'resize',
+    startClientX: event.clientX,
+    startClientY: event.clientY,
+    startX: item.x,
+    startY: item.y,
+    startWidth: item.width,
+    startHeight: item.height
+  }
+}
+
+function clampItemPosition(item: CanvasItemType, x: number, y: number): { x: number; y: number } {
+  return {
+    x: Math.min(Math.max(x, -item.width + minVisibleMm), pageSize.value.width - minVisibleMm),
+    y: Math.min(Math.max(y, -item.height + minVisibleMm), pageSize.value.height - minVisibleMm)
+  }
+}
+
+function handlePointerMove(event: PointerEvent): void {
+  const state = dragState.value
+  if (!state) return
+
+  const item = canvasItems.value.find((currentItem) => currentItem.id === state.itemId)
+  if (!item) return
+
+  const deltaX = (event.clientX - state.startClientX) / previewScale.value / (96 / 25.4)
+  const deltaY = (event.clientY - state.startClientY) / previewScale.value / (96 / 25.4)
+
+  if (state.mode === 'move') {
+    const position = clampItemPosition(item, state.startX + deltaX, state.startY + deltaY)
+    item.x = position.x
+    item.y = position.y
+    return
+  }
+
+  const ratio = state.startHeight / state.startWidth
+  const width = Math.max(minItemWidthMm, state.startWidth + deltaX)
+  item.width = width
+  item.height = width * ratio
+  const position = clampItemPosition(item, item.x, item.y)
+  item.x = position.x
+  item.y = position.y
+}
+
+function handlePointerUp(): void {
+  dragState.value = null
+}
+
+function scaleSelectedItem(factor: number): void {
+  const item = selectedItem.value
+  if (!item) return
+
+  const nextWidth = Math.max(minItemWidthMm, item.width * factor)
+  const ratio = item.height / item.width
+  item.width = nextWidth
+  item.height = nextWidth * ratio
+  const position = clampItemPosition(item, item.x, item.y)
+  item.x = position.x
+  item.y = position.y
+}
+
+function removeSelectedItem(): void {
+  const item = selectedItem.value
+  if (!item) return
+  URL.revokeObjectURL(item.dataUrl)
+  canvasItems.value = canvasItems.value.filter((currentItem) => currentItem.id !== item.id)
+  selectedItemId.value = ''
+}
+
+async function clearItems(): Promise<void> {
+  if (canvasItems.value.length === 0) return
 
   try {
-    await ElMessageBox.confirm('确认清空已上传的图片？', '清空图片', {
+    await ElMessageBox.confirm('确认清空当前试卷中的图片？附件库中的图片不会删除。', '清空图片', {
       confirmButtonText: '清空',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    images.value = []
+    revokeItemUrls()
+    canvasItems.value = []
+    selectedItemId.value = ''
+    currentDraftId.value = ''
+    currentDraftName.value = ''
   } catch {
     // 用户取消时不需要提示
   }
 }
 
+async function handleSaveDraft(): Promise<void> {
+  if (canvasItems.value.length === 0) {
+    ElMessage.warning('请先加入图片')
+    return
+  }
+
+  try {
+    const result = await ElMessageBox.prompt('请输入草稿名称', '保存草稿', {
+      confirmButtonText: '保存',
+      cancelButtonText: '取消',
+      inputValue: currentDraftName.value || `试卷排版_${new Date().toLocaleDateString()}`,
+      inputValidator: (value) => value.trim().length > 0,
+      inputErrorMessage: '名称不能为空'
+    })
+
+    const savedDraft = await savePaperLayoutDraft({
+      id: currentDraftId.value || undefined,
+      name: result.value.trim(),
+      settings: normalizePaperLayoutSettings(settings),
+      items: canvasItems.value.map((item, index) => ({
+        id: item.id,
+        attachmentId: item.attachmentId,
+        name: item.name,
+        mimeType: item.mimeType,
+        blob: item.blob,
+        naturalWidth: item.naturalWidth,
+        naturalHeight: item.naturalHeight,
+        order: index,
+        pageIndex: item.pageIndex,
+        x: item.x,
+        y: item.y,
+        width: item.width,
+        height: item.height,
+        zIndex: item.zIndex
+      }))
+    })
+    currentDraftId.value = savedDraft.id
+    currentDraftName.value = savedDraft.name
+    await refreshDraftCount()
+    ElMessage.success('草稿已保存')
+  } catch {
+    // 用户取消时不提示
+  }
+}
+
+async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void> {
+  const sortedDraftItems = [...draft.items].sort((first, second) => (first.order || 0) - (second.order || 0))
+  const nextItems: CanvasItemType[] = sortedDraftItems.map((draftItem, index) => {
+    const attachment: AttachmentRecordType = {
+      id: draftItem.attachmentId,
+      name: draftItem.name,
+      mimeType: draftItem.mimeType,
+      blob: draftItem.blob,
+      sortOrder: index,
+      width: draftItem.naturalWidth,
+      height: draftItem.naturalHeight,
+      size: draftItem.blob.size,
+      createdAt: draft.createdAt,
+      updatedAt: draft.updatedAt
+    }
+    const item = toCanvasItem(attachment, index)
+    return {
+      ...item,
+      id: draftItem.id || item.id,
+      pageIndex: draftItem.pageIndex ?? 0,
+      x: draftItem.x ?? item.x,
+      y: draftItem.y ?? item.y,
+      width: draftItem.width ?? item.width,
+      height: draftItem.height ?? item.height,
+      zIndex: draftItem.zIndex ?? index + 1
+    }
+  })
+
+  revokeItemUrls()
+  canvasItems.value = nextItems
+  selectedItemId.value = ''
+  currentDraftId.value = draft.id
+  currentDraftName.value = draft.name
+  Object.assign(settings, normalizePaperLayoutSettings(draft.settings))
+  ElMessage.success('草稿已打开')
+  await refreshDraftCount()
+}
+
 async function exportPdf(): Promise<void> {
-  if (layoutPages.value.length === 0) {
-    ElMessage.warning('请先上传试卷图片')
+  if (canvasItems.value.length === 0) {
+    ElMessage.warning('请先从附件库选择试卷图片')
     return
   }
 
@@ -236,11 +498,10 @@ async function exportPdf(): Promise<void> {
     const pdfWidth = pageSize.value.width * pointPerMm
     const pdfHeight = pageSize.value.height * pointPerMm
 
-    for (const pageLayout of layoutPages.value) {
+    for (const pageData of pages.value) {
       const page = pdfDoc.addPage([pdfWidth, pdfHeight])
-
-      for (const item of pageLayout.items) {
-        const embeddedImage = await getEmbeddedImage(pdfDoc, cache, item.image)
+      for (const item of pageData.items) {
+        const embeddedImage = await getEmbeddedImage(pdfDoc, cache, item)
         page.drawImage(embeddedImage, {
           x: item.x * pointPerMm,
           y: pdfHeight - (item.y + item.height) * pointPerMm,
@@ -268,359 +529,410 @@ async function exportPdf(): Promise<void> {
   }
 }
 
+function setPreviewScale(scale: number): void {
+  previewScale.value = Math.min(Math.max(scale, 0.35), 1.4)
+}
+
+function zoomPreview(direction: -1 | 1): void {
+  setPreviewScale(previewScale.value + direction * 0.1)
+}
+
+function fitPreviewWidth(): void {
+  const panelWidth = previewPanelRef.value?.clientWidth || 0
+  const pageWidth = mmToPixelPrecise(pageSize.value.width)
+  if (!panelWidth || !pageWidth) return
+
+  const availableWidth = Math.max(panelWidth - 32, 120)
+  setPreviewScale(availableWidth / pageWidth)
+}
+
+function getResizeHandleStyle(item: CanvasItemType): Record<string, string> {
+  const visibleRight = Math.min(item.width, pageSize.value.width - item.x)
+  const visibleBottom = Math.min(item.height, pageSize.value.height - item.y)
+
+  return {
+    left: `${mmToPixelPrecise(Math.max(0, visibleRight)) - 5}px`,
+    top: `${mmToPixelPrecise(Math.max(0, visibleBottom)) - 5}px`
+  }
+}
+
+function scrollToPage(index: number): void {
+  activePageNumber.value = index + 1
+  void nextTick(() => {
+    document.querySelector(`[data-paper-page="${index}"]`)?.scrollIntoView({
+      block: 'start',
+      behavior: 'smooth'
+    })
+  })
+}
+
+function handlePreviewScroll(): void {
+  const pageElements = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-paper-page]')
+  )
+  if (pageElements.length === 0) return
+
+  const nearestPage = pageElements.reduce(
+    (nearest, element) => {
+      const distance = Math.abs(element.getBoundingClientRect().top - 160)
+      return distance < nearest.distance ? { element, distance } : nearest
+    },
+    { element: pageElements[0], distance: Number.POSITIVE_INFINITY }
+  )
+  const pageIndex = Number(nearestPage.element.dataset.paperPage || 0)
+  activePageNumber.value = pageIndex + 1
+}
+
 async function getEmbeddedImage(
   pdfDoc: PDFDocument,
   cache: Map<string, PDFImage>,
-  image: UploadedImageType
+  item: CanvasItemType
 ) {
-  const cached = cache.get(image.id)
+  const cached = cache.get(item.id)
   if (cached) return cached
 
-  const imageBytes = await fetch(image.dataUrl).then((response) => response.arrayBuffer())
+  const imageBytes = await fetch(item.dataUrl).then((response) => response.arrayBuffer())
   const embeddedImage =
-    image.mimeType === 'image/jpeg'
-      ? await pdfDoc.embedJpg(imageBytes)
-      : await pdfDoc.embedPng(imageBytes)
-  cache.set(image.id, embeddedImage)
+    item.mimeType === 'image/jpeg' ? await pdfDoc.embedJpg(imageBytes) : await pdfDoc.embedPng(imageBytes)
+  cache.set(item.id, embeddedImage)
   return embeddedImage
 }
 </script>
 
 <template>
-  <div class="paper-layout-tool">
-    <aside class="tool-sidebar">
-      <section class="tool-panel upload-panel">
-        <div class="panel-header">
-          <div>
-            <h3 class="panel-title">图片素材</h3>
-            <p class="panel-subtitle">{{ uploadHint }}</p>
+  <div class="paper-layout-tool" @click="handleToolClick">
+    <div class="layout-toolbar">
+      <el-button type="primary" size="small" @click="openAttachmentSelector">
+        <template #icon><font-awesome-icon :icon="['solid', attachmentCount === 0 ? 'plus' : 'folder-open']" /></template>
+        {{ attachmentCount === 0 ? '去附件库添加' : '选择附件' }}
+      </el-button>
+      <el-button size="small" :disabled="canvasItems.length === 0" @click="autoArrange">
+        <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
+        重新自动排版
+      </el-button>
+
+      <el-divider direction="vertical" />
+
+      <el-select v-model="settings.pageType" size="small" class="toolbar-select">
+        <el-option label="A4" :value="PagesEnum.A4" />
+        <el-option label="A3" :value="PagesEnum.A3" />
+        <el-option label="B4" :value="PagesEnum.B4" />
+        <el-option label="B3" :value="PagesEnum.B3" />
+      </el-select>
+      <el-segmented
+        v-model="settings.orientation"
+        size="small"
+        :options="[
+          { label: '纵向', value: 'portrait' },
+          { label: '横向', value: 'landscape' }
+        ]"
+      />
+
+      <el-divider direction="vertical" />
+
+      <el-button
+        class="selected-item-action"
+        size="small"
+        :disabled="!selectedItem"
+        @click="scaleSelectedItem(0.9)"
+      >
+        <template #icon><font-awesome-icon :icon="['solid', 'magnifying-glass-minus']" /></template>
+      </el-button>
+      <el-button
+        class="selected-item-action"
+        size="small"
+        :disabled="!selectedItem"
+        @click="scaleSelectedItem(1.1)"
+      >
+        <template #icon><font-awesome-icon :icon="['solid', 'magnifying-glass-plus']" /></template>
+      </el-button>
+      <el-button
+        class="selected-item-action"
+        size="small"
+        :disabled="!selectedItem"
+        @click="removeSelectedItem"
+      >
+        <template #icon><font-awesome-icon :icon="['solid', 'trash']" /></template>
+      </el-button>
+
+      <div class="toolbar-spacer" />
+
+      <el-button size="small" :disabled="canvasItems.length === 0" @click="clearItems">清空</el-button>
+      <el-button size="small" :disabled="canvasItems.length === 0" @click="handleSaveDraft">
+        <template #icon><font-awesome-icon :icon="['solid', 'floppy-disk']" /></template>
+        保存草稿
+      </el-button>
+      <el-button v-if="draftCount > 0" size="small" @click="draftDialogVisible = true">
+        <template #icon><font-awesome-icon :icon="['solid', 'folder-open']" /></template>
+        打开草稿
+      </el-button>
+      <el-button type="primary" size="small" :loading="exporting" :disabled="canvasItems.length === 0" @click="exportPdf">
+        <template #icon><font-awesome-icon :icon="['solid', 'file-pdf']" /></template>
+        导出 PDF
+      </el-button>
+      <el-button size="small" circle @click="emit('toggleFullscreen')">
+        <font-awesome-icon
+          :icon="[
+            'solid',
+            fullscreen ? 'down-left-and-up-right-to-center' : 'up-right-and-down-left-from-center'
+          ]"
+        />
+      </el-button>
+    </div>
+
+    <div class="layout-workbench">
+      <aside class="page-navigator">
+        <div class="navigator-title">
+          <strong>页面</strong>
+          <span>{{ currentImagesHint }}</span>
+        </div>
+        <div v-if="pages.length === 0" class="navigator-empty">
+          <font-awesome-icon :icon="['solid', 'file-circle-plus']" />
+          <span>暂无页面</span>
+        </div>
+        <button
+          v-for="page in pages"
+          v-else
+          :key="page.index"
+          class="page-thumb"
+          type="button"
+          @click="scrollToPage(page.index)"
+        >
+          <span
+            class="page-thumb__paper"
+            :style="{ aspectRatio: `${pageSize.width} / ${pageSize.height}` }"
+          >
+            <span
+              v-for="item in page.items"
+              :key="item.id"
+              class="page-thumb__item"
+              :style="{
+                left: `${(item.x / pageSize.width) * 100}%`,
+                top: `${(item.y / pageSize.height) * 100}%`,
+                width: `${(item.width / pageSize.width) * 100}%`,
+                height: `${(item.height / pageSize.height) * 100}%`
+              }"
+            ></span>
+          </span>
+          <span>第 {{ page.index + 1 }} 页</span>
+        </button>
+      </aside>
+
+      <main ref="previewPanelRef" class="preview-panel">
+        <div class="preview-toolbar">
+          <div class="preview-title">
+            <strong>自由排版画布</strong>
+            <span>{{ settings.pageType }} {{ settings.orientation === 'portrait' ? '纵向' : '横向' }}</span>
           </div>
-          <el-tooltip content="清空图片" placement="top">
-            <el-button size="small" circle :disabled="images.length === 0" @click="clearImages">
-              <template #icon><font-awesome-icon :icon="['solid', 'trash']" /></template>
+          <div class="preview-actions">
+            <span class="page-count">{{ pageCount > 0 ? `第 ${activePageIndex + 1} 页` : '暂无页面' }}</span>
+            <el-button size="small" circle @click="zoomPreview(-1)">
+              <font-awesome-icon :icon="['solid', 'magnifying-glass-minus']" />
             </el-button>
-          </el-tooltip>
+            <span class="zoom-label">{{ previewPercent }}</span>
+            <el-button size="small" circle @click="zoomPreview(1)">
+              <font-awesome-icon :icon="['solid', 'magnifying-glass-plus']" />
+            </el-button>
+            <el-button size="small" circle @click="fitPreviewWidth">
+              <font-awesome-icon :icon="['solid', 'arrows-left-right-to-line']" />
+            </el-button>
+          </div>
         </div>
 
-        <input
-          ref="fileInputRef"
-          class="file-input"
-          type="file"
-          accept="image/*"
-          multiple
-          @change="handleFileChange"
-        />
-
-        <button class="upload-button" type="button" @click="handleUploadClick">
-          <font-awesome-icon :icon="['solid', 'cloud-arrow-up']" />
-          <span>上传试卷图片</span>
-        </button>
-
-        <el-scrollbar class="image-list">
-          <div v-if="images.length === 0" class="empty-state">
-            <font-awesome-icon :icon="['solid', 'image']" />
-            <span>上传后会按顺序自动排版</span>
+        <el-scrollbar
+          class="preview-scrollbar"
+          @scroll="handlePreviewScroll"
+          @pointerdown.self="selectedItemId = ''"
+        >
+          <div v-if="pages.length === 0" class="preview-empty">
+            <font-awesome-icon :icon="['solid', 'file-circle-plus']" />
+            <span>使用顶部入口添加图片后生成初始排版</span>
           </div>
-          <div v-for="(image, index) in images" :key="image.id" class="image-item">
-            <img :src="image.dataUrl" :alt="image.name" />
-            <div class="image-meta">
-              <strong>{{ index + 1 }}. {{ image.name }}</strong>
-              <span>{{ image.width }} × {{ image.height }}</span>
+
+          <div v-else class="paper-stack" @pointerdown.self="selectedItemId = ''">
+            <div
+              v-for="page in pages"
+              :key="page.index"
+              class="paper-page-wrap"
+              :data-paper-page="page.index"
+            >
+              <div class="paper-page-scale" :style="scaledPageStyle">
+                <div
+                  class="paper-page"
+                  :style="{
+                    ...pageStyle,
+                    transform: `scale(${previewScale})`
+                  }"
+                  @pointerdown.self="selectedItemId = ''"
+                >
+                  <div
+                    v-for="item in page.items"
+                    :key="item.id"
+                    class="paper-image-frame"
+                    :class="{ selected: selectedItemId === item.id }"
+                    :style="{
+                      left: `${mmToPixelPrecise(item.x)}px`,
+                      top: `${mmToPixelPrecise(item.y)}px`,
+                      width: `${mmToPixelPrecise(item.width)}px`,
+                      height: `${mmToPixelPrecise(item.height)}px`,
+                      zIndex: item.zIndex
+                    }"
+                    @pointerdown="startMove($event, item)"
+                  >
+                    <img class="paper-image" :src="item.dataUrl" :alt="item.name" draggable="false" />
+                    <span
+                      class="resize-handle"
+                      :style="getResizeHandleStyle(item)"
+                      @pointerdown="startResize($event, item)"
+                    ></span>
+                  </div>
+                </div>
+              </div>
             </div>
-            <el-tooltip content="删除" placement="top">
-              <el-button size="small" circle @click="removeImage(image.id)">
-                <template #icon><font-awesome-icon :icon="['solid', 'xmark']" /></template>
-              </el-button>
-            </el-tooltip>
           </div>
         </el-scrollbar>
-      </section>
+      </main>
+    </div>
 
-      <section class="tool-panel">
-        <div class="panel-header">
-          <div>
-            <h3 class="panel-title">排版参数</h3>
-            <p class="panel-subtitle">按列宽等比缩放</p>
-          </div>
-        </div>
-
-        <el-form label-position="top" class="layout-form">
-          <el-form-item label="纸张规格">
-            <el-select v-model="settings.pageType" class="w-full">
-              <el-option label="A4" :value="PagesEnum.A4" />
-              <el-option label="A3" :value="PagesEnum.A3" />
-              <el-option label="B4" :value="PagesEnum.B4" />
-              <el-option label="B3" :value="PagesEnum.B3" />
-            </el-select>
-          </el-form-item>
-
-          <el-form-item label="页面方向">
-            <el-segmented
-              v-model="settings.orientation"
-              :options="[
-                { label: '纵向', value: 'portrait' },
-                { label: '横向', value: 'landscape' }
-              ]"
-              block
-            />
-          </el-form-item>
-
-          <el-form-item label="每行图片数">
-            <el-segmented
-              v-model="settings.columns"
-              :options="[
-                { label: '1', value: 1 },
-                { label: '2', value: 2 },
-                { label: '3', value: 3 },
-                { label: '4', value: 4 }
-              ]"
-              block
-            />
-          </el-form-item>
-
-          <el-form-item label="页边距（mm）">
-            <el-input-number v-model="settings.margin" :min="0" :max="30" :step="1" />
-          </el-form-item>
-
-          <el-form-item label="图片间距（mm）">
-            <el-input-number v-model="settings.gap" :min="0" :max="20" :step="1" />
-          </el-form-item>
-        </el-form>
-
-        <el-button
-          type="primary"
-          class="export-button"
-          :loading="exporting"
-          :disabled="layoutPages.length === 0"
-          @click="exportPdf"
-        >
-          <template #icon><font-awesome-icon :icon="['solid', 'file-pdf']" /></template>
-          导出 PDF
-        </el-button>
-      </section>
-    </aside>
-
-    <main class="preview-panel">
-      <div class="preview-toolbar">
-        <div class="preview-title">
-          <strong>排版预览</strong>
-          <span>{{ settings.pageType }} {{ settings.orientation === 'portrait' ? '纵向' : '横向' }}</span>
-        </div>
-        <span class="page-count">共 {{ layoutPages.length }} 页</span>
-      </div>
-
-      <el-scrollbar class="preview-scrollbar">
-        <div v-if="layoutPages.length === 0" class="preview-empty">
-          <font-awesome-icon :icon="['solid', 'file-circle-plus']" />
-          <span>上传图片后在这里预览试卷版式</span>
-        </div>
-
-        <div v-else class="paper-stack">
-          <div v-for="(page, pageIndex) in layoutPages" :key="page.id" class="paper-page-wrap">
-            <div class="page-number">第 {{ pageIndex + 1 }} 页</div>
-            <div class="paper-page" :style="pageStyle">
-              <img
-                v-for="item in page.items"
-                :key="item.image.id"
-                class="paper-image"
-                :src="item.image.dataUrl"
-                :alt="item.image.name"
-                :style="{
-                  left: `${mmToPixelPrecise(item.x)}px`,
-                  top: `${mmToPixelPrecise(item.y)}px`,
-                  width: `${mmToPixelPrecise(item.width)}px`,
-                  height: `${mmToPixelPrecise(item.height)}px`
-                }"
-              />
-            </div>
-          </div>
-        </div>
-      </el-scrollbar>
-    </main>
+    <attachment-selector-dialog
+      v-model:visible="selectorVisible"
+      @confirm="handleSelectAttachments"
+      @add-attachments="goAttachmentLibrary"
+    />
+    <paper-layout-draft-dialog v-model:visible="draftDialogVisible" @open="handleOpenDraft" />
   </div>
 </template>
 
 <style scoped lang="scss">
 .paper-layout-tool {
-  display: grid;
-  grid-template-columns: 320px minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   flex: 1;
   gap: 10px;
 }
 
-.tool-sidebar {
+.layout-toolbar {
   display: flex;
-  flex-direction: column;
-  min-height: 0;
-  gap: 10px;
-}
-
-.tool-panel,
-.preview-panel {
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-.tool-panel {
-  padding: 14px;
+.toolbar-select {
+  width: 88px;
 }
 
-.upload-panel {
-  min-height: 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.panel-header,
-.preview-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.panel-title {
-  margin: 0;
-  color: #1f2937;
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.panel-subtitle {
-  margin: 4px 0 0;
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.file-input {
-  display: none;
-}
-
-.upload-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  height: 44px;
-  margin: 14px 0;
-  color: #0f766e;
-  background: #ecfdf5;
-  border: 1px dashed #5eead4;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  transition:
-    background-color 0.2s,
-    border-color 0.2s;
-}
-
-.upload-button:hover {
-  background: #d1fae5;
-  border-color: #2dd4bf;
-}
-
-.image-list {
-  min-height: 0;
+.toolbar-spacer {
   flex: 1;
 }
 
-.empty-state,
-.preview-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 10px;
-  color: #9ca3af;
-  font-size: 13px;
-}
-
-.empty-state {
-  min-height: 180px;
-  border: 1px dashed #e5e7eb;
-  border-radius: 8px;
-}
-
-.empty-state svg,
-.preview-empty svg {
-  font-size: 28px;
-}
-
-.image-item {
+.layout-workbench {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 32px;
-  align-items: center;
+  grid-template-columns: 138px minmax(0, 1fr);
+  min-height: 0;
+  flex: 1;
   gap: 10px;
-  padding: 8px;
-  border: 1px solid #edf2f7;
-  border-radius: 8px;
-  margin-bottom: 8px;
 }
 
-.image-item img {
-  width: 54px;
-  height: 54px;
-  object-fit: cover;
-  border-radius: 6px;
+.page-navigator,
+.preview-panel {
+  min-height: 0;
+  background: #fff;
   border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
 
-.image-meta {
-  min-width: 0;
+.page-navigator {
+  padding: 8px;
+  overflow: auto;
+}
+
+.navigator-title {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  margin-bottom: 12px;
 }
 
-.image-meta strong {
-  overflow: hidden;
+.navigator-title strong {
   color: #1f2937;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
 }
 
-.image-meta span {
+.navigator-title span {
   color: #6b7280;
   font-size: 12px;
 }
 
-.layout-form {
-  margin-top: 12px;
+.navigator-empty {
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  color: #9ca3af;
+  border: 1px dashed #e5e7eb;
+  border-radius: 8px;
+  font-size: 12px;
 }
 
-.layout-form :deep(.el-input-number) {
+.page-thumb {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   width: 100%;
+  padding: 8px;
+  margin-bottom: 10px;
+  color: #374151;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
 }
 
-.export-button {
+.page-thumb__paper {
+  position: relative;
   width: 100%;
-  margin-top: 4px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+
+.page-thumb__item {
+  position: absolute;
+  background: color-mix(in srgb, var(--theme-menu-active) 30%, #ffffff);
+  border: 1px solid var(--theme-menu-active);
 }
 
 .preview-panel {
   min-width: 0;
-  min-height: 0;
   display: flex;
   flex-direction: column;
 }
 
 .preview-toolbar {
-  height: 54px;
-  padding: 0 16px;
+  height: 40px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   border-bottom: 1px solid #eef2f7;
 }
 
 .preview-title {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: center;
+  gap: 8px;
 }
 
 .preview-title strong {
@@ -634,42 +946,77 @@ async function getEmbeddedImage(
   font-size: 12px;
 }
 
+.preview-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-actions :deep(.el-button) {
+  width: 28px;
+  height: 28px;
+}
+
+.zoom-label {
+  min-width: 42px;
+  color: #374151;
+  text-align: center;
+  font-size: 12px;
+}
+
 .preview-scrollbar {
   flex: 1;
   min-height: 0;
   background: #f3f4f6;
 }
 
+.preview-scrollbar :deep(.el-scrollbar__view) {
+  height: 100%;
+}
+
 .preview-empty {
   height: 100%;
-  min-height: 420px;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.preview-empty svg {
+  font-size: 28px;
 }
 
 .paper-stack {
   width: max-content;
   min-width: 100%;
-  padding: 22px;
+  padding: 4px;
 }
 
 .paper-page-wrap {
+  width: max-content;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  margin-bottom: 22px;
+  align-items: flex-start;
+  margin-right: auto;
+  margin-left: auto;
+  margin-bottom: 8px;
 }
 
-.page-number {
-  align-self: flex-start;
-  margin: 0 0 8px;
-  color: #6b7280;
-  font-size: 12px;
+.paper-page-scale {
+  position: relative;
 }
 
 .paper-page {
   position: relative;
   box-sizing: border-box;
   background: #fff;
+  overflow: hidden;
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+  transform-origin: 0 0;
 }
 
 .paper-page::after {
@@ -680,11 +1027,39 @@ async function getEmbeddedImage(
   border: 1px dashed rgba(20, 184, 166, 0.35);
 }
 
-.paper-image {
+.paper-image-frame {
   position: absolute;
   box-sizing: border-box;
-  object-fit: contain;
-  background: #fff;
+  cursor: move;
+  user-select: none;
   border: 1px solid rgba(17, 24, 39, 0.12);
+}
+
+.paper-image-frame.selected {
+  border-color: var(--theme-menu-active);
+  box-shadow: 0 0 0 2px var(--theme-menu-active-bg);
+}
+
+.paper-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: fill;
+  pointer-events: none;
+}
+
+.resize-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  display: none;
+  background: var(--theme-menu-active);
+  border: 2px solid #fff;
+  border-radius: 50%;
+  cursor: nwse-resize;
+}
+
+.paper-image-frame.selected .resize-handle {
+  display: block;
 }
 </style>

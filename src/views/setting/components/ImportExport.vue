@@ -48,16 +48,37 @@ const updateProgress = (percent: number) => {
 }
 
 const handleExport = async () => {
+  let includePaperLayout = true
+
+  try {
+    await ElMessageBox.confirm('本次导出是否包含试卷排版数据（附件、草稿、工具参数）？', '导出备份', {
+      confirmButtonText: '包含',
+      cancelButtonText: '不包含',
+      type: 'info',
+      distinguishCancelAndClose: true
+    })
+  } catch (action) {
+    if (action === 'cancel') {
+      includePaperLayout = false
+    } else {
+      return
+    }
+  }
+
   exporting.value = true
   progressTitle.value = '正在导出数据'
   progressPercent.value = 0
   progressVisible.value = true
-  await exportDatabase(updateProgress)
-  progressPercent.value = 100
-  setTimeout(() => {
-    progressVisible.value = false
-  }, 500)
-  exporting.value = false
+
+  try {
+    await exportDatabase(updateProgress, includePaperLayout)
+    progressPercent.value = 100
+  } finally {
+    setTimeout(() => {
+      progressVisible.value = false
+    }, 500)
+    exporting.value = false
+  }
 }
 
 const triggerImport = () => {
@@ -238,7 +259,8 @@ const handleClear = async () => {
     <el-card>
       <div class="import-export-title">数据导入导出</div>
       <p class="import-export-desc">
-        导出 .dexie 全量备份；导入时按文件后缀识别，.dexie 恢复全量数据，Excel 导入成绩列
+        导出 .dexie 全量备份，支持在导出时选择是否包含试卷排版；导入时按文件后缀识别，.dexie
+        恢复全量数据，Excel 导入成绩列
       </p>
 
       <div class="import-export-actions">
@@ -248,7 +270,7 @@ const handleClear = async () => {
           </div>
           <div class="action-info">
             <div class="action-label">导出数据</div>
-            <div class="action-desc">将学生、配置、标签、错题本等数据导出为 .dexie 备份</div>
+            <div class="action-desc">将学生、配置、标签、错题本等数据导出为 .dexie 备份，可选试卷排版</div>
           </div>
           <el-button type="primary" size="large" @click="handleExport" :loading="exporting">
             <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
