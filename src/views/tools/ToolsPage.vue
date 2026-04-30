@@ -8,7 +8,18 @@ const router = useRouter()
 
 function openTool(tool: ToolItemType): void {
   if (tool.status !== 'available') return
+
+  if (tool.openInNewTab) {
+    const targetUrl = router.resolve(tool.path).href
+    window.open(targetUrl, '_blank', 'noopener,noreferrer')
+    return
+  }
+
   router.push(tool.path)
+}
+
+function resolveToolHref(tool: ToolItemType): string {
+  return router.resolve(tool.path).href
 }
 </script>
 
@@ -18,28 +29,54 @@ function openTool(tool: ToolItemType): void {
     </page-header>
 
     <div class="tools-grid">
-      <button
-        v-for="tool in toolItems"
-        :key="tool.id"
-        class="tool-card"
-        type="button"
-        :class="{ disabled: tool.status !== 'available' }"
-        @click="openTool(tool)"
-      >
-        <span class="tool-card__icon">
-          <font-awesome-icon :icon="['solid', tool.icon]" />
-        </span>
-        <span class="tool-card__content">
-          <span class="tool-card__header">
-            <strong>{{ tool.name }}</strong>
-            <em>{{ tool.status === 'available' ? '已上线' : '规划中' }}</em>
+      <template v-for="tool in toolItems" :key="tool.id">
+        <a
+          v-if="tool.openInNewTab"
+          class="tool-card"
+          :href="tool.status === 'available' ? resolveToolHref(tool) : undefined"
+          :target="tool.status === 'available' ? '_blank' : undefined"
+          :rel="tool.status === 'available' ? 'noopener noreferrer' : undefined"
+          :class="{ disabled: tool.status !== 'available' }"
+          @click.prevent="openTool(tool)"
+        >
+          <span class="tool-card__icon">
+            <font-awesome-icon :icon="['solid', tool.icon]" />
           </span>
-          <span class="tool-card__description">{{ tool.description }}</span>
-        </span>
-        <span class="tool-card__arrow">
-          <font-awesome-icon :icon="['solid', 'chevron-right']" />
-        </span>
-      </button>
+          <span class="tool-card__content">
+            <span class="tool-card__header">
+              <strong>{{ tool.name }}</strong>
+              <em>{{ tool.status === 'available' ? '已上线' : '规划中' }}</em>
+            </span>
+            <span v-if="tool.openInNewTab" class="tool-card__badge">新页签打开</span>
+            <span class="tool-card__description">{{ tool.description }}</span>
+          </span>
+          <span class="tool-card__arrow">
+            <font-awesome-icon :icon="['solid', 'chevron-right']" />
+          </span>
+        </a>
+        <button
+          v-else
+          class="tool-card"
+          type="button"
+          :class="{ disabled: tool.status !== 'available' }"
+          @click="openTool(tool)"
+        >
+          <span class="tool-card__icon">
+            <font-awesome-icon :icon="['solid', tool.icon]" />
+          </span>
+          <span class="tool-card__content">
+            <span class="tool-card__header">
+              <strong>{{ tool.name }}</strong>
+              <em>{{ tool.status === 'available' ? '已上线' : '规划中' }}</em>
+            </span>
+            <span v-if="tool.openInNewTab" class="tool-card__badge">新页签打开</span>
+            <span class="tool-card__description">{{ tool.description }}</span>
+          </span>
+          <span class="tool-card__arrow">
+            <font-awesome-icon :icon="['solid', 'chevron-right']" />
+          </span>
+        </button>
+      </template>
     </div>
   </div>
 </template>
@@ -126,6 +163,17 @@ function openTool(tool: ToolItemType): void {
   border-radius: 999px;
   font-size: 12px;
   font-style: normal;
+}
+
+.tool-card__badge {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 2px 8px;
+  color: #0f766e;
+  background: #ecfeff;
+  border: 1px solid #a5f3fc;
+  border-radius: 999px;
+  font-size: 12px;
 }
 
 .tool-card__description {

@@ -10,6 +10,7 @@ import WrongBook from '@/views/wrong-book/WrongBookPage.vue'
 import Tools from '@/views/tools/ToolsPage.vue'
 import AttachmentLibraryPage from '@/views/tools/AttachmentLibraryPage.vue'
 import PaperLayoutPage from '@/views/tools/PaperLayoutPage.vue'
+import TeacherSchedulePage from '@/views/tools/teacher-schedule/TeacherSchedulePage.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import type { NavigationGuardWithThis, RouteLocationNormalized } from 'vue-router'
@@ -21,6 +22,11 @@ const router = createRouter({
       path: '/',
       name: 'RootRedirect',
       component: RootRedirectPage
+    },
+    {
+      path: '/teacher-schedule',
+      name: 'TeacherScheduleStandalone',
+      component: TeacherSchedulePage
     },
     {
       path: '/main',
@@ -63,6 +69,11 @@ const router = createRouter({
           component: PaperLayoutPage
         },
         {
+          path: '/tools/teacher-schedule',
+          name: 'TeacherSchedule',
+          component: TeacherSchedulePage
+        },
+        {
           path: '/setting',
           name: 'Setting',
           component: Setting
@@ -81,7 +92,14 @@ export function createDataGuard(
     _from: RouteLocationNormalized,
     next: (to?: string | false | void) => void
   ) => {
-    const allowedPaths = ['/tools', '/tools/attachments', '/tools/paper-layout', '/setting']
+    const allowedPaths = [
+      '/tools',
+      '/tools/attachments',
+      '/tools/paper-layout',
+      '/tools/teacher-schedule',
+      '/teacher-schedule',
+      '/setting'
+    ]
 
     if (allowedPaths.includes(to.path)) {
       next()

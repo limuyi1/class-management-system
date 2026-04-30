@@ -5,13 +5,14 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
+import { useTeacherScheduleStore } from '@/stores/teacher-schedule'
 import { useSettingStore } from '@/stores/setting'
 import { useThemeStore } from '@/stores/theme'
 import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 
-const PAPER_LAYOUT_TABLES = new Set(['attachments', 'paperLayoutDrafts', 'tools'])
+const TOOL_TABLES = new Set(['attachments', 'paperLayoutDrafts', 'tools', 'teacherSchedule'])
 
 /**
  * 清空 IndexedDB 只会删除持久化记录，不会自动重置当前页面已经加载的 Pinia 内存状态。
@@ -24,6 +25,7 @@ const resetRuntimeStores = () => {
   const themeStore = useThemeStore()
   const aiConfigStore = useAIConfigStore()
   const wrongBookStore = useWrongBookStore()
+  const teacherScheduleStore = useTeacherScheduleStore()
   const toolsStore = useToolsStore()
 
   dataStore.items = []
@@ -32,6 +34,7 @@ const resetRuntimeStores = () => {
   configurationStore.$reset()
   aiConfigStore.$reset()
   wrongBookStore.$reset()
+  teacherScheduleStore.$reset()
   toolsStore.$reset()
   // theme 是 setup store，重置时还需要同步刷新 documentElement 上的主题 CSS 变量。
   themeStore.resetTheme()
@@ -45,9 +48,20 @@ const hydrateRuntimeStores = async () => {
   const aiConfigStore = useAIConfigStore()
   const wrongBookStore = useWrongBookStore()
   const overviewAnalysisStore = useOverviewAnalysisStore()
+  const teacherScheduleStore = useTeacherScheduleStore()
   const toolsStore = useToolsStore()
 
-  const [dataSource, setting, configuration, theme, aiConfig, wrongBook, overviewAnalysis, tools] =
+  const [
+    dataSource,
+    setting,
+    configuration,
+    theme,
+    aiConfig,
+    wrongBook,
+    overviewAnalysis,
+    teacherSchedule,
+    tools
+  ] =
     await Promise.all([
       db.dataSource.get(DB_ID),
       db.setting.get(DB_ID),
@@ -56,6 +70,7 @@ const hydrateRuntimeStores = async () => {
       db.aiConfig.get(DB_ID),
       db.wrongBook.get(DB_ID),
       db.overviewAnalysis.get(DB_ID),
+      db.teacherSchedule.get(DB_ID),
       db.tools.get(DB_ID)
     ])
 
@@ -105,6 +120,13 @@ const hydrateRuntimeStores = async () => {
       Object.assign(storeState, state)
     })
   }
+  if (teacherSchedule) {
+    const { id, ...state } = teacherSchedule
+    void id
+    teacherScheduleStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+  }
   if (tools) {
     const { id, ...state } = tools
     void id
@@ -122,7 +144,7 @@ export async function exportDatabase(
     const blob = await db.export({
       filter: (table) => {
         if (includePaperLayout) return true
-        return !PAPER_LAYOUT_TABLES.has(table)
+        return !TOOL_TABLES.has(table)
       },
       progressCallback: (info) => {
         if (onProgress && info.totalRows !== undefined && info.totalRows > 0) {
@@ -187,6 +209,7 @@ export async function clearDatabase(onProgress?: (percent: number) => void, comp
     await db.theme.clear()
     onProgress?.(80)
     await db.aiConfig.clear()
+    await db.teacherSchedule.clear()
     await db.attachments.clear()
     await db.paperLayoutDrafts.clear()
     await db.tools.clear()

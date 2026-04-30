@@ -6,6 +6,7 @@ import type {
   PaperLayoutDraftRecordType,
   PaperLayoutSettingsType
 } from './Tools'
+import type { TeacherScheduleStateType } from './TeacherSchedule'
 
 export interface DataSourceRecord {
   id: string
@@ -69,6 +70,10 @@ export interface OverviewAnalysisRecord {
 export interface ToolsRecord {
   id: string
   paperLayout: PaperLayoutSettingsType
+}
+
+export interface TeacherScheduleRecord extends TeacherScheduleStateType {
+  id: string
 }
 
 export type AttachmentRecord = AttachmentRecordType
