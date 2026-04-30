@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -14,6 +14,7 @@ import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
 import { exportDatabase, importDatabase, clearDatabase } from '@/utils/backup'
 import { parseExcel } from '@/utils/xlsxUntil'
 import {
+  buildInitialScoreImport,
   buildIncrementalScoreImport,
   findDuplicateNames,
   getConflictLabels
@@ -42,6 +43,7 @@ const settingStore = useSettingStore()
 const configurationStore = useConfigurationStore()
 const { items } = storeToRefs(dataSourceStore)
 const { tableHeaders } = storeToRefs(settingStore)
+const hasStudentData = computed(() => items.value.length > 0)
 
 const updateProgress = (percent: number) => {
   progressPercent.value = percent
@@ -126,21 +128,23 @@ const handleExcelScoreImport = async (file: File) => {
   try {
     const { header, data } = await parseExcel({ raw: file } as UploadFile)
 
-    if (!header.includes('姓名')) {
-      ElMessage.error('已有数据导入 Excel 时，表格中必须包含[姓名]列')
-      return
-    }
+    if (hasStudentData.value) {
+      if (!header.includes('姓名')) {
+        ElMessage.error('已有数据导入 Excel 时，表格中必须包含[姓名]列')
+        return
+      }
 
-    const duplicateExcelNames = findDuplicateNames(data, '姓名')
-    if (duplicateExcelNames.length > 0) {
-      ElMessage.error(`Excel 中存在重复姓名：${duplicateExcelNames.slice(0, 3).join('、')}`)
-      return
-    }
+      const duplicateExcelNames = findDuplicateNames(data, '姓名')
+      if (duplicateExcelNames.length > 0) {
+        ElMessage.error(`Excel 中存在重复姓名：${duplicateExcelNames.slice(0, 3).join('、')}`)
+        return
+      }
 
-    const duplicateSystemNames = findDuplicateNames(items.value, NAME_PROP)
-    if (duplicateSystemNames.length > 0) {
-      ElMessage.error(`系统中存在重复姓名：${duplicateSystemNames.slice(0, 3).join('、')}`)
-      return
+      const duplicateSystemNames = findDuplicateNames(items.value, NAME_PROP)
+      if (duplicateSystemNames.length > 0) {
+        ElMessage.error(`系统中存在重复姓名：${duplicateSystemNames.slice(0, 3).join('、')}`)
+        return
+      }
     }
 
     excelHeaders.value = header
@@ -213,7 +217,46 @@ const applyExcelScoreImport = (conflictActions: Record<string, ConflictActionTyp
   resetExcelImport()
 }
 
-const handleExcelColumnConfirm = (value: { scoreColumns: string[] }) => {
+const applyInitialExcelImport = (nameColumn: string, scoreColumns: string[]) => {
+  const duplicateNames = findDuplicateNames(excelRows.value, nameColumn)
+  if (duplicateNames.length > 0) {
+    ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
+    return
+  }
+
+  const result = buildInitialScoreImport({
+    rows: excelRows.value,
+    nameColumn,
+    scoreColumns
+  })
+
+  if (result.students.length === 0) {
+    ElMessage.error('没有可导入的学生数据')
+    return
+  }
+
+  tableHeaders.value = result.headers
+  items.value = result.students
+  configurationStore.inputScoreTab = result.headers[0]?.prop
+
+  resetExcelImport()
+
+  if (result.invalidScoreCount > 0) {
+    ElMessage.warning(`导入成功，${result.invalidScoreCount} 个成绩无法识别，已置为空`)
+  } else {
+    ElMessage.success('导入成功！')
+  }
+
+  router.push('/overview')
+}
+
+const handleExcelColumnConfirm = (value: { nameColumn?: string; scoreColumns: string[] }) => {
+  if (!hasStudentData.value) {
+    if (!value.nameColumn) return
+    applyInitialExcelImport(value.nameColumn, value.scoreColumns)
+    return
+  }
+
   pendingScoreColumns.value = value.scoreColumns
   conflictColumns.value = getConflictLabels(value.scoreColumns, tableHeaders.value)
   columnSelectorVisible.value = false
@@ -245,7 +288,7 @@ const handleClear = async () => {
         progressPercent.value = percent
       },
       () => {
-        router.push('/empty')
+        router.push('/tools')
       }
     )
   } catch {
@@ -286,7 +329,13 @@ const handleClear = async () => {
           </div>
           <div class="action-info">
             <div class="action-label">导入数据</div>
-            <div class="action-desc">选择 .dexie 覆盖恢复，或选择 Excel 按姓名新增/覆盖成绩列</div>
+            <div class="action-desc">
+              {{
+                hasStudentData
+                  ? '选择 .dexie 覆盖恢复，或选择 Excel 按姓名新增/覆盖成绩列'
+                  : '选择 .dexie 全量恢复，或选择 Excel 后继续设置姓名列和成绩列'
+              }}
+            </div>
           </div>
           <el-button
             type="success"
@@ -334,12 +383,12 @@ const handleClear = async () => {
       :title="progressTitle"
       :percent="progressPercent"
     />
-    <ExcelColumnSelector
-      v-model="columnSelectorVisible"
-      mode="incremental"
-      :headers="excelHeaders"
-      :rows="excelRows"
-      @confirm="handleExcelColumnConfirm"
+  <ExcelColumnSelector
+    v-model="columnSelectorVisible"
+    :mode="hasStudentData ? 'incremental' : 'initial'"
+    :headers="excelHeaders"
+    :rows="excelRows"
+    @confirm="handleExcelColumnConfirm"
     />
     <ExcelColumnConflictDialog
       v-model="conflictDialogVisible"

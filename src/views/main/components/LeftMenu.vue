@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import data from '@/config/menu'
@@ -21,14 +21,6 @@ const hasData = computed(() => tableData.value?.length > 0)
 const activePath = computed(() => {
   const currentPath = router.currentRoute.value?.path
 
-  if (currentPath === '/empty') {
-    return '/empty'
-  }
-
-  if (!hasData.value) {
-    return '/empty'
-  }
-
   if (currentPath === '/overview') {
     return '/overview'
   }
@@ -43,7 +35,7 @@ const activePath = computed(() => {
 const menuData = computed(() => {
   return data.filter((item) => !item.hidden).map((item) => {
     const newItem = { ...item }
-    if (item.path === '/setting') {
+    if (item.path === '/setting' || item.path === '/tools') {
       newItem.disabled = false
     } else {
       newItem.disabled = !hasData.value
@@ -53,21 +45,11 @@ const menuData = computed(() => {
   })
 })
 
-watch(
-  tableData,
-  (newVal) => {
-    if (!newVal || newVal.length === 0) {
-      router.push('/empty')
-    }
-  },
-  { deep: true }
-)
-
 const handleMenuClick = (item: MenuItemType) => {
   if (item.disabled) return
   const targetPath = item.targetPath || item.path
   if (item.path === '/setting') {
-    router.push({ path: '/setting', query: { tab: 'student-info' } })
+    router.push({ path: '/setting', query: { tab: hasData.value ? 'student-info' : 'system-backup' } })
   } else {
     router.push(targetPath)
   }

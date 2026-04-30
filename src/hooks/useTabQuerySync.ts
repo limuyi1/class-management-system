@@ -1,11 +1,11 @@
-import { nextTick, watch, type Ref } from 'vue'
+import { nextTick, toValue, watch, type MaybeRefOrGetter, type Ref } from 'vue'
 import type { Router, RouteLocationNormalizedLoaded } from 'vue-router'
 
 interface UseTabQuerySyncOptions<T extends string> {
   route: RouteLocationNormalizedLoaded
   router: Router
   activeTab: Ref<T>
-  validTabs: readonly T[]
+  validTabs: MaybeRefOrGetter<readonly T[]>
   onEditTags?: (studentName: string) => boolean | void | Promise<boolean | void>
   onEditTagsContext?: (query: RouteLocationNormalizedLoaded['query']) => void
 }
@@ -17,7 +17,8 @@ export function useTabQuerySync<T extends string>(options: UseTabQuerySyncOption
     () => route.query,
     async (query) => {
       const tab = query.tab
-      if (typeof tab === 'string' && validTabs.includes(tab as T)) {
+      const currentValidTabs = toValue(validTabs)
+      if (typeof tab === 'string' && currentValidTabs.includes(tab as T)) {
         activeTab.value = tab as T
       }
 

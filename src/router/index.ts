@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 import OverviewPage from '@/views/overview/OverviewPage.vue'
 import MainPage from '@/views/main/MainPage.vue'
+import RootRedirectPage from '@/views/root/RootRedirectPage.vue'
 import Math from '@/views/score/ScorePage.vue'
 import Comment from '@/views/evaluation/EvaluationPage.vue'
 import Setting from '@/views/setting/SettingPage.vue'
@@ -9,7 +10,6 @@ import WrongBook from '@/views/wrong-book/WrongBookPage.vue'
 import Tools from '@/views/tools/ToolsPage.vue'
 import AttachmentLibraryPage from '@/views/tools/AttachmentLibraryPage.vue'
 import PaperLayoutPage from '@/views/tools/PaperLayoutPage.vue'
-import EmptyPage from '@/views/empty/EmptyPage.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import type { NavigationGuardWithThis, RouteLocationNormalized } from 'vue-router'
@@ -18,13 +18,9 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
-      path: '/empty',
-      name: 'Empty',
-      component: EmptyPage
-    },
-    {
       path: '/',
-      redirect: '/overview'
+      name: 'RootRedirect',
+      component: RootRedirectPage
     },
     {
       path: '/main',
@@ -76,30 +72,27 @@ const router = createRouter({
   ]
 })
 
-type DataSourceGuardStoreType = {
-  waitForInitReady: () => Promise<boolean>
-  enabledData: unknown[]
-}
-
 export function createDataGuard(
-  getStore: () => DataSourceGuardStoreType = useDataSourceStore
+  getStore: () => Pick<ReturnType<typeof useDataSourceStore>, 'waitForInitReady' | 'enabledData'> =
+    useDataSourceStore
 ): NavigationGuardWithThis<undefined> {
   return async (
     to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
     next: (to?: string | false | void) => void
   ) => {
-    if (to.path === '/empty') {
+    const allowedPaths = ['/tools', '/tools/attachments', '/tools/paper-layout', '/setting']
+
+    if (allowedPaths.includes(to.path)) {
       next()
       return
     }
 
     const store = getStore()
     await store.waitForInitReady()
-    const hasData = store.enabledData.length > 0
 
-    if (!hasData) {
-      next('/empty')
+    if (store.enabledData.length === 0) {
+      next('/tools')
       return
     }
 

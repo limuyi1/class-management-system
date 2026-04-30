@@ -85,4 +85,26 @@ describe('useTabQuerySync', () => {
       query: { tab: 'label-maintenance' }
     })
   })
+
+  it('should respect reactive validTabs', async () => {
+    const dynamicValidTabs = ref<Array<TabType>>(['label-maintenance'])
+    activeTab.value = 'label-maintenance'
+    route.query = { tab: 'student-info' }
+
+    useTabQuerySync({
+      route: route as never,
+      router: router as never,
+      activeTab,
+      validTabs: dynamicValidTabs
+    })
+
+    await flush()
+    expect(activeTab.value).toBe('label-maintenance')
+
+    dynamicValidTabs.value = ['student-info', 'label-maintenance']
+    route.query = { tab: 'student-info' }
+    await flush()
+
+    expect(activeTab.value).toBe('student-info')
+  })
 })
