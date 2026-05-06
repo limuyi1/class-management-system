@@ -24,14 +24,5 @@ export const toolItems: ToolItemType[] = [
     path: '/tools/paper-layout',
     description: '上传多张试卷图片，按纸张规格排版并导出 PDF。',
     status: 'available'
-  },
-  {
-    id: 'teacher-schedule',
-    name: '教师排课',
-    icon: 'calendar-days',
-    path: '/teacher-schedule',
-    description: '先录班级、课程、教师和历史记录，再生成排课草案并做人工微调。',
-    status: 'available',
-    openInNewTab: true
   }
 ]

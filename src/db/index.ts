@@ -9,7 +9,6 @@ import type {
   PaperLayoutDraftRecord,
   SettingRecord,
   ThemeRecord,
-  TeacherScheduleRecord,
   ToolsRecord,
   WrongBookRecord
 } from '@/types/Database'
@@ -23,7 +22,6 @@ export class SCSDatabase extends Dexie {
   aiConfig!: Table<AIConfigRecord>
   overviewAnalysis!: Table<OverviewAnalysisRecord>
   tools!: Table<ToolsRecord>
-  teacherSchedule!: Table<TeacherScheduleRecord>
   attachments!: Table<AttachmentRecord>
   paperLayoutDrafts!: Table<PaperLayoutDraftRecord>
 
@@ -98,7 +96,18 @@ export class SCSDatabase extends Dexie {
       aiConfig: 'id',
       overviewAnalysis: 'id',
       tools: 'id',
-      teacherSchedule: 'id',
+      attachments: 'id, sortOrder, name, createdAt, updatedAt',
+      paperLayoutDrafts: 'id, name, createdAt, updatedAt'
+    })
+    this.version(7).stores({
+      dataSource: 'id',
+      wrongBook: 'id',
+      setting: 'id',
+      configuration: 'id',
+      theme: 'id',
+      aiConfig: 'id',
+      overviewAnalysis: 'id',
+      tools: 'id',
       attachments: 'id, sortOrder, name, createdAt, updatedAt',
       paperLayoutDrafts: 'id, name, createdAt, updatedAt'
     })
@@ -118,7 +127,6 @@ export type {
   PaperLayoutDraftRecord,
   SettingRecord,
   ThemeRecord,
-  TeacherScheduleRecord,
   ToolsRecord,
   WrongBookRecord
 }
