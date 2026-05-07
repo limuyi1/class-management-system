@@ -5,6 +5,7 @@ import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
+import { StudentReportDrawer, StudentReportExportDialog } from '@/components/student-report'
 
 import ScoreTableView from '@/views/score/components/ScoreTableView.vue'
 import InputDataView from '@/views/score/components/InputDataView.vue'
@@ -32,6 +33,9 @@ const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.pro
 
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
+const studentDrawerVisible = ref(false)
+const reportDialogVisible = ref(false)
+const currentStudent = ref<StudentDataType | null>(null)
 
 const ensureDefaultScoreTab = () => {
   if (!configuration.inputScoreTab && scoreColumns.value.length) {
@@ -153,6 +157,16 @@ const handleCropCancel = () => {
   cropperVisible.value = false
 }
 
+const handleInspectStudent = (student: StudentDataType) => {
+  currentStudent.value = student
+  studentDrawerVisible.value = true
+}
+
+const handleOpenReportDialog = () => {
+  studentDrawerVisible.value = false
+  reportDialogVisible.value = true
+}
+
 defineExpose({ autoFocus })
 </script>
 
@@ -173,6 +187,7 @@ defineExpose({ autoFocus })
           @update:score-tab="(value) => (configuration.inputScoreTab = value)"
           @reset-score="resetScore"
           @edit="(data) => inputDataRef?.editData(data)"
+          @inspect-student="handleInspectStudent"
         />
       </div>
       <div class="panel panel-middle">
@@ -193,6 +208,19 @@ defineExpose({ autoFocus })
       :image-src="cropperImageSrc"
       @confirm="handleCropConfirm"
       @cancel="handleCropCancel"
+    />
+
+    <student-report-drawer
+      v-model:visible="studentDrawerVisible"
+      :student="currentStudent"
+      :score-columns="scoreColumns"
+      @export="handleOpenReportDialog"
+    />
+
+    <student-report-export-dialog
+      v-model:visible="reportDialogVisible"
+      :student="currentStudent"
+      :score-columns="scoreColumns"
     />
   </div>
 </template>

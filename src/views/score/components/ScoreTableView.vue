@@ -22,6 +22,7 @@ const emit = defineEmits<{
   'update:scoreTab': [value: string]
   resetScore: []
   edit: [row: StudentDataType]
+  inspectStudent: [row: StudentDataType]
 }>()
 
 const store = useDataSourceStore()
@@ -142,6 +143,10 @@ const handleEdit = (data: StudentDataType) => {
   emit('edit', data)
 }
 
+const handleInspectStudent = (row: StudentDataType) => {
+  emit('inspectStudent', row)
+}
+
 const clearActiveSelection = () => {
   activeRow.value = null
   tableRef.value?.setCurrentRow()
@@ -198,7 +203,13 @@ defineExpose({
       @row-click="handleEdit"
     >
       <el-table-column type="index" label="序号" width="68" align="center" />
-      <el-table-column :prop="NAME_PROP" label="姓名" min-width="120" />
+      <el-table-column :prop="NAME_PROP" label="姓名" min-width="120">
+        <template #default="{ row }">
+          <button class="student-link" type="button" @click.stop="handleInspectStudent(row)">
+            {{ row[NAME_PROP] }}
+          </button>
+        </template>
+      </el-table-column>
       <el-table-column
         :prop="configuration.inputScoreTab || ''"
         :label="currentColumnLabel"
@@ -298,5 +309,18 @@ defineExpose({
 :deep(.el-table__row) {
   height: 50px;
   cursor: pointer;
+}
+
+.student-link {
+  padding: 0;
+  color: var(--theme-primary);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.student-link:hover {
+  text-decoration: underline;
 }
 </style>

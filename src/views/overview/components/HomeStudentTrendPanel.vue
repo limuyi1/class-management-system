@@ -25,6 +25,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:modelValue': [value: string[]]
   'go-evaluation': []
+  'export-report': [name: string]
 }>()
 
 const chartMode = ref<'line' | 'bar'>('line')
@@ -351,6 +352,12 @@ const goToEvaluation = () => {
   emit('go-evaluation')
 }
 
+const exportReport = () => {
+  const targetName = props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.name : ''
+  if (!targetName) return
+  emit('export-report', targetName)
+}
+
 const filteredStudentOptions = computed(() => {
   const keyword = studentSearchKeyword.value.trim()
   if (!keyword) return props.studentOptions
@@ -420,9 +427,21 @@ const handleStudentFilter = (query: string) => {
       <div class="student-meta">
         <div class="meta-title">
           <span>{{ studentTrend.mode === 'compare' ? '对比视图' : studentTrend.students[0]?.name }}</span>
-          <el-tag type="info" round>
-            {{ studentTrend.mode === 'compare' ? `共 ${studentTrend.students.length} 人` : '单人模式' }}
-          </el-tag>
+          <div class="meta-actions">
+            <el-tag type="info" round>
+              {{ studentTrend.mode === 'compare' ? `共 ${studentTrend.students.length} 人` : '单人模式' }}
+            </el-tag>
+            <el-button
+              v-if="studentTrend.mode === 'single'"
+              size="small"
+              type="primary"
+              plain
+              @click="exportReport"
+            >
+              <font-awesome-icon :icon="['solid', 'file-arrow-down']" />
+              <span>导出学习报告</span>
+            </el-button>
+          </div>
         </div>
         <div v-if="studentTrend.mode === 'single' && studentTrend.students[0]?.tags.length" class="meta-tags">
           <el-tag
@@ -572,10 +591,19 @@ const handleStudentFilter = (query: string) => {
 .meta-title {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
   font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
+}
+
+.meta-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .meta-tags {

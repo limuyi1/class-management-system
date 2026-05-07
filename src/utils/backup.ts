@@ -154,6 +154,9 @@ export async function importDatabase(
     const blob = file.slice(0, file.size, 'application/octet-stream')
     setDatabaseImporting(true)
     await db.import(blob, {
+      // 允许导入旧版本备份；当前 v5 到 v7 仅数据库版本号不同，不影响表结构兼容。
+      acceptVersionDiff: true,
+      acceptMissingTables: true,
       clearTablesBeforeImport: true,
       progressCallback: (info) => {
         if (onProgress && info.totalRows !== undefined && info.totalRows > 0) {

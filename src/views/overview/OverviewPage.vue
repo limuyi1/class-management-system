@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
+import { StudentReportExportDialog } from '@/components/student-report'
 
 import HomeDiagnosisCard from '@/views/overview/components/HomeDiagnosisCard.vue'
 import HomeFocusCenter from '@/views/overview/components/HomeFocusCenter.vue'
@@ -13,6 +15,10 @@ import HomeUnitOverviewChart from '@/views/overview/components/HomeUnitOverviewC
 
 import { useOverviewAnalysis } from '@/views/overview/composables/useOverviewAnalysis'
 import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
+import { useDataSourceStore } from '@/stores/data-source'
+import { useSettingStore } from '@/stores/setting'
+import { NAME_PROP } from '@/types/Constants'
+import type { StudentDataType } from '@/types/StudentData'
 
 /**
  * 页面层仅负责页面编排、路由和抽屉开关。
@@ -21,6 +27,13 @@ import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDa
 const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
 const router = useRouter()
 const trendDrawerVisible = ref(false)
+const reportDialogVisible = ref(false)
+const currentStudent = ref<StudentDataType | null>(null)
+const dataStore = useDataSourceStore()
+const settingStore = useSettingStore()
+const { enabledData } = storeToRefs(dataStore)
+const { tableHeaders } = storeToRefs(settingStore)
+const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
 const {
   analysisText: learningAnalysisText,
   generatedAt: learningAnalysisGeneratedAt,
@@ -49,6 +62,13 @@ const goToEvaluationFromTrend = async () => {
   trendDrawerVisible.value = false
   await nextTick()
   router.push('/comment')
+}
+
+const handleExportReportFromTrend = (name: string) => {
+  const student = enabledData.value.find((item) => String(item[NAME_PROP] || '') === name)
+  if (!student) return
+  currentStudent.value = student
+  reportDialogVisible.value = true
 }
 
 const handleGenerateLearningAnalysis = async () => {
@@ -137,8 +157,15 @@ const handleGenerateLearningAnalysis = async () => {
         :student-options="dashboardData.studentOptions"
         :quick-student-names="dashboardData.quickStudentNames"
         @go-evaluation="goToEvaluationFromTrend"
+        @export-report="handleExportReportFromTrend"
       />
     </el-drawer>
+
+    <student-report-export-dialog
+      v-model:visible="reportDialogVisible"
+      :student="currentStudent"
+      :score-columns="scoreColumns"
+    />
   </div>
 </template>
 
