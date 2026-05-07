@@ -53,12 +53,16 @@ const handleExport = async () => {
   let includePaperLayout = true
 
   try {
-    await ElMessageBox.confirm('本次导出是否包含试卷排版数据（附件、草稿、工具参数）？', '导出备份', {
-      confirmButtonText: '包含',
-      cancelButtonText: '不包含',
-      type: 'info',
-      distinguishCancelAndClose: true
-    })
+    await ElMessageBox.confirm(
+      '本次导出是否包含试卷排版数据（附件、草稿、工具参数）？',
+      '导出备份',
+      {
+        confirmButtonText: '包含',
+        cancelButtonText: '不包含',
+        type: 'info',
+        distinguishCancelAndClose: true
+      }
+    )
   } catch (action) {
     if (action === 'cancel') {
       includePaperLayout = false
@@ -288,6 +292,8 @@ const handleClear = async () => {
         progressPercent.value = percent
       },
       () => {
+        progressVisible.value = false
+
         router.push('/tools')
       }
     )
@@ -313,7 +319,9 @@ const handleClear = async () => {
           </div>
           <div class="action-info">
             <div class="action-label">导出数据</div>
-            <div class="action-desc">将学生、配置、标签、错题本等数据导出为 .dexie 备份，可选试卷排版</div>
+            <div class="action-desc">
+              将学生、配置、标签、错题本等数据导出为 .dexie 备份，可选试卷排版
+            </div>
           </div>
           <el-button type="primary" size="large" @click="handleExport" :loading="exporting">
             <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
@@ -383,12 +391,12 @@ const handleClear = async () => {
       :title="progressTitle"
       :percent="progressPercent"
     />
-  <ExcelColumnSelector
-    v-model="columnSelectorVisible"
-    :mode="hasStudentData ? 'incremental' : 'initial'"
-    :headers="excelHeaders"
-    :rows="excelRows"
-    @confirm="handleExcelColumnConfirm"
+    <ExcelColumnSelector
+      v-model="columnSelectorVisible"
+      :mode="hasStudentData ? 'incremental' : 'initial'"
+      :headers="excelHeaders"
+      :rows="excelRows"
+      @confirm="handleExcelColumnConfirm"
     />
     <ExcelColumnConflictDialog
       v-model="conflictDialogVisible"

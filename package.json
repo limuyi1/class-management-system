@@ -8,6 +8,8 @@
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
+    "vercel-build": "vite build",
+    "deploy": "vercel deploy ./dist --prod",
     "type-check": "vue-tsc --build --force",
     "lint": "pnpm lint:check",
     "lint:check": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --ignore-path .eslintignore",

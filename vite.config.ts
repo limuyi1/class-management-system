@@ -47,7 +47,6 @@ export default defineConfig(({ mode }): UserConfig => {
         allow: ['..']
       }
     },
-    base: './',
     build: {
       outDir: 'dist',
       assetsDir: 'static'
