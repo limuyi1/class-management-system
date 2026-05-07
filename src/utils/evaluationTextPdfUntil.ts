@@ -480,7 +480,8 @@ const uniq = (items: string[]) => Array.from(new Set(items.filter(Boolean)))
 
 // 浏览器环境下统一从这里触发下载，后续若切到桌面端存盘，可直接替换这一层。
 const downloadPdfBytes = (bytes: Uint8Array, fileName: string) => {
-  const blob = new Blob([bytes], { type: 'application/pdf' })
+  const blobBytes = new Uint8Array(bytes)
+  const blob = new Blob([blobBytes], { type: 'application/pdf' })
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url

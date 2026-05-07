@@ -1,15 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-import OverviewPage from '@/views/overview/OverviewPage.vue'
 import MainPage from '@/views/main/MainPage.vue'
 import RootRedirectPage from '@/views/root/RootRedirectPage.vue'
-import Math from '@/views/score/ScorePage.vue'
-import Comment from '@/views/evaluation/EvaluationPage.vue'
-import Setting from '@/views/setting/SettingPage.vue'
-import WrongBook from '@/views/wrong-book/WrongBookPage.vue'
-import Tools from '@/views/tools/ToolsPage.vue'
-import AttachmentLibraryPage from '@/views/tools/AttachmentLibraryPage.vue'
-import PaperLayoutPage from '@/views/tools/PaperLayoutPage.vue'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import type { NavigationGuardWithThis, RouteLocationNormalized } from 'vue-router'
@@ -30,42 +22,42 @@ const router = createRouter({
         {
           path: '/overview',
           name: 'Overview',
-          component: OverviewPage
+          component: () => import('@/views/overview/OverviewPage.vue')
         },
         {
           path: '/math',
           name: 'Math',
-          component: Math
+          component: () => import('@/views/score/ScorePage.vue')
         },
         {
           path: '/comment',
           name: 'Comment',
-          component: Comment
+          component: () => import('@/views/evaluation/EvaluationPage.vue')
         },
         {
           path: '/wrong-book',
           name: 'WrongBook',
-          component: WrongBook
+          component: () => import('@/views/wrong-book/WrongBookPage.vue')
         },
         {
           path: '/tools',
           name: 'Tools',
-          component: Tools
+          component: () => import('@/views/tools/ToolsPage.vue')
         },
         {
           path: '/tools/attachments',
           name: 'AttachmentLibrary',
-          component: AttachmentLibraryPage
+          component: () => import('@/views/tools/AttachmentLibraryPage.vue')
         },
         {
           path: '/tools/paper-layout',
           name: 'PaperLayout',
-          component: PaperLayoutPage
+          component: () => import('@/views/tools/PaperLayoutPage.vue')
         },
         {
           path: '/setting',
           name: 'Setting',
-          component: Setting
+          component: () => import('@/views/setting/SettingPage.vue')
         }
       ]
     }
@@ -73,20 +65,17 @@ const router = createRouter({
 })
 
 export function createDataGuard(
-  getStore: () => Pick<ReturnType<typeof useDataSourceStore>, 'waitForInitReady' | 'enabledData'> =
-    useDataSourceStore
+  getStore: () => Pick<
+    ReturnType<typeof useDataSourceStore>,
+    'waitForInitReady' | 'enabledData'
+  > = useDataSourceStore
 ): NavigationGuardWithThis<undefined> {
   return async (
     to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
     next: (to?: string | false | void) => void
   ) => {
-    const allowedPaths = [
-      '/tools',
-      '/tools/attachments',
-      '/tools/paper-layout',
-      '/setting'
-    ]
+    const allowedPaths = ['/tools', '/tools/attachments', '/tools/paper-layout', '/setting']
 
     if (allowedPaths.includes(to.path)) {
       next()

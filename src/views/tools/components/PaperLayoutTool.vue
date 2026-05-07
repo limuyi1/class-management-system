@@ -443,7 +443,9 @@ async function handleSaveDraft(): Promise<void> {
 }
 
 async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void> {
-  const sortedDraftItems = [...draft.items].sort((first, second) => (first.order || 0) - (second.order || 0))
+  const sortedDraftItems = [...draft.items].sort(
+    (first, second) => (first.order || 0) - (second.order || 0)
+  )
   const nextItems: CanvasItemType[] = sortedDraftItems.map((draftItem, index) => {
     const attachment: AttachmentRecordType = {
       id: draftItem.attachmentId,
@@ -512,7 +514,8 @@ async function exportPdf(): Promise<void> {
     }
 
     const bytes = await pdfDoc.save()
-    const blob = new Blob([bytes], { type: 'application/pdf' })
+    const blobBytes = new Uint8Array(bytes)
+    const blob = new Blob([blobBytes], { type: 'application/pdf' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -567,9 +570,7 @@ function scrollToPage(index: number): void {
 }
 
 function handlePreviewScroll(): void {
-  const pageElements = Array.from(
-    document.querySelectorAll<HTMLElement>('[data-paper-page]')
-  )
+  const pageElements = Array.from(document.querySelectorAll<HTMLElement>('[data-paper-page]'))
   if (pageElements.length === 0) return
 
   const nearestPage = pageElements.reduce(
@@ -593,7 +594,9 @@ async function getEmbeddedImage(
 
   const imageBytes = await fetch(item.dataUrl).then((response) => response.arrayBuffer())
   const embeddedImage =
-    item.mimeType === 'image/jpeg' ? await pdfDoc.embedJpg(imageBytes) : await pdfDoc.embedPng(imageBytes)
+    item.mimeType === 'image/jpeg'
+      ? await pdfDoc.embedJpg(imageBytes)
+      : await pdfDoc.embedPng(imageBytes)
   cache.set(item.id, embeddedImage)
   return embeddedImage
 }
@@ -603,7 +606,9 @@ async function getEmbeddedImage(
   <div class="paper-layout-tool" @click="handleToolClick">
     <div class="layout-toolbar">
       <el-button type="primary" size="small" @click="openAttachmentSelector">
-        <template #icon><font-awesome-icon :icon="['solid', attachmentCount === 0 ? 'plus' : 'folder-open']" /></template>
+        <template #icon
+          ><font-awesome-icon :icon="['solid', attachmentCount === 0 ? 'plus' : 'folder-open']"
+        /></template>
         {{ attachmentCount === 0 ? '去附件库添加' : '选择附件' }}
       </el-button>
       <el-button size="small" :disabled="canvasItems.length === 0" @click="autoArrange">
@@ -657,7 +662,9 @@ async function getEmbeddedImage(
 
       <div class="toolbar-spacer" />
 
-      <el-button size="small" :disabled="canvasItems.length === 0" @click="clearItems">清空</el-button>
+      <el-button size="small" :disabled="canvasItems.length === 0" @click="clearItems"
+        >清空</el-button
+      >
       <el-button size="small" :disabled="canvasItems.length === 0" @click="handleSaveDraft">
         <template #icon><font-awesome-icon :icon="['solid', 'floppy-disk']" /></template>
         保存草稿
@@ -666,7 +673,13 @@ async function getEmbeddedImage(
         <template #icon><font-awesome-icon :icon="['solid', 'folder-open']" /></template>
         打开草稿
       </el-button>
-      <el-button type="primary" size="small" :loading="exporting" :disabled="canvasItems.length === 0" @click="exportPdf">
+      <el-button
+        type="primary"
+        size="small"
+        :loading="exporting"
+        :disabled="canvasItems.length === 0"
+        @click="exportPdf"
+      >
         <template #icon><font-awesome-icon :icon="['solid', 'file-pdf']" /></template>
         导出 PDF
       </el-button>
@@ -722,10 +735,15 @@ async function getEmbeddedImage(
         <div class="preview-toolbar">
           <div class="preview-title">
             <strong>自由排版画布</strong>
-            <span>{{ settings.pageType }} {{ settings.orientation === 'portrait' ? '纵向' : '横向' }}</span>
+            <span
+              >{{ settings.pageType }}
+              {{ settings.orientation === 'portrait' ? '纵向' : '横向' }}</span
+            >
           </div>
           <div class="preview-actions">
-            <span class="page-count">{{ pageCount > 0 ? `第 ${activePageIndex + 1} 页` : '暂无页面' }}</span>
+            <span class="page-count">{{
+              pageCount > 0 ? `第 ${activePageIndex + 1} 页` : '暂无页面'
+            }}</span>
             <el-button size="small" circle @click="zoomPreview(-1)">
               <font-awesome-icon :icon="['solid', 'magnifying-glass-minus']" />
             </el-button>
@@ -779,7 +797,12 @@ async function getEmbeddedImage(
                     }"
                     @pointerdown="startMove($event, item)"
                   >
-                    <img class="paper-image" :src="item.dataUrl" :alt="item.name" draggable="false" />
+                    <img
+                      class="paper-image"
+                      :src="item.dataUrl"
+                      :alt="item.name"
+                      draggable="false"
+                    />
                     <span
                       class="resize-handle"
                       :style="getResizeHandleStyle(item)"

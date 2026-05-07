@@ -31,7 +31,9 @@ const exportPDF = async (
     const pdfDoc = await PDFDocument.create()
     const { width: pageWidth, height: pageHeight } = pageSizeInPixels(pageType)
 
-    const elements = Array.from(refs).filter((ref): ref is HTMLElement => ref instanceof HTMLElement)
+    const elements = Array.from(refs).filter(
+      (ref): ref is HTMLElement => ref instanceof HTMLElement
+    )
     for (const [index, elm] of elements.entries()) {
       const imageUrl = await domtoimage.toJpeg(elm, {
         quality: 0.8,
@@ -59,7 +61,8 @@ const exportPDF = async (
     }
 
     const bytes = await pdfDoc.save()
-    const blob = new Blob([bytes], { type: 'application/pdf' })
+    const blobBytes = new Uint8Array(bytes)
+    const blob = new Blob([blobBytes], { type: 'application/pdf' })
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
