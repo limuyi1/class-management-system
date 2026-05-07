@@ -4,8 +4,6 @@
 
 ## 体验地址
 
-https://class-management-system-r22i0tacg5.zh-cn.edgeone.cool/
-
 ## 功能特性
 
 ### V1.0 成绩录入 ✅
