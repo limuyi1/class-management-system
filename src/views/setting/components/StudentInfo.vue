@@ -1,11 +1,12 @@
-<script setup lang="tsx">
-import { computed, ref, watch } from 'vue'
+<script setup lang="ts">
+import { computed, ref, watch, h } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
 import { ElMessage, ElMessageBox, ElPopover, ElTooltip } from 'element-plus'
 import { pinyin } from 'pinyin-pro'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
@@ -174,7 +175,9 @@ const closeBatchEditor = () => {
 
 const confirmBatchEdit = (updatedStudents: EditableStudentType[]) => {
   updatedStudents.forEach((student) => {
-    const originalStudent = tableData.value.find((s) => getStudentName(s) === getStudentName(student))
+    const originalStudent = tableData.value.find(
+      (s) => getStudentName(s) === getStudentName(student)
+    )
     if (originalStudent) {
       tagCache.delete(getStudentName(student))
       originalStudent.tags = student.tags
@@ -197,17 +200,17 @@ const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
     options: [
       [
         {
-          prefixIcon: () => <font-awesome-icon icon={['solid', 'plus']} />,
+          prefixIcon: () => h(FontAwesomeIcon, { icon: ['solid', 'plus'] }),
           code: 'addLeft',
           name: '向左添加列'
         },
         {
-          prefixIcon: () => <font-awesome-icon icon={['solid', 'plus']} />,
+          prefixIcon: () => h(FontAwesomeIcon, { icon: ['solid', 'plus'] }),
           code: 'addRight',
           name: '向右添加列'
         },
         {
-          prefixIcon: () => <font-awesome-icon icon={['solid', 'trash-can']} />,
+          prefixIcon: () => h(FontAwesomeIcon, { icon: ['solid', 'trash-can'] }),
           code: 'remove',
           name: '删除列'
         }
