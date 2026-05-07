@@ -4,6 +4,8 @@
 
 ## 体验地址
 
+https://cms.limuyicoder.workers.dev/
+
 ## 功能特性
 
 ### V1.0 成绩录入 ✅
