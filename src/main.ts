@@ -12,8 +12,14 @@ import VxeUITable from 'vxe-table'
 import VxeUIPluginRenderElement from '@vxe-ui/plugin-render-element'
 VxeUI.use(VxeUIPluginRenderElement)
 
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+import { fas } from '@fortawesome/free-solid-svg-icons'
+import { far } from '@fortawesome/free-regular-svg-icons'
+
+library.add(fas, far)
+
 import { createPersistedStateDexie, preloadAllStores } from './plugins/persistDexie'
-import { installFontAwesome } from './plugins/fontawesome'
 
 import App from './App.vue'
 import router from './router'
@@ -23,7 +29,7 @@ const app = createApp(App)
 const pinia = createPinia()
 pinia.use(createPersistedStateDexie())
 
-installFontAwesome(app)
+app.component('font-awesome-icon', FontAwesomeIcon)
 
 app.use(pinia)
 app.use(ElementPlus, {

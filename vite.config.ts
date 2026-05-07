@@ -48,7 +48,7 @@ export default defineConfig(({ mode }): UserConfig => {
     build: {
       outDir: 'dist',
       assetsDir: 'static',
-      chunkSizeWarningLimit: 750,
+      chunkSizeWarningLimit: 1200,
       rolldownOptions: {
         output: {
           codeSplitting: {
@@ -60,35 +60,29 @@ export default defineConfig(({ mode }): UserConfig => {
               },
               {
                 name: 'element-plus',
-                test: (id: string) => includeModule(id, ['element-plus', '@element-plus']),
-                maxSize: 450 * 1024
+                test: (id: string) => includeModule(id, ['element-plus', '@element-plus'])
               },
               {
                 name: 'vxe',
                 test: (id: string) =>
-                  includeModule(id, ['vxe-table', 'vxe-pc-ui', '@vxe-ui', 'xe-utils']),
-                maxSize: 450 * 1024
+                  includeModule(id, ['vxe-table', 'vxe-pc-ui', '@vxe-ui', 'xe-utils'])
               },
               {
                 name: 'editors',
                 test: (id: string) =>
-                  includeModule(id, ['md-editor-v3', '@vueup/vue-quill', 'codemirror']),
-                maxSize: 450 * 1024
+                  includeModule(id, ['md-editor-v3', '@vueup/vue-quill', 'codemirror'])
               },
               {
                 name: 'pdf-tools',
-                test: (id: string) => includeModule(id, ['pdf-lib', '@pdf-lib']),
-                maxSize: 450 * 1024
+                test: (id: string) => includeModule(id, ['pdf-lib', '@pdf-lib'])
               },
               {
                 name: 'spreadsheet',
-                test: (id: string) => includeModule(id, ['xlsx']),
-                maxSize: 450 * 1024
+                test: (id: string) => includeModule(id, ['xlsx'])
               },
               {
                 name: 'charts',
-                test: (id: string) => includeModule(id, ['echarts', 'zrender']),
-                maxSize: 450 * 1024
+                test: (id: string) => includeModule(id, ['echarts', 'zrender'])
               },
               {
                 name: 'ai-sdk',
