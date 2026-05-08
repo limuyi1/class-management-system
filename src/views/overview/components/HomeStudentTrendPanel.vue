@@ -70,6 +70,12 @@ const singleTrendReferenceLineColors = {
   studentAverage: '#dc2626'
 }
 
+const getTooltipScoreText = (seriesName: string, value: unknown) => {
+  const averageScoreText = seriesName.match(/（([^）]+分)）$/)?.[1]
+  if (averageScoreText) return averageScoreText
+  return typeof value === 'number' ? `${value} 分` : ''
+}
+
 const formatTooltipRows = (params: unknown) => {
   const items = Array.isArray(params)
     ? (params as Array<{ axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown }>)
@@ -78,9 +84,13 @@ const formatTooltipRows = (params: unknown) => {
   const rows = items
     .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
     .map((item) => {
+      const seriesName = item.seriesName || ''
+      const tooltipName = seriesName.replace(/（[^）]+分）$/, '')
+      const scoreText = getTooltipScoreText(seriesName, item.value)
+
       return `<div style="display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:6px;">
-        <span>${item.marker || ''}${item.seriesName || ''}</span>
-        <strong style="color:#0f172a;">${item.value} 分</strong>
+        <span>${item.marker || ''}${tooltipName}</span>
+        <strong style="color:#0f172a;">${scoreText}</strong>
       </div>`
     })
     .join('')
@@ -89,6 +99,17 @@ const formatTooltipRows = (params: unknown) => {
     <div style="font-weight:600;color:#0f172a;margin-bottom:2px;">${title}</div>
     ${rows}
   </div>`
+}
+
+const formatAverageLegendName = (label: string, value: number) => `${label}（${value.toFixed(1)}分）`
+
+const getStudentAverageDisplayScore = (classAverageScore: number, studentAverageScore: number) => {
+  if (Math.abs(classAverageScore - studentAverageScore) >= 1) return studentAverageScore
+  if (studentAverageScore >= classAverageScore) {
+    return studentAverageScore <= 99.75 ? studentAverageScore + 0.25 : studentAverageScore - 0.25
+  }
+
+  return studentAverageScore >= 0.25 ? studentAverageScore - 0.25 : studentAverageScore + 0.25
 }
 
 const displaySummaries = computed(() => {
@@ -147,8 +168,9 @@ const chartOption = computed<EChartsOption>(() => {
 
   if (props.studentTrend?.mode === 'single') {
     if (props.studentTrend.classAverageScore !== undefined) {
+      const classAverageScore = Number(props.studentTrend.classAverageScore.toFixed(1))
       referenceSeries.push({
-        name: '班级整体均分',
+        name: formatAverageLegendName('班级整体均分', classAverageScore),
         type: 'line',
         smooth: false,
         symbol: 'none',
@@ -166,20 +188,28 @@ const chartOption = computed<EChartsOption>(() => {
         emphasis: {
           disabled: true
         },
-        data: xAxisLabels.map(() => Number(props.studentTrend?.classAverageScore?.toFixed(1) || 0)),
+        data: xAxisLabels.map(() => classAverageScore),
         z: 1
       })
     }
     if (studentAverageScore !== null) {
+      const averageScore = Number(studentAverageScore.toFixed(1))
+      const classAverageScore = props.studentTrend.classAverageScore
+      const displayAverageScore =
+        classAverageScore === undefined
+          ? averageScore
+          : getStudentAverageDisplayScore(Number(classAverageScore.toFixed(1)), averageScore)
+
       referenceSeries.push({
-        name: '个人平均分',
+        name: formatAverageLegendName('个人平均分', averageScore),
         type: 'line',
         smooth: false,
         symbol: 'none',
         lineStyle: {
           color: singleTrendReferenceLineColors.studentAverage,
-          type: 'dashed',
-          width: 2
+          type: 'solid',
+          width: 1.8,
+          opacity: 0.88
         },
         itemStyle: {
           color: singleTrendReferenceLineColors.studentAverage
@@ -190,7 +220,7 @@ const chartOption = computed<EChartsOption>(() => {
         emphasis: {
           disabled: true
         },
-        data: xAxisLabels.map(() => Number(studentAverageScore.toFixed(1))),
+        data: xAxisLabels.map(() => displayAverageScore),
         z: 1
       })
     }

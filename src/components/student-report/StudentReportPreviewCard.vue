@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { EChartsOption } from 'echarts'
+import type { EChartsOption, LineSeriesOption } from 'echarts'
 
 import AppEChart from '@/components/AppEChart.vue'
 import studentReportReferenceStamp from '@/assets/student-report/reference-stamp.png'
@@ -20,28 +20,108 @@ const articleParagraphs = computed(() => {
     .filter(Boolean)
 })
 
+const formatAverageLegendName = (label: string, value: number): string => `${label}（${value.toFixed(1)}分）`
+
+const getStudentAverageDisplayScore = (classAverageScore: number, studentAverageScore: number): number => {
+  if (Math.abs(classAverageScore - studentAverageScore) >= 1) return studentAverageScore
+  if (studentAverageScore >= classAverageScore) {
+    return studentAverageScore <= 99.75 ? studentAverageScore + 0.25 : studentAverageScore - 0.25
+  }
+
+  return studentAverageScore >= 0.25 ? studentAverageScore - 0.25 : studentAverageScore + 0.25
+}
+
+const getTooltipScoreText = (seriesName: string, value: unknown): string => {
+  const averageScoreText = seriesName.match(/（([^）]+分)）$/)?.[1]
+  if (averageScoreText) return averageScoreText
+  return typeof value === 'number' ? `${value} 分` : ''
+}
+
 const chartOption = computed<EChartsOption>(() => {
   const items = props.report.scoreItems
   if (!items.length) {
     return {}
   }
 
-  const maxScore = Math.max(...items.map((item) => item.score), 100)
-  const minScore = Math.min(...items.map((item) => item.score), 40)
+  const referenceScores = [props.report.classAverageScore, props.report.summary.averageScore]
+  const scoreRangeValues = [...items.map((item) => item.score), ...referenceScores]
+  const maxScore = Math.max(...scoreRangeValues, 100)
+  const minScore = Math.min(...scoreRangeValues, 40)
   const ceiling = Math.ceil(maxScore / 10) * 10
   const floor = Math.max(Math.floor(minScore / 10) * 10 - 10, 0)
   const start = Math.max(floor, 0)
   const end = Math.max(ceiling, start + 20)
+  const xAxisLabels = items.map((item) => item.label)
+  const studentAverageDisplayScore = getStudentAverageDisplayScore(
+    props.report.classAverageScore,
+    props.report.summary.averageScore
+  )
+  const referenceSeries: LineSeriesOption[] = [
+    {
+      name: formatAverageLegendName('班级整体均分', props.report.classAverageScore),
+      type: 'line',
+      smooth: false,
+      symbol: 'none',
+      lineStyle: {
+        color: '#7c3aed',
+        type: 'dashed',
+        width: 2
+      },
+      itemStyle: {
+        color: '#7c3aed'
+      },
+      label: {
+        show: false
+      },
+      emphasis: {
+        disabled: true
+      },
+      data: xAxisLabels.map(() => props.report.classAverageScore),
+      z: 1
+    },
+    {
+      name: formatAverageLegendName('个人平均分', props.report.summary.averageScore),
+      type: 'line',
+      smooth: false,
+      symbol: 'none',
+      lineStyle: {
+        color: '#dc2626',
+        type: 'solid',
+        width: 1.8,
+        opacity: 0.88
+      },
+      itemStyle: {
+        color: '#dc2626'
+      },
+      label: {
+        show: false
+      },
+      emphasis: {
+        disabled: true
+      },
+      data: xAxisLabels.map(() => studentAverageDisplayScore),
+      z: 1
+    }
+  ]
 
   return {
     animationDuration: 700,
     animationEasing: 'cubicOut',
     grid: {
-      left: 78,
-      right: 28,
-      top: 38,
-      bottom: 34,
+      left: 10,
+      right: 12,
+      top: 42,
+      bottom: 22,
       containLabel: true
+    },
+    legend: {
+      top: 0,
+      itemWidth: 12,
+      itemHeight: 8,
+      textStyle: {
+        color: '#6e6358',
+        fontSize: 12
+      }
     },
     tooltip: {
       trigger: 'axis',
@@ -62,19 +142,32 @@ const chartOption = computed<EChartsOption>(() => {
       },
       formatter: (params: unknown) => {
         const rows = Array.isArray(params)
-          ? (params as Array<{ axisValueLabel?: string; marker?: string; value?: unknown }>)
+          ? (params as Array<{ axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown }>)
           : []
         const title = rows[0]?.axisValueLabel || ''
-        const value = rows[0]?.value
+        const content = rows
+          .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
+          .map((item) => {
+            const seriesName = item.seriesName || ''
+            const tooltipName = seriesName.replace(/（[^）]+分）$/, '')
+            const scoreText = getTooltipScoreText(seriesName, item.value)
+
+            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:6px;">
+              <span>${item.marker || ''}${tooltipName}</span>
+              <strong>${scoreText}</strong>
+            </div>`
+          })
+          .join('')
+
         return `<div style="min-width:120px;">
-          <div style="font-weight:600;margin-bottom:4px;">${title}</div>
-          <div>${rows[0]?.marker || ''}${typeof value === 'number' ? value : ''}</div>
+          <div style="font-weight:600;margin-bottom:2px;">${title}</div>
+          ${content}
         </div>`
       }
     },
     xAxis: {
       type: 'category',
-      data: items.map((item) => item.label),
+      data: xAxisLabels,
       axisTick: { show: false },
       axisLine: {
         lineStyle: {
@@ -92,13 +185,6 @@ const chartOption = computed<EChartsOption>(() => {
       min: start,
       max: end,
       interval: Math.max(Math.round((end - start) / 4 / 10) * 10, 10),
-      name: '成绩（分）',
-      nameLocation: 'middle',
-      nameGap: 44,
-      nameTextStyle: {
-        color: '#6e6358',
-        fontSize: 12
-      },
       axisLine: {
         show: false
       },
@@ -144,7 +230,8 @@ const chartOption = computed<EChartsOption>(() => {
           color: 'rgba(15, 138, 135, 0.08)'
         },
         data: items.map((item) => item.score)
-      }
+      },
+      ...referenceSeries
     ]
   }
 })

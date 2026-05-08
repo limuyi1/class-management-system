@@ -49,6 +49,7 @@ export interface StudentReportDataType {
   studentName: string
   classLabel: string
   studentCount: number
+  classAverageScore: number
   generatedAtText: string
   headline: string
   overviewLead: string
@@ -294,6 +295,13 @@ export function buildStudentReportData(options: {
     .filter((item): item is StudentReportScoreItemType => item !== null)
 
   const scoreValues = scoreItems.map((item) => item.score)
+  const selectedScoreProps = new Set(scoreItems.map((item) => item.prop))
+  const classScoreValues = students.flatMap((studentItem) =>
+    selectedColumns
+      .filter((column) => selectedScoreProps.has(column.prop))
+      .map((column) => toScoreValue(studentItem[column.prop]))
+      .filter((score): score is number => score !== null)
+  )
   const progressCount = scoreItems.filter((item) => (item.delta || 0) > 0).length
   const totalDelta = scoreItems.length > 1 ? scoreItems[scoreItems.length - 1].score - scoreItems[0].score : 0
   const bestScore = scoreItems.length
@@ -338,6 +346,7 @@ export function buildStudentReportData(options: {
     studentName,
     classLabel,
     studentCount: students.length,
+    classAverageScore: Number(calculateAverage(classScoreValues).toFixed(1)),
     generatedAtText: formatGeneratedAt(),
     headline: scoreItems.length ? `${studentName}学习报告` : `${studentName}阶段学习报告`,
     overviewLead: buildOverviewLead(studentName, scoreItems, summary),
