@@ -355,10 +355,9 @@ export const buildStudentMetrics = (
         normalizedLatestScore !== null ? [...scores.slice(0, -1), normalizedLatestScore] : scores
       // 历史成绩（不含最新一次），用于计算较历史均分的差值
       const historyScores = scores.slice(0, -1)
-      const normalizedHistoryScores = normalizedScores.slice(0, -1)
       const tagConfigs = config.tagRules.tags
 
-      // 近期成绩滑动窗口：最近 4 次、最近 3 次、最近 4 次
+      // 近期成绩滑动窗口：原始分数用于展示，归一化分数用于趋势和标签判定
       const recentScores = getRecentValues(scores, 4)
       const recentThreeScores = getRecentValues(scores, 3)
       const recentFourScores = getRecentValues(scores, tagConfigs.volatility.recentWindow)
@@ -371,18 +370,10 @@ export const buildStudentMetrics = (
         latestScore !== null && historyScores.length
           ? Number((latestScore - averageOf(historyScores)).toFixed(2))
           : 0
-      const normalizedLatestDelta =
-        normalizedLatestScore !== null && normalizedHistoryScores.length
-          ? Number((normalizedLatestScore - averageOf(normalizedHistoryScores)).toFixed(2))
-          : 0
       // 最新成绩较上一次的下降幅度
       const latestDrop =
         latestScore !== null && previousScore !== null && latestScore < previousScore
           ? Number((previousScore - latestScore).toFixed(2))
-          : 0
-      const normalizedLatestDrop =
-        normalizedLatestScore !== null && previousScore !== null && normalizedLatestScore < previousScore
-          ? Number((previousScore - normalizedLatestScore).toFixed(2))
           : 0
 
       // 稳定前列统计：最近几次中进入班级前 N 名的次数
@@ -397,17 +388,10 @@ export const buildStudentMetrics = (
       ).length
 
       const matchedTags = []
-      const latestRecent3 = recentThreeScores
-      const latestRecent4 = recentFourScores
       const normalizedLatestRecent3 = normalizedRecentThreeScores
       const normalizedLatestRecent4 = normalizedRecentFourScores
       const normalizedLatestRecentScores = normalizedRecentScores
       const latestRecent3Average = averageOf(normalizedLatestRecent3)
-      // 最近 3 次成绩的总体变化量
-      const latestTrendDelta =
-        normalizedLatestRecent3.length >= 2
-          ? normalizedLatestRecent3[normalizedLatestRecent3.length - 1] - normalizedLatestRecent3[0]
-          : 0
       // 最近 4 次成绩的标准差
       const recentStdDev = standardDeviationOf(normalizedLatestRecent4)
       /**

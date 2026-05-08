@@ -45,6 +45,11 @@ const router = createRouter({
           component: () => import('@/views/tools/ToolsPage.vue')
         },
         {
+          path: '/tools/name-list-compare',
+          name: 'NameListCompare',
+          component: () => import('@/views/tools/NameListComparePage.vue')
+        },
+        {
           path: '/tools/attachments',
           name: 'AttachmentLibrary',
           component: () => import('@/views/tools/AttachmentLibraryPage.vue')
@@ -75,7 +80,13 @@ export function createDataGuard(
     _from: RouteLocationNormalized,
     next: (to?: string | false | void) => void
   ) => {
-    const allowedPaths = ['/tools', '/tools/attachments', '/tools/paper-layout', '/setting']
+    const allowedPaths = [
+      '/tools',
+      '/tools/name-list-compare',
+      '/tools/attachments',
+      '/tools/paper-layout',
+      '/setting'
+    ]
 
     if (allowedPaths.includes(to.path)) {
       next()

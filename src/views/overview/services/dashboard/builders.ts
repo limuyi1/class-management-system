@@ -13,6 +13,7 @@ import type {
   DashboardSummaryCardType,
   DashboardTagKeyType,
   DashboardTeachingInsightType,
+  DashboardUnitOverviewType,
   HomeDashboardConfigType
 } from '@/types/HomeDashboard'
 import type { StudentDataType } from '@/types/StudentData'
@@ -561,6 +562,20 @@ export const buildDashboardKpi = (
   }
 }
 
+const toDashboardUnitOverview = ({
+  prop,
+  label,
+  averageScore,
+  validCount,
+  scoreBands
+}: UnitMetricType): DashboardUnitOverviewType => ({
+  prop,
+  label,
+  averageScore,
+  validCount,
+  scoreBands
+})
+
 /**
  * 总览数据构建总入口。
  *
@@ -600,7 +615,7 @@ export const buildOverviewDashboardData = (
 
   return {
     unitHeaders,
-    unitOverview: unitMetrics.map(({ scores, lowScoreCount, standardDeviation, ...unit }) => unit),
+    unitOverview: unitMetrics.map(toDashboardUnitOverview),
     teachingInsights: buildTeachingInsights(unitMetrics),
     kpi,
     summaryCards: buildSummaryCards(metrics, kpi, config),

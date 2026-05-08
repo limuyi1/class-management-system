@@ -80,12 +80,6 @@ const calculateAverage = (scores: number[]): number => {
   return scores.reduce((sum, item) => sum + item, 0) / scores.length
 }
 
-const formatDeltaText = (value: number | null): string => {
-  if (value === null) return '首次记录'
-  if (value === 0) return '较上次持平'
-  return `${value > 0 ? '较上次提升' : '较上次下降'} ${Math.abs(value)} 分`
-}
-
 const formatRankText = (rank: number | null): string => {
   if (!rank) return '--'
   return `第 ${rank} 名`

@@ -10,6 +10,14 @@ export interface ToolItemType {
 
 export const toolItems: ToolItemType[] = [
   {
+    id: 'name-list-compare',
+    name: '名单核对',
+    icon: 'list-check',
+    path: '/tools/name-list-compare',
+    description: '按基准名单生成对照视图，快速核对两份名单差异并复制或导出结果。',
+    status: 'available'
+  },
+  {
     id: 'attachments',
     name: '附件库',
     icon: 'images',

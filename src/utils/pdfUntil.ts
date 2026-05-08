@@ -34,7 +34,7 @@ const exportPDF = async (
     const elements = Array.from(refs).filter(
       (ref): ref is HTMLElement => ref instanceof HTMLElement
     )
-    for (const [index, elm] of elements.entries()) {
+    for (const elm of elements) {
       const imageUrl = await domtoimage.toJpeg(elm, {
         quality: 0.8,
         width: elm?.offsetWidth * scale,

@@ -27,6 +27,39 @@ export interface AttachmentRecordType {
   updatedAt: string
 }
 
+export interface PaperLayoutCanvasItemType {
+  id: string
+  attachmentId: string
+  name: string
+  blob: Blob
+  dataUrl: string
+  mimeType: string
+  naturalWidth: number
+  naturalHeight: number
+  pageIndex: number
+  x: number
+  y: number
+  width: number
+  height: number
+  zIndex: number
+}
+
+export interface PaperLayoutPageType {
+  index: number
+  items: PaperLayoutCanvasItemType[]
+}
+
+export interface PaperLayoutDragStateType {
+  itemId: string
+  mode: 'move' | 'resize'
+  startClientX: number
+  startClientY: number
+  startX: number
+  startY: number
+  startWidth: number
+  startHeight: number
+}
+
 export interface PaperLayoutDraftItemType {
   attachmentId: string
   name: string

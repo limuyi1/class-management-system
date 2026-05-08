@@ -194,5 +194,4 @@ export function preloadAllStores() {
     useOverviewAnalysisStore(),
     useToolsStore()
   ]
-  console.log('[PersistDexie] All stores preloaded')
 }

@@ -3,15 +3,16 @@ import { computed, ref, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
 
-import type { ExcelRowType } from '@/utils/scoreImportUntil'
+type ExcelRowType = Record<string, string | number | boolean | null | undefined>
 
-type SelectorModeType = 'initial' | 'incremental'
+type SelectorModeType = 'initial' | 'incremental' | 'name-only'
 
 interface Props {
   modelValue: boolean
   mode: SelectorModeType
   headers: string[]
   rows: ExcelRowType[]
+  defaultNameColumn?: string
 }
 
 interface ConfirmPayloadType {
@@ -35,6 +36,7 @@ const selectedNameColumn = ref('')
 const selectedScoreColumns = ref<string[]>([])
 
 const isInitialMode = computed(() => props.mode === 'initial')
+const isNameOnlyMode = computed(() => props.mode === 'name-only')
 const previewRows = computed(() => props.rows.slice(0, 5))
 const scoreHeaders = computed(() => {
   return props.headers.filter((header) => {
@@ -48,7 +50,8 @@ watch(
   () => props.modelValue,
   (visible) => {
     if (!visible) return
-    selectedNameColumn.value = props.headers.includes('姓名') ? '姓名' : ''
+    selectedNameColumn.value =
+      props.defaultNameColumn || (props.headers.includes('姓名') ? '姓名' : '')
     selectedScoreColumns.value = []
   }
 )
@@ -60,12 +63,12 @@ watch(selectedNameColumn, () => {
 })
 
 const handleConfirm = () => {
-  if (isInitialMode.value && !selectedNameColumn.value) {
+  if ((isInitialMode.value || isNameOnlyMode.value) && !selectedNameColumn.value) {
     ElMessage.warning('请选择姓名列')
     return
   }
 
-  if (selectedScoreColumns.value.length === 0) {
+  if (!isNameOnlyMode.value && selectedScoreColumns.value.length === 0) {
     ElMessage.warning('请选择至少一个成绩列')
     return
   }
@@ -78,19 +81,21 @@ const handleConfirm = () => {
 </script>
 
 <template>
-  <el-dialog v-model="localVisible" title="选择 Excel 导入列" width="860px">
+  <el-dialog v-model="localVisible" :title="isNameOnlyMode ? '选择姓名列' : '选择 Excel 导入列'" width="860px">
     <div class="excel-column-selector">
-      <div class="selector-section" v-if="isInitialMode">
+      <div class="selector-section" v-if="isInitialMode || isNameOnlyMode">
         <div class="selector-section__head">
           <div class="selector-section__title">姓名列</div>
-          <div class="selector-section__desc">选择用于生成学生姓名的列</div>
+          <div class="selector-section__desc">
+            {{ isNameOnlyMode ? '选择用于名单核对的列' : '选择用于生成学生姓名的列' }}
+          </div>
         </div>
         <el-radio-group v-model="selectedNameColumn" class="column-options">
           <el-radio-button v-for="header in headers" :key="header" :label="header" />
         </el-radio-group>
       </div>
 
-      <div class="selector-section">
+      <div v-if="!isNameOnlyMode" class="selector-section">
         <div class="selector-section__head">
           <div class="selector-section__title">成绩列</div>
           <div class="selector-section__desc">
@@ -122,7 +127,9 @@ const handleConfirm = () => {
 
     <template #footer>
       <el-button @click="localVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleConfirm">确认导入</el-button>
+      <el-button type="primary" @click="handleConfirm">
+        {{ isNameOnlyMode ? '确认' : '确认导入' }}
+      </el-button>
     </template>
   </el-dialog>
 </template>

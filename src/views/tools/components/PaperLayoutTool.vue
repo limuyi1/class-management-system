@@ -2,7 +2,6 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
-import { PDFDocument, type PDFImage } from 'pdf-lib'
 
 import AttachmentSelectorDialog from '@/views/tools/components/AttachmentSelectorDialog.vue'
 import PaperLayoutDraftDialog from '@/views/tools/components/PaperLayoutDraftDialog.vue'
@@ -12,14 +11,26 @@ import {
 } from '@/views/tools/constants/paperLayout'
 import { PagesEnum } from '@/types/Common'
 import { useToolsStore } from '@/stores/tools'
-import { getPdfPageSize } from '@/utils/evaluationPdfLayoutUntil'
 import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
 import { attachmentToObjectUrl, getAttachments } from '@/views/tools/services/attachmentService'
+import { exportPaperLayoutPdf } from '@/views/tools/services/paperLayoutExportService'
 import {
   getPaperLayoutDrafts,
   savePaperLayoutDraft
 } from '@/views/tools/services/paperLayoutDraftService'
-import type { AttachmentRecordType, PaperLayoutDraftRecordType } from '@/types/Tools'
+import {
+  arrangePaperItems,
+  buildPaperLayoutPages,
+  clampPaperItemPosition,
+  createPaperLayoutItem,
+  getPaperLayoutPageSize
+} from '@/views/tools/utils/paperLayoutCanvas'
+import type {
+  AttachmentRecordType,
+  PaperLayoutCanvasItemType,
+  PaperLayoutDraftRecordType,
+  PaperLayoutDragStateType
+} from '@/types/Tools'
 
 interface Props {
   fullscreen?: boolean
@@ -30,39 +41,10 @@ const emit = defineEmits<{
   toggleFullscreen: []
 }>()
 
-interface CanvasItemType {
-  id: string
-  attachmentId: string
-  name: string
-  blob: Blob
-  dataUrl: string
-  mimeType: string
-  naturalWidth: number
-  naturalHeight: number
-  pageIndex: number
-  x: number
-  y: number
-  width: number
-  height: number
-  zIndex: number
-}
-
-interface DragStateType {
-  itemId: string
-  mode: 'move' | 'resize'
-  startClientX: number
-  startClientY: number
-  startX: number
-  startY: number
-  startWidth: number
-  startHeight: number
-}
-
-const pointPerMm = 72 / 25.4
 const minVisibleMm = 8
 const minItemWidthMm = 18
 const previewPanelRef = ref<HTMLElement | null>(null)
-const canvasItems = ref<CanvasItemType[]>([])
+const canvasItems = ref<PaperLayoutCanvasItemType[]>([])
 const selectedItemId = ref('')
 const exporting = ref(false)
 const previewScale = ref(1)
@@ -71,7 +53,7 @@ const draftDialogVisible = ref(false)
 const attachmentCount = ref(0)
 const draftCount = ref(0)
 const activePageNumber = ref(1)
-const dragState = ref<DragStateType | null>(null)
+const dragState = ref<PaperLayoutDragStateType | null>(null)
 const currentDraftId = ref('')
 const currentDraftName = ref('')
 
@@ -79,17 +61,7 @@ const router = useRouter()
 const toolsStore = useToolsStore()
 const settings = toolsStore.paperLayout
 
-const pageSize = computed(() => {
-  const size = getPdfPageSize(settings.pageType)
-  if (settings.orientation === 'landscape') {
-    return {
-      width: size.height,
-      height: size.width
-    }
-  }
-  return size
-})
-
+const pageSize = computed(() => getPaperLayoutPageSize(settings))
 const layoutPreset = computed(() => getPaperLayoutPreset(settings.orientation))
 const contentWidth = computed(() => pageSize.value.width - layoutPreset.value.margin * 2)
 const contentHeight = computed(() => pageSize.value.height - layoutPreset.value.margin * 2)
@@ -100,19 +72,17 @@ const columnWidth = computed(() => {
   )
 })
 
-const pageCount = computed(() => {
-  if (canvasItems.value.length === 0) return 0
-  return Math.max(...canvasItems.value.map((item) => item.pageIndex)) + 1
-})
+const layoutMetrics = computed(() => ({
+  pageSize: pageSize.value,
+  margin: layoutPreset.value.margin,
+  gap: layoutPreset.value.gap,
+  columns: layoutPreset.value.columns,
+  columnWidth: columnWidth.value,
+  contentHeight: contentHeight.value
+}))
 
-const pages = computed(() => {
-  return Array.from({ length: pageCount.value }, (_, index) => ({
-    index,
-    items: canvasItems.value
-      .filter((item) => item.pageIndex === index)
-      .sort((first, second) => first.zIndex - second.zIndex)
-  }))
-})
+const pages = computed(() => buildPaperLayoutPages(canvasItems.value))
+const pageCount = computed(() => pages.value.length)
 
 const selectedItem = computed(() => {
   return canvasItems.value.find((item) => item.id === selectedItemId.value)
@@ -169,10 +139,6 @@ watch(
   { immediate: true }
 )
 
-function createId(prefix: string): string {
-  return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
 function goAttachmentLibrary(): void {
   router.push('/tools/attachments')
 }
@@ -194,25 +160,19 @@ async function openAttachmentSelector(): Promise<void> {
   selectorVisible.value = true
 }
 
-function toCanvasItem(attachment: AttachmentRecordType, index: number): CanvasItemType {
-  return {
-    id: createId('paper-item'),
-    attachmentId: attachment.id,
-    name: attachment.name,
-    blob: attachment.blob,
+function toCanvasItem(attachment: AttachmentRecordType, index: number): PaperLayoutCanvasItemType {
+  return createPaperLayoutItem(attachment, {
+    index,
     dataUrl: attachmentToObjectUrl(attachment),
-    mimeType: attachment.mimeType,
-    naturalWidth: attachment.width,
-    naturalHeight: attachment.height,
-    pageIndex: 0,
-    x: layoutPreset.value.margin,
-    y: layoutPreset.value.margin,
-    width: columnWidth.value,
-    height: columnWidth.value * (attachment.height / attachment.width),
-    zIndex: index + 1
-  }
+    margin: layoutPreset.value.margin,
+    columnWidth: columnWidth.value
+  })
 }
 
+/**
+ * 画布图片使用 object URL 预览。清空、删除、打开新草稿和组件卸载时必须释放，
+ * 否则长时间排版大量图片会持续占用浏览器内存。
+ */
 function revokeItemUrls(): void {
   canvasItems.value.forEach((item) => {
     URL.revokeObjectURL(item.dataUrl)
@@ -233,51 +193,7 @@ function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
 }
 
 function autoArrange(): void {
-  let pageIndex = 0
-  let currentY = layoutPreset.value.margin
-  let cursorX = layoutPreset.value.margin
-  let rowItemCount = 0
-  let rowHeight = 0
-
-  canvasItems.value = canvasItems.value.map((item, index) => {
-    const imageHeight = columnWidth.value * (item.naturalHeight / item.naturalWidth)
-    const fitScale = imageHeight > contentHeight.value ? contentHeight.value / imageHeight : 1
-    const width = columnWidth.value * fitScale
-    const height = imageHeight * fitScale
-
-    if (rowItemCount >= layoutPreset.value.columns) {
-      rowItemCount = 0
-      cursorX = layoutPreset.value.margin
-      currentY += rowHeight + layoutPreset.value.gap
-      rowHeight = 0
-    }
-
-    if (
-      currentY > layoutPreset.value.margin &&
-      currentY + height > pageSize.value.height - layoutPreset.value.margin
-    ) {
-      pageIndex += 1
-      rowItemCount = 0
-      cursorX = layoutPreset.value.margin
-      currentY = layoutPreset.value.margin
-      rowHeight = 0
-    }
-
-    const arrangedItem = {
-      ...item,
-      pageIndex,
-      x: cursorX,
-      y: currentY,
-      width,
-      height,
-      zIndex: index + 1
-    }
-
-    rowItemCount += 1
-    cursorX += width + layoutPreset.value.gap
-    rowHeight = Math.max(rowHeight, height)
-    return arrangedItem
-  })
+  canvasItems.value = arrangePaperItems(canvasItems.value, layoutMetrics.value)
 }
 
 function selectItem(id: string): void {
@@ -291,7 +207,7 @@ function handleToolClick(event: MouseEvent): void {
   selectedItemId.value = ''
 }
 
-function startMove(event: PointerEvent, item: CanvasItemType): void {
+function startMove(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
   selectItem(item.id)
   dragState.value = {
     itemId: item.id,
@@ -305,7 +221,7 @@ function startMove(event: PointerEvent, item: CanvasItemType): void {
   }
 }
 
-function startResize(event: PointerEvent, item: CanvasItemType): void {
+function startResize(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
   event.stopPropagation()
   selectItem(item.id)
   dragState.value = {
@@ -320,11 +236,22 @@ function startResize(event: PointerEvent, item: CanvasItemType): void {
   }
 }
 
-function clampItemPosition(item: CanvasItemType, x: number, y: number): { x: number; y: number } {
-  return {
-    x: Math.min(Math.max(x, -item.width + minVisibleMm), pageSize.value.width - minVisibleMm),
-    y: Math.min(Math.max(y, -item.height + minVisibleMm), pageSize.value.height - minVisibleMm)
-  }
+function clampItemPosition(
+  item: PaperLayoutCanvasItemType,
+  x: number,
+  y: number
+): { x: number; y: number } {
+  return clampPaperItemPosition(
+    item,
+    {
+      x,
+      y
+    },
+    {
+      pageSize: pageSize.value,
+      minVisibleMm
+    }
+  )
 }
 
 function handlePointerMove(event: PointerEvent): void {
@@ -334,6 +261,10 @@ function handlePointerMove(event: PointerEvent): void {
   const item = canvasItems.value.find((currentItem) => currentItem.id === state.itemId)
   if (!item) return
 
+  /**
+   * 指针事件给的是屏幕像素，画布状态存的是毫米。
+   * 先扣掉预览缩放，再按浏览器标准 96dpi 换算成毫米，才能保证不同缩放下拖拽距离一致。
+   */
   const deltaX = (event.clientX - state.startClientX) / previewScale.value / (96 / 25.4)
   const deltaY = (event.clientY - state.startClientY) / previewScale.value / (96 / 25.4)
 
@@ -446,7 +377,7 @@ async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void>
   const sortedDraftItems = [...draft.items].sort(
     (first, second) => (first.order || 0) - (second.order || 0)
   )
-  const nextItems: CanvasItemType[] = sortedDraftItems.map((draftItem, index) => {
+  const nextItems: PaperLayoutCanvasItemType[] = sortedDraftItems.map((draftItem, index) => {
     const attachment: AttachmentRecordType = {
       id: draftItem.attachmentId,
       name: draftItem.name,
@@ -472,6 +403,7 @@ async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void>
     }
   })
 
+  // 草稿中的 blob 需要重新生成 object URL；切换前先释放当前画布已有 URL。
   revokeItemUrls()
   canvasItems.value = nextItems
   selectedItemId.value = ''
@@ -495,27 +427,7 @@ async function exportPdf(): Promise<void> {
   })
 
   try {
-    const pdfDoc = await PDFDocument.create()
-    const cache = new Map<string, PDFImage>()
-    const pdfWidth = pageSize.value.width * pointPerMm
-    const pdfHeight = pageSize.value.height * pointPerMm
-
-    for (const pageData of pages.value) {
-      const page = pdfDoc.addPage([pdfWidth, pdfHeight])
-      for (const item of pageData.items) {
-        const embeddedImage = await getEmbeddedImage(pdfDoc, cache, item)
-        page.drawImage(embeddedImage, {
-          x: item.x * pointPerMm,
-          y: pdfHeight - (item.y + item.height) * pointPerMm,
-          width: item.width * pointPerMm,
-          height: item.height * pointPerMm
-        })
-      }
-    }
-
-    const bytes = await pdfDoc.save()
-    const blobBytes = new Uint8Array(bytes)
-    const blob = new Blob([blobBytes], { type: 'application/pdf' })
+    const blob = await exportPaperLayoutPdf(pages.value, pageSize.value)
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
@@ -549,7 +461,7 @@ function fitPreviewWidth(): void {
   setPreviewScale(availableWidth / pageWidth)
 }
 
-function getResizeHandleStyle(item: CanvasItemType): Record<string, string> {
+function getResizeHandleStyle(item: PaperLayoutCanvasItemType): Record<string, string> {
   const visibleRight = Math.min(item.width, pageSize.value.width - item.x)
   const visibleBottom = Math.min(item.height, pageSize.value.height - item.y)
 
@@ -582,23 +494,6 @@ function handlePreviewScroll(): void {
   )
   const pageIndex = Number(nearestPage.element.dataset.paperPage || 0)
   activePageNumber.value = pageIndex + 1
-}
-
-async function getEmbeddedImage(
-  pdfDoc: PDFDocument,
-  cache: Map<string, PDFImage>,
-  item: CanvasItemType
-) {
-  const cached = cache.get(item.id)
-  if (cached) return cached
-
-  const imageBytes = await fetch(item.dataUrl).then((response) => response.arrayBuffer())
-  const embeddedImage =
-    item.mimeType === 'image/jpeg'
-      ? await pdfDoc.embedJpg(imageBytes)
-      : await pdfDoc.embedPng(imageBytes)
-  cache.set(item.id, embeddedImage)
-  return embeddedImage
 }
 </script>
 
