@@ -103,8 +103,8 @@ const normalizeMatchedTags = (
  * 为每个单元计算难度偏移信息。
  *
  * 规则：
- * - 班均较上一单元明显上浮：记为 easy（偏易）
- * - 班均较上一单元明显下探：记为 hard（偏难）
+ * - 班均达到明显高/低的绝对边界：记为 easy/hard
+ * - 已有足够历史正常单元时，班均较近期正常基线明显上浮/下探：记为 easy/hard
  * - 变化不明显：记为 normal
  *
  * 这个映射一方面用于给对应单元分数做颜色提示，
@@ -112,25 +112,51 @@ const normalizeMatchedTags = (
  */
 const buildUnitDifficultyShiftMap = (
   unitMetrics: UnitMetricType[],
-  threshold: number
-): Map<string, { shift: number; difficultyShift: DashboardUnitDifficultyShiftType }> =>
-  unitMetrics.reduce((result, metric, index, array) => {
-    if (index === 0) {
-      result.set(metric.prop, { shift: 0, difficultyShift: 'normal' })
-      return result
-    }
+  config: HomeDashboardConfigType
+): Map<string, { shift: number; difficultyShift: DashboardUnitDifficultyShiftType }> => {
+  const result = new Map<string, { shift: number; difficultyShift: DashboardUnitDifficultyShiftType }>()
+  const normalUnitAverages: number[] = []
+  const threshold = config.tagRules.latestUnitDifficultyShiftThreshold
+  const baselineWindow = config.tagRules.unitDifficultyBaselineWindow
+  const easyAverageScore = config.tagRules.easyUnitAverageScore
+  const hardAverageScore = config.tagRules.hardUnitAverageScore
 
-    const previousMetric = array[index - 1]
-    const shift = Number((metric.averageScore - previousMetric.averageScore).toFixed(2))
+  unitMetrics.forEach((metric) => {
+    const recentNormalAverages = getRecentValues(normalUnitAverages, baselineWindow)
+    const hasStableBaseline = recentNormalAverages.length >= baselineWindow
+    const baselineAverage = hasStableBaseline ? averageOf(recentNormalAverages) : null
+    const absoluteDifficultyShift: DashboardUnitDifficultyShiftType =
+      metric.averageScore >= easyAverageScore
+        ? 'easy'
+        : metric.averageScore <= hardAverageScore
+          ? 'hard'
+          : 'normal'
+    const absoluteShift =
+      absoluteDifficultyShift === 'easy'
+        ? metric.averageScore - easyAverageScore
+        : absoluteDifficultyShift === 'hard'
+          ? metric.averageScore - hardAverageScore
+          : 0
+    const relativeShift =
+      baselineAverage === null ? 0 : Number((metric.averageScore - baselineAverage).toFixed(2))
+    const relativeDifficultyShift: DashboardUnitDifficultyShiftType =
+      Math.abs(relativeShift) >= threshold ? (relativeShift > 0 ? 'easy' : 'hard') : 'normal'
     const difficultyShift: DashboardUnitDifficultyShiftType =
-      Math.abs(shift) < threshold ? 'normal' : shift > 0 ? 'easy' : 'hard'
+      relativeDifficultyShift !== 'normal' ? relativeDifficultyShift : absoluteDifficultyShift
+    const effectiveShift = relativeDifficultyShift !== 'normal' ? relativeShift : absoluteShift
 
     result.set(metric.prop, {
-      shift: Math.abs(shift) < threshold ? 0 : shift,
+      shift: Number(effectiveShift.toFixed(2)),
       difficultyShift
     })
-    return result
-  }, new Map<string, { shift: number; difficultyShift: DashboardUnitDifficultyShiftType }>())
+
+    if (difficultyShift === 'normal') {
+      normalUnitAverages.push(metric.averageScore)
+    }
+  })
+
+  return result
+}
 
 /**
  * 构建学生趋势信号层。
@@ -313,7 +339,7 @@ export const buildStudentMetrics = (
   const middleScoreMax = config.tagRules.middleScoreMax
   const unitDifficultyShiftMap = buildUnitDifficultyShiftMap(
     unitMetrics,
-    config.tagRules.latestUnitDifficultyShiftThreshold
+    config
   )
 
   return students

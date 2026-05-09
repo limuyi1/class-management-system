@@ -29,8 +29,13 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
     passLine: 60,      // 及格线，低于此分数视为低分
     middleScoreMin: 60, // 中段分数下限
     middleScoreMax: 84,  // 中段分数上限（不含）
-    // 最近单元班均较上一单元变化达到该阈值时，认为本次整体偏难/偏易
+    // 单元均分较近期正常单元基线变化达到该阈值时，认为本次整体偏难/偏易
     latestUnitDifficultyShiftThreshold: 5,
+    // 至少参考最近 N 个已完成单元，单元数不足时不做相对难度判断
+    unitDifficultyBaselineWindow: 3,
+    // 绝对均分边界，单元数较少时仅用这些强信号判断明显偏易/偏难
+    easyUnitAverageScore: 85,
+    hardUnitAverageScore: 65,
     // 四类标签分组，用于 UI 颜色和展示位置区分
     tagGroups: {
       attention: {

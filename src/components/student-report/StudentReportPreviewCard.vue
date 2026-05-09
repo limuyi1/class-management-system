@@ -34,17 +34,21 @@ const getStudentAverageDisplayScore = (classAverageScore: number, studentAverage
 const getTooltipScoreText = (seriesName: string, value: unknown): string => {
   const averageScoreText = seriesName.match(/（([^）]+分)）$/)?.[1]
   if (averageScoreText) return averageScoreText
-  return typeof value === 'number' ? `${value} 分` : ''
+  return typeof value === 'number' ? `${value} 分` : '--'
 }
 
 const chartOption = computed<EChartsOption>(() => {
   const items = props.report.scoreItems
-  if (!items.length) {
+  const validItems = items.filter(
+    (item): item is StudentReportDataType['scoreItems'][number] & { score: number } =>
+      typeof item.score === 'number'
+  )
+  if (!items.length || !validItems.length) {
     return {}
   }
 
   const referenceScores = [props.report.classAverageScore, props.report.summary.averageScore]
-  const scoreRangeValues = [...items.map((item) => item.score), ...referenceScores]
+  const scoreRangeValues = [...validItems.map((item) => item.score), ...referenceScores]
   const maxScore = Math.max(...scoreRangeValues, 100)
   const minScore = Math.min(...scoreRangeValues, 40)
   const ceiling = Math.ceil(maxScore / 10) * 10
@@ -146,7 +150,6 @@ const chartOption = computed<EChartsOption>(() => {
           : []
         const title = rows[0]?.axisValueLabel || ''
         const content = rows
-          .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
           .map((item) => {
             const seriesName = item.seriesName || ''
             const tooltipName = seriesName.replace(/（[^）]+分）$/, '')
@@ -282,10 +285,22 @@ const chartOption = computed<EChartsOption>(() => {
             class="student-report-card__table-row"
           >
             <span>{{ item.label }}</span>
-            <span class="student-report-card__score">{{ item.score }}</span>
-            <span>{{ item.rank }} / {{ report.studentCount }}</span>
-            <span :class="item.score >= item.average ? 'student-report-card__delta-up' : 'student-report-card__delta-down'">
-              {{ item.score >= item.average ? '高于' : '低于' }} {{ Math.abs(item.score - item.average).toFixed(1) }} 分
+            <span class="student-report-card__score">{{ item.score === null ? '—' : item.score }}</span>
+            <span>{{ item.rank === null ? '—' : `${item.rank} / ${report.studentCount}` }}</span>
+            <span
+              :class="
+                item.score !== null && item.average !== null
+                  ? item.score >= item.average
+                    ? 'student-report-card__delta-up'
+                    : 'student-report-card__delta-down'
+                  : ''
+              "
+            >
+              {{
+                item.score === null || item.average === null
+                  ? '—'
+                  : `${item.score >= item.average ? '高于' : '低于'} ${Math.abs(item.score - item.average).toFixed(1)} 分`
+              }}
             </span>
             <span :class="item.delta !== null && item.delta > 0 ? 'student-report-card__delta-up' : item.delta !== null && item.delta < 0 ? 'student-report-card__delta-down' : ''">
               {{ item.delta === null ? '—' : `${item.delta > 0 ? '↑' : item.delta < 0 ? '↓' : ''} ${Math.abs(item.delta)} 分` }}

@@ -12,10 +12,19 @@ interface OperationResultType {
 export interface StudentReportScoreItemType {
   prop: string
   label: string
+  score: number | null
+  average: number | null
+  rank: number | null
+  delta: number | null
+}
+
+type StudentReportValidScoreItemType = Omit<
+  StudentReportScoreItemType,
+  'score' | 'average' | 'rank'
+> & {
   score: number
   average: number
   rank: number
-  delta: number | null
 }
 
 export interface StudentReportSummaryStatType {
@@ -33,10 +42,10 @@ export interface StudentReportSummaryType {
   progressCount: number
   trendLabel: string
   totalDelta: number
-  bestScore: StudentReportScoreItemType | null
-  worstScore: StudentReportScoreItemType | null
-  bestRank: StudentReportScoreItemType | null
-  worstRank: StudentReportScoreItemType | null
+  bestScore: StudentReportValidScoreItemType | null
+  worstScore: StudentReportValidScoreItemType | null
+  bestRank: StudentReportValidScoreItemType | null
+  worstRank: StudentReportValidScoreItemType | null
   statCards: StudentReportSummaryStatType[]
 }
 
@@ -85,6 +94,11 @@ const formatRankText = (rank: number | null): string => {
   return `第 ${rank} 名`
 }
 
+const getValidScoreItems = (scoreItems: StudentReportScoreItemType[]): StudentReportValidScoreItemType[] =>
+  scoreItems.filter((item): item is StudentReportValidScoreItemType => {
+    return item.score !== null && item.average !== null && item.rank !== null
+  })
+
 const formatGeneratedAt = (): string => {
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',
@@ -114,9 +128,10 @@ const extractStudentTags = (student: StudentDataType, categories: TagCategoryTyp
 }
 
 const resolveTrendLabel = (scoreItems: StudentReportScoreItemType[]): string => {
-  if (scoreItems.length <= 1) return '整体稳定'
+  const validScoreItems = getValidScoreItems(scoreItems)
+  if (validScoreItems.length <= 1) return '整体稳定'
 
-  const deltas = scoreItems
+  const deltas = validScoreItems
     .slice(1)
     .map((item) => item.delta || 0)
     .filter((item) => item !== 0)
@@ -125,7 +140,7 @@ const resolveTrendLabel = (scoreItems: StudentReportScoreItemType[]): string => 
 
   const positiveCount = deltas.filter((item) => item > 0).length
   const negativeCount = deltas.filter((item) => item < 0).length
-  const totalDelta = scoreItems[scoreItems.length - 1].score - scoreItems[0].score
+  const totalDelta = validScoreItems[validScoreItems.length - 1].score - validScoreItems[0].score
 
   if (totalDelta >= 8 && positiveCount >= negativeCount) return '稳步上升'
   if (totalDelta <= -8 && negativeCount >= positiveCount) return '阶段回落'
@@ -141,6 +156,7 @@ const buildStrengths = (
   tags: string[]
 ): string[] => {
   const result: string[] = []
+  const validScoreItems = getValidScoreItems(scoreItems)
 
   if (summary.bestScore && summary.bestScore.score >= 90) {
     result.push(`${summary.bestScore.label}发挥亮眼，单次成绩达到 ${summary.bestScore.score} 分`)
@@ -150,7 +166,10 @@ const buildStrengths = (
     result.push('最近几个阶段成绩有明显提升，学习状态正在走稳')
   }
 
-  if (scoreItems.filter((item) => item.score >= item.average).length >= Math.ceil(scoreItems.length / 2)) {
+  if (
+    validScoreItems.length &&
+    validScoreItems.filter((item) => item.score >= item.average).length >= Math.ceil(validScoreItems.length / 2)
+  ) {
     result.push('大部分阶段成绩高于班级平均水平，整体处于班级前列')
   }
 
@@ -166,13 +185,14 @@ const buildConcerns = (
   summary: StudentReportSummaryType
 ): string[] => {
   const result: string[] = []
+  const validScoreItems = getValidScoreItems(scoreItems)
 
-  const firstBelowAverage = scoreItems.find((item) => item.score < item.average)
+  const firstBelowAverage = validScoreItems.find((item) => item.score < item.average)
   if (firstBelowAverage) {
     result.push(`${firstBelowAverage.label}成绩相对较低，和班平均还有一定差距`)
   }
 
-  if (summary.progressCount < Math.max(scoreItems.length - 2, 1) && summary.totalDelta <= 0) {
+  if (summary.progressCount < Math.max(validScoreItems.length - 2, 1) && summary.totalDelta <= 0) {
     result.push('几个阶段中单元波动较大，稳定性仍需加强')
   }
 
@@ -192,9 +212,10 @@ const buildOverviewLead = (
   scoreItems: StudentReportScoreItemType[],
   summary: StudentReportSummaryType
 ): string => {
-  if (!scoreItems.length) return `${studentName}同学当前暂无可展示的阶段成绩数据。`
+  const validScoreItems = getValidScoreItems(scoreItems)
+  if (!validScoreItems.length) return `${studentName}同学当前暂无可展示的阶段成绩数据。`
 
-  const latestScore = scoreItems[scoreItems.length - 1]
+  const latestScore = validScoreItems[validScoreItems.length - 1]
   const latestDiff = latestScore.score - latestScore.average
   const latestDiffText =
     latestDiff === 0 ? '与班平均持平' : `${latestDiff > 0 ? '高于' : '低于'}班平均 ${Math.abs(latestDiff).toFixed(1)} 分`
@@ -262,20 +283,23 @@ export function buildStudentReportData(options: {
 }): StudentReportDataType {
   const { student, students, scoreColumns, selectedProps, tagCategories, classLabel = '本班' } = options
   const selectedColumns = scoreColumns.filter((item) => selectedProps.includes(item.prop))
+  let previousScore: number | null = null
   const scoreItems: StudentReportScoreItemType[] = selectedColumns
-    .map((column, index) => {
+    .map((column) => {
       const score = toScoreValue(student[column.prop])
-      if (score === null) return null
-
       const allScores = students
         .map((item) => toScoreValue(item[column.prop]))
         .filter((item): item is number => item !== null)
-      if (!allScores.length) return null
+      const average = allScores.length ? calculateAverage(allScores) : null
+      const rank =
+        score !== null && allScores.length
+          ? [...allScores].sort((a, b) => b - a).findIndex((item) => item === score) + 1 || allScores.length
+          : null
+      const delta = score === null || previousScore === null ? null : score - previousScore
 
-      const sortedScores = [...allScores].sort((a, b) => b - a)
-      const rank = sortedScores.findIndex((item) => item === score) + 1 || sortedScores.length
-      const average = calculateAverage(allScores)
-      const previousScore = index > 0 ? toScoreValue(student[selectedColumns[index - 1].prop]) : null
+      if (score !== null) {
+        previousScore = score
+      }
 
       return {
         prop: column.prop,
@@ -283,12 +307,12 @@ export function buildStudentReportData(options: {
         score,
         average,
         rank,
-        delta: previousScore === null ? null : score - previousScore
+        delta
       }
     })
-    .filter((item): item is StudentReportScoreItemType => item !== null)
 
-  const scoreValues = scoreItems.map((item) => item.score)
+  const validScoreItems = getValidScoreItems(scoreItems)
+  const scoreValues = validScoreItems.map((item) => item.score)
   const selectedScoreProps = new Set(scoreItems.map((item) => item.prop))
   const classScoreValues = students.flatMap((studentItem) =>
     selectedColumns
@@ -296,19 +320,22 @@ export function buildStudentReportData(options: {
       .map((column) => toScoreValue(studentItem[column.prop]))
       .filter((score): score is number => score !== null)
   )
-  const progressCount = scoreItems.filter((item) => (item.delta || 0) > 0).length
-  const totalDelta = scoreItems.length > 1 ? scoreItems[scoreItems.length - 1].score - scoreItems[0].score : 0
-  const bestScore = scoreItems.length
-    ? scoreItems.reduce((best, item) => (item.score > best.score ? item : best), scoreItems[0])
+  const progressCount = validScoreItems.filter((item) => (item.delta || 0) > 0).length
+  const totalDelta =
+    validScoreItems.length > 1
+      ? validScoreItems[validScoreItems.length - 1].score - validScoreItems[0].score
+      : 0
+  const bestScore = validScoreItems.length
+    ? validScoreItems.reduce((best, item) => (item.score > best.score ? item : best), validScoreItems[0])
     : null
-  const worstScore = scoreItems.length
-    ? scoreItems.reduce((worst, item) => (item.score < worst.score ? item : worst), scoreItems[0])
+  const worstScore = validScoreItems.length
+    ? validScoreItems.reduce((worst, item) => (item.score < worst.score ? item : worst), validScoreItems[0])
     : null
-  const bestRank = scoreItems.length
-    ? scoreItems.reduce((best, item) => (item.rank < best.rank ? item : best), scoreItems[0])
+  const bestRank = validScoreItems.length
+    ? validScoreItems.reduce((best, item) => (item.rank < best.rank ? item : best), validScoreItems[0])
     : null
-  const worstRank = scoreItems.length
-    ? scoreItems.reduce((worst, item) => (item.rank > worst.rank ? item : worst), scoreItems[0])
+  const worstRank = validScoreItems.length
+    ? validScoreItems.reduce((worst, item) => (item.rank > worst.rank ? item : worst), validScoreItems[0])
     : null
 
   const baseSummary: Omit<StudentReportSummaryType, 'statCards'> = {
@@ -342,7 +369,7 @@ export function buildStudentReportData(options: {
     studentCount: students.length,
     classAverageScore: Number(calculateAverage(classScoreValues).toFixed(1)),
     generatedAtText: formatGeneratedAt(),
-    headline: scoreItems.length ? `${studentName}学习报告` : `${studentName}阶段学习报告`,
+    headline: validScoreItems.length ? `${studentName}学习报告` : `${studentName}阶段学习报告`,
     overviewLead: buildOverviewLead(studentName, scoreItems, summary),
     scoreItems,
     summary,
@@ -355,10 +382,11 @@ export function buildStudentReportData(options: {
 
 export function buildStudentReportTemplateText(report: StudentReportDataType): string {
   const { studentName, scoreItems, summary, strengths, concerns } = report
-  const firstLabel = scoreItems[0]?.label || '本阶段'
-  const lastLabel = scoreItems[scoreItems.length - 1]?.label || '当前阶段'
-  const firstScore = scoreItems[0]?.score ?? 0
-  const lastScore = scoreItems[scoreItems.length - 1]?.score ?? 0
+  const validScoreItems = getValidScoreItems(scoreItems)
+  const firstLabel = validScoreItems[0]?.label || '本阶段'
+  const lastLabel = validScoreItems[validScoreItems.length - 1]?.label || '当前阶段'
+  const firstScore = validScoreItems[0]?.score ?? 0
+  const lastScore = validScoreItems[validScoreItems.length - 1]?.score ?? 0
   const firstBest = strengths[0] || '整体成绩处于可持续提升的区间'
   const firstConcern = concerns[0] || '后续可继续关注稳定性和持续发挥'
 

@@ -100,11 +100,11 @@ const studentName = computed(() => {
           >
             <div class="student-report-drawer__score-main">
               <strong>{{ item.label }}</strong>
-              <span>{{ item.score }} 分</span>
+              <span>{{ item.score === null ? '未录入' : `${item.score} 分` }}</span>
             </div>
             <div class="student-report-drawer__score-sub">
-              <span>班均 {{ item.average.toFixed(1) }}</span>
-              <span>第 {{ item.rank }} 名</span>
+              <span>班均 {{ item.average === null ? '--' : item.average.toFixed(1) }}</span>
+              <span>{{ item.rank === null ? '暂无名次' : `第 ${item.rank} 名` }}</span>
               <span>{{ item.delta === null ? '--' : `${item.delta > 0 ? '+' : ''}${item.delta}` }}</span>
             </div>
           </div>

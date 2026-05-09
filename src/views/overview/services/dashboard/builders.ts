@@ -16,6 +16,7 @@ import type {
   DashboardUnitOverviewType,
   HomeDashboardConfigType
 } from '@/types/HomeDashboard'
+import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
 import { averageOf, getStudentName } from '@/views/overview/services/dashboard/helpers'
@@ -408,6 +409,7 @@ export const buildStudentTrend = (
   metrics: StudentMetricType[],
   selectedStudentNames: string[],
   config: HomeDashboardConfigType,
+  unitHeaders: SettingType[],
   kpi?: DashboardKpiType
 ): DashboardStudentTrendType | null => {
   const selectedMetrics = selectedStudentNames
@@ -456,6 +458,7 @@ export const buildStudentTrend = (
         typeof metric.student.comment === 'string' && metric.student.comment.trim()
           ? metric.student.comment.trim()
           : ''
+      const pointMap = new Map(metric.points.map((point) => [point.prop, point.score]))
 
       return {
         name: metric.name,
@@ -463,9 +466,9 @@ export const buildStudentTrend = (
         completedComment: commentPreview.length > 0,
         commentPreview,
         tags: metric.matchedTags,
-        trendPoints: metric.points.map((point) => ({
-          label: point.label,
-          score: point.score
+        trendPoints: unitHeaders.map((header) => ({
+          label: header.label,
+          score: pointMap.get(header.prop) ?? null
         }))
       }
     }),
@@ -627,6 +630,7 @@ export const buildOverviewDashboardData = (
       metrics,
       selectedStudentNames.slice(0, config.studentTrend.maxCompareCount),
       config,
+      unitHeaders,
       kpi
     ),
     evaluationOverview: buildEvaluationOverview(students, aiConfigured)

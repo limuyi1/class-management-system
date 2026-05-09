@@ -73,7 +73,7 @@ const singleTrendReferenceLineColors = {
 const getTooltipScoreText = (seriesName: string, value: unknown) => {
   const averageScoreText = seriesName.match(/（([^）]+分)）$/)?.[1]
   if (averageScoreText) return averageScoreText
-  return typeof value === 'number' ? `${value} 分` : ''
+  return typeof value === 'number' ? `${value} 分` : '--'
 }
 
 const formatTooltipRows = (params: unknown) => {
@@ -82,7 +82,6 @@ const formatTooltipRows = (params: unknown) => {
     : []
   const title = items[0]?.axisValueLabel || ''
   const rows = items
-    .filter((item) => item.value !== null && item.value !== undefined && item.value !== '')
     .map((item) => {
       const seriesName = item.seriesName || ''
       const tooltipName = seriesName.replace(/（[^）]+分）$/, '')
@@ -122,7 +121,11 @@ const displaySummaries = computed(() => {
   const student = trend.students[0]
   if (!student?.trendPoints.length) return summaries
 
-  const scores = student.trendPoints.map((point) => point.score)
+  const scores = student.trendPoints
+    .map((point) => point.score)
+    .filter((score): score is number => typeof score === 'number')
+  if (!scores.length) return summaries
+
   const studentAverageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length
 
   if (trend.classAverageScore !== undefined) {
@@ -160,8 +163,15 @@ const chartOption = computed<EChartsOption>(() => {
   const showDataZoom = xAxisLabels.length > overviewDashboardConfig.unitOverview.dataZoomThreshold
 
   const studentAverageScore =
-    students.length === 1 && students[0].trendPoints.length > 0
-      ? students[0].trendPoints.reduce((sum, p) => sum + p.score, 0) / students[0].trendPoints.length
+    students.length === 1 &&
+    students[0].trendPoints.some((point) => typeof point.score === 'number')
+      ? (() => {
+          const scores = students[0].trendPoints
+            .map((point) => point.score)
+            .filter((score): score is number => typeof score === 'number')
+
+          return scores.reduce((sum, score) => sum + score, 0) / scores.length
+        })()
       : null
 
   const referenceSeries: LineSeriesOption[] = []

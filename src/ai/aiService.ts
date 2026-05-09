@@ -19,7 +19,7 @@ import { parseJsonArray, parseJsonObject } from '@/ai/responseParser'
 interface StudentData {
   name: string
   tags?: string | string[]
-  score?: number | Array<{ label: string; value: number }>
+  score?: number | Array<{ label: string; value: number | null }>
   comment?: string | null
 }
 

@@ -63,6 +63,9 @@ export interface HomeDashboardTagConfigType {
   middleScoreMin: number
   middleScoreMax: number
   latestUnitDifficultyShiftThreshold: number
+  unitDifficultyBaselineWindow: number
+  easyUnitAverageScore: number
+  hardUnitAverageScore: number
   tagGroups: Record<DashboardFocusGroupKeyType, HomeDashboardTagGroupConfigType>
   tags: Record<DashboardTagKeyType, HomeDashboardTagRuleConfigType>
 }
@@ -184,7 +187,7 @@ export interface DashboardKeyStudentListType {
 
 export interface DashboardStudentTrendPointType {
   label: string
-  score: number
+  score: number | null
 }
 
 export interface DashboardStudentTrendStudentType {
