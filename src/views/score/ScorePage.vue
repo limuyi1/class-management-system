@@ -5,11 +5,13 @@ import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
-import { StudentReportDrawer, StudentReportExportDialog } from '@/components/student-report'
+import { StudentReportExportDialog } from '@/components/student-report'
 
 import ScoreTableView from '@/views/score/components/ScoreTableView.vue'
 import InputDataView from '@/views/score/components/InputDataView.vue'
 import ScoreAnalysisView from '@/views/score/components/ScoreAnalysisView.vue'
+import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendPanel.vue'
+import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
@@ -28,12 +30,13 @@ const aiConfigStore = useAIConfigStore()
 
 const { items: originList, enabledData } = storeToRefs(dataStore)
 const { tableHeaders } = storeToRefs(settingStore)
+const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
 
 const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
 
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
-const studentDrawerVisible = ref(false)
+const trendDrawerVisible = ref(false)
 const reportDialogVisible = ref(false)
 const currentStudent = ref<StudentDataType | null>(null)
 
@@ -158,12 +161,18 @@ const handleCropCancel = () => {
 }
 
 const handleInspectStudent = (student: StudentDataType) => {
+  const name = String(student[NAME_PROP] || '')
+  if (!name) return
+
   currentStudent.value = student
-  studentDrawerVisible.value = true
+  focusStudent(name)
+  trendDrawerVisible.value = true
 }
 
-const handleOpenReportDialog = () => {
-  studentDrawerVisible.value = false
+const handleExportReportFromTrend = (name: string) => {
+  const student = enabledData.value.find((item) => String(item[NAME_PROP] || '') === name)
+  if (!student) return
+  currentStudent.value = student
   reportDialogVisible.value = true
 }
 
@@ -210,12 +219,23 @@ defineExpose({ autoFocus })
       @cancel="handleCropCancel"
     />
 
-    <student-report-drawer
-      v-model:visible="studentDrawerVisible"
-      :student="currentStudent"
-      :score-columns="scoreColumns"
-      @export="handleOpenReportDialog"
-    />
+    <el-drawer
+      v-model="trendDrawerVisible"
+      class="overview-analysis-drawer score-student-trend-drawer"
+      size="72%"
+      title="学生趋势分析"
+      append-to-body
+    >
+      <home-student-trend-panel
+        class="drawer-trend-panel"
+        v-model="selectedStudentNames"
+        :student-trend="dashboardData.studentTrend"
+        :student-options="dashboardData.studentOptions"
+        :quick-student-names="dashboardData.quickStudentNames"
+        variant="singleReadonly"
+        @export-report="handleExportReportFromTrend"
+      />
+    </el-drawer>
 
     <student-report-export-dialog
       v-model:visible="reportDialogVisible"

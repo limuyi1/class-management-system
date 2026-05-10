@@ -18,6 +18,8 @@ interface Props {
   studentOptions: DashboardStudentOptionType[]
   /** 快捷添加按钮的学生名单（来自关注列表） */
   quickStudentNames: string[]
+  /** 展示变体：default 用于总览页，singleReadonly 用于外部单人查看入口 */
+  variant?: 'default' | 'singleReadonly'
 }
 
 const props = defineProps<Props>()
@@ -32,6 +34,7 @@ const chartMode = ref<'line' | 'bar'>('line')
 const studentSearchKeyword = ref('')
 const emptyCommentText = '暂无评语，可前往评语页继续处理'
 const maxCompareCount = overviewDashboardConfig.studentTrend.maxCompareCount
+const isSingleReadonly = computed(() => props.variant === 'singleReadonly')
 
 const showMaxCompareWarning = () => {
   ElMessage.warning(`最多只能对比 ${maxCompareCount} 名学生`)
@@ -44,6 +47,11 @@ const showMaxCompareWarning = () => {
 const selectedValue = computed({
   get: () => props.modelValue,
   set: (value: string[]) => {
+    if (isSingleReadonly.value) {
+      emit('update:modelValue', value.slice(0, 1))
+      return
+    }
+
     if (value.length > maxCompareCount) {
       showMaxCompareWarning()
       return
@@ -415,8 +423,9 @@ const handleStudentFilter = (query: string) => {
 
 <template>
   <div class="student-trend-panel">
-    <div class="toolbar-row">
+    <div class="toolbar-row" :class="{ 'is-single-readonly': isSingleReadonly }">
       <el-select
+        v-if="!isSingleReadonly"
         v-model="selectedValue"
         class="student-select"
         multiple
@@ -450,7 +459,7 @@ const handleStudentFilter = (query: string) => {
       </div>
     </div>
 
-    <div v-if="quickStudentNames.length" class="quick-students">
+    <div v-if="!isSingleReadonly && quickStudentNames.length" class="quick-students">
       <span class="quick-label">快捷加入</span>
       <button
         v-for="name in quickStudentNames"
@@ -468,7 +477,7 @@ const handleStudentFilter = (query: string) => {
         <div class="meta-title">
           <span>{{ studentTrend.mode === 'compare' ? '对比视图' : studentTrend.students[0]?.name }}</span>
           <div class="meta-actions">
-            <el-tag type="info" round>
+            <el-tag v-if="!isSingleReadonly" type="info" round>
               {{ studentTrend.mode === 'compare' ? `共 ${studentTrend.students.length} 人` : '单人模式' }}
             </el-tag>
             <el-button
@@ -572,6 +581,14 @@ const handleStudentFilter = (query: string) => {
   border: 1px solid #e5edf5;
   border-radius: 12px;
   background: #ffffff;
+}
+
+.toolbar-row.is-single-readonly {
+  grid-template-columns: 1fr;
+
+  .toolbar-actions {
+    justify-content: flex-end;
+  }
 }
 
 .student-select {
