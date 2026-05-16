@@ -214,7 +214,9 @@ defineExpose({ autoFocus })
 
     <image-cropper
       v-model:visible="cropperVisible"
+      v-model:compress-ratio="configuration.scoreImageCompressRatio"
       :image-src="cropperImageSrc"
+      enable-compression
       @confirm="handleCropConfirm"
       @cancel="handleCropCancel"
     />

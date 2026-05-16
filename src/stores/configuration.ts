@@ -27,7 +27,8 @@ export const useConfigurationStore = defineStore('configuration', {
       evaluationTableAlign: 'left',
       previewMode: '100',
       inputScoreTab: null,
-      recentScoreEntries: {}
+      recentScoreEntries: {},
+      scoreImageCompressRatio: 0.6
     }
   },
   actions: {

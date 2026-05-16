@@ -43,6 +43,7 @@ export interface ConfigurationRecord {
     string,
     Array<{ index: number; name: string; score: number; time: string }>
   >
+  scoreImageCompressRatio?: number | null
 }
 
 export interface ThemeRecord {

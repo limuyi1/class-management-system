@@ -9,11 +9,12 @@ interface UseScoreDistributionActionsOptions {
   scoreStats: ComputedRef<ScoreStatisticsType | null>
   belowThresholdStudents: ComputedRef<ScoreStudentType[]>
   threshold: Ref<number> | ComputedRef<number>
+  title?: Ref<string> | ComputedRef<string>
   getScore: (item: ScoreStudentType) => number | null
 }
 
 export function useScoreDistributionActions(options: UseScoreDistributionActionsOptions) {
-  const { scoreStats, belowThresholdStudents, threshold, getScore } = options
+  const { scoreStats, belowThresholdStudents, threshold, title, getScore } = options
 
   const copyToClipboard = () => {
     if (!scoreStats.value) return
@@ -21,7 +22,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
     const { maxScore, maxScoreCount, topStudents, ranges, lowScoreRanges, avgScore, totalCount } =
       scoreStats.value
 
-    let text = `成绩分布统计（共${totalCount}人）\n`
+    let text = `${title?.value || '成绩分布统计'}（共${totalCount}人）\n`
     text += `最高分：${maxScore}分（${maxScoreCount}人）${topStudents.join('、')}\n`
     text += `平均分：${avgScore}分\n`
 

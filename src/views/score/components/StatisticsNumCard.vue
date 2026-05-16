@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
+import { useSettingStore } from '@/stores/setting'
 import { useScoreStatistics } from '@/hooks/useScoreStatistics'
 import { useScoreDistributionActions } from '@/hooks/useScoreDistributionActions'
 
@@ -13,10 +14,17 @@ import LowScorePanel from '@/views/score/components/statistics/LowScorePanel.vue
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
+const settingStore = useSettingStore()
 
 const { items: originList } = storeToRefs(store)
+const { tableHeaders } = storeToRefs(settingStore)
 
 const scorePropRef = computed(() => configuration.inputScoreTab)
+const scoreTitle = computed(() => {
+  const scoreProp = configuration.inputScoreTab
+  if (!scoreProp) return '成绩分布统计'
+  return tableHeaders.value.find((header) => header.prop === scoreProp)?.label || scoreProp
+})
 
 const { scoreStats, belowThresholdStudents, threshold, getScore } = useScoreStatistics({
   students: computed(() => originList.value),
@@ -27,6 +35,7 @@ const { copyToClipboard } = useScoreDistributionActions({
   scoreStats,
   belowThresholdStudents,
   threshold,
+  title: scoreTitle,
   getScore
 })
 

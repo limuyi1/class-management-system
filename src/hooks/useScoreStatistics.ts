@@ -72,11 +72,20 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     const avgScore = allScores.reduce((a, b) => a + b, 0) / allScores.length
 
     const ranges = [
-      { label: '90-100分', min: 90, max: 100, color: '#22c55e' },
-      { label: '80-89分', min: 80, max: 89, color: '#3b82f6' },
-      { label: '70-79分', min: 70, max: 79, color: '#eab308' },
-      { label: '60-69分', min: 60, max: 69, color: '#f97316' }
+      { min: 90, max: 100, color: '#22c55e' },
+      { min: 80, max: 89, color: '#3b82f6' },
+      { min: 70, max: 79, color: '#eab308' },
+      { min: 60, max: 69, color: '#f97316' }
     ]
+      .map((range) => {
+        const max = Math.min(range.max, maxScore - 1)
+        return {
+          ...range,
+          max,
+          label: `${range.min}-${max}分`
+        }
+      })
+      .filter((range) => range.max >= range.min)
 
     const lowScoreRanges = [
       { label: '50-59分', min: 50, max: 59, color: '#ef4444' },

@@ -26,8 +26,10 @@ const buildMetrics = (scores: number[]) => {
   ]
   const headers = unitHeaders.slice(0, scores.length)
   const unitMetrics = buildUnitMetrics(students, headers, overviewDashboardConfig)
+  const metric = buildStudentMetrics(students, headers, unitMetrics, overviewDashboardConfig)[0]
 
-  return buildStudentMetrics(students, headers, unitMetrics, overviewDashboardConfig)[0]
+  expect(metric).toBeDefined()
+  return metric!
 }
 
 describe('overview dashboard difficulty shift', () => {

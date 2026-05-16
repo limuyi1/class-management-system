@@ -55,7 +55,46 @@ describe('useScoreStatistics', () => {
     })
 
     expect(scoreStats.value).not.toBeNull()
-    expect(scoreStats.value!.ranges).toHaveLength(4)
+    expect(scoreStats.value!.ranges).toHaveLength(3)
+    expect(scoreStats.value!.ranges[0].label).toBe('80-89分')
+  })
+
+  it('should exclude max score from distribution ranges', () => {
+    const students = computed(() => [
+      { xing4_ming2: '张三', score: 99 },
+      { xing4_ming2: '李四', score: 98 },
+      { xing4_ming2: '王五', score: 95 },
+      { xing4_ming2: '赵六', score: 89 }
+    ])
+    const scoreProp = computed(() => 'score')
+
+    const { scoreStats } = useScoreStatistics({
+      students,
+      scoreProp
+    })
+
+    expect(scoreStats.value!.maxScore).toBe(99)
+    expect(scoreStats.value!.ranges[0].label).toBe('90-98分')
+    expect(scoreStats.value!.ranges[0].students).toEqual(['李四', '王五'])
+  })
+
+  it('should hide invalid higher ranges when max score is below them', () => {
+    const students = computed(() => [
+      { xing4_ming2: '张三', score: 88 },
+      { xing4_ming2: '李四', score: 87 },
+      { xing4_ming2: '王五', score: 81 },
+      { xing4_ming2: '赵六', score: 72 }
+    ])
+    const scoreProp = computed(() => 'score')
+
+    const { scoreStats } = useScoreStatistics({
+      students,
+      scoreProp
+    })
+
+    expect(scoreStats.value!.maxScore).toBe(88)
+    expect(scoreStats.value!.ranges.map((range) => range.label)).toEqual(['80-87分', '70-79分'])
+    expect(scoreStats.value!.ranges[0].students).toEqual(['李四', '王五'])
   })
 
   it('should filter below threshold students', () => {

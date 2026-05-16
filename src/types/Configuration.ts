@@ -29,4 +29,5 @@ export interface ConfigurationType {
   previewMode: PreviewModeType
   inputScoreTab: string | null
   recentScoreEntries: Record<string, RecentScoreEntryType[]>
+  scoreImageCompressRatio: number | null
 }

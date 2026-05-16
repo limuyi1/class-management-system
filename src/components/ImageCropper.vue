@@ -1,19 +1,29 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { ElDialog, ElButton, ElLoading, ElMessage } from 'element-plus'
 import { VueCropper } from 'vue-cropper'
 import 'vue-cropper/dist/index.css'
+
+import {
+  compressDataUrlByRatio,
+  dataUrlToBase64,
+  estimateCompressedImageSize,
+  formatFileSize
+} from '@/utils/fileUntil'
 
 interface Props {
   visible: boolean
   imageSrc: string
   outputType?: 'jpeg' | 'png' | 'webp'
+  enableCompression?: boolean
+  compressRatio?: number | null
 }
 
 interface Emits {
   (e: 'confirm', croppedBase64: string): void
   (e: 'cancel'): void
   (e: 'update:visible', value: boolean): void
+  (e: 'update:compressRatio', value: number | null): void
 }
 
 const props = defineProps<Props>()
@@ -26,6 +36,8 @@ const cropperRef = ref<InstanceType<typeof VueCropper> | null>(null)
 const cropperReady = ref(false)
 const autoCropWidth = ref(640)
 const autoCropHeight = ref(400)
+const cropDataBase64 = ref('')
+const estimating = ref(false)
 
 const DEFAULT_CROP_WIDTH = 640
 const DEFAULT_CROP_HEIGHT = 400
@@ -34,10 +46,20 @@ const FULLSCREEN_CROP_BOX_PADDING = 40
 const MIN_CROP_WIDTH = 220
 const MIN_CROP_HEIGHT = 140
 const CROP_SIZE_CHANGE_THRESHOLD = 4
+const COMPRESS_QUALITY = 0.85
+const ESTIMATE_DEBOUNCE_DELAY = 350
+const COMPRESS_RATIO_OPTIONS: Array<{ label: string; value: number | null }> = [
+  { label: '原图', value: null },
+  { label: '80%', value: 0.8 },
+  { label: '60%', value: 0.6 },
+  { label: '40%', value: 0.4 },
+  { label: '25%', value: 0.25 }
+]
 
 let resizeObserver: ResizeObserver | null = null
 let refreshFrameId = 0
 let pendingForceRefresh = false
+let estimateTimer = 0
 
 type CropperMethodNameType =
   | 'changeScale'
@@ -57,6 +79,16 @@ interface CropperApiType {
   flipY: () => void
   recycle: () => void
 }
+
+interface CropRealtimeDataType {
+  w?: number
+  h?: number
+}
+
+const currentCompressRatio = computed({
+  get: () => (props.compressRatio === undefined ? 0.6 : props.compressRatio),
+  set: (value: number | null) => emit('update:compressRatio', value)
+})
 
 const updateCropBoxSize = (): boolean => {
   if (!fullscreen.value) {
@@ -117,6 +149,36 @@ const cancelScheduledRefresh = () => {
   pendingForceRefresh = false
 }
 
+const cancelScheduledEstimate = () => {
+  if (estimateTimer) {
+    window.clearTimeout(estimateTimer)
+    estimateTimer = 0
+  }
+}
+
+const updateCropEstimate = () => {
+  if (!props.enableCompression) return
+
+  const cropper = cropperRef.value as unknown as CropperApiType | null
+  if (!cropper) return
+
+  estimating.value = true
+  cropper.getCropData((data: string) => {
+    cropDataBase64.value = dataUrlToBase64(data)
+    estimating.value = false
+  })
+}
+
+const scheduleCropEstimate = () => {
+  if (!props.enableCompression) return
+
+  cancelScheduledEstimate()
+  estimateTimer = window.setTimeout(() => {
+    estimateTimer = 0
+    updateCropEstimate()
+  }, ESTIMATE_DEBOUNCE_DELAY)
+}
+
 const scheduleRefreshCropperLayout = (forceRefresh = false) => {
   pendingForceRefresh = pendingForceRefresh || forceRefresh
   if (refreshFrameId) return
@@ -151,6 +213,7 @@ const prepareCropper = async () => {
   cropperReady.value = true
   await nextTick()
   startResizeObserver()
+  scheduleCropEstimate()
 }
 
 watch(
@@ -168,8 +231,10 @@ watch(
     if (!visible) {
       cropperReady.value = false
       fullscreen.value = false
+      cropDataBase64.value = ''
       stopResizeObserver()
       cancelScheduledRefresh()
+      cancelScheduledEstimate()
     }
   }
 )
@@ -194,6 +259,20 @@ const handleFlipHorizontal = () => handleOperation('flipX')
 const handleFlipVertical = () => handleOperation('flipY')
 const handleReset = () => handleOperation('recycle')
 
+const handleRealtime = (_data: CropRealtimeDataType) => {
+  scheduleCropEstimate()
+}
+
+const getCompressOptionLabel = (option: { label: string; value: number | null }): string => {
+  if (!cropDataBase64.value) return option.label
+  if (estimating.value && option.value === currentCompressRatio.value) {
+    return `${option.label} · 估算中`
+  }
+
+  const size = estimateCompressedImageSize(cropDataBase64.value, option.value)
+  return `${option.label} · 约${formatFileSize(size)}`
+}
+
 const toggleFullscreen = () => {
   cropperReady.value = false
   stopResizeObserver()
@@ -216,11 +295,22 @@ const handleConfirm = async () => {
     })
 
     const cropper = cropperRef.value as unknown as CropperApiType
-    cropper.getCropData((data: string) => {
-      const base64Data = data.replace(/^data:image\/\w+;base64,/, '')
-      emit('confirm', base64Data)
-      emit('update:visible', false)
+    const croppedDataUrl = await new Promise<string>((resolve) => {
+      cropper.getCropData((data: string) => resolve(data))
     })
+
+    if (props.enableCompression) {
+      const compressed = await compressDataUrlByRatio(
+        croppedDataUrl,
+        currentCompressRatio.value,
+        COMPRESS_QUALITY
+      )
+      emit('confirm', compressed.base64)
+    } else {
+      emit('confirm', dataUrlToBase64(croppedDataUrl))
+    }
+
+    emit('update:visible', false)
   } catch (error) {
     console.error('裁剪失败:', error)
     ElMessage.error('裁剪失败，请重试')
@@ -242,6 +332,7 @@ const handleOpened = () => {
 onBeforeUnmount(() => {
   stopResizeObserver()
   cancelScheduledRefresh()
+  cancelScheduledEstimate()
 })
 </script>
 
@@ -278,6 +369,7 @@ onBeforeUnmount(() => {
         :info="true"
         :infoTrue="true"
         :mode="'contain'"
+        @realTime="handleRealtime"
       />
     </div>
     <template #footer>
@@ -345,6 +437,23 @@ onBeforeUnmount(() => {
             <template #icon><font-awesome-icon :icon="['fas', 'arrow-rotate-right']" /></template>
           </el-button>
         </el-tooltip>
+        <el-divider v-if="enableCompression" direction="vertical" />
+        <div v-if="enableCompression" class="compression-control">
+          <span class="compression-label">压缩</span>
+          <el-select
+            v-model="currentCompressRatio"
+            class="compression-select"
+            size="small"
+            :teleported="false"
+          >
+            <el-option
+              v-for="option in COMPRESS_RATIO_OPTIONS"
+              :key="String(option.value)"
+              :label="getCompressOptionLabel(option)"
+              :value="option.value"
+            />
+          </el-select>
+        </div>
         <div class="toolbar-spacer" />
         <el-button @click="handleCancel">取消</el-button>
         <el-button type="primary" :loading="loading" @click="handleConfirm">确定</el-button>
@@ -379,6 +488,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .toolbar-group {
@@ -388,6 +498,22 @@ onBeforeUnmount(() => {
 
 .toolbar-spacer {
   flex: 1;
+}
+
+.compression-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.compression-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.compression-select {
+  width: 128px;
 }
 
 :deep(.el-divider--vertical) {
