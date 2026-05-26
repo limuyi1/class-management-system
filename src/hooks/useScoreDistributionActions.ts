@@ -1,4 +1,4 @@
-import { ElMessage } from 'element-plus'
+import { ElLoading, ElMessage } from 'element-plus'
 import domtoimage from 'dom-to-image'
 import type { ComputedRef, Ref } from 'vue'
 
@@ -11,6 +11,24 @@ interface UseScoreDistributionActionsOptions {
   threshold: Ref<number> | ComputedRef<number>
   title?: Ref<string> | ComputedRef<string>
   getScore: (item: ScoreStudentType) => number | null
+}
+
+const toPng = async (element: HTMLElement, scale = 2): Promise<string> => {
+  const width = element.scrollWidth
+  const height = element.scrollHeight
+
+  return domtoimage.toPng(element, {
+    quality: 1,
+    bgcolor: '#fff',
+    width: width * scale,
+    height: height * scale,
+    style: {
+      transform: `scale(${scale})`,
+      transformOrigin: '0 0',
+      width: `${width}px`,
+      height: `${height}px`
+    }
+  })
 }
 
 export function useScoreDistributionActions(options: UseScoreDistributionActionsOptions) {
@@ -44,7 +62,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       })
   }
 
-  const downloadImage = (mode: 'withScore' | 'nameOnly') => {
+  const downloadImage = async (mode: 'withScore' | 'nameOnly') => {
     const students = [...belowThresholdStudents.value].sort(
       (a, b) => (getScore(b) || 0) - (getScore(a) || 0)
     )
@@ -81,27 +99,34 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
     container.innerHTML = html
     container.style.padding = '20px'
     container.style.background = '#fff'
-    container.style.position = 'absolute'
+    container.style.position = 'fixed'
     container.style.top = '0'
     container.style.left = '0'
-    container.style.zIndex = '-1000'
+    container.style.width = mode === 'withScore' ? '280px' : '180px'
+    container.style.zIndex = '-1'
+    container.style.pointerEvents = 'none'
     document.body.appendChild(container)
 
-    domtoimage
-      .toJpeg(container, { quality: 1, bgcolor: '#fff' })
-      .then((dataUrl: string) => {
-        const link = document.createElement('a')
-        link.download = `低分学生_${threshold.value}分.jpg`
-        link.href = dataUrl
-        link.click()
-        ElMessage.success('下载成功')
-      })
-      .catch(() => {
-        ElMessage.error('下载失败')
-      })
-      .finally(() => {
-        container.remove()
-      })
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在导出图片，请稍后...'
+    })
+
+    try {
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      const dataUrl = await toPng(container)
+      const link = document.createElement('a')
+      link.download = `低分学生_${threshold.value}分.png`
+      link.href = dataUrl
+      link.click()
+      ElMessage.success('下载成功')
+    } catch (error) {
+      console.error('导出低分学生图片失败:', error)
+      ElMessage.error('下载失败')
+    } finally {
+      loading.close()
+      container.remove()
+    }
   }
 
   return {

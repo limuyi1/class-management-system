@@ -290,7 +290,7 @@ const handleConfirm = async () => {
   try {
     fullscreenLoading = ElLoading.service({
       lock: true,
-      text: '正在裁剪图片...',
+      text: props.enableCompression ? '正在裁剪并压缩图片...' : '正在裁剪图片...',
       background: 'rgba(255, 255, 255, 0.8)'
     })
 
@@ -299,18 +299,24 @@ const handleConfirm = async () => {
       cropper.getCropData((data: string) => resolve(data))
     })
 
+    let confirmedBase64 = ''
+
     if (props.enableCompression) {
       const compressed = await compressDataUrlByRatio(
         croppedDataUrl,
         currentCompressRatio.value,
         COMPRESS_QUALITY
       )
-      emit('confirm', compressed.base64)
+      confirmedBase64 = compressed.base64
     } else {
-      emit('confirm', dataUrlToBase64(croppedDataUrl))
+      confirmedBase64 = dataUrlToBase64(croppedDataUrl)
     }
 
+    loading.value = false
+    fullscreenLoading?.close()
+    fullscreenLoading = null
     emit('update:visible', false)
+    emit('confirm', confirmedBase64)
   } catch (error) {
     console.error('裁剪失败:', error)
     ElMessage.error('裁剪失败，请重试')
