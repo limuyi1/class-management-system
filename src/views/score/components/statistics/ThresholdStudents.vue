@@ -50,18 +50,21 @@ const emit = defineEmits<Emits>()
       <span class="label">分</span>
     </div>
 
-    <el-dropdown trigger="hover">
-      <el-button type="primary" size="small" round>
-        <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
-        下载
-      </el-button>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item @click="emit('download', 'withScore')">姓名 + 分数</el-dropdown-item>
-          <el-dropdown-item @click="emit('download', 'nameOnly')">仅姓名</el-dropdown-item>
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
+    <div class="threshold-actions">
+      <span class="student-count">{{ students.length }} 人</span>
+      <el-dropdown trigger="hover">
+        <el-button type="primary" size="small" round>
+          <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
+          下载
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item @click="emit('download', 'withScore')">姓名 + 分数</el-dropdown-item>
+            <el-dropdown-item @click="emit('download', 'nameOnly')">仅姓名</el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
   </div>
 
   <div class="student-tags" v-if="students.length">
@@ -124,6 +127,19 @@ const emit = defineEmits<Emits>()
 
   .threshold-input {
     width: 90px;
+  }
+
+  .threshold-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    .student-count {
+      color: #dc2626;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
   }
 }
 
