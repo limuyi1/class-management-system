@@ -68,7 +68,7 @@ const handleConfirm = () => {
     return
   }
 
-  if (!isNameOnlyMode.value && selectedScoreColumns.value.length === 0) {
+  if (!isNameOnlyMode.value && !isInitialMode.value && selectedScoreColumns.value.length === 0) {
     ElMessage.warning('请选择至少一个成绩列')
     return
   }
@@ -99,7 +99,7 @@ const handleConfirm = () => {
         <div class="selector-section__head">
           <div class="selector-section__title">成绩列</div>
           <div class="selector-section__desc">
-            {{ isInitialMode ? '选择需要初始化的成绩列' : '选择需要新增或更新的成绩列' }}
+            {{ isInitialMode ? '选择需要初始化的成绩列（可选）' : '选择需要新增或更新的成绩列' }}
           </div>
         </div>
         <el-checkbox-group v-model="selectedScoreColumns" class="column-options">

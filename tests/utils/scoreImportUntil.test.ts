@@ -31,6 +31,18 @@ describe('scoreImportUntil', () => {
     expect(result.invalidScoreCount).toBe(1)
   })
 
+  it('builds initial students with no score columns', () => {
+    const result = buildInitialScoreImport({
+      rows: [{ 学生: '张三', 数学: '96' }, { 学生: '李四' }, { 学生: '' }],
+      nameColumn: '学生',
+      scoreColumns: []
+    })
+
+    expect(result.headers).toEqual([])
+    expect(result.students).toEqual([{ [NAME_PROP]: '张三' }, { [NAME_PROP]: '李四' }])
+    expect(result.invalidScoreCount).toBe(0)
+  })
+
   it('adds new score columns for existing students by name', () => {
     const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学' }]
     const existingStudents: StudentDataType[] = [

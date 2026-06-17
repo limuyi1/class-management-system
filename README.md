@@ -4,7 +4,7 @@
 
 ## 体验地址
 
-https://cms.limuyicoder.workers.dev/
+https://limuyi1.github.io/class-management-system
 
 ## 功能特性
 
