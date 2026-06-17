@@ -12,7 +12,7 @@ const includeModule = (id: string, modules: string[]) =>
   modules.some((moduleName) => id.includes(`/node_modules/${moduleName}`))
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }): UserConfig => {
+export default defineConfig(({ mode, command }): UserConfig => {
   const root = process.cwd()
   const env = loadEnv(mode, root)
 
@@ -34,6 +34,7 @@ export default defineConfig(({ mode }): UserConfig => {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
+    base: command === 'build' ? '/class-management-system/' : '/',
     server: {
       watch: {
         usePolling: true // 启用轮询
