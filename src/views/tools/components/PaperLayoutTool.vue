@@ -23,7 +23,10 @@ import {
   buildPaperLayoutPages,
   clampPaperItemPosition,
   createPaperLayoutItem,
-  getPaperLayoutPageSize
+  getPaperLayoutPageSize,
+  getNextPaperLayoutZIndex,
+  normalizePaperItemPosition,
+  placePaperItemsOnPage
 } from '@/views/tools/utils/paperLayoutCanvas'
 import type {
   AttachmentRecordType,
@@ -81,7 +84,15 @@ const layoutMetrics = computed(() => ({
   contentHeight: contentHeight.value
 }))
 
-const pages = computed(() => buildPaperLayoutPages(canvasItems.value))
+const pagePlacementMetrics = computed(() => ({
+  pageSize: pageSize.value,
+  margin: layoutPreset.value.margin,
+  gap: layoutPreset.value.gap,
+  columns: layoutPreset.value.columns,
+  columnWidth: columnWidth.value
+}))
+
+const pages = computed(() => buildPaperLayoutPages(canvasItems.value, pageSize.value))
 const pageCount = computed(() => pages.value.length)
 
 const selectedItem = computed(() => {
@@ -127,6 +138,7 @@ onBeforeUnmount(() => {
 watch(
   () => [pageSize.value.width, pageSize.value.height],
   () => {
+    syncCanvasItemPositions()
     fitPreviewWidth()
   }
 )
@@ -185,19 +197,43 @@ function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
     currentDraftName.value = ''
   }
 
-  const nextItems = attachments.map((attachment, index) =>
-    toCanvasItem(attachment, canvasItems.value.length + index)
+  const targetPageIndex = Math.max(activePageNumber.value - 1, 0)
+  const nextZIndex = getNextPaperLayoutZIndex(canvasItems.value)
+  const pendingItems = attachments.map((attachment, index) =>
+    toCanvasItem(attachment, nextZIndex + index)
+  )
+  const nextItems = placePaperItemsOnPage(
+    pendingItems,
+    targetPageIndex,
+    pagePlacementMetrics.value,
+    nextZIndex
   )
   canvasItems.value = [...canvasItems.value, ...nextItems]
-  autoArrange()
+  selectedItemId.value = nextItems[nextItems.length - 1]?.id || selectedItemId.value
 }
 
 function autoArrange(): void {
   canvasItems.value = arrangePaperItems(canvasItems.value, layoutMetrics.value)
 }
 
+function syncCanvasItemPositions(): void {
+  canvasItems.value.forEach((item) => {
+    const normalizedPosition = normalizePaperItemPosition(item, item.documentY, pageSize.value)
+    item.pageIndex = normalizedPosition.pageIndex
+    item.y = normalizedPosition.y
+    item.documentY = normalizedPosition.documentY
+  })
+}
+
 function selectItem(id: string): void {
   selectedItemId.value = id
+}
+
+function bringItemToFront(item: PaperLayoutCanvasItemType): void {
+  const nextZIndex = getNextPaperLayoutZIndex(canvasItems.value)
+  if (item.zIndex < nextZIndex - 1) {
+    item.zIndex = nextZIndex
+  }
 }
 
 function handleToolClick(event: MouseEvent): void {
@@ -209,6 +245,7 @@ function handleToolClick(event: MouseEvent): void {
 
 function startMove(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
   selectItem(item.id)
+  bringItemToFront(item)
   dragState.value = {
     itemId: item.id,
     mode: 'move',
@@ -216,6 +253,7 @@ function startMove(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
     startClientY: event.clientY,
     startX: item.x,
     startY: item.y,
+    startDocumentY: item.documentY,
     startWidth: item.width,
     startHeight: item.height
   }
@@ -224,6 +262,7 @@ function startMove(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
 function startResize(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
   event.stopPropagation()
   selectItem(item.id)
+  bringItemToFront(item)
   dragState.value = {
     itemId: item.id,
     mode: 'resize',
@@ -231,6 +270,7 @@ function startResize(event: PointerEvent, item: PaperLayoutCanvasItemType): void
     startClientY: event.clientY,
     startX: item.x,
     startY: item.y,
+    startDocumentY: item.documentY,
     startWidth: item.width,
     startHeight: item.height
   }
@@ -239,13 +279,13 @@ function startResize(event: PointerEvent, item: PaperLayoutCanvasItemType): void
 function clampItemPosition(
   item: PaperLayoutCanvasItemType,
   x: number,
-  y: number
-): { x: number; y: number } {
+  documentY: number
+): { x: number; documentY: number } {
   return clampPaperItemPosition(
     item,
     {
       x,
-      y
+      documentY
     },
     {
       pageSize: pageSize.value,
@@ -269,9 +309,12 @@ function handlePointerMove(event: PointerEvent): void {
   const deltaY = (event.clientY - state.startClientY) / previewScale.value / (96 / 25.4)
 
   if (state.mode === 'move') {
-    const position = clampItemPosition(item, state.startX + deltaX, state.startY + deltaY)
+    const position = clampItemPosition(item, state.startX + deltaX, state.startDocumentY + deltaY)
+    const normalizedPosition = normalizePaperItemPosition(item, position.documentY, pageSize.value)
     item.x = position.x
-    item.y = position.y
+    item.y = normalizedPosition.y
+    item.pageIndex = normalizedPosition.pageIndex
+    item.documentY = normalizedPosition.documentY
     return
   }
 
@@ -279,9 +322,12 @@ function handlePointerMove(event: PointerEvent): void {
   const width = Math.max(minItemWidthMm, state.startWidth + deltaX)
   item.width = width
   item.height = width * ratio
-  const position = clampItemPosition(item, item.x, item.y)
+  const position = clampItemPosition(item, item.x, item.documentY)
+  const normalizedPosition = normalizePaperItemPosition(item, position.documentY, pageSize.value)
   item.x = position.x
-  item.y = position.y
+  item.y = normalizedPosition.y
+  item.pageIndex = normalizedPosition.pageIndex
+  item.documentY = normalizedPosition.documentY
 }
 
 function handlePointerUp(): void {
@@ -296,9 +342,12 @@ function scaleSelectedItem(factor: number): void {
   const ratio = item.height / item.width
   item.width = nextWidth
   item.height = nextWidth * ratio
-  const position = clampItemPosition(item, item.x, item.y)
+  const position = clampItemPosition(item, item.x, item.documentY)
+  const normalizedPosition = normalizePaperItemPosition(item, position.documentY, pageSize.value)
   item.x = position.x
-  item.y = position.y
+  item.y = normalizedPosition.y
+  item.pageIndex = normalizedPosition.pageIndex
+  item.documentY = normalizedPosition.documentY
 }
 
 function removeSelectedItem(): void {
@@ -359,6 +408,7 @@ async function handleSaveDraft(): Promise<void> {
         pageIndex: item.pageIndex,
         x: item.x,
         y: item.y,
+        documentY: item.documentY,
         width: item.width,
         height: item.height,
         zIndex: item.zIndex
@@ -374,6 +424,8 @@ async function handleSaveDraft(): Promise<void> {
 }
 
 async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void> {
+  Object.assign(settings, normalizePaperLayoutSettings(draft.settings))
+
   const sortedDraftItems = [...draft.items].sort(
     (first, second) => (first.order || 0) - (second.order || 0)
   )
@@ -397,6 +449,9 @@ async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void>
       pageIndex: draftItem.pageIndex ?? 0,
       x: draftItem.x ?? item.x,
       y: draftItem.y ?? item.y,
+      documentY:
+        draftItem.documentY ??
+        (draftItem.pageIndex ?? 0) * pageSize.value.height + (draftItem.y ?? item.y),
       width: draftItem.width ?? item.width,
       height: draftItem.height ?? item.height,
       zIndex: draftItem.zIndex ?? index + 1
@@ -409,7 +464,6 @@ async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void>
   selectedItemId.value = ''
   currentDraftId.value = draft.id
   currentDraftName.value = draft.name
-  Object.assign(settings, normalizePaperLayoutSettings(draft.settings))
   ElMessage.success('草稿已打开')
   await refreshDraftCount()
 }
@@ -616,7 +670,7 @@ function handlePreviewScroll(): void {
               class="page-thumb__item"
               :style="{
                 left: `${(item.x / pageSize.width) * 100}%`,
-                top: `${(item.y / pageSize.height) * 100}%`,
+                top: `${(item.localY / pageSize.height) * 100}%`,
                 width: `${(item.width / pageSize.width) * 100}%`,
                 height: `${(item.height / pageSize.height) * 100}%`
               }"
@@ -685,7 +739,7 @@ function handlePreviewScroll(): void {
                     :class="{ selected: selectedItemId === item.id }"
                     :style="{
                       left: `${mmToPixelPrecise(item.x)}px`,
-                      top: `${mmToPixelPrecise(item.y)}px`,
+                      top: `${mmToPixelPrecise(item.localY)}px`,
                       width: `${mmToPixelPrecise(item.width)}px`,
                       height: `${mmToPixelPrecise(item.height)}px`,
                       zIndex: item.zIndex

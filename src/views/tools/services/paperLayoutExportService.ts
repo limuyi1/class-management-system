@@ -38,8 +38,8 @@ export const exportPaperLayoutPdf = async (
       const embeddedImage = await getEmbeddedImage(pdfDoc, cache, item)
       page.drawImage(embeddedImage, {
         x: item.x * pointPerMm,
-        // 画布以左上角为原点，pdf-lib 以左下角为原点，导出时需要翻转 Y 轴。
-        y: pdfHeight - (item.y + item.height) * pointPerMm,
+        // localY 是当前页内坐标；跨页图片会在多个页面重复绘制，并由 PDF 页面边界裁切。
+        y: pdfHeight - (item.localY + item.height) * pointPerMm,
         width: item.width * pointPerMm,
         height: item.height * pointPerMm
       })

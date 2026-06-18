@@ -4,6 +4,7 @@ import type {
   AttachmentRecordType,
   PaperLayoutCanvasItemType,
   PaperLayoutPageType,
+  PaperLayoutRenderItemType,
   PaperLayoutSettingsType
 } from '@/types/Tools'
 
@@ -19,6 +20,20 @@ export interface PaperLayoutMetricsType {
   columns: number
   columnWidth: number
   contentHeight: number
+}
+
+export interface PaperLayoutPositionType {
+  pageIndex: number
+  y: number
+  documentY: number
+}
+
+export interface PaperLayoutPagePlacementMetricsType {
+  pageSize: PaperLayoutPageSizeType
+  margin: number
+  gap: number
+  columns: number
+  columnWidth: number
 }
 
 export const createPaperLayoutId = (prefix: string): string => {
@@ -59,24 +74,127 @@ export const createPaperLayoutItem = (
   pageIndex: 0,
   x: options.margin,
   y: options.margin,
+  documentY: options.margin,
   width: options.columnWidth,
   height: options.columnWidth * (attachment.height / attachment.width),
   zIndex: options.index + 1
 })
 
+export const getNextPaperLayoutZIndex = (items: PaperLayoutCanvasItemType[]): number => {
+  return Math.max(0, ...items.map((item) => item.zIndex)) + 1
+}
+
+export const getPaperItemDocumentY = (
+  item: Pick<PaperLayoutCanvasItemType, 'documentY' | 'pageIndex' | 'y'>,
+  pageSize: PaperLayoutPageSizeType
+): number => {
+  return item.documentY ?? item.pageIndex * pageSize.height + item.y
+}
+
+/**
+ * 图片的真实位置用整份文档里的 documentY 表示，pageIndex/y 只作为兼容字段。
+ * 每次拖动、缩放和打开旧草稿后都同步一次，避免 UI 与导出读到不同坐标。
+ */
+export const normalizePaperItemPosition = (
+  item: PaperLayoutCanvasItemType,
+  documentY: number,
+  pageSize: PaperLayoutPageSizeType
+): PaperLayoutPositionType => {
+  const pageIndex = Math.max(Math.floor(documentY / pageSize.height), 0)
+  const pageTop = pageIndex * pageSize.height
+  return {
+    pageIndex,
+    y: documentY - pageTop,
+    documentY
+  }
+}
+
 export const buildPaperLayoutPages = (
-  items: PaperLayoutCanvasItemType[]
+  items: PaperLayoutCanvasItemType[],
+  pageSize: PaperLayoutPageSizeType
 ): PaperLayoutPageType[] => {
   if (items.length === 0) return []
-  const pageCount = Math.max(...items.map((item) => item.pageIndex)) + 1
+  const pageCount = Math.max(
+    ...items.map((item) =>
+      Math.max(
+        Math.ceil((getPaperItemDocumentY(item, pageSize) + item.height) / pageSize.height),
+        1
+      )
+    )
+  )
 
   return Array.from({ length: pageCount }, (_, index) => ({
     index,
-    // 同页内按 zIndex 渲染，保证预览顺序和 PDF 导出顺序一致。
+    // 同一张图片跨页时会在相邻页面生成多个渲染片段，页面 overflow 负责裁切不可见部分。
     items: items
-      .filter((item) => item.pageIndex === index)
+      .map<PaperLayoutRenderItemType | null>((item) => {
+        const documentY = getPaperItemDocumentY(item, pageSize)
+        const pageTop = index * pageSize.height
+        const pageBottom = pageTop + pageSize.height
+        const itemTop = documentY
+        const itemBottom = documentY + item.height
+        const intersectsPage = itemBottom > pageTop && itemTop < pageBottom
+
+        if (!intersectsPage) return null
+
+        return {
+          ...item,
+          documentY,
+          pageIndex: index,
+          y: documentY - pageTop,
+          localY: documentY - pageTop
+        }
+      })
+      .filter((item): item is PaperLayoutRenderItemType => Boolean(item))
       .sort((first, second) => first.zIndex - second.zIndex)
   }))
+}
+
+/**
+ * 新增附件按当前停留页生成初始坐标，只安排新增项，不重排用户已经手动调整过的图片。
+ */
+export const placePaperItemsOnPage = (
+  items: PaperLayoutCanvasItemType[],
+  pageIndex: number,
+  metrics: PaperLayoutPagePlacementMetricsType,
+  startZIndex: number
+): PaperLayoutCanvasItemType[] => {
+  let currentY = metrics.margin
+  let cursorX = metrics.margin
+  let rowItemCount = 0
+  let rowHeight = 0
+  const contentHeight = metrics.pageSize.height - metrics.margin * 2
+
+  return items.map((item, index) => {
+    const imageHeight = metrics.columnWidth * (item.naturalHeight / item.naturalWidth)
+    const fitScale = imageHeight > contentHeight ? contentHeight / imageHeight : 1
+    const width = metrics.columnWidth * fitScale
+    const height = imageHeight * fitScale
+
+    if (rowItemCount >= metrics.columns) {
+      rowItemCount = 0
+      cursorX = metrics.margin
+      currentY += rowHeight + metrics.gap
+      rowHeight = 0
+    }
+
+    const documentY = pageIndex * metrics.pageSize.height + currentY
+    const placedItem = {
+      ...item,
+      pageIndex,
+      x: cursorX,
+      y: currentY,
+      documentY,
+      width,
+      height,
+      zIndex: startZIndex + index
+    }
+
+    rowItemCount += 1
+    cursorX += width + metrics.gap
+    rowHeight = Math.max(rowHeight, height)
+    return placedItem
+  })
 }
 
 /**
@@ -119,6 +237,7 @@ export const arrangePaperItems = (
       pageIndex,
       x: cursorX,
       y: currentY,
+      documentY: pageIndex * metrics.pageSize.height + currentY,
       width,
       height,
       zIndex: index + 1
@@ -137,18 +256,19 @@ export const arrangePaperItems = (
  */
 export const clampPaperItemPosition = (
   item: PaperLayoutCanvasItemType,
-  position: { x: number; y: number },
+  position: { x: number; documentY: number },
   options: {
     pageSize: PaperLayoutPageSizeType
     minVisibleMm: number
   }
-): { x: number; y: number } => ({
-  x: Math.min(
-    Math.max(position.x, -item.width + options.minVisibleMm),
-    options.pageSize.width - options.minVisibleMm
-  ),
-  y: Math.min(
-    Math.max(position.y, -item.height + options.minVisibleMm),
-    options.pageSize.height - options.minVisibleMm
-  )
-})
+): { x: number; documentY: number } => {
+  const minDocumentY = -item.height + options.minVisibleMm
+
+  return {
+    x: Math.min(
+      Math.max(position.x, -item.width + options.minVisibleMm),
+      options.pageSize.width - options.minVisibleMm
+    ),
+    documentY: Math.max(position.documentY, minDocumentY)
+  }
+}

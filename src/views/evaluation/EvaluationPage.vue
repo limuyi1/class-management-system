@@ -167,6 +167,12 @@ const handleClearHandwriteFont = async () => {
   await startDefaultFontMonitor()
 }
 
+const handleMoreAction = (command: string | number | object) => {
+  if (command !== 'reset-comments') return
+
+  void handleResetComments()
+}
+
 const handleExportTextPDF = async () => {
   if (!enabledStudents.value.length) {
     ElMessage.warning('没有可导出的学生期末评语')
@@ -461,36 +467,27 @@ defineExpose({ autoFocus })
       subtitle="为每位学生撰写期末评语，支持导出评语 PDF"
     >
       <template #right>
-        <div class="header-progress">
-          <div class="progress-title">
-            <span class="label">
+        <div class="header-toolbar">
+          <div class="header-progress" title="评语完成进度">
+            <div class="progress-title">
               <font-awesome-icon :icon="['solid', 'chart-pie']" />
-              评语进度
-            </span>
+              <span>进度</span>
+            </div>
+            <div class="progress-bar-wrap">
+              <el-progress
+                class="progress-track"
+                :percentage="percentage"
+                :stroke-width="6"
+                :show-text="false"
+                color="var(--theme-primary)"
+              />
+            </div>
+            <div class="progress-meta">
+              <span class="meta-text">完成 {{ completedCount }}/{{ totalCount }}</span>
+              <span class="percentage-badge">{{ percentage.toFixed(0) }}%</span>
+            </div>
           </div>
-          <div class="progress-bar-wrap">
-            <el-progress
-              class="progress-track"
-              :percentage="percentage"
-              :stroke-width="6"
-              :show-text="false"
-              color="var(--theme-primary)"
-            />
-          </div>
-          <div class="progress-meta">
-            <span class="percentage-badge">{{ percentage.toFixed(0) }}%</span>
-            <span class="meta-text">已完成 {{ completedCount }}/{{ totalCount }}</span>
-            <span class="meta-text warning" v-if="percentage < 100"
-              >剩余 {{ notCompletedCount }} 人</span
-            >
-            <span class="meta-text success" v-else>
-              <font-awesome-icon :icon="['solid', 'circle-check']" />
-              全部完成
-            </span>
-          </div>
-        </div>
 
-        <div class="header-actions">
           <input
             ref="fontFileInputRef"
             class="font-file-input"
@@ -498,51 +495,63 @@ defineExpose({ autoFocus })
             accept=".ttf,.otf,font/ttf,font/otf"
             @change="handleHandwriteFontChange"
           />
-          <div class="handwrite-font-control">
-            <div
-              v-if="savedHandwriteFontName"
-              class="handwrite-font-name"
-              :title="savedHandwriteFontName"
-            >
-              <font-awesome-icon :icon="['solid', 'font']" />
-              <span>
-                {{ displayHandwriteFontName }}
-              </span>
-            </div>
-            <el-button
-              v-else
-              :loading="handwriteFontApplying"
-              title="选择本地 .ttf/.otf 字体"
-              @click="handleChooseHandwriteFont"
-            >
-              <template #icon><font-awesome-icon :icon="['solid', 'upload']" /></template>
-              选择本地字体
+
+          <div class="header-actions">
+            <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
+              <template #icon
+                ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+              /></template>
+              AI 批量生成
             </el-button>
-            <el-tooltip v-if="savedHandwriteFontName" content="恢复默认展示" placement="top">
-              <button
-                class="font-clear-badge"
-                type="button"
-                aria-label="恢复默认展示"
-                @click.stop="handleClearHandwriteFont"
-              >
-                <font-awesome-icon :icon="['solid', 'xmark']" />
-              </button>
-            </el-tooltip>
+            <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
+              <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
+              导出
+            </el-button>
+
+            <el-dropdown trigger="click" placement="bottom-end" @command="handleMoreAction">
+              <el-button class="more-action-btn">
+                <template #icon><font-awesome-icon :icon="['solid', 'ellipsis']" /></template>
+                更多
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item class="font-dropdown-item" @click.stop>
+                    <div class="font-control-row">
+                      <div
+                        class="font-status-item"
+                        :title="savedHandwriteFontName || '默认手写字体'"
+                      >
+                        <font-awesome-icon :icon="['solid', 'font']" />
+                        <span>{{
+                          savedHandwriteFontName ? displayHandwriteFontName : '默认手写字体'
+                        }}</span>
+                      </div>
+                      <button
+                        class="font-mini-action"
+                        type="button"
+                        :disabled="handwriteFontApplying"
+                        @click.stop="handleChooseHandwriteFont"
+                      >
+                        {{ handwriteFontApplying ? '应用中' : '更换' }}
+                      </button>
+                      <button
+                        v-if="savedHandwriteFontName"
+                        class="font-mini-action is-muted"
+                        type="button"
+                        @click.stop="handleClearHandwriteFont"
+                      >
+                        默认
+                      </button>
+                    </div>
+                  </el-dropdown-item>
+                  <el-dropdown-item command="reset-comments" divided>
+                    <font-awesome-icon :icon="['solid', 'trash-can']" />
+                    <span>重置评语</span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
           </div>
-          <el-button type="danger" plain @click="handleResetComments">
-            <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
-            重置评语
-          </el-button>
-          <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
-            <template #icon
-              ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
-            /></template>
-            AI 批量生成评语
-          </el-button>
-          <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
-            <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
-            导出评语
-          </el-button>
         </div>
       </template>
     </page-header>
@@ -586,6 +595,7 @@ defineExpose({ autoFocus })
 .evaluation-page-header {
   :deep(.header-left) {
     min-width: 220px;
+    flex-shrink: 0;
   }
 
   :deep(.header-right) {
@@ -595,44 +605,51 @@ defineExpose({ autoFocus })
   }
 }
 
+.header-toolbar {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
 .header-progress {
-  width: clamp(320px, 34vw, 500px);
+  width: clamp(240px, 28vw, 360px);
   padding: 7px 10px;
   border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, #ffffff);
-  border-radius: 10px;
+  border-radius: 999px;
   background: color-mix(in srgb, var(--el-color-primary) 6%, #ffffff);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   min-width: 0;
+  flex-shrink: 1;
 
   .progress-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     flex-shrink: 0;
+    font-size: 12px;
+    color: #64748b;
+    white-space: nowrap;
 
-    .label {
-      display: flex;
-      align-items: center;
-      gap: 4px;
+    svg {
+      color: var(--theme-primary);
       font-size: 12px;
-      color: #64748b;
-      white-space: nowrap;
-
-      svg {
-        color: var(--theme-primary);
-        font-size: 12px;
-      }
     }
   }
 
   .progress-bar-wrap {
     flex: 1;
-    min-width: 80px;
+    min-width: 54px;
   }
 
   .progress-meta {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-shrink: 0;
 
     .percentage-badge {
@@ -648,17 +665,6 @@ defineExpose({ autoFocus })
       font-size: 11px;
       color: #64748b;
       white-space: nowrap;
-    }
-
-    .meta-text.warning {
-      color: #b45309;
-    }
-
-    .meta-text.success {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      color: #166534;
     }
   }
 }
@@ -684,85 +690,99 @@ defineExpose({ autoFocus })
   flex-shrink: 0;
 }
 
-.handwrite-font-control {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  height: 36px;
+.more-action-btn {
+  min-width: 78px;
 }
 
-.handwrite-font-name {
-  height: 36px;
-  max-width: 156px;
-  border: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 0 24px 0 10px;
+.font-dropdown-item {
+  cursor: default;
+
+  &:hover,
+  &:focus {
+    background: transparent;
+  }
+}
+
+.font-control-row {
+  min-width: 218px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.font-status-item {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: #ffffff;
-  color: #475569;
-  font-size: 12px;
-  box-sizing: border-box;
+  gap: 8px;
+  color: #64748b;
 
   span {
-    display: inline-block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
-
-  svg {
-    flex-shrink: 0;
-    color: #94a3b8;
-    font-size: 12px;
-  }
-
-  white-space: nowrap;
 }
 
-.font-clear-badge {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 18px;
-  height: 18px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #ffffff;
-  color: #64748b;
-  font-size: 10px;
-  line-height: 1;
+.font-mini-action {
+  height: 24px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 24%, #ffffff);
+  border-radius: 6px;
+  padding: 0 8px;
+  background: color-mix(in srgb, var(--el-color-primary) 8%, #ffffff);
+  color: var(--el-color-primary);
+  font-size: 12px;
+  line-height: 22px;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
 
   &:hover {
-    color: #dc2626;
-    border-color: #fecaca;
-    background: #fff5f5;
+    border-color: color-mix(in srgb, var(--el-color-primary) 40%, #ffffff);
+    background: color-mix(in srgb, var(--el-color-primary) 12%, #ffffff);
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+  }
+
+  &.is-muted {
+    border-color: #e2e8f0;
+    background: #ffffff;
+    color: #64748b;
+
+    &:hover {
+      color: #334155;
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
   }
 }
 
-@media (max-width: 1080px) {
-  .evaluation-page-header {
-    flex-wrap: wrap;
-    align-items: flex-start;
+:deep(.el-dropdown-menu__item) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
+  svg {
+    width: 14px;
+    color: #64748b;
+  }
+}
+
+@media (max-width: 1180px) {
+  .evaluation-page-header {
     :deep(.header-right) {
-      width: 100%;
-      flex-wrap: wrap;
+      flex: 1;
     }
   }
 
   .header-progress {
-    flex: 1;
-    width: auto;
-    min-width: 320px;
-  }
+    width: 220px;
 
-  .header-actions {
-    margin-left: auto;
+    .progress-title span {
+      display: none;
+    }
   }
 }
 

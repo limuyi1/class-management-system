@@ -123,7 +123,7 @@ defineExpose({
                     <template #icon
                       ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
                     /></template>
-                    AI 生成期末评语
+                    AI 生成评语
                   </el-button>
                 </div>
               </el-tooltip>
