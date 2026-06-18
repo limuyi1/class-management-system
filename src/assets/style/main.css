@@ -27,8 +27,8 @@
 }
 
 @font-face {
-  font-family: SHSerifSC;
-  src: url('../font/SourceHanSerifSC-Regular.otf') format('opentype');
+  font-family: EvaluationLabelSerif;
+  src: url('../font/SourceHanSerifSC-LabelSubset.otf') format('opentype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;

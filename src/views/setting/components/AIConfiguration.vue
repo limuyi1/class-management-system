@@ -7,20 +7,40 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { AIModelTypeEnum, AIModelTypeLabels, DefaultAIPrompts } from '@/types/AIConfig'
 import { testAIConnection, fetchAvailableModels } from '@/ai/aiService'
 
+import type { FormInstance, FormRules } from 'element-plus'
+import type { AIPromptsType } from '@/types/AIConfig'
+
 const store = useAIConfigStore()
 const { modelType, model, apiKey, baseUrl, prompts, availableModels } = storeToRefs(store)
 
 const showApiKey = ref(false)
 const testing = ref(false)
 const fetchingModels = ref(false)
-const activePromptTab = ref('singleComment')
+const activePromptTab = ref<keyof AIPromptsType>('singleComment')
+const aiConfigFormRef = ref<FormInstance>()
+
+const aiConfigFormRules: FormRules = {
+  apiKey: [
+    {
+      required: true,
+      type: 'string',
+      whitespace: true,
+      message: '请输入 API Key',
+      trigger: ['blur', 'change']
+    }
+  ]
+}
 
 const modelOptions = Object.entries(AIModelTypeLabels).map(([value, label]) => ({
   value: value as AIModelTypeEnum,
   label
 }))
 
-const promptTabs = [
+const promptTabs: Array<{
+  key: keyof AIPromptsType
+  label: string
+  placeholder: string
+}> = [
   { key: 'singleComment', label: '单个评语', placeholder: DefaultAIPrompts.singleComment },
   { key: 'batchComment', label: '批量评语', placeholder: DefaultAIPrompts.batchComment },
   { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore },
@@ -52,11 +72,21 @@ const handleModelChange = async (val: AIModelTypeEnum) => {
   }
 }
 
-const handleFetchModels = async () => {
-  if (!apiKey.value.trim()) {
-    ElMessage.warning('请先输入 API Key')
-    return
+const validateApiKey = async (): Promise<boolean> => {
+  if (!aiConfigFormRef.value) {
+    return apiKey.value.trim().length > 0
   }
+
+  try {
+    await aiConfigFormRef.value.validateField('apiKey')
+    return true
+  } catch {
+    return false
+  }
+}
+
+const handleFetchModels = async () => {
+  if (!(await validateApiKey())) return
 
   fetchingModels.value = true
   try {
@@ -82,10 +112,7 @@ const handleFetchModels = async () => {
 }
 
 const handleTestConnection = async () => {
-  if (!apiKey.value.trim()) {
-    ElMessage.warning('请先输入 API Key')
-    return
-  }
+  if (!(await validateApiKey())) return
 
   testing.value = true
   try {
@@ -107,9 +134,9 @@ const handleTestConnection = async () => {
   }
 }
 
-const handleResetPrompt = () => {
-  store.resetPrompts()
-  ElMessage.success('提示词已重置为默认值')
+const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
+  store.resetPrompt(promptKey)
+  ElMessage.success(`${label}提示词已重置为默认值`)
 }
 </script>
 
@@ -125,7 +152,12 @@ const handleResetPrompt = () => {
             </div>
           </template>
 
-          <el-form label-position="top" class="compact-form">
+          <el-form
+            ref="aiConfigFormRef"
+            :model="store"
+            :rules="aiConfigFormRules"
+            label-position="top"
+          >
             <el-form-item label="AI 品牌">
               <el-select
                 v-model="modelType"
@@ -174,7 +206,7 @@ const handleResetPrompt = () => {
               </div>
             </el-form-item>
 
-            <el-form-item label="API Key">
+            <el-form-item label="API Key" prop="apiKey">
               <el-input
                 v-model="apiKey"
                 :type="showApiKey ? 'text' : 'password'"
@@ -215,10 +247,6 @@ const handleResetPrompt = () => {
             <div class="card-header">
               <font-awesome-icon :icon="['solid', 'file-lines']" />
               <span>提示词配置</span>
-              <el-button type="primary" size="small" text @click="handleResetPrompt">
-                <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
-                重置
-              </el-button>
             </div>
           </template>
 
@@ -229,8 +257,19 @@ const handleResetPrompt = () => {
               :name="tab.key"
               :label="tab.label"
             >
+              <div class="prompt-editor-toolbar">
+                <el-button
+                  type="primary"
+                  size="small"
+                  text
+                  @click="handleResetPrompt(tab.key, tab.label)"
+                >
+                  <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
+                  重置
+                </el-button>
+              </div>
               <el-input
-                v-model="prompts[tab.key as keyof typeof prompts]"
+                v-model="prompts[tab.key]"
                 type="textarea"
                 :rows="10"
                 :placeholder="tab.placeholder"
@@ -305,30 +344,19 @@ const handleResetPrompt = () => {
     padding-top: 12px;
   }
 
-  .compact-form {
-    :deep(.el-form-item) {
-      margin-bottom: 12px;
+  .model-select-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+
+    :deep(.el-select) {
+      flex: 1;
+      width: auto;
     }
 
-    :deep(.el-form-item__label) {
-      padding-bottom: 4px;
-      font-size: 12px;
-    }
-
-    .model-select-wrapper {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      width: 100%;
-
-      :deep(.el-select) {
-        flex: 1;
-        width: auto;
-      }
-
-      .el-button {
-        flex-shrink: 0;
-      }
+    .el-button {
+      flex-shrink: 0;
     }
   }
 }
@@ -346,16 +374,18 @@ const handleResetPrompt = () => {
     svg {
       color: var(--theme-primary);
     }
-
-    .el-button {
-      margin-left: auto;
-    }
   }
 
   .prompt-tabs {
     :deep(.el-tabs__header) {
       margin-bottom: 12px;
     }
+  }
+
+  .prompt-editor-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
   }
 
   .prompt-tips {

@@ -20,6 +20,10 @@ pnpm test:watch       # Run Vitest tests (watch mode)
 pnpm test:coverage    # Run Vitest with coverage report
 ```
 
+### Dev Server Policy
+
+- Do not start the dev server (`pnpm dev`, `npm run dev`, `yarn dev`, `bun dev`, etc.) unless the user explicitly asks for it.
+
 ## Testing
 
 Tests use **Vitest** with `@vue/test-utils` and `happy-dom`. Test files are located in the `tests/` directory:

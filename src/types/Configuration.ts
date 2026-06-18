@@ -10,6 +10,12 @@ export interface RecentScoreEntryType {
   time: string
 }
 
+export interface EvaluationHandwriteFontType {
+  name: string
+  data: string
+  updatedAt: string
+}
+
 export interface ConfigurationType {
   fontSize: number
   salutationFontSize: number
@@ -30,4 +36,5 @@ export interface ConfigurationType {
   inputScoreTab: string | null
   recentScoreEntries: Record<string, RecentScoreEntryType[]>
   scoreImageCompressRatio: number | null
+  evaluationHandwriteFont: EvaluationHandwriteFontType | null
 }

@@ -43,6 +43,8 @@ const isActiveStudent = (student: Record<string, unknown> | undefined) => {
  * 如果后续要人工调整正文可用空间，优先改这里的宽高计算。
  */
 const getCommentLayout = (student: StudentDataType | undefined) => {
+  // 字体切换后需要触发重新测量，否则预览仍可能沿用旧字体的断行结果。
+  void store.evaluationHandwriteFont?.updatedAt
   const comment = student?.comment || ''
   const bodyWidthPx = Math.max(props.pageInfo.cellWidth - layoutConstantsPx.innerPaddingX * 2, 1)
   const headerHeightPx = store.salutationFontSize * 1.2
@@ -260,11 +262,11 @@ const commentLineStyle = computed(() => ({
     line-height: normal;
 
     .custom-font {
-      font-family: FYFont, sans-serif;
+      font-family: EvaluationHandwriteFont, FYFont, sans-serif;
     }
 
     .label-font {
-      font-family: SHSerifSC, serif;
+      font-family: EvaluationLabelSerif, serif;
     }
   }
 

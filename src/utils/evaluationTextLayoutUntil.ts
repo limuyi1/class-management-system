@@ -1,4 +1,5 @@
 import type { ConfigurationType } from '@/types/Configuration'
+import { getEvaluationHandwriteMeasureFontFamily } from '@/utils/evaluationHandwriteFontUntil'
 
 const PX_TO_MM = 25.4 / 96
 const BODY_LINE_HEIGHT_RATIO = 1.45
@@ -36,12 +37,12 @@ const getMeasureContext = (() => {
   }
 })()
 
-// 共享排版引擎统一以浏览器中的 FYFont 度量为准，确保预览与 PDF 共用同一套正文分行结果。
+// 共享排版引擎统一以当前手写字体栈度量，确保上传字体后预览与 PDF 仍共用断行结果。
 const setMeasureFont = (fontSizePx: number) => {
   const ctx = getMeasureContext()
   if (!ctx) return null
 
-  ctx.font = `${fontSizePx}px FYFont`
+  ctx.font = `${fontSizePx}px ${getEvaluationHandwriteMeasureFontFamily()}`
   return ctx
 }
 

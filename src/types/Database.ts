@@ -1,6 +1,7 @@
 import type { StudentDataType } from './StudentData'
 import type { WrongFolder, WrongQuestion } from './WrongBook'
 import type { SettingType, TagCategoryType, TagType } from './Setting'
+import type { EvaluationHandwriteFontType } from './Configuration'
 import type {
   AttachmentRecordType,
   PaperLayoutDraftRecordType,
@@ -44,6 +45,7 @@ export interface ConfigurationRecord {
     Array<{ index: number; name: string; score: number; time: string }>
   >
   scoreImageCompressRatio?: number | null
+  evaluationHandwriteFont?: EvaluationHandwriteFontType | null
 }
 
 export interface ThemeRecord {

@@ -12,6 +12,7 @@ import {
   layoutCommentText,
   measureBrowserTextAdvanceWidth
 } from '@/utils/evaluationTextLayoutUntil'
+import { getEvaluationHandwriteFontBytes } from '@/utils/evaluationHandwriteFontUntil'
 import type {
   EvaluationPdfCellType,
   EvaluationPdfPageType,
@@ -19,8 +20,10 @@ import type {
   EvaluationTextPdfResultType
 } from '@/types/EvaluationPdf'
 
-const handwriteFontUrl = new URL('../assets/font/fuyao-shoushu.ttf', import.meta.url).href
-const songtiFontUrl = new URL('../assets/font/SourceHanSerifSC-Regular.otf', import.meta.url).href
+const labelSerifFontUrl = new URL(
+  '../assets/font/SourceHanSerifSC-LabelSubset.otf',
+  import.meta.url
+).href
 const PT_PER_MM = 72 / 25.4
 const PX_TO_PT = 72 / 96
 const BORDER_WIDTH = 0.6
@@ -33,16 +36,20 @@ const HEADER_GAP = layoutConstantsPx.headerGap * layoutConstantsPx.pxToMm
 const BODY_GAP = layoutConstantsPx.bodyGap * layoutConstantsPx.pxToMm
 const FOOTER_GAP = layoutConstantsPx.footerGap * layoutConstantsPx.pxToMm
 
-let cachedHandwriteFontPromise: Promise<Uint8Array> | null = null
-let cachedSongtiFontPromise: Promise<Uint8Array> | null = null
+let cachedLabelSerifFontPromise: Promise<Uint8Array> | null = null
 const FONT_LOAD_TIMEOUT_MS = 10000
-const MIN_FONT_SIZE_BYTES = 1024 * 1024
+const MIN_LABEL_FONT_SIZE_BYTES = 1024
 
 // 页脚固定标签不直接嵌入整套宋体，而是缓存成可复用的字形排版结果。
 type FooterLabelAssetType = {
   glyphRun: FontkitGlyphRunType
   unitsPerEm: number
   widthMm: number
+}
+
+type HandwriteFontAssetType = {
+  pdfFont: PDFFont
+  sourceFont: FontkitFontType
 }
 
 // fontkit 需要一个接收 path 指令的“画笔对象”，显式定义后更方便后续手改维护。
@@ -66,7 +73,7 @@ type PathCommandRecorderType = {
  * 统一加载字体文件，并附带超时与文件完整性保护。
  * 如果后续替换字体，只需要改顶部字体 URL，不需要改这里的加载流程。
  */
-const fetchFontBytes = async (url: string, fontName: string) => {
+const fetchFontBytes = async (url: string, fontName: string, minFontSizeBytes: number) => {
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), FONT_LOAD_TIMEOUT_MS)
 
@@ -80,9 +87,9 @@ const fetchFontBytes = async (url: string, fontName: string) => {
     clearTimeout(timeoutId)
 
     const bytes = new Uint8Array(buffer)
-    if (bytes.length < MIN_FONT_SIZE_BYTES) {
+    if (bytes.length < minFontSizeBytes) {
       throw new Error(
-        `${fontName}字体文件不完整，加载大小: ${bytes.length} bytes (最小需要 ${MIN_FONT_SIZE_BYTES} bytes)`
+        `${fontName}字体文件不完整，加载大小: ${bytes.length} bytes (最小需要 ${minFontSizeBytes} bytes)`
       )
     }
 
@@ -96,26 +103,19 @@ const fetchFontBytes = async (url: string, fontName: string) => {
   }
 }
 
-const loadHandwriteFontBytes = async () => {
-  if (!cachedHandwriteFontPromise) {
-    cachedHandwriteFontPromise = fetchFontBytes(handwriteFontUrl, '手写体').catch((error) => {
-      cachedHandwriteFontPromise = null
+const loadLabelSerifFontBytes = async () => {
+  if (!cachedLabelSerifFontPromise) {
+    cachedLabelSerifFontPromise = fetchFontBytes(
+      labelSerifFontUrl,
+      '标签宋体',
+      MIN_LABEL_FONT_SIZE_BYTES
+    ).catch((error) => {
+      cachedLabelSerifFontPromise = null
       throw error
     })
   }
 
-  return cachedHandwriteFontPromise
-}
-
-const loadSongtiFontBytes = async () => {
-  if (!cachedSongtiFontPromise) {
-    cachedSongtiFontPromise = fetchFontBytes(songtiFontUrl, '宋体').catch((error) => {
-      cachedSongtiFontPromise = null
-      throw error
-    })
-  }
-
-  return cachedSongtiFontPromise
+  return cachedLabelSerifFontPromise
 }
 
 const pxToPt = (px: number) => px * PX_TO_PT
@@ -144,7 +144,7 @@ const drawCompactHandwriteText = (
   text: string,
   xMm: number,
   baselineTopMm: number,
-  font: PDFFont,
+  fontAsset: HandwriteFontAssetType,
   fontSizePx: number,
   pageHeightMm: number
 ) => {
@@ -153,13 +153,19 @@ const drawCompactHandwriteText = (
   const size = pxToPt(fontSizePx)
 
   Array.from(text).forEach((char) => {
-    page.drawText(char, {
-      x: cursorXPt,
-      y: yPt,
-      size,
-      font,
-      color: rgb(0, 0, 0)
-    })
+    const codePoint = char.codePointAt(0)
+
+    // 字体缺字时不填充替代符，保留原位置空白，方便用户打印后手写补齐。
+    if (codePoint !== undefined && fontAsset.sourceFont.hasGlyphForCodePoint(codePoint)) {
+      page.drawText(char, {
+        x: cursorXPt,
+        y: yPt,
+        size,
+        font: fontAsset.pdfFont,
+        color: rgb(0, 0, 0)
+      })
+    }
+
     cursorXPt += pxToPt(measureBrowserTextAdvanceWidth(char, fontSizePx))
   })
 }
@@ -217,7 +223,7 @@ const drawCellHeader = (
   startX: number,
   topY: number,
   fontSizePx: number,
-  handwriteFont: PDFFont,
+  handwriteFont: HandwriteFontAssetType,
   pageHeightMm: number
 ) => {
   drawCompactHandwriteText(
@@ -316,7 +322,7 @@ const drawCellFooter = (
   inscribe: string,
   footerLeftAsset: FooterLabelAssetType,
   footerRightAsset: FooterLabelAssetType,
-  handwriteFont: PDFFont,
+  handwriteFont: HandwriteFontAssetType,
   pageHeightMm: number
 ) => {
   const footerLineTopY = topY
@@ -366,7 +372,7 @@ const drawCellComment = (
   bodyWidth: number,
   bodyHeight: number,
   textFontSizePx: number,
-  handwriteFont: PDFFont,
+  handwriteFont: HandwriteFontAssetType,
   pageHeightMm: number
 ) => {
   const layout = layoutCommentText(
@@ -400,7 +406,7 @@ const drawEvaluationPage = (
   page: PDFPage,
   pageData: EvaluationPdfPageType,
   configuration: EvaluationTextPdfOptionsType['configuration'],
-  handwriteFont: PDFFont,
+  handwriteFont: HandwriteFontAssetType,
   footerLeftAsset: FooterLabelAssetType,
   footerRightAsset: FooterLabelAssetType,
   pageHeightMm: number
@@ -506,21 +512,29 @@ export const exportEvaluationTextPDF = async (
       }
     }
 
-    const [handwriteFontBytes, songtiFontBytes] = await Promise.all([
-      loadHandwriteFontBytes(),
-      loadSongtiFontBytes()
+    // 手写字体来源统一走字体管理工具：用户上传字体优先，否则使用默认内置字体。
+    const [handwriteFontBytes, labelSerifFontBytes] = await Promise.all([
+      getEvaluationHandwriteFontBytes(),
+      loadLabelSerifFontBytes()
     ])
 
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)
 
     // 正文仍使用 subset 控制体积；页脚固定标签改为矢量路径，因此无需再嵌入整套宋体。
-    const handwriteFont = await pdfDoc.embedFont(handwriteFontBytes, { subset: true })
-    const songtiVectorFont = fontkit.create(songtiFontBytes)
+    const handwriteFont: HandwriteFontAssetType = {
+      pdfFont: await pdfDoc.embedFont(handwriteFontBytes, { subset: true }),
+      sourceFont: fontkit.create(handwriteFontBytes)
+    }
+    const labelSerifVectorFont = fontkit.create(labelSerifFontBytes)
     const [footerLeftAsset, footerRightAsset] = await Promise.all([
-      createFooterLabelAsset(songtiVectorFont, '学校：（章）', options.configuration.sealFontSize),
       createFooterLabelAsset(
-        songtiVectorFont,
+        labelSerifVectorFont,
+        '学校：（章）',
+        options.configuration.sealFontSize
+      ),
+      createFooterLabelAsset(
+        labelSerifVectorFont,
         '班主任：',
         options.configuration.classTeacherFontSize
       )

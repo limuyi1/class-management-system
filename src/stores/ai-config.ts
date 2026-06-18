@@ -43,6 +43,9 @@ export const useAIConfigStore = defineStore('aiConfig', {
     updatePrompts(prompts: Partial<AIPromptsType>) {
       this.prompts = { ...DefaultAIPrompts, ...this.prompts, ...prompts }
     },
+    resetPrompt(promptKey: keyof AIPromptsType) {
+      this.prompts[promptKey] = DefaultAIPrompts[promptKey]
+    },
     resetPrompts() {
       this.prompts = { ...DefaultAIPrompts }
     }

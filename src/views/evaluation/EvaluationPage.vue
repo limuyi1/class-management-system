@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElLoading, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
@@ -16,6 +16,15 @@ import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { generateBatchComments } from '@/ai/aiService'
 import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUntil'
+import {
+  clearEvaluationHandwriteFont,
+  getDefaultFontSlowNoticeMs,
+  hasSavedHandwriteFont,
+  hasUnsupportedEvaluationHandwriteGlyphs,
+  registerEvaluationHandwriteFont,
+  saveEvaluationHandwriteFont,
+  waitForDefaultHandwriteFont
+} from '@/utils/evaluationHandwriteFontUntil'
 import { extractStudentTags } from '@/utils/studentUntil'
 import { NAME_PROP } from '@/types/Constants'
 import type { PreviewModeType } from '@/types/Configuration'
@@ -28,6 +37,7 @@ import type { StudentDataType } from '@/types/StudentData'
 
 const evaluationTableViewRef = ref<InstanceType<typeof EvaluationTableView>>()
 const toolPanelViewRef = ref<InstanceType<typeof ToolPanelView>>()
+const fontFileInputRef = ref<HTMLInputElement | null>(null)
 const route = useRoute()
 const router = useRouter()
 
@@ -64,6 +74,21 @@ const previewMode = computed<PreviewModeType>({
  */
 const batchGenerating = ref(false)
 const textPdfExporting = ref(false)
+const handwriteFontApplying = ref(false)
+const showDefaultFontSlowNotice = ref(false)
+const savedHandwriteFontName = computed(() => configuration.evaluationHandwriteFont?.name || '')
+const displayHandwriteFontName = computed(() => {
+  const name = savedHandwriteFontName.value
+  if (!name || name.length <= 18) return name
+
+  const dotIndex = name.lastIndexOf('.')
+  const extension = dotIndex > -1 ? name.slice(dotIndex) : ''
+  const baseName = dotIndex > -1 ? name.slice(0, dotIndex) : name
+  const head = baseName.slice(0, 5)
+  const tail = baseName.slice(Math.max(baseName.length - 3, 5))
+
+  return `${head}...${tail}${extension}`
+})
 
 /**
  * 自动聚焦到工具面板
@@ -72,9 +97,103 @@ const autoFocus = () => {
   toolPanelViewRef.value?.autoFocus()
 }
 
+const startDefaultFontMonitor = async () => {
+  if (hasSavedHandwriteFont()) return
+
+  let loaded = false
+  const timer = window.setTimeout(() => {
+    if (!loaded && !hasSavedHandwriteFont()) {
+      showDefaultFontSlowNotice.value = true
+    }
+  }, getDefaultFontSlowNoticeMs())
+
+  try {
+    await waitForDefaultHandwriteFont()
+  } finally {
+    loaded = true
+    window.clearTimeout(timer)
+    showDefaultFontSlowNotice.value = false
+  }
+}
+
+const initializeHandwriteFont = async () => {
+  if (hasSavedHandwriteFont()) {
+    try {
+      // 用户上传字体是预览和 PDF 导出的共同来源，进入页面时先注册到浏览器字体集。
+      await registerEvaluationHandwriteFont()
+      configuration.evaluationHandwriteFont = configuration.evaluationHandwriteFont
+        ? { ...configuration.evaluationHandwriteFont }
+        : null
+    } catch (error) {
+      console.error('恢复本地手写字体失败:', error)
+      ElMessage.warning('本地手写字体恢复失败，已切换为默认字体')
+      clearEvaluationHandwriteFont()
+      await startDefaultFontMonitor()
+    }
+    return
+  }
+
+  await startDefaultFontMonitor()
+}
+
+const handleChooseHandwriteFont = () => {
+  fontFileInputRef.value?.click()
+}
+
+const handleHandwriteFontChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  input.value = ''
+
+  if (!file) return
+
+  handwriteFontApplying.value = true
+  try {
+    // 字体文件只在浏览器本地读取并存入配置记录，不会上传到服务器。
+    await saveEvaluationHandwriteFont(file)
+    showDefaultFontSlowNotice.value = false
+    ElMessage.success('手写字体已应用')
+  } catch (error) {
+    console.error('应用手写字体失败:', error)
+    ElMessage.error(error instanceof Error ? error.message : '手写字体应用失败')
+  } finally {
+    handwriteFontApplying.value = false
+  }
+}
+
+const handleClearHandwriteFont = async () => {
+  clearEvaluationHandwriteFont()
+  ElMessage.success('已恢复默认手写字体')
+  await startDefaultFontMonitor()
+}
+
 const handleExportTextPDF = async () => {
   if (!enabledStudents.value.length) {
     ElMessage.warning('没有可导出的学生期末评语')
+    return
+  }
+
+  try {
+    const hasUnsupportedGlyphs = await hasUnsupportedEvaluationHandwriteGlyphs(
+      enabledStudents.value,
+      configuration
+    )
+
+    if (hasUnsupportedGlyphs) {
+      await ElMessageBox.confirm(
+        '当前手写字体可能无法显示部分字符，导出的 PDF 可能出现空白。是否继续导出？',
+        '字体缺字提示',
+        {
+          confirmButtonText: '继续导出',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+    }
+  } catch (error) {
+    if (error === 'cancel' || error === 'close') return
+    console.error('检查手写字体字符覆盖失败:', error)
+    ElMessage.error(error instanceof Error ? error.message : '手写字体检查失败')
     return
   }
 
@@ -109,6 +228,10 @@ const handleExportTextPDF = async () => {
     textPdfExporting.value = false
   }
 }
+
+onMounted(() => {
+  void initializeHandwriteFont()
+})
 
 /**
  * 处理评语卡片点击事件
@@ -342,7 +465,7 @@ defineExpose({ autoFocus })
           <div class="progress-title">
             <span class="label">
               <font-awesome-icon :icon="['solid', 'chart-pie']" />
-              期末评语进度
+              评语进度
             </span>
           </div>
           <div class="progress-bar-wrap">
@@ -368,23 +491,70 @@ defineExpose({ autoFocus })
         </div>
 
         <div class="header-actions">
+          <input
+            ref="fontFileInputRef"
+            class="font-file-input"
+            type="file"
+            accept=".ttf,.otf,font/ttf,font/otf"
+            @change="handleHandwriteFontChange"
+          />
+          <div class="handwrite-font-control">
+            <div
+              v-if="savedHandwriteFontName"
+              class="handwrite-font-name"
+              :title="savedHandwriteFontName"
+            >
+              <font-awesome-icon :icon="['solid', 'font']" />
+              <span>
+                {{ displayHandwriteFontName }}
+              </span>
+            </div>
+            <el-button
+              v-else
+              :loading="handwriteFontApplying"
+              title="选择本地 .ttf/.otf 字体"
+              @click="handleChooseHandwriteFont"
+            >
+              <template #icon><font-awesome-icon :icon="['solid', 'upload']" /></template>
+              选择本地字体
+            </el-button>
+            <el-tooltip v-if="savedHandwriteFontName" content="恢复默认展示" placement="top">
+              <button
+                class="font-clear-badge"
+                type="button"
+                aria-label="恢复默认展示"
+                @click.stop="handleClearHandwriteFont"
+              >
+                <font-awesome-icon :icon="['solid', 'xmark']" />
+              </button>
+            </el-tooltip>
+          </div>
           <el-button type="danger" plain @click="handleResetComments">
             <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
-            重置期末评语
+            重置评语
           </el-button>
           <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
             <template #icon
               ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
             /></template>
-            AI 批量生成期末评语
+            AI 批量生成评语
           </el-button>
           <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
             <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
-            导出期末评语
+            导出评语
           </el-button>
         </div>
       </template>
     </page-header>
+
+    <el-alert
+      v-if="showDefaultFontSlowNotice"
+      class="font-slow-alert"
+      title="手写字体加载较慢，可选择本地 .ttf/.otf 字体提升预览和导出稳定性。"
+      type="warning"
+      show-icon
+      :closable="false"
+    />
 
     <div class="evaluation-page-content">
       <div class="evaluation-page-left">
@@ -501,6 +671,76 @@ defineExpose({ autoFocus })
 
   :deep(.el-button) {
     height: 36px;
+    margin-left: 0;
+  }
+}
+
+.font-file-input {
+  display: none;
+}
+
+.font-slow-alert {
+  margin-bottom: 8px;
+  flex-shrink: 0;
+}
+
+.handwrite-font-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+}
+
+.handwrite-font-name {
+  height: 36px;
+  max-width: 156px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 0 24px 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  color: #475569;
+  font-size: 12px;
+  box-sizing: border-box;
+
+  span {
+    display: inline-block;
+  }
+
+  svg {
+    flex-shrink: 0;
+    color: #94a3b8;
+    font-size: 12px;
+  }
+
+  white-space: nowrap;
+}
+
+.font-clear-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  color: #64748b;
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.14);
+
+  &:hover {
+    color: #dc2626;
+    border-color: #fecaca;
+    background: #fff5f5;
   }
 }
 
