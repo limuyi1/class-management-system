@@ -8,12 +8,14 @@ import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 import { delay } from '@/utils/commonUntil'
 import { NAME_PROP } from '@/types/Constants'
+import type { ScorePageStageType } from '@/types/Score'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
   scoreColumns: SettingType[]
   scoreTab?: string | null
+  stage: ScorePageStageType
 }
 
 defineProps<Props>()
@@ -170,7 +172,7 @@ defineExpose({
           inactive-text="全部"
         />
       </div>
-      <div class="table-head-sub">
+      <div v-if="stage !== 'noUnits'" class="table-head-sub">
         <div class="score-context">
           <span class="score-context__label">当前科目</span>
           <el-select
@@ -211,6 +213,7 @@ defineExpose({
         </template>
       </el-table-column>
       <el-table-column
+        v-if="stage !== 'noUnits'"
         :prop="configuration.inputScoreTab || ''"
         :label="currentColumnLabel"
         min-width="120"
@@ -218,7 +221,8 @@ defineExpose({
         :sort-method="sortByCurrentScore"
       >
         <template #default="{ row }">
-          <span>{{ getCurrentScore(row) ?? '--' }}</span>
+          <span v-if="getCurrentScore(row) !== null">{{ getCurrentScore(row) }}</span>
+          <span v-else class="score-empty-text">未录入</span>
         </template>
       </el-table-column>
     </el-table>
@@ -322,5 +326,9 @@ defineExpose({
 
 .student-link:hover {
   text-decoration: underline;
+}
+
+.score-empty-text {
+  color: #94a3b8;
 }
 </style>

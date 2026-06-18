@@ -2,13 +2,21 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
+import EmptyStatePanel from '@/components/EmptyStatePanel.vue'
 import ScoreInputCard from '@/views/score/components/ScoreInputCard.vue'
 import { useProgress } from '@/hooks/useProgress'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { NAME_PROP } from '@/types/Constants'
+import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
+
+interface Props {
+  stage: ScorePageStageType
+}
+
+defineProps<Props>()
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
@@ -20,6 +28,7 @@ const emit = defineEmits<{
   scroll: [index: number]
   uploadImage: []
   clearSelection: []
+  goUnitSetting: []
 }>()
 
 const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
@@ -59,7 +68,16 @@ defineExpose({
 
 <template>
   <div class="input-data-view__wrapper">
-    <el-card class="progress-card" shadow="never">
+    <empty-state-panel
+      v-if="stage === 'noUnits'"
+      icon="table-columns"
+      title="还没有设置单元"
+      description="添加单元后，可以为学生录入成绩。"
+      action-text="去设置单元"
+      @action="emit('goUnitSetting')"
+    />
+
+    <el-card v-else class="progress-card" shadow="never">
       <div class="progress-header">
         <span class="progress-title">录入进度</span>
         <span class="progress-percent">{{ percentage.toFixed(0) }}%</span>
@@ -98,6 +116,7 @@ defineExpose({
     </el-card>
 
     <score-input-card
+      v-if="stage !== 'noUnits'"
       ref="scoreInputCardRef"
       @scroll="(index) => emit('scroll', index)"
       @upload-image="emit('uploadImage')"

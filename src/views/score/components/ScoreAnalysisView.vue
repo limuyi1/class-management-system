@@ -1,15 +1,36 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
+import EmptyStatePanel from '@/components/EmptyStatePanel.vue'
 import DownloadBtn from '@/views/score/components/DownloadBtn.vue'
 import StatisticsRateCard from '@/views/score/components/StatisticsRateCard.vue'
 import StatisticsNumCard from '@/views/score/components/StatisticsNumCard.vue'
 import LowScoreCard from '@/views/score/components/LowScoreCard.vue'
+import type { ScorePageStageType } from '@/types/Score'
 
 interface Props {
   canExport?: boolean
+  stage: ScorePageStageType
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   canExport: false
+})
+
+const emptyState = computed(() => {
+  if (props.stage === 'noUnits') {
+    return {
+      icon: 'table-columns',
+      title: '暂无成绩统计',
+      description: '设置单元并录入成绩后，将显示均分、及格率、分数段和低分名单。'
+    }
+  }
+
+  return {
+    icon: 'chart-simple',
+    title: '当前单元暂无成绩',
+    description: '录入任意一名学生成绩后，将开始生成统计。'
+  }
 })
 </script>
 
@@ -20,7 +41,15 @@ withDefaults(defineProps<Props>(), {
       <download-btn :disabled="!canExport" />
     </div>
 
-    <el-scrollbar>
+    <empty-state-panel
+      v-if="stage !== 'ready'"
+      :icon="emptyState.icon"
+      :title="emptyState.title"
+      :description="emptyState.description"
+      description-max-width="260px"
+    />
+
+    <el-scrollbar v-else>
       <div class="analysis-body">
         <statistics-num-card />
         <low-score-card />

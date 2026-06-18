@@ -8,7 +8,7 @@ interface Props {
   lists: DashboardKeyStudentListType[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   /** 点击学生行时触发，打开趋势分析抽屉 */
@@ -27,6 +27,12 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
   encouragement: 'success',
   middleChange: 'info',
   volatilityWatch: 'warning'
+}
+
+const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
+  attention: '录入成绩后，系统会自动筛选临界、持续低分、明显下滑的学生。',
+  encouragement: '录入多次成绩后，系统会识别进步、低位回升和高分稳定学生。',
+  volatilityWatch: '有连续成绩后，可查看波动上行、波动下行学生。'
 }
 </script>
 
@@ -54,7 +60,9 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
               <span>{{ list.label }}</span>
             </span>
           </div>
-          <em>优先推荐 {{ Math.min(list.items.length, 3) }} 人</em>
+          <em>{{
+            list.items.length ? `优先推荐 ${Math.min(list.items.length, 3)} 人` : '待生成'
+          }}</em>
         </div>
       </template>
 
@@ -71,7 +79,12 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
         </div>
       </el-scrollbar>
 
-      <el-empty v-else :image-size="68" description="暂无学生"></el-empty>
+      <div v-else class="list-empty-state">
+        <div class="list-empty-title">暂无可推荐学生</div>
+        <div class="list-empty-description">
+          {{ emptyDescriptions[list.key] || '录入成绩后，系统会生成对应的学生观察列表。' }}
+        </div>
+      </div>
     </el-card>
   </section>
 </template>
@@ -79,7 +92,7 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
 <style scoped lang="scss">
 .key-student-lists {
   height: 100%;
-  min-height: 0;
+  min-height: 148px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
@@ -87,7 +100,7 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
 }
 
 .list-card {
-  min-height: 0;
+  min-height: 148px;
   height: 100%;
   border-radius: 14px;
   border: 1px solid var(--border-muted);
@@ -106,12 +119,6 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
     display: flex;
     flex-direction: column;
     overflow: hidden;
-  }
-}
-
-.list-card.is-empty {
-  :deep(.el-card__body) {
-    justify-content: center;
   }
 }
 
@@ -159,6 +166,28 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
 
 :deep(.list-card .el-empty) {
   margin: 0;
+}
+
+.list-empty-state {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px 4px;
+}
+
+.list-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.list-empty-description {
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 :deep(.student-list .overview-student-row) {

@@ -18,6 +18,7 @@ import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDa
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { NAME_PROP } from '@/types/Constants'
+import type { OverviewDashboardStageType } from '@/types/HomeDashboard'
 import type { StudentDataType } from '@/types/StudentData'
 
 /**
@@ -34,6 +35,13 @@ const settingStore = useSettingStore()
 const { enabledData } = storeToRefs(dataStore)
 const { tableHeaders } = storeToRefs(settingStore)
 const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
+const hasUnits = computed(() => scoreColumns.value.length > 0)
+const hasScores = computed(() => dashboardData.value.unitOverview.length > 0)
+const overviewStage = computed<OverviewDashboardStageType>(() => {
+  if (!hasUnits.value) return 'noUnits'
+  if (!hasScores.value) return 'noScores'
+  return 'ready'
+})
 const {
   analysisText: learningAnalysisText,
   generatedAt: learningAnalysisGeneratedAt,
@@ -56,6 +64,19 @@ const goToAiSetting = () => {
       tab: 'ai-config'
     }
   })
+}
+
+const goToUnitSetting = () => {
+  router.push({
+    path: '/setting',
+    query: {
+      tab: 'unit-config'
+    }
+  })
+}
+
+const goToScoreInput = () => {
+  router.push('/math')
 }
 
 const goToEvaluationFromTrend = async () => {
@@ -96,7 +117,9 @@ const handleGenerateLearningAnalysis = async () => {
           </button>
           <button class="header-action-pill is-light" @click="goToAiSetting">
             <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
-            <span>AI {{ dashboardData.evaluationOverview.aiConfigured ? '已配置' : '未配置' }}</span>
+            <span
+              >AI {{ dashboardData.evaluationOverview.aiConfigured ? '已配置' : '未配置' }}</span
+            >
           </button>
         </div>
       </template>
@@ -104,13 +127,23 @@ const handleGenerateLearningAnalysis = async () => {
 
     <div class="home-dashboard">
       <div class="dashboard-left">
-        <home-kpi-strip class="dashboard-kpi" :summary-cards="dashboardData.summaryCards" />
+        <home-kpi-strip
+          class="dashboard-kpi"
+          :summary-cards="dashboardData.summaryCards"
+          :stage="overviewStage"
+          :student-count="enabledData.length"
+          :unit-count="scoreColumns.length"
+          :evaluation-overview="dashboardData.evaluationOverview"
+        />
 
         <div class="dashboard-primary-stack">
-          <div class="dashboard-primary">
+          <div class="dashboard-primary" :class="{ 'is-empty-stage': overviewStage !== 'ready' }">
             <home-unit-overview-chart
               :unit-overview="dashboardData.unitOverview"
               :teaching-insights="dashboardData.teachingInsights"
+              :stage="overviewStage"
+              @go-unit-setting="goToUnitSetting"
+              @go-score-input="goToScoreInput"
             />
           </div>
 
@@ -129,6 +162,7 @@ const handleGenerateLearningAnalysis = async () => {
           :analysis-text="learningAnalysisText"
           :analysis-generated-at="learningAnalysisGeneratedAt"
           :analysis-loading="learningAnalysisLoading"
+          :stage="overviewStage"
           @generate-analysis="handleGenerateLearningAnalysis"
           @go-ai-setting="goToAiSetting"
         />
@@ -137,6 +171,7 @@ const handleGenerateLearningAnalysis = async () => {
           <home-focus-center
             :focus-groups="dashboardData.focusGroups"
             :completed-unit-count="dashboardData.kpi.completedUnitCount"
+            :stage="overviewStage"
             @select="openStudentTrend"
           />
         </div>
@@ -156,6 +191,7 @@ const handleGenerateLearningAnalysis = async () => {
         :student-trend="dashboardData.studentTrend"
         :student-options="dashboardData.studentOptions"
         :quick-student-names="dashboardData.quickStudentNames"
+        :stage="overviewStage"
         @go-evaluation="goToEvaluationFromTrend"
         @export-report="handleExportReportFromTrend"
       />
@@ -220,13 +256,21 @@ const handleGenerateLearningAnalysis = async () => {
 }
 
 .dashboard-primary {
-  flex: 0 0 400px;
+  flex: 1 1 auto;
   min-height: 0;
   overflow: hidden;
 
   :deep(.unit-overview-card) {
     height: 100%;
-    min-height: 400px;
+    min-height: 320px;
+  }
+}
+
+.dashboard-primary.is-empty-stage {
+  min-height: 260px;
+
+  :deep(.unit-overview-card) {
+    min-height: 260px;
   }
 }
 
@@ -241,8 +285,9 @@ const handleGenerateLearningAnalysis = async () => {
 }
 
 .dashboard-key-lists {
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 148px;
+  height: 148px;
+  min-height: 148px;
   overflow: hidden;
 }
 

@@ -25,6 +25,7 @@ export type DashboardFocusSectionKeyType =
 
 export type DashboardVolatilityDirectionType = 'up' | 'down' | 'volatileUp' | 'volatileDown'
 export type DashboardUnitDifficultyShiftType = 'easy' | 'hard' | 'normal'
+export type OverviewDashboardStageType = 'noUnits' | 'noScores' | 'ready'
 
 export interface DashboardScoreBandType {
   label: string

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
 
 interface Props {
@@ -8,7 +10,9 @@ interface Props {
   span: number
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
+
+const isPendingAnalysis = computed(() => props.card.value === '待分析')
 </script>
 
 <template>
@@ -18,7 +22,8 @@ defineProps<Props>()
       `is-${card.tone}`,
       `is-${card.key}`,
       `layout-${card.layout}`,
-      `details-count-${card.details.length}`
+      `details-count-${card.details.length}`,
+      { 'is-pending-analysis': isPendingAnalysis }
     ]"
     :style="{ gridColumn: `span ${span}` }"
   >
@@ -28,13 +33,18 @@ defineProps<Props>()
       </div>
       <div class="summary-headline">
         <div class="summary-label">{{ card.label }}</div>
-        <div class="summary-value-line">
+        <div v-if="!isPendingAnalysis" class="summary-value-line">
           <span class="summary-value">{{ card.value }}</span>
           <span v-if="card.unit" class="summary-unit">{{ card.unit }}</span>
         </div>
       </div>
     </div>
-    <div class="summary-detail-grid">
+    <div v-if="isPendingAnalysis" class="summary-pending-body">
+      <span class="summary-pending-value">{{ card.value }}</span>
+      <span class="summary-pending-summary">{{ card.summary }}</span>
+    </div>
+
+    <div v-else class="summary-detail-grid">
       <div
         v-for="detail in card.details"
         :key="`${card.key}-${detail.label}`"
@@ -54,14 +64,17 @@ defineProps<Props>()
   --summary-strong: color-mix(in srgb, var(--summary-main) 16%, #ffffff);
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, var(--summary-main) 12%, var(--border-muted));
-  background:
-    linear-gradient(180deg, var(--summary-soft) 0%, #ffffff 68%),
-    #ffffff;
+  background: linear-gradient(180deg, var(--summary-soft) 0%, #ffffff 68%), #ffffff;
   box-shadow: var(--shadow-card);
   padding: 8px 10px;
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
+  min-height: 116px;
+}
+
+.summary-card.is-pending-analysis {
   min-height: 116px;
 }
 
@@ -159,6 +172,38 @@ defineProps<Props>()
   gap: 6px 8px;
   padding-top: 2px;
   border-top: 1px solid #e8edf5;
+}
+
+.summary-pending-body {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 8px 4px;
+  border-top: 1px solid #e8edf5;
+  text-align: center;
+}
+
+.summary-pending-value {
+  color: var(--summary-main);
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.summary-pending-summary {
+  max-width: 100%;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .summary-card.layout-double .summary-detail-grid {

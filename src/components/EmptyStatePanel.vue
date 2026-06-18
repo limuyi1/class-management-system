@@ -1,0 +1,94 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+
+interface Props {
+  /** FontAwesome solid 图标名 */
+  icon: string
+  /** 空态主标题 */
+  title: string
+  /** 空态说明文案 */
+  description: string
+  /** 可选主操作按钮文案，不传则不展示按钮 */
+  actionText?: string
+  /** 由使用方按所在布局控制最小高度 */
+  minHeight?: string
+  /** 说明文案最大宽度 */
+  descriptionMaxWidth?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  actionText: '',
+  minHeight: '0',
+  descriptionMaxWidth: '360px'
+})
+
+const emit = defineEmits<{
+  action: []
+}>()
+
+const panelStyle = computed(() => ({
+  minHeight: props.minHeight
+}))
+
+const descriptionStyle = computed(() => ({
+  '--empty-state-description-max-width': props.descriptionMaxWidth
+}))
+</script>
+
+<template>
+  <div class="empty-state-panel" :style="panelStyle">
+    <div class="empty-state-panel__icon">
+      <font-awesome-icon :icon="['solid', icon]" />
+    </div>
+    <div class="empty-state-panel__title">{{ title }}</div>
+    <div class="empty-state-panel__description" :style="descriptionStyle">
+      {{ description }}
+    </div>
+    <el-button v-if="actionText" type="primary" plain @click="emit('action')">
+      {{ actionText }}
+    </el-button>
+  </div>
+</template>
+
+<style scoped lang="scss">
+.empty-state-panel {
+  flex: 1;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 28px;
+  text-align: center;
+  border: 1px solid #dbe5f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.empty-state-panel__icon {
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--theme-primary);
+  background: var(--theme-menu-active-bg);
+  font-size: 20px;
+}
+
+.empty-state-panel__title {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.empty-state-panel__description {
+  max-width: var(--empty-state-description-max-width);
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+</style>

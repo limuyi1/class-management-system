@@ -2,7 +2,10 @@
 import { computed, ref } from 'vue'
 
 import { renderMarkdown } from '@/utils/katexUntil'
-import type { DashboardEvaluationOverviewType } from '@/types/HomeDashboard'
+import type {
+  DashboardEvaluationOverviewType,
+  OverviewDashboardStageType
+} from '@/types/HomeDashboard'
 
 interface Props {
   /** 评语完成情况概览数据 */
@@ -13,6 +16,8 @@ interface Props {
   analysisGeneratedAt: string
   /** 是否正在生成分析 */
   analysisLoading: boolean
+  /** 总览页当前数据阶段，用于说明诊断依据是否完整 */
+  stage: OverviewDashboardStageType
 }
 
 const props = defineProps<Props>()
@@ -29,6 +34,7 @@ const diagnosisTitle = computed(() => 'AI 学情分析')
 const diagnosisStatusLabel = computed(() => {
   if (!props.evaluationOverview.aiConfigured) return '未配置'
   if (props.analysisLoading) return '生成中'
+  if (props.stage !== 'ready' && !hasAnalysisText.value) return '基础诊断'
   return hasAnalysisText.value ? '已生成' : '待生成'
 })
 
@@ -43,7 +49,11 @@ const diagnosisStatusType = computed(() => {
  */
 const diagnosisText = computed(() => {
   if (!props.evaluationOverview.aiConfigured) {
-    return '暂未配置 AI，配置后可基于当前班级总览自动生成学情分析。'
+    return 'AI 学情诊断未启用。配置 AI 后，可基于成绩、评语和标签生成班级诊断建议。'
+  }
+
+  if (!props.analysisText && props.stage !== 'ready') {
+    return '当前暂无成绩数据，可以先基于评语和标签生成基础班级概况；录入成绩后诊断会更完整。'
   }
 
   return props.analysisText || '暂未生成学情分析，点击下方按钮即可生成。'
@@ -93,6 +103,7 @@ const renderedDiagnosisHtml = computed(() => {
 
 const diagnosisPrimaryActionLabel = computed(() => {
   if (!props.evaluationOverview.aiConfigured) return '配置 AI'
+  if (!hasAnalysisText.value && props.stage !== 'ready') return '生成基础诊断'
   return hasAnalysisText.value ? '重新生成' : '生成分析'
 })
 
@@ -115,7 +126,13 @@ const openAnalysisDialog = () => {
         </div>
         <div class="diagnosis-title-block">
           <div class="diagnosis-title">{{ diagnosisTitle }}</div>
-          <el-tag class="diagnosis-status" :type="diagnosisStatusType" size="small" effect="plain" round>
+          <el-tag
+            class="diagnosis-status"
+            :type="diagnosisStatusType"
+            size="small"
+            effect="plain"
+            round
+          >
             {{ diagnosisStatusLabel }}
           </el-tag>
         </div>
@@ -189,8 +206,7 @@ const openAnalysisDialog = () => {
   border-radius: 14px;
   border: 1px solid color-mix(in srgb, #3b82f6 14%, var(--border-muted));
   background:
-    linear-gradient(180deg, color-mix(in srgb, #3b82f6 5%, #ffffff) 0%, #ffffff 68%),
-    #ffffff;
+    linear-gradient(180deg, color-mix(in srgb, #3b82f6 5%, #ffffff) 0%, #ffffff 68%), #ffffff;
   box-shadow: var(--shadow-card);
   padding: 11px 12px;
   display: flex;
@@ -287,7 +303,6 @@ const openAnalysisDialog = () => {
   padding-top: 6px;
   border-top: 1px solid #e8edf5;
 }
-
 
 .expand-btn {
   width: 24px;

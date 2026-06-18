@@ -2,20 +2,52 @@
 import { computed } from 'vue'
 import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 
+import EmptyStatePanel from '@/components/EmptyStatePanel.vue'
 import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'
 import AppEChart from '@/components/AppEChart.vue'
-import type { DashboardTeachingInsightType, DashboardUnitOverviewType } from '@/types/HomeDashboard'
+import type {
+  DashboardTeachingInsightType,
+  DashboardUnitOverviewType,
+  OverviewDashboardStageType
+} from '@/types/HomeDashboard'
 
 interface Props {
   /** 单元概览数据，包含每个单元的均分、分数段分布 */
   unitOverview: DashboardUnitOverviewType[]
   /** 教学提示数据（暂未使用，预留用于图表注释） */
   teachingInsights: DashboardTeachingInsightType[]
+  /** 总览页当前数据阶段，用于展示更具体的空态 */
+  stage: OverviewDashboardStageType
 }
 
 const props = defineProps<Props>()
 
+const emit = defineEmits<{
+  goUnitSetting: []
+  goScoreInput: []
+}>()
+
 const averageScoreColor = '#7c3aed'
+
+const emptyState = computed(() => {
+  if (props.stage === 'noUnits') {
+    return {
+      icon: 'table-columns',
+      title: '还没有设置单元',
+      description: '添加单元后，可以在这里查看班级均分、分数段和有效人数变化。',
+      actionText: '去设置单元',
+      action: () => emit('goUnitSetting')
+    }
+  }
+
+  return {
+    icon: 'pen-to-square',
+    title: '单元已设置，暂无成绩',
+    description: '录入成绩后，这里会展示各单元均分和分数段分布。',
+    actionText: '去录入成绩',
+    action: () => emit('goScoreInput')
+  }
+})
 
 /**
  * 格式化 ECharts 提示框内容。
@@ -23,7 +55,12 @@ const averageScoreColor = '#7c3aed'
  */
 const formatTooltipRows = (params: unknown, validCountMap: Map<string, number>) => {
   const items = Array.isArray(params)
-    ? (params as Array<{ axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown }>)
+    ? (params as Array<{
+        axisValueLabel?: string
+        marker?: string
+        seriesName?: string
+        value?: unknown
+      }>)
     : []
   const title = items[0]?.axisValueLabel || ''
   const validCount = validCountMap.get(title) || 0
@@ -120,7 +157,10 @@ const chartOption = computed<EChartsOption>(() => {
   return {
     animationDuration: 800,
     animationEasing: 'cubicOut',
-    color: [averageScoreColor, ...(props.unitOverview[0]?.scoreBands.map((item) => item.color) || [])],
+    color: [
+      averageScoreColor,
+      ...(props.unitOverview[0]?.scoreBands.map((item) => item.color) || [])
+    ],
     tooltip: {
       trigger: 'axis',
       confine: true,
@@ -235,19 +275,30 @@ const chartOption = computed<EChartsOption>(() => {
 </script>
 
 <template>
-  <el-card class="unit-overview-card">
+  <el-card class="unit-overview-card" :class="{ 'is-empty-stage': !unitOverview.length }">
     <div class="card-header">
       <div>
         <div class="card-title">单元成绩概览</div>
       </div>
-      <el-tag effect="plain" round>共 {{ unitOverview.length }} 个单元</el-tag>
+      <el-tag v-if="unitOverview.length" effect="plain" round>
+        共 {{ unitOverview.length }} 个单元
+      </el-tag>
     </div>
 
     <div v-if="unitOverview.length" class="chart-wrapper">
       <app-e-chart :option="chartOption" height="100%" />
     </div>
 
-    <el-empty v-else description="暂无可展示的单元成绩"></el-empty>
+    <empty-state-panel
+      v-else
+      :icon="emptyState.icon"
+      :title="emptyState.title"
+      :description="emptyState.description"
+      :action-text="emptyState.actionText"
+      min-height="210px"
+      description-max-width="680px"
+      @action="emptyState.action"
+    />
   </el-card>
 </template>
 
@@ -265,7 +316,12 @@ const chartOption = computed<EChartsOption>(() => {
     gap: 12px;
     box-sizing: border-box;
     height: 100%;
+    min-height: 0;
   }
+}
+
+.unit-overview-card.is-empty-stage {
+  min-height: 300px;
 }
 
 .card-header {
@@ -284,5 +340,11 @@ const chartOption = computed<EChartsOption>(() => {
 .chart-wrapper {
   flex: 1;
   min-height: 320px;
+}
+
+@media (max-width: 1120px) {
+  :deep(.empty-state-panel__description) {
+    --empty-state-description-max-width: 420px;
+  }
 }
 </style>

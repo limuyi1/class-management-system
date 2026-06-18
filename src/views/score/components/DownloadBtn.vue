@@ -16,7 +16,7 @@ interface Props {
   disabled?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   disabled: false
 })
 
@@ -151,6 +151,8 @@ const exportAllExcelFun = () => {
 }
 
 const handleCommand = (command: 'current' | 'all') => {
+  if (props.disabled) return
+
   if (command === 'current') {
     exportExcelFun()
   } else {
@@ -160,7 +162,7 @@ const handleCommand = (command: 'current' | 'all') => {
 </script>
 
 <template>
-  <el-dropdown @command="handleCommand" trigger="hover">
+  <el-dropdown :disabled="disabled" @command="handleCommand" trigger="hover">
     <el-button :disabled="disabled">
       <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
       导出总表

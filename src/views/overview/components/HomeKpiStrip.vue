@@ -4,20 +4,116 @@ import { computed } from 'vue'
 import OverviewSummaryCard from '@/views/overview/components/kpi/OverviewSummaryCard.vue'
 import OverviewSummaryOverviewCard from '@/views/overview/components/kpi/OverviewSummaryOverviewCard.vue'
 
-import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
+import type {
+  DashboardEvaluationOverviewType,
+  DashboardSummaryCardType,
+  OverviewDashboardStageType
+} from '@/types/HomeDashboard'
 
 interface Props {
   /** 汇总卡片数据，包含四类分组卡片 + 班级概况卡片 */
   summaryCards: DashboardSummaryCardType[]
+  /** 总览页当前数据阶段，用于区分真实统计和待分析空态 */
+  stage: OverviewDashboardStageType
+  /** 当前有效学生人数 */
+  studentCount: number
+  /** 已设置的成绩单元数 */
+  unitCount: number
+  /** 评语完成情况 */
+  evaluationOverview: DashboardEvaluationOverviewType
 }
 
 const props = defineProps<Props>()
 
+const pendingSummaryCards = computed<DashboardSummaryCardType[]>(() => {
+  const hasUnits = props.stage !== 'noUnits'
+  const scoreHint = hasUnits ? '录入成绩后开始分析' : '添加单元后开始分析'
+
+  return [
+    {
+      key: 'attention',
+      label: '立即关注',
+      value: '待分析',
+      icon: 'circle-exclamation',
+      layout: 'quad',
+      tone: 'danger',
+      summary: '录入成绩后识别低分、下滑和异常学生',
+      details: [
+        { label: '临界风险', value: scoreHint },
+        { label: '持续低分', value: scoreHint }
+      ]
+    },
+    {
+      key: 'encouragement',
+      label: '值得鼓励',
+      value: '待分析',
+      icon: 'thumbs-up',
+      layout: 'double',
+      tone: 'success',
+      summary: '录入多次成绩后识别进步和稳定表现',
+      details: [
+        { label: '进步回升', value: scoreHint },
+        { label: '高分稳定', value: scoreHint }
+      ]
+    },
+    {
+      key: 'middleChange',
+      label: '中段变化',
+      value: '待分析',
+      icon: 'chart-line',
+      layout: 'triple',
+      tone: 'info',
+      summary: '需要至少 2-3 次成绩形成变化判断',
+      details: [
+        { label: '中段上升', value: scoreHint },
+        { label: '中段下滑', value: scoreHint }
+      ]
+    },
+    {
+      key: 'volatilityWatch',
+      label: '波动观察',
+      value: '待分析',
+      icon: 'wave-square',
+      layout: 'double',
+      tone: 'warning',
+      summary: '需要多个单元成绩后分析波动趋势',
+      details: [
+        { label: '波动上行', value: scoreHint },
+        { label: '波动下行', value: scoreHint }
+      ]
+    },
+    {
+      key: 'overview',
+      label: '班级概况',
+      value: props.studentCount,
+      unit: '人',
+      icon: 'clock',
+      layout: 'overview',
+      tone: 'warning',
+      summary: '班级已建立，可继续完善单元、成绩和评语',
+      details: [
+        { label: '学生人数', value: `${props.studentCount} 人` },
+        {
+          label: '评语完成',
+          value: `${props.evaluationOverview.completedCount}/${props.studentCount}`
+        },
+        { label: '已设置单元', value: `${props.unitCount} 个` }
+      ]
+    }
+  ]
+})
+
+const displayedSummaryCards = computed(() =>
+  props.stage === 'ready' ? props.summaryCards : pendingSummaryCards.value
+)
+
 /** 统计类卡片：立即关注、值得鼓励、中段变化、波动观察（不含班级概况） */
-const statCards = computed(() => props.summaryCards.filter((card) => card.key !== 'overview'))
+const statCards = computed(() =>
+  displayedSummaryCards.value.filter((card) => card.key !== 'overview')
+)
 /** 班级概况卡片，单独展示 */
 const overviewCard = computed(
-  () => props.summaryCards.find((card) => card.key === 'overview') || null
+  () => displayedSummaryCards.value.find((card) => card.key === 'overview') || null
 )
 
 /**

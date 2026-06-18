@@ -3,13 +3,15 @@ import { computed, reactive, watchEffect } from 'vue'
 
 import OverviewFocusGroupPanel from '@/views/overview/components/focus/OverviewFocusGroupPanel.vue'
 
-import type { DashboardFocusGroupType } from '@/types/HomeDashboard'
+import type { DashboardFocusGroupType, OverviewDashboardStageType } from '@/types/HomeDashboard'
 
 interface Props {
   /** 四类学生观察分组：立即关注、值得鼓励、中段变化、波动观察 */
   focusGroups: DashboardFocusGroupType[]
   /** 当前已完成的有效单元数，用于判断趋势分析是否具备最基本的数据基础 */
   completedUnitCount: number
+  /** 总览页当前数据阶段，用于展示更准确的空态说明 */
+  stage: OverviewDashboardStageType
 }
 
 const props = defineProps<Props>()
@@ -34,12 +36,18 @@ const shouldShowInsufficientDataEmpty = computed(
   () => props.completedUnitCount < 2 && !hasVisibleItems()
 )
 const emptyDescription = computed(() =>
-  shouldShowInsufficientDataEmpty.value
-    ? '当前仅有 1 个单元数据，暂无法进行趋势分析，请至少录入 2 个单元后再查看'
-    : '暂无符合条件的学生'
+  props.stage === 'noUnits'
+    ? '还没有设置单元，设置并录入成绩后会生成学生观察分组'
+    : props.stage === 'noScores'
+      ? '单元已设置但暂无成绩，录入成绩后会生成学生观察分组'
+      : shouldShowInsufficientDataEmpty.value
+        ? '当前仅有 1 个单元数据，暂无法进行趋势分析，请至少录入 2 个单元后再查看'
+        : '暂无符合条件的学生'
 )
 
-const shouldFillRemainingSpace = computed(() => Boolean(state.expandedByGroup[state.activeGroupKey]))
+const shouldFillRemainingSpace = computed(() =>
+  Boolean(state.expandedByGroup[state.activeGroupKey])
+)
 
 const activeGroupTone = computed(() => {
   return props.focusGroups.find((group) => group.key === state.activeGroupKey)?.tone || 'info'
@@ -58,7 +66,11 @@ watchEffect(() => {
     return
   }
 
-  if (!props.focusGroups.some((group) => group.key === state.activeGroupKey && group.sections.length > 0)) {
+  if (
+    !props.focusGroups.some(
+      (group) => group.key === state.activeGroupKey && group.sections.length > 0
+    )
+  ) {
     state.activeGroupKey = visibleGroup.key
   }
 
@@ -83,11 +95,7 @@ watchEffect(() => {
       </div>
     </div>
 
-    <el-tabs
-      v-if="hasVisibleItems()"
-      v-model="state.activeGroupKey"
-      class="focus-tabs"
-    >
+    <el-tabs v-if="hasVisibleItems()" v-model="state.activeGroupKey" class="focus-tabs">
       <el-tab-pane
         v-for="group in focusGroups"
         :key="group.key"

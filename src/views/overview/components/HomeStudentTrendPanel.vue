@@ -4,10 +4,15 @@ import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 import { match } from 'pinyin-pro'
 import { ElMessage } from 'element-plus'
 
+import EmptyStatePanel from '@/components/EmptyStatePanel.vue'
 import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'
 import AppEChart from '@/components/AppEChart.vue'
 import OverlengthTextTooltip from '@/components/OverlengthTextTooltip.vue'
-import type { DashboardStudentOptionType, DashboardStudentTrendType } from '@/types/HomeDashboard'
+import type {
+  DashboardStudentOptionType,
+  DashboardStudentTrendType,
+  OverviewDashboardStageType
+} from '@/types/HomeDashboard'
 
 interface Props {
   /** 当前选中的学生姓名数组（v-model） */
@@ -20,6 +25,8 @@ interface Props {
   quickStudentNames: string[]
   /** 展示变体：default 用于总览页，singleReadonly 用于外部单人查看入口 */
   variant?: 'default' | 'singleReadonly'
+  /** 总览页当前数据阶段，用于解释趋势空态 */
+  stage?: OverviewDashboardStageType
 }
 
 const props = defineProps<Props>()
@@ -35,6 +42,27 @@ const studentSearchKeyword = ref('')
 const emptyCommentText = '暂无评语，可前往评语页继续处理'
 const maxCompareCount = overviewDashboardConfig.studentTrend.maxCompareCount
 const isSingleReadonly = computed(() => props.variant === 'singleReadonly')
+const emptyTrendState = computed(() => {
+  if (props.stage === 'noUnits') {
+    return {
+      title: '暂无成绩趋势',
+      description:
+        '当前已导入学生名单，但还没有设置单元。可以先维护评语和标签，或设置单元后录入成绩。'
+    }
+  }
+
+  if (props.stage === 'noScores') {
+    return {
+      title: '暂无成绩趋势',
+      description: '当前已有单元，但还没有可用于趋势分析的成绩。录入成绩后会生成学生趋势。'
+    }
+  }
+
+  return {
+    title: '请选择学生',
+    description: '可通过多选搜索或点击右侧学生名单进行趋势对比。'
+  }
+})
 
 const showMaxCompareWarning = () => {
   ElMessage.warning(`最多只能对比 ${maxCompareCount} 名学生`)
@@ -86,7 +114,12 @@ const getTooltipScoreText = (seriesName: string, value: unknown) => {
 
 const formatTooltipRows = (params: unknown) => {
   const items = Array.isArray(params)
-    ? (params as Array<{ axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown }>)
+    ? (params as Array<{
+        axisValueLabel?: string
+        marker?: string
+        seriesName?: string
+        value?: unknown
+      }>)
     : []
   const title = items[0]?.axisValueLabel || ''
   const rows = items
@@ -108,7 +141,8 @@ const formatTooltipRows = (params: unknown) => {
   </div>`
 }
 
-const formatAverageLegendName = (label: string, value: number) => `${label}（${value.toFixed(1)}分）`
+const formatAverageLegendName = (label: string, value: number) =>
+  `${label}（${value.toFixed(1)}分）`
 
 const getStudentAverageDisplayScore = (classAverageScore: number, studentAverageScore: number) => {
   if (Math.abs(classAverageScore - studentAverageScore) >= 1) return studentAverageScore
@@ -138,7 +172,9 @@ const displaySummaries = computed(() => {
 
   if (trend.classAverageScore !== undefined) {
     const belowClassAverageCount = scores.filter((score) => score < trend.classAverageScore!).length
-    const aboveClassAverageCount = scores.filter((score) => score >= trend.classAverageScore!).length
+    const aboveClassAverageCount = scores.filter(
+      (score) => score >= trend.classAverageScore!
+    ).length
     summaries.push(
       `${belowClassAverageCount} 个单元低于班级均分，${aboveClassAverageCount} 个单元高于或等于班级均分`
     )
@@ -401,7 +437,8 @@ const goToEvaluation = () => {
 }
 
 const exportReport = () => {
-  const targetName = props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.name : ''
+  const targetName =
+    props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.name : ''
   if (!targetName) return
   emit('export-report', targetName)
 }
@@ -447,6 +484,7 @@ const handleStudentFilter = (query: string) => {
         <el-segmented
           v-model="chartMode"
           class="chart-mode-segmented"
+          :disabled="!studentTrend"
           :options="[
             { label: '折线图', value: 'line' },
             { label: '柱状图', value: 'bar' }
@@ -469,16 +507,24 @@ const handleStudentFilter = (query: string) => {
       >
         {{ name }}
       </button>
-      <button v-if="selectedValue.length" class="quick-btn is-clear" @click="clearSelected">清空对比</button>
+      <button v-if="selectedValue.length" class="quick-btn is-clear" @click="clearSelected">
+        清空对比
+      </button>
     </div>
 
     <template v-if="studentTrend">
       <div class="student-meta">
         <div class="meta-title">
-          <span>{{ studentTrend.mode === 'compare' ? '对比视图' : studentTrend.students[0]?.name }}</span>
+          <span>{{
+            studentTrend.mode === 'compare' ? '对比视图' : studentTrend.students[0]?.name
+          }}</span>
           <div class="meta-actions">
             <el-tag v-if="!isSingleReadonly" type="info" round>
-              {{ studentTrend.mode === 'compare' ? `共 ${studentTrend.students.length} 人` : '单人模式' }}
+              {{
+                studentTrend.mode === 'compare'
+                  ? `共 ${studentTrend.students.length} 人`
+                  : '单人模式'
+              }}
             </el-tag>
             <el-button
               v-if="studentTrend.mode === 'single'"
@@ -492,7 +538,10 @@ const handleStudentFilter = (query: string) => {
             </el-button>
           </div>
         </div>
-        <div v-if="studentTrend.mode === 'single' && studentTrend.students[0]?.tags.length" class="meta-tags">
+        <div
+          v-if="studentTrend.mode === 'single' && studentTrend.students[0]?.tags.length"
+          class="meta-tags"
+        >
           <el-tag
             v-for="tag in studentTrend.students[0].tags"
             :key="`${studentTrend.students[0]?.name}-${tag.key}`"
@@ -524,11 +573,20 @@ const handleStudentFilter = (query: string) => {
             {{ studentTrend.mode === 'compare' ? '评语概览' : '评语预览' }}
           </div>
           <div v-if="studentTrend.mode === 'compare'" class="compare-comment-list">
-            <div v-for="student in studentTrend.students" :key="student.name" class="compare-comment-item">
+            <div
+              v-for="student in studentTrend.students"
+              :key="student.name"
+              class="compare-comment-item"
+            >
               <div class="comment-name">{{ student.name }}</div>
               <div class="comment-body">
                 <div v-if="student.tags.length" class="compare-tags">
-                  <el-tag v-for="tag in student.tags" :key="`${student.name}-${tag.key}`" size="small" round>
+                  <el-tag
+                    v-for="tag in student.tags"
+                    :key="`${student.name}-${tag.key}`"
+                    size="small"
+                    round
+                  >
                     {{ tag.label }}
                   </el-tag>
                 </div>
@@ -536,7 +594,11 @@ const handleStudentFilter = (query: string) => {
                   :content="student.commentPreview || emptyCommentText"
                   :level="1"
                   custom-class="comment-status"
-                  :custom-style="{ width: '100%', color: 'var(--text-secondary)', lineHeight: '1.6' }"
+                  :custom-style="{
+                    width: '100%',
+                    color: 'var(--text-secondary)',
+                    lineHeight: '1.6'
+                  }"
                 />
               </div>
             </div>
@@ -557,10 +619,14 @@ const handleStudentFilter = (query: string) => {
       </div>
     </template>
 
-    <div v-else class="empty-state">
-      <font-awesome-icon :icon="['solid', 'user-graduate']" />
-      <p>可通过多选搜索或点击右侧学生名单进行趋势对比</p>
-    </div>
+    <empty-state-panel
+      v-else
+      icon="user-graduate"
+      :title="emptyTrendState.title"
+      :description="emptyTrendState.description"
+      min-height="240px"
+      description-max-width="460px"
+    />
   </div>
 </template>
 
@@ -751,28 +817,6 @@ const handleStudentFilter = (query: string) => {
 :deep(.comment-status) {
   min-width: 0;
   font-size: 12px;
-}
-
-.empty-state {
-  flex: 1;
-  min-height: 240px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  color: #94a3b8;
-
-  svg {
-    font-size: 42px;
-    color: var(--theme-primary);
-    opacity: 0.5;
-  }
-
-  p {
-    margin: 0;
-    font-size: 13px;
-  }
 }
 
 @media (max-width: 960px) {

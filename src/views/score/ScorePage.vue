@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
@@ -19,6 +20,7 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUntil'
 import { NAME_PROP } from '@/types/Constants'
+import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
 
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
@@ -33,12 +35,24 @@ const { tableHeaders } = storeToRefs(settingStore)
 const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
 
 const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
+const hasUnits = computed(() => scoreColumns.value.length > 0)
+const hasScores = computed(() => dataStore.hasAnyScore)
+/**
+ * 成绩页按“无单元 / 有单元无成绩 / 有成绩”降级展示。
+ * 这样可以避免把缺数据误展示成 0 分、0% 等真实统计。
+ */
+const scoreStage = computed<ScorePageStageType>(() => {
+  if (!hasUnits.value) return 'noUnits'
+  if (!hasScores.value) return 'noScores'
+  return 'ready'
+})
 
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
 const trendDrawerVisible = ref(false)
 const reportDialogVisible = ref(false)
 const currentStudent = ref<StudentDataType | null>(null)
+const router = useRouter()
 
 const ensureDefaultScoreTab = () => {
   if (!configuration.inputScoreTab && scoreColumns.value.length) {
@@ -49,6 +63,15 @@ ensureDefaultScoreTab()
 
 const autoFocus = () => {
   inputDataRef.value?.autoFocus()
+}
+
+const goToUnitSetting = () => {
+  router.push({
+    path: '/setting',
+    query: {
+      tab: 'unit-config'
+    }
+  })
 }
 
 const resetScore = () => {
@@ -70,6 +93,17 @@ const resetScore = () => {
 }
 
 const handleUploadClick = () => {
+  // AI 识图必须先有写入目标单元，再检查 AI 配置。
+  if (!hasUnits.value) {
+    ElMessage.warning('请先设置单元，再使用 AI 识别成绩')
+    return
+  }
+
+  if (!configuration.inputScoreTab) {
+    ElMessage.warning('请先选择当前录入科目')
+    return
+  }
+
   if (!aiConfigStore.isConfigured) {
     ElMessage.warning('请先在设置页面配置 AI')
     return
@@ -193,6 +227,7 @@ defineExpose({ autoFocus })
           ref="tableRef"
           :score-columns="scoreColumns"
           :score-tab="configuration.inputScoreTab"
+          :stage="scoreStage"
           @update:score-tab="(value) => (configuration.inputScoreTab = value)"
           @reset-score="resetScore"
           @edit="(data) => inputDataRef?.editData(data)"
@@ -202,13 +237,15 @@ defineExpose({ autoFocus })
       <div class="panel panel-middle">
         <input-data-view
           ref="inputDataRef"
+          :stage="scoreStage"
           @scroll="(index) => tableRef?.scroll(index)"
           @upload-image="handleUploadClick"
           @clear-selection="tableRef?.clearActiveSelection()"
+          @go-unit-setting="goToUnitSetting"
         />
       </div>
       <div class="panel panel-right">
-        <score-analysis-view :can-export="dataStore.hasAnyScore" />
+        <score-analysis-view :can-export="dataStore.hasAnyScore" :stage="scoreStage" />
       </div>
     </div>
 
