@@ -253,7 +253,7 @@ const handleBatchGenerate = async () => {
       return {
         name: getStudentName(item),
         tags: formatBatchTags(allTags),
-        comment: mode === 'overwrite' ? '' : (item.comment || '')
+        comment: mode === 'overwrite' ? '' : item.comment || ''
       }
     })
 
@@ -287,7 +287,9 @@ const handleBatchGenerate = async () => {
     }
 
     if (failedBatches.length > 0) {
-      ElMessage.warning(`部分批次生成失败：第 ${failedBatches.join('、')} 批（共 ${totalBatches} 批）`)
+      ElMessage.warning(
+        `部分批次生成失败：第 ${failedBatches.join('、')} 批（共 ${totalBatches} 批）`
+      )
     }
 
     // 更新成功生成的结果
@@ -311,7 +313,8 @@ const handleBatchGenerate = async () => {
 }
 
 watch(
-  () => [route.query['resume-edit'], route.query['student-name'], !!toolPanelViewRef.value] as const,
+  () =>
+    [route.query['resume-edit'], route.query['student-name'], !!toolPanelViewRef.value] as const,
   async ([resumeEdit, studentName, ready]) => {
     if (resumeEdit !== '1' || typeof studentName !== 'string' || !studentName || !ready) return
 
@@ -329,54 +332,59 @@ defineExpose({ autoFocus })
 <template>
   <div class="evaluation-page app-page-shell">
     <page-header
+      class="evaluation-page-header"
       :icon="['solid', 'comments']"
       title="期末评语"
       subtitle="为每位学生撰写期末评语，支持导出评语 PDF"
-    />
+    >
+      <template #right>
+        <div class="header-progress">
+          <div class="progress-title">
+            <span class="label">
+              <font-awesome-icon :icon="['solid', 'chart-pie']" />
+              期末评语进度
+            </span>
+          </div>
+          <div class="progress-bar-wrap">
+            <el-progress
+              class="progress-track"
+              :percentage="percentage"
+              :stroke-width="6"
+              :show-text="false"
+              color="var(--theme-primary)"
+            />
+          </div>
+          <div class="progress-meta">
+            <span class="percentage-badge">{{ percentage.toFixed(0) }}%</span>
+            <span class="meta-text">已完成 {{ completedCount }}/{{ totalCount }}</span>
+            <span class="meta-text warning" v-if="percentage < 100"
+              >剩余 {{ notCompletedCount }} 人</span
+            >
+            <span class="meta-text success" v-else>
+              <font-awesome-icon :icon="['solid', 'circle-check']" />
+              全部完成
+            </span>
+          </div>
+        </div>
 
-    <div class="evaluation-toolbar">
-      <div class="progress-section">
-        <div class="progress-title">
-          <span class="label">
-            <font-awesome-icon :icon="['solid', 'chart-pie']" />
-            期末评语进度
-          </span>
+        <div class="header-actions">
+          <el-button type="danger" plain @click="handleResetComments">
+            <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
+            重置期末评语
+          </el-button>
+          <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
+            <template #icon
+              ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+            /></template>
+            AI 批量生成期末评语
+          </el-button>
+          <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
+            <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
+            导出期末评语
+          </el-button>
         </div>
-        <div class="progress-bar-wrap">
-          <el-progress
-            class="progress-track"
-            :percentage="percentage"
-            :stroke-width="6"
-            :show-text="false"
-            color="var(--theme-primary)"
-          />
-        </div>
-        <div class="progress-meta">
-          <span class="percentage-badge">{{ percentage.toFixed(0) }}%</span>
-          <span class="meta-text">已完成 {{ completedCount }}/{{ totalCount }}</span>
-          <span class="meta-text warning" v-if="percentage < 100">剩余 {{ notCompletedCount }} 人</span>
-          <span class="meta-text success" v-else>
-            <font-awesome-icon :icon="['solid', 'circle-check']" />
-            全部完成
-          </span>
-        </div>
-      </div>
-
-      <div class="toolbar-actions">
-        <el-button type="danger" plain @click="handleResetComments">
-          <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
-          重置期末评语
-        </el-button>
-        <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
-          <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
-          AI 批量生成期末评语
-        </el-button>
-        <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
-          <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
-          导出期末评语
-        </el-button>
-      </div>
-    </div>
+      </template>
+    </page-header>
 
     <div class="evaluation-page-content">
       <div class="evaluation-page-left">
@@ -405,111 +413,116 @@ defineExpose({ autoFocus })
   min-height: 0;
 }
 
-.evaluation-toolbar {
+.evaluation-page-header {
+  :deep(.header-left) {
+    min-width: 220px;
+  }
+
+  :deep(.header-right) {
+    flex: 1;
+    justify-content: flex-end;
+    min-width: 0;
+  }
+}
+
+.header-progress {
+  width: clamp(320px, 34vw, 500px);
+  padding: 7px 10px;
+  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, #ffffff);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--el-color-primary) 6%, #ffffff);
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 14px;
-  background: #fff;
-  border: 1px solid var(--border-muted);
-  border-radius: 12px;
-  box-shadow: var(--shadow-card);
-  margin-bottom: 10px;
+  gap: 10px;
+  min-width: 0;
 
-  .progress-section {
-    width: clamp(360px, 44vw, 560px);
-    flex: 0 0 auto;
-    padding: 8px 10px;
-    border: 1px solid #e6edf5;
-    border-radius: 10px;
-    background: linear-gradient(180deg, #fbfdff 0%, #f7fbff 100%);
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .progress-title {
+    flex-shrink: 0;
 
-    .progress-title {
-      flex-shrink: 0;
-
-      .label {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 12px;
-        color: #64748b;
-
-        svg {
-          color: var(--theme-primary);
-          font-size: 12px;
-        }
-      }
-
-    }
-
-    .progress-bar-wrap {
-      flex: 1;
-      min-width: 80px;
-    }
-
-    .progress-meta {
+    .label {
       display: flex;
       align-items: center;
-      gap: 8px;
-      flex-shrink: 0;
+      gap: 4px;
+      font-size: 12px;
+      color: #64748b;
+      white-space: nowrap;
 
-      .percentage-badge {
-        padding: 1px 7px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 700;
+      svg {
         color: var(--theme-primary);
-        background: color-mix(in srgb, var(--theme-primary) 14%, #ffffff);
-      }
-
-      .meta-text {
-        font-size: 11px;
-        color: #64748b;
-      }
-
-      .meta-text.warning {
-        color: #b45309;
-      }
-
-      .meta-text.success {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        color: #166534;
+        font-size: 12px;
       }
     }
   }
 
-  .toolbar-actions {
-    margin-left: auto;
+  .progress-bar-wrap {
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .progress-meta {
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
 
-    :deep(.el-button) {
-      height: 36px;
+    .percentage-badge {
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--theme-primary);
+      background: color-mix(in srgb, var(--theme-primary) 14%, #ffffff);
     }
 
+    .meta-text {
+      font-size: 11px;
+      color: #64748b;
+      white-space: nowrap;
+    }
+
+    .meta-text.warning {
+      color: #b45309;
+    }
+
+    .meta-text.success {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #166534;
+    }
+  }
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+
+  :deep(.el-button) {
+    height: 36px;
   }
 }
 
 @media (max-width: 1080px) {
-  .evaluation-toolbar {
+  .evaluation-page-header {
     flex-wrap: wrap;
+    align-items: flex-start;
 
-    .progress-section {
+    :deep(.header-right) {
       width: 100%;
+      flex-wrap: wrap;
     }
+  }
 
-    .toolbar-actions {
-      margin-left: 0;
-      width: 100%;
-      justify-content: flex-end;
-    }
+  .header-progress {
+    flex: 1;
+    width: auto;
+    min-width: 320px;
+  }
+
+  .header-actions {
+    margin-left: auto;
   }
 }
 

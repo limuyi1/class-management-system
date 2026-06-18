@@ -15,10 +15,10 @@ interface AIConfigState extends AIConfigType {
 
 export const useAIConfigStore = defineStore('aiConfig', {
   state: (): AIConfigState => ({
-    modelType: AIModelTypeEnum.GEMINI,
-    model: AIModelDefaultModels[AIModelTypeEnum.GEMINI],
+    modelType: AIModelTypeEnum.OPENAI,
+    model: AIModelDefaultModels[AIModelTypeEnum.OPENAI],
     apiKey: '',
-    baseUrl: AIModelDefaultBaseUrls[AIModelTypeEnum.GEMINI],
+    baseUrl: AIModelDefaultBaseUrls[AIModelTypeEnum.OPENAI],
     prompts: { ...DefaultAIPrompts },
     availableModels: []
   }),

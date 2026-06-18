@@ -22,15 +22,12 @@ const previewOptions: Array<{ label: string; value: PreviewModeType }> = [
 ]
 
 const summaryText = computed(() => {
-  const inscribe = store.inscribe?.trim() || '未设置落款'
   const cardSizeText = `卡片 ${store.evaluationCardWidth}×${store.evaluationCardHeight}mm`
   const marginText = `边距 ${store.marginX}/${store.marginY}mm`
   const alignText =
     alignOptions.find((item) => item.value === store.evaluationTableAlign)?.label || '靠左'
-  const previewText =
-    previewOptions.find((item) => item.value === store.previewMode)?.label || '100%'
   const pageNumberText = store.showEvaluationPageNumber ? '显示页码' : '隐藏页码'
-  return `${store.pageType} / ${previewText} / ${cardSizeText} / ${marginText} / 表格${alignText} / ${pageNumberText} / ${inscribe}`
+  return `${cardSizeText} / ${marginText} / 表格${alignText} / ${pageNumberText}`
 })
 
 const fontChange = (fontSize?: number) => {
@@ -61,8 +58,8 @@ const toggleExpanded = () => {
       />
     </button>
 
-    <div v-show="expanded" class="config-body">
-      <div class="config-grid-panel config-grid-panel--top">
+    <div class="config-body config-body--basic">
+      <div class="config-grid-panel config-grid-panel--basic">
         <div class="config-item config-item--shrink">
           <label>预览缩放</label>
           <el-select v-model="store.previewMode" placeholder="选择" style="width: 100%">
@@ -92,7 +89,9 @@ const toggleExpanded = () => {
           />
         </div>
       </div>
+    </div>
 
+    <div v-show="expanded" class="config-body config-body--advanced">
       <div class="config-grid-panel config-grid-panel--bottom">
         <div class="config-item">
           <label>表格位置</label>
@@ -306,6 +305,15 @@ const toggleExpanded = () => {
   border-top: 1px solid #eef2f7;
 }
 
+.config-body--basic {
+  padding-bottom: 8px;
+}
+
+.config-body--advanced {
+  padding-top: 8px;
+  background: #fbfdff;
+}
+
 .config-grid-panel {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -313,8 +321,9 @@ const toggleExpanded = () => {
   margin-bottom: 10px;
 }
 
-.config-grid-panel--top {
+.config-grid-panel--basic {
   grid-template-columns: minmax(92px, 0.9fr) minmax(84px, 0.8fr) minmax(132px, 1.5fr);
+  margin-bottom: 0;
 }
 
 .config-grid-panel--bottom {
