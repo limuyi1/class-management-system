@@ -241,7 +241,7 @@ const applyInitialExcelImport = (nameColumn: string, scoreColumns: string[]) => 
 
   tableHeaders.value = result.headers
   items.value = result.students
-  configurationStore.inputScoreTab = result.headers[0]?.prop
+  configurationStore.inputScoreTab = result.headers[0]?.prop ?? null
 
   resetExcelImport()
 
@@ -341,7 +341,7 @@ const handleClear = async () => {
               {{
                 hasStudentData
                   ? '选择 .dexie 覆盖恢复，或选择 Excel 按姓名新增/覆盖成绩列'
-                  : '选择 .dexie 全量恢复，或选择 Excel 后继续设置姓名列和成绩列'
+                  : '选择 .dexie 全量恢复，或选择 Excel 后设置姓名列，成绩列可选'
               }}
             </div>
           </div>
@@ -382,7 +382,7 @@ const handleClear = async () => {
 
       <div class="backup-tip">
         <font-awesome-icon :icon="['solid', 'circle-info']" />
-        <span>.dexie 导入会覆盖当前数据；Excel 导入只处理成绩列，不会清空现有数据</span>
+        <span>.dexie 导入会覆盖当前数据；Excel 可初始化学生名单，也可按姓名更新成绩列</span>
       </div>
     </el-card>
 
