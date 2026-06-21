@@ -81,7 +81,11 @@ const handleConfirm = () => {
 </script>
 
 <template>
-  <el-dialog v-model="localVisible" :title="isNameOnlyMode ? '选择姓名列' : '选择 Excel 导入列'" width="860px">
+  <el-dialog
+    v-model="localVisible"
+    :title="isNameOnlyMode ? '选择姓名列' : '选择 Excel 导入列'"
+    width="860px"
+  >
     <div class="excel-column-selector">
       <div class="selector-section" v-if="isInitialMode || isNameOnlyMode">
         <div class="selector-section__head">
@@ -91,7 +95,9 @@ const handleConfirm = () => {
           </div>
         </div>
         <el-radio-group v-model="selectedNameColumn" class="column-options">
-          <el-radio-button v-for="header in headers" :key="header" :label="header" />
+          <el-radio-button v-for="header in headers" :key="header" :value="header">
+            {{ header }}
+          </el-radio-button>
         </el-radio-group>
       </div>
 
@@ -103,7 +109,9 @@ const handleConfirm = () => {
           </div>
         </div>
         <el-checkbox-group v-model="selectedScoreColumns" class="column-options">
-          <el-checkbox-button v-for="header in scoreHeaders" :key="header" :label="header" />
+          <el-checkbox-button v-for="header in scoreHeaders" :key="header" :value="header">
+            {{ header }}
+          </el-checkbox-button>
         </el-checkbox-group>
       </div>
 
@@ -168,13 +176,21 @@ const handleConfirm = () => {
 }
 
 .column-options {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid !important;
+  grid-auto-flow: column;
+  grid-auto-columns: max-content;
+  grid-template-rows: minmax(32px, auto);
   gap: 8px;
+  width: 100%;
+  padding: 2px 1px 7px;
+  overflow-x: auto;
+  overflow-y: hidden;
 
   :deep(.el-radio-button__inner),
   :deep(.el-checkbox-button__inner) {
+    min-width: 82px;
     color: #1f2937 !important;
+    white-space: nowrap;
     background-color: #fff !important;
     border-left: var(--el-border) !important;
     border-radius: 6px !important;

@@ -2,48 +2,47 @@
 import { computed, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import type { UploadFile } from 'element-plus'
+import { ElMessageBox } from 'element-plus'
 
 import router from '@/router'
 import { useDataSourceStore } from '@/stores/data-source'
-import { useSettingStore } from '@/stores/setting'
-import { useConfigurationStore } from '@/stores/configuration'
+import { useStudentDataImport } from '@/hooks/useStudentDataImport'
 import ExcelColumnConflictDialog from '@/components/ExcelColumnConflictDialog.vue'
 import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
-import { exportDatabase, importDatabase, clearDatabase } from '@/utils/backup'
-import { parseExcel } from '@/utils/xlsxUntil'
-import {
-  buildInitialScoreImport,
-  buildIncrementalScoreImport,
-  findDuplicateNames,
-  getConflictLabels
-} from '@/utils/scoreImportUntil'
+import { clearDatabase, exportDatabase, importDatabase } from '@/utils/backup'
+import CommentImportDialog from '@/views/setting/components/import/CommentImportDialog.vue'
+import ImportActionMenu from '@/views/setting/components/import/ImportActionMenu.vue'
+import InitialImportDialog from '@/views/setting/components/import/InitialImportDialog.vue'
 import ImportProgress from './ImportProgress.vue'
-import { NAME_PROP } from '@/types/Constants'
-import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUntil'
 
-const fileInput = ref<HTMLInputElement | null>(null)
 const exporting = ref(false)
-const importing = ref(false)
-const importingExcel = ref(false)
-
+const importingBackup = ref(false)
 const progressVisible = ref(false)
 const progressTitle = ref('')
 const progressPercent = ref(0)
-const columnSelectorVisible = ref(false)
-const conflictDialogVisible = ref(false)
-const excelHeaders = ref<string[]>([])
-const excelRows = ref<ExcelRowType[]>([])
-const pendingScoreColumns = ref<string[]>([])
-const conflictColumns = ref<string[]>([])
 
 const dataSourceStore = useDataSourceStore()
-const settingStore = useSettingStore()
-const configurationStore = useConfigurationStore()
 const { items } = storeToRefs(dataSourceStore)
-const { tableHeaders } = storeToRefs(settingStore)
 const hasStudentData = computed(() => items.value.length > 0)
+
+const {
+  excelFileInputRef,
+  importingExcel,
+  excelHeaders,
+  excelRows,
+  initialDialogVisible,
+  scoreColumnSelectorVisible,
+  commentDialogVisible,
+  conflictDialogVisible,
+  conflictColumns,
+  triggerExcelImport,
+  handleExcelFileChange,
+  handleInitialConfirm,
+  handleScoreColumnConfirm,
+  handleCommentConfirm,
+  handleConflictConfirm,
+  resetExcelImport
+} = useStudentDataImport()
 
 const updateProgress = (percent: number) => {
   progressPercent.value = percent
@@ -80,201 +79,53 @@ const handleExport = async () => {
     await exportDatabase(updateProgress, includePaperLayout)
     progressPercent.value = 100
   } finally {
-    setTimeout(() => {
+    window.setTimeout(() => {
       progressVisible.value = false
     }, 500)
     exporting.value = false
   }
 }
 
-const triggerImport = () => {
-  fileInput.value?.click()
-}
-
-const handleDexieImport = async (file: File) => {
+const handleBackupImport = async (file: File) => {
   try {
     await ElMessageBox.confirm('导入将覆盖当前所有数据，确定要继续吗？', '确认导入', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
       type: 'warning'
     })
-    importing.value = true
+    importingBackup.value = true
     progressTitle.value = '正在导入数据'
     progressPercent.value = 0
     progressVisible.value = true
     await importDatabase(file, updateProgress, () => {
       progressPercent.value = 100
-      setTimeout(() => {
+      window.setTimeout(() => {
         progressVisible.value = false
-        router.push('/overview')
+        void router.push('/overview')
       }, 500)
     })
-    progressPercent.value = 100
   } catch {
     progressVisible.value = false
   } finally {
-    importing.value = false
+    importingBackup.value = false
   }
 }
 
-const resetExcelImport = () => {
-  columnSelectorVisible.value = false
-  conflictDialogVisible.value = false
-  excelHeaders.value = []
-  excelRows.value = []
-  pendingScoreColumns.value = []
-  conflictColumns.value = []
-}
-
-const handleExcelScoreImport = async (file: File) => {
-  importingExcel.value = true
-
-  try {
-    const { header, data } = await parseExcel({ raw: file } as UploadFile)
-
-    if (hasStudentData.value) {
-      if (!header.includes('姓名')) {
-        ElMessage.error('已有数据导入 Excel 时，表格中必须包含[姓名]列')
-        return
-      }
-
-      const duplicateExcelNames = findDuplicateNames(data, '姓名')
-      if (duplicateExcelNames.length > 0) {
-        ElMessage.error(`Excel 中存在重复姓名：${duplicateExcelNames.slice(0, 3).join('、')}`)
-        return
-      }
-
-      const duplicateSystemNames = findDuplicateNames(items.value, NAME_PROP)
-      if (duplicateSystemNames.length > 0) {
-        ElMessage.error(`系统中存在重复姓名：${duplicateSystemNames.slice(0, 3).join('、')}`)
-        return
-      }
-    }
-
-    excelHeaders.value = header
-    excelRows.value = data
-    columnSelectorVisible.value = true
-  } catch {
-    ElMessage.error('导入失败！')
-  } finally {
-    importingExcel.value = false
-  }
-}
-
-const handleFileChange = async (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
+/**
+ * Excel 与 Dexie 共用文件入口；文件后缀决定进入业务导入还是全量恢复。
+ */
+const handleImportFileChange = async (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
   if (!file) return
 
-  try {
-    if (file.name.endsWith('.dexie')) {
-      await handleDexieImport(file)
-      return
-    }
-
-    if (file.name.endsWith('.xls') || file.name.endsWith('.xlsx')) {
-      await handleExcelScoreImport(file)
-      return
-    }
-
-    ElMessage.error('请选择 .dexie、.xls 或 .xlsx 格式的文件')
-  } finally {
-    target.value = ''
-  }
-}
-
-const applyExcelScoreImport = (conflictActions: Record<string, ConflictActionType>) => {
-  const result = buildIncrementalScoreImport({
-    rows: excelRows.value,
-    existingStudents: items.value,
-    existingHeaders: tableHeaders.value,
-    selectedColumns: pendingScoreColumns.value,
-    conflictActions
-  })
-
-  if (result.stats.addedColumnCount === 0 && result.stats.overwrittenColumnCount === 0) {
-    ElMessage.warning('没有成绩列被导入')
-    resetExcelImport()
+  if (file.name.toLowerCase().endsWith('.dexie')) {
+    input.value = ''
+    await handleBackupImport(file)
     return
   }
 
-  tableHeaders.value = result.headers
-  items.value = result.students
-  if (!configurationStore.inputScoreTab) {
-    configurationStore.inputScoreTab = result.headers[0]?.prop
-  }
-
-  const messages = [
-    `新增 ${result.stats.addedColumnCount} 列`,
-    `覆盖 ${result.stats.overwrittenColumnCount} 列`,
-    `跳过 ${result.stats.skippedColumnCount} 列`
-  ]
-
-  if (result.stats.ignoredStudentCount > 0) {
-    messages.push(`忽略 ${result.stats.ignoredStudentCount} 名未匹配学生`)
-  }
-  if (result.stats.invalidScoreCount > 0) {
-    messages.push(`${result.stats.invalidScoreCount} 个成绩无法识别，已置为空`)
-  }
-
-  ElMessage.success(`Excel 成绩导入完成：${messages.join('，')}`)
-  resetExcelImport()
-}
-
-const applyInitialExcelImport = (nameColumn: string, scoreColumns: string[]) => {
-  const duplicateNames = findDuplicateNames(excelRows.value, nameColumn)
-  if (duplicateNames.length > 0) {
-    ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-    return
-  }
-
-  const result = buildInitialScoreImport({
-    rows: excelRows.value,
-    nameColumn,
-    scoreColumns
-  })
-
-  if (result.students.length === 0) {
-    ElMessage.error('没有可导入的学生数据')
-    return
-  }
-
-  tableHeaders.value = result.headers
-  items.value = result.students
-  configurationStore.inputScoreTab = result.headers[0]?.prop ?? null
-
-  resetExcelImport()
-
-  if (result.invalidScoreCount > 0) {
-    ElMessage.warning(`导入成功，${result.invalidScoreCount} 个成绩无法识别，已置为空`)
-  } else {
-    ElMessage.success('导入成功！')
-  }
-
-  router.push('/overview')
-}
-
-const handleExcelColumnConfirm = (value: { nameColumn?: string; scoreColumns: string[] }) => {
-  if (!hasStudentData.value) {
-    if (!value.nameColumn) return
-    applyInitialExcelImport(value.nameColumn, value.scoreColumns)
-    return
-  }
-
-  pendingScoreColumns.value = value.scoreColumns
-  conflictColumns.value = getConflictLabels(value.scoreColumns, tableHeaders.value)
-  columnSelectorVisible.value = false
-
-  if (conflictColumns.value.length > 0) {
-    conflictDialogVisible.value = true
-    return
-  }
-
-  applyExcelScoreImport({})
-}
-
-const handleConflictConfirm = (actions: Record<string, ConflictActionType>) => {
-  applyExcelScoreImport(actions)
+  await handleExcelFileChange(event)
 }
 
 const handleClear = async () => {
@@ -287,16 +138,10 @@ const handleClear = async () => {
     progressTitle.value = '正在清空数据'
     progressPercent.value = 0
     progressVisible.value = true
-    await clearDatabase(
-      (percent) => {
-        progressPercent.value = percent
-      },
-      () => {
-        progressVisible.value = false
-
-        router.push('/tools')
-      }
-    )
+    await clearDatabase(updateProgress, () => {
+      progressVisible.value = false
+      void router.push('/tools')
+    })
   } catch {
     progressVisible.value = false
   }
@@ -308,8 +153,7 @@ const handleClear = async () => {
     <el-card>
       <div class="import-export-title">数据导入导出</div>
       <p class="import-export-desc">
-        导出 .dexie 全量备份，支持在导出时选择是否包含试卷排版；导入时按文件后缀识别，.dexie
-        恢复全量数据，Excel 导入成绩列
+        Excel 可初始化学生名单，或按姓名添加成绩和期末评语；.dexie 用于全量备份与恢复。
       </p>
 
       <div class="import-export-actions">
@@ -323,7 +167,7 @@ const handleClear = async () => {
               将学生、配置、标签、错题本等数据导出为 .dexie 备份，可选试卷排版
             </div>
           </div>
-          <el-button type="primary" size="large" @click="handleExport" :loading="exporting">
+          <el-button type="primary" size="large" :loading="exporting" @click="handleExport">
             <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>
             导出
           </el-button>
@@ -340,26 +184,24 @@ const handleClear = async () => {
             <div class="action-desc">
               {{
                 hasStudentData
-                  ? '选择 .dexie 覆盖恢复，或选择 Excel 按姓名新增/覆盖成绩列'
-                  : '选择 .dexie 全量恢复，或选择 Excel 后设置姓名列，成绩列可选'
+                  ? '按姓名添加成绩或评语，也可以使用 .dexie 恢复全量备份'
+                  : '从 Excel 创建学生，可同时选择成绩列和评语列'
               }}
             </div>
           </div>
-          <el-button
-            type="success"
-            size="large"
-            @click="triggerImport"
-            :loading="importing || importingExcel"
-          >
-            <template #icon><font-awesome-icon :icon="['solid', 'upload']" /></template>
-            导入
-          </el-button>
+          <import-action-menu
+            :has-student-data="hasStudentData"
+            :loading="importingBackup || importingExcel"
+            @initial="triggerExcelImport('initial')"
+            @score="triggerExcelImport('score')"
+            @comment="triggerExcelImport('comment')"
+          />
           <input
-            ref="fileInput"
+            ref="excelFileInputRef"
             type="file"
             accept=".dexie,.xls,.xlsx"
-            style="display: none"
-            @change="handleFileChange"
+            hidden
+            @change="handleImportFileChange"
           />
         </div>
 
@@ -382,23 +224,35 @@ const handleClear = async () => {
 
       <div class="backup-tip">
         <font-awesome-icon :icon="['solid', 'circle-info']" />
-        <span>.dexie 导入会覆盖当前数据；Excel 可初始化学生名单，也可按姓名更新成绩列</span>
+        <span>.dexie 恢复会覆盖当前数据；Excel 空白评语不会覆盖已有内容</span>
       </div>
     </el-card>
 
-    <ImportProgress
+    <import-progress
       v-model:visible="progressVisible"
       :title="progressTitle"
       :percent="progressPercent"
     />
-    <ExcelColumnSelector
-      v-model="columnSelectorVisible"
-      :mode="hasStudentData ? 'incremental' : 'initial'"
+    <initial-import-dialog
+      v-model="initialDialogVisible"
       :headers="excelHeaders"
       :rows="excelRows"
-      @confirm="handleExcelColumnConfirm"
+      @confirm="handleInitialConfirm"
     />
-    <ExcelColumnConflictDialog
+    <excel-column-selector
+      v-model="scoreColumnSelectorVisible"
+      mode="incremental"
+      :headers="excelHeaders"
+      :rows="excelRows"
+      @confirm="handleScoreColumnConfirm"
+    />
+    <comment-import-dialog
+      v-model="commentDialogVisible"
+      :headers="excelHeaders"
+      :rows="excelRows"
+      @confirm="handleCommentConfirm"
+    />
+    <excel-column-conflict-dialog
       v-model="conflictDialogVisible"
       :columns="conflictColumns"
       @confirm="handleConflictConfirm"
@@ -407,100 +261,4 @@ const handleClear = async () => {
   </div>
 </template>
 
-<style scoped lang="scss">
-.import-export__wrapper {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 24px;
-
-  .import-export-title {
-    height: 32px;
-    font-size: 18px;
-    font-weight: 700;
-    line-height: 32px;
-    color: rgba(0, 0, 0, 0.85);
-    margin-bottom: 8px;
-  }
-
-  .import-export-desc {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 24px;
-  }
-
-  .import-export-actions {
-    .action-item {
-      display: flex;
-      align-items: center;
-      padding: 16px 0;
-
-      .action-icon {
-        width: 48px;
-        height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 12px;
-        margin-right: 16px;
-
-        svg {
-          font-size: 24px;
-        }
-
-        &.action-icon-export {
-          background: var(--el-color-primary-light-9);
-          svg {
-            color: var(--el-color-primary);
-          }
-        }
-
-        &.action-icon-import {
-          background: var(--el-color-success-light-9);
-          svg {
-            color: var(--el-color-success);
-          }
-        }
-
-        &.action-icon-clear {
-          background: var(--el-color-danger-light-9);
-          svg {
-            color: var(--el-color-danger);
-          }
-        }
-      }
-
-      .action-info {
-        flex: 1;
-
-        .action-label {
-          font-size: 16px;
-          font-weight: 500;
-          color: #333;
-          margin-bottom: 4px;
-        }
-
-        .action-desc {
-          font-size: 13px;
-          color: #999;
-        }
-      }
-    }
-  }
-
-  .backup-tip {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 24px;
-    padding: 12px 16px;
-    background: #f0f9ff;
-    border-radius: 8px;
-    font-size: 13px;
-    color: #666;
-
-    svg {
-      color: var(--el-color-primary);
-    }
-  }
-}
-</style>
+<style scoped lang="scss" src="./import/import-export.scss"></style>

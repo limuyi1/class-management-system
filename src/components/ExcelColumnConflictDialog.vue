@@ -50,16 +50,14 @@ const handleConfirm = () => {
     @update:model-value="(value: boolean) => !value && closeDialog()"
   >
     <div class="conflict-dialog">
-      <div class="conflict-dialog__tip">
-        以下成绩列已存在，请选择覆盖已有成绩或跳过该列。
-      </div>
+      <div class="conflict-dialog__tip">以下成绩列已存在，请选择覆盖已有成绩或跳过该列。</div>
 
       <div class="conflict-list">
         <div v-for="column in columns" :key="column" class="conflict-item">
           <div class="conflict-item__name">{{ column }}</div>
           <el-radio-group v-model="actions[column]" size="small">
-            <el-radio-button label="overwrite">覆盖</el-radio-button>
-            <el-radio-button label="skip">跳过</el-radio-button>
+            <el-radio-button value="overwrite">覆盖</el-radio-button>
+            <el-radio-button value="skip">跳过</el-radio-button>
           </el-radio-group>
         </div>
       </div>
