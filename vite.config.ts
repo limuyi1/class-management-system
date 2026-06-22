@@ -7,6 +7,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { createHtmlPlugin } from 'vite-plugin-html'
 import type { UserConfig } from 'vite'
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 const includeModule = (id: string, modules: string[]) =>
   id.includes('node_modules') &&
   modules.some((moduleName) => id.includes(`/node_modules/${moduleName}`))
@@ -17,18 +19,13 @@ export default defineConfig(({ mode, command }): UserConfig => {
   const env = loadEnv(mode, root)
 
   return {
-    plugins: [
-      vue(),
-      vueJsx(),
-      createHtmlPlugin({
-        inject: {
-          data: {
-            title: env.VITE_GLOB_APP_TITLE
-          }
+    plugins: [vue(), vueJsx(), createHtmlPlugin({
+      inject: {
+        data: {
+          title: env.VITE_GLOB_APP_TITLE
         }
-      }),
-      tailwindcss()
-    ],
+      }
+    }), tailwindcss(), cloudflare()],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -99,5 +96,5 @@ export default defineConfig(({ mode, command }): UserConfig => {
         }
       }
     }
-  }
+  };
 })
