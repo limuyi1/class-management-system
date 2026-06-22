@@ -1,6 +1,6 @@
 import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import type { Font as FontkitFontType, GlyphRun as FontkitGlyphRunType } from '@pdf-lib/fontkit'
+import type { Font as FontkitFontType } from '@pdf-lib/fontkit'
 
 import {
   buildEvaluationPdfLayout,
@@ -40,33 +40,15 @@ let cachedLabelSerifFontPromise: Promise<Uint8Array> | null = null
 const FONT_LOAD_TIMEOUT_MS = 10000
 const MIN_LABEL_FONT_SIZE_BYTES = 1024
 
-// 页脚固定标签不直接嵌入整套宋体，而是缓存成可复用的字形排版结果。
 type FooterLabelAssetType = {
-  glyphRun: FontkitGlyphRunType
-  unitsPerEm: number
+  pdfFont: PDFFont
+  text: string
   widthMm: number
 }
 
 type HandwriteFontAssetType = {
   pdfFont: PDFFont
   sourceFont: FontkitFontType
-}
-
-// fontkit 需要一个接收 path 指令的“画笔对象”，显式定义后更方便后续手改维护。
-type PathCommandRecorderType = {
-  commands: string[]
-  moveTo: (x: number, y: number) => void
-  lineTo: (x: number, y: number) => void
-  quadraticCurveTo: (cpx: number, cpy: number, x: number, y: number) => void
-  bezierCurveTo: (
-    cp1x: number,
-    cp1y: number,
-    cp2x: number,
-    cp2y: number,
-    x: number,
-    y: number
-  ) => void
-  closePath: () => void
 }
 
 /**
@@ -240,70 +222,32 @@ const drawCellHeader = (
 }
 
 const createFooterLabelAsset = async (
-  font: FontkitFontType,
+  pdfFont: PDFFont,
   text: string,
   fontSizePx: number
 ): Promise<FooterLabelAssetType> => {
-  // 这里提前算好字形和总宽度，后续每个单元格可直接复用。
-  const glyphRun = font.layout(text)
   const fontSizePt = pxToPt(fontSizePx)
-  const widthPt =
-    glyphRun.positions.reduce((total, position) => total + position.xAdvance, 0) *
-    (fontSizePt / font.unitsPerEm)
 
   return {
-    glyphRun,
-    unitsPerEm: font.unitsPerEm,
-    widthMm: widthPt / PT_PER_MM
+    pdfFont,
+    text,
+    widthMm: pdfFont.widthOfTextAtSize(text, fontSizePt) / PT_PER_MM
   }
 }
 
-/**
- * 将 fontkit 字形路径转换成 pdf-lib 可绘制的 SVG path。
- * pdf-lib 绘制 SVG 时内部会翻转一次 Y 轴，这里先手动抵消，避免页脚文字倒置。
- */
-const getPdfCompatibleSvgPath = (glyphRun: FontkitGlyphRunType['glyphs'][number]) => {
-  const recorder: PathCommandRecorderType = {
-    commands: [],
-    moveTo: (x, y) => recorder.commands.push(`M${x} ${-y}`),
-    lineTo: (x, y) => recorder.commands.push(`L${x} ${-y}`),
-    quadraticCurveTo: (cpx, cpy, x, y) => recorder.commands.push(`Q${cpx} ${-cpy} ${x} ${-y}`),
-    bezierCurveTo: (cp1x, cp1y, cp2x, cp2y, x, y) =>
-      recorder.commands.push(`C${cp1x} ${-cp1y} ${cp2x} ${-cp2y} ${x} ${-y}`),
-    closePath: () => recorder.commands.push('Z')
-  }
-
-  // pdf-lib 在绘制 SVG path 时会额外翻转 Y 轴，这里先把字形坐标转成兼容方向，避免页脚文字倒置。
-  glyphRun.path.toFunction().call(recorder, recorder)
-
-  return recorder.commands.join('')
-}
-
-// 固定标签绘制为矢量路径，既能保持清晰，又避免 PDF 体积因为整套宋体嵌入而膨胀。
-const drawFooterLabelVector = (
+const drawFooterLabelText = (
   page: PDFPage,
   asset: FooterLabelAssetType,
   textXPt: number,
   baselineYPt: number,
   fontSizePx: number
 ) => {
-  const scale = pxToPt(fontSizePx) / asset.unitsPerEm
-  let cursorX = textXPt
-
-  asset.glyphRun.glyphs.forEach((glyph, index) => {
-    const position = asset.glyphRun.positions[index]
-    const svgPath = getPdfCompatibleSvgPath(glyph)
-
-    if (svgPath) {
-      page.drawSvgPath(svgPath, {
-        x: cursorX + position.xOffset * scale,
-        y: baselineYPt - position.yOffset * scale,
-        scale,
-        color: rgb(0, 0, 0)
-      })
-    }
-
-    cursorX += position.xAdvance * scale
+  page.drawText(asset.text, {
+    x: textXPt,
+    y: baselineYPt,
+    size: pxToPt(fontSizePx),
+    font: asset.pdfFont,
+    color: rgb(0, 0, 0)
   })
 }
 
@@ -332,7 +276,7 @@ const drawCellFooter = (
   const footerLeftXPt = mmToPt(startX)
   const sealBaselinePt = getPdfY(pageHeightMm, sealBaselineTopMm)
 
-  drawFooterLabelVector(page, footerLeftAsset, footerLeftXPt, sealBaselinePt, sealFontSizePx)
+  drawFooterLabelText(page, footerLeftAsset, footerLeftXPt, sealBaselinePt, sealFontSizePx)
 
   const inscribeWidthMm = pxToMm(measureBrowserTextAdvanceWidth(inscribeText, inscribeFontSizePx))
   const footerRightX =
@@ -341,7 +285,7 @@ const drawCellFooter = (
   const footerRightXPt = mmToPt(footerRightX)
   const classTeacherBaselinePt = getPdfY(pageHeightMm, classTeacherBaselineTopMm)
 
-  drawFooterLabelVector(
+  drawFooterLabelText(
     page,
     footerRightAsset,
     footerRightXPt,
@@ -521,20 +465,21 @@ export const exportEvaluationTextPDF = async (
     const pdfDoc = await PDFDocument.create()
     pdfDoc.registerFontkit(fontkit)
 
-    // 正文仍使用 subset 控制体积；页脚固定标签改为矢量路径，因此无需再嵌入整套宋体。
+    // 手写正文使用 subset 控制体积；标签字体本身只有约 16KB，完整嵌入可避免
+    // CJK 子集 OTF 在部分 PDF 查看器中被错误映射成 ASCII 字符。
     const handwriteFont: HandwriteFontAssetType = {
       pdfFont: await pdfDoc.embedFont(handwriteFontBytes, { subset: true }),
       sourceFont: fontkit.create(handwriteFontBytes)
     }
-    const labelSerifVectorFont = fontkit.create(labelSerifFontBytes)
+    const labelSerifPdfFont = await pdfDoc.embedFont(labelSerifFontBytes, { subset: false })
     const [footerLeftAsset, footerRightAsset] = await Promise.all([
       createFooterLabelAsset(
-        labelSerifVectorFont,
+        labelSerifPdfFont,
         '学校：（章）',
         options.configuration.sealFontSize
       ),
       createFooterLabelAsset(
-        labelSerifVectorFont,
+        labelSerifPdfFont,
         '班主任：',
         options.configuration.classTeacherFontSize
       )

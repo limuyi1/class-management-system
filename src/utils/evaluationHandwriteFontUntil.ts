@@ -174,6 +174,19 @@ export const buildEvaluationExportText = (
     .join('\n')
 }
 
+export const isEvaluationRenderableTextChar = (char: string) => {
+  if (char.trim() === '') return false
+
+  const codePoint = char.codePointAt(0)
+  if (codePoint === undefined) return false
+
+  return !(
+    (codePoint >= 0x200b && codePoint <= 0x200d) ||
+    (codePoint >= 0xfe00 && codePoint <= 0xfe0f) ||
+    codePoint === 0xfeff
+  )
+}
+
 export const hasUnsupportedEvaluationHandwriteGlyphs = async (
   students: StudentDataType[],
   configuration: ConfigurationType
@@ -182,9 +195,11 @@ export const hasUnsupportedEvaluationHandwriteGlyphs = async (
   const font = fontkit.create(bytes)
   const text = buildEvaluationExportText(students, configuration)
 
-  // 导出前只判断是否存在缺字，具体缺哪些字不展示给用户，避免弹窗过载。
-  return Array.from(new Set(Array.from(text))).some((char) => {
-    const codePoint = char.codePointAt(0)
-    return codePoint !== undefined && !font.hasGlyphForCodePoint(codePoint)
-  })
+  // 导出前只判断可见字符是否缺字；换行、空格、零宽字符不需要字体提供可绘制字形。
+  return Array.from(new Set(Array.from(text).filter(isEvaluationRenderableTextChar))).some(
+    (char) => {
+      const codePoint = char.codePointAt(0)
+      return codePoint !== undefined && !font.hasGlyphForCodePoint(codePoint)
+    }
+  )
 }
