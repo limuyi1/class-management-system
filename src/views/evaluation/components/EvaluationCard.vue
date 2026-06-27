@@ -5,8 +5,10 @@ import { useConfigurationStore } from '@/stores/configuration'
 import {
   getEvaluationTextLayoutConstantsPx,
   getFooterBlockHeightPx,
-  layoutCommentText
+  MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
+  layoutAdaptiveCommentText
 } from '@/utils/evaluationTextLayoutUntil'
+import type { AdaptiveEvaluationCommentLayoutResultType } from '@/utils/evaluationTextLayoutUntil'
 import type {
   EvaluationPreviewCardEmitsType,
   EvaluationPreviewCardPropsType
@@ -42,7 +44,9 @@ const isActiveStudent = (student: Record<string, unknown> | undefined) => {
  * 预览正文和 PDF 正文共用同一套排版规则。
  * 如果后续要人工调整正文可用空间，优先改这里的宽高计算。
  */
-const getCommentLayout = (student: StudentDataType | undefined) => {
+const getCommentLayout = (
+  student: StudentDataType | undefined
+): AdaptiveEvaluationCommentLayoutResultType => {
   // 字体切换后需要触发重新测量，否则预览仍可能沿用旧字体的断行结果。
   void store.evaluationHandwriteFont?.updatedAt
   const comment = student?.comment || ''
@@ -60,17 +64,13 @@ const getCommentLayout = (student: StudentDataType | undefined) => {
       footerBlockHeightPx
   )
 
-  return layoutCommentText(comment, store.textFontSize, bodyWidthPx, bodyHeightPx)
-}
-
-const getCommentLineStyle = (student: StudentDataType | undefined, indent: boolean) => {
-  if (!indent) return commentLineStyle.value
-
-  const layout = getCommentLayout(student)
-  return {
-    ...commentLineStyle.value,
-    paddingLeft: `${layout.indentWidthPx}px`
-  }
+  return layoutAdaptiveCommentText(
+    comment,
+    store.textFontSize,
+    MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
+    bodyWidthPx,
+    bodyHeightPx
+  )
 }
 
 const cellStyle = computed(() => ({
@@ -91,11 +91,27 @@ const tableStyle = computed(() => ({
   marginLeft: `${props.pageInfo.tableOffsetX}px`
 }))
 
-const commentLineStyle = computed(() => ({
-  lineHeight: `${store.textFontSize * layoutConstantsPx.bodyLineHeightRatio}px`,
-  minHeight: `${store.textFontSize * layoutConstantsPx.bodyLineHeightRatio}px`,
-  paddingLeft: '0'
-}))
+const getCommentBodyStyle = (layout: AdaptiveEvaluationCommentLayoutResultType) => ({
+  fontSize: `${layout.fontSizePx}px`
+})
+
+const getAdaptiveCommentLineStyle = (
+  layout: AdaptiveEvaluationCommentLayoutResultType,
+  indent: boolean
+) => {
+  const lineStyle = {
+    lineHeight: `${layout.lineHeightPx}px`,
+    minHeight: `${layout.lineHeightPx}px`,
+    paddingLeft: '0'
+  }
+
+  if (!indent) return lineStyle
+
+  return {
+    ...lineStyle,
+    paddingLeft: `${layout.indentWidthPx}px`
+  }
+}
 </script>
 
 <template>
@@ -129,20 +145,32 @@ const commentLineStyle = computed(() => ({
                   <div class="custom-font" :style="{ fontSize: store.salutationFontSize + 'px' }">
                     {{ data[index + e - 1]?.[NAME_PROP] }}同学：
                   </div>
-                  <!-- 正文区域直接渲染共享排版结果，保证与导出 PDF 的换行、缩进、截断一致。 -->
-                  <div
-                    class="table-body custom-font"
-                    :style="{ fontSize: store.textFontSize + 'px' }"
+                  <!-- 正文区域复用共享排版结果，预览层额外处理轻微溢出的缩字和 tooltip。 -->
+                  <template
+                    v-for="commentLayout in [getCommentLayout(data[index + e - 1])]"
+                    :key="`${data[index + e - 1]?.[NAME_PROP]}_${commentLayout.fontSizePx}_${commentLayout.showTooltip}`"
                   >
-                    <div
-                      v-for="(line, lineIndex) in getCommentLayout(data[index + e - 1]).lines"
-                      :key="`${data[index + e - 1]?.[NAME_PROP]}_${lineIndex}`"
-                      class="table-body-line"
-                      :style="getCommentLineStyle(data[index + e - 1], line.indent)"
+                    <el-tooltip
+                      :content="String(data[index + e - 1]?.comment || '')"
+                      placement="top"
+                      :disabled="!commentLayout.showTooltip"
+                      popper-class="evaluation-comment-tooltip"
                     >
-                      {{ line.text }}
-                    </div>
-                  </div>
+                      <div
+                        class="table-body custom-font"
+                        :style="getCommentBodyStyle(commentLayout)"
+                      >
+                        <div
+                          v-for="(line, lineIndex) in commentLayout.lines"
+                          :key="`${data[index + e - 1]?.[NAME_PROP]}_${lineIndex}`"
+                          class="table-body-line"
+                          :style="getAdaptiveCommentLineStyle(commentLayout, line.indent)"
+                        >
+                          {{ line.text }}
+                        </div>
+                      </div>
+                    </el-tooltip>
+                  </template>
                   <div class="table-footer">
                     <span class="label-font" :style="{ fontSize: store.sealFontSize + 'px' }"
                       >学校：（章）</span
@@ -300,5 +328,12 @@ const commentLineStyle = computed(() => ({
   padding: 0 !important;
   line-height: normal !important;
   vertical-align: top !important;
+}
+
+:global(.evaluation-comment-tooltip) {
+  max-width: 360px;
+  line-height: 1.6;
+  white-space: normal;
+  word-break: break-word;
 }
 </style>
