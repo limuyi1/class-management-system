@@ -9,7 +9,8 @@ import {
 import {
   getEvaluationTextLayoutConstantsPx,
   getFooterBlockHeightPx,
-  layoutCommentText,
+  MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
+  layoutAdaptiveCommentText,
   measureBrowserTextAdvanceWidth
 } from '@/utils/evaluationTextLayoutUntil'
 import { getEvaluationHandwriteFontBytes } from '@/utils/evaluationHandwriteFontUntil'
@@ -305,7 +306,7 @@ const drawCellFooter = (
 }
 
 /**
- * 正文排版完全复用共享排版引擎。
+ * 正文排版完全复用共享自适应排版引擎，与页面预览保持所见即所得。
  * 后续若要调整行高、首行缩进、截断规则，优先改 `evaluationTextLayoutUntil.ts`。
  */
 const drawCellComment = (
@@ -319,13 +320,14 @@ const drawCellComment = (
   handwriteFont: HandwriteFontAssetType,
   pageHeightMm: number
 ) => {
-  const layout = layoutCommentText(
+  const layout = layoutAdaptiveCommentText(
     cell.comment,
     textFontSizePx,
+    MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
     bodyWidth / layoutConstantsPx.pxToMm,
     bodyHeight / layoutConstantsPx.pxToMm
   )
-  const baselineOffset = getBaselineOffsetMm(textFontSizePx)
+  const baselineOffset = getBaselineOffsetMm(layout.fontSizePx)
   const bodyLineHeight = pxToMm(layout.lineHeightPx)
   const indentWidth = pxToMm(layout.indentWidthPx)
 
@@ -337,7 +339,7 @@ const drawCellComment = (
       x,
       bodyTopY + index * bodyLineHeight + baselineOffset,
       handwriteFont,
-      textFontSizePx,
+      layout.fontSizePx,
       pageHeightMm
     )
   })

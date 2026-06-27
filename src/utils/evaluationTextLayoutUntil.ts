@@ -9,6 +9,7 @@ const INNER_PADDING_Y_PX = 8
 const HEADER_GAP_PX = 2
 const BODY_GAP_PX = 1
 const FOOTER_GAP_PX = 4
+export const MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX = 12
 
 export interface EvaluationCommentLineType {
   text: string
@@ -20,6 +21,12 @@ export interface EvaluationCommentLayoutResultType {
   truncated: boolean
   lineHeightPx: number
   indentWidthPx: number
+}
+
+export interface AdaptiveEvaluationCommentLayoutResultType
+  extends EvaluationCommentLayoutResultType {
+  fontSizePx: number
+  showTooltip: boolean
 }
 
 const createMeasureContext = () => {
@@ -166,6 +173,44 @@ export const layoutCommentText = (
     truncated: true,
     lineHeightPx,
     indentWidthPx
+  }
+}
+
+export const layoutAdaptiveCommentText = (
+  comment: string,
+  defaultFontSizePx: number,
+  minFontSizePx: number,
+  maxWidthPx: number,
+  maxHeightPx: number
+): AdaptiveEvaluationCommentLayoutResultType => {
+  const defaultLayout = layoutCommentText(comment, defaultFontSizePx, maxWidthPx, maxHeightPx)
+
+  if (!defaultLayout.truncated) {
+    return {
+      ...defaultLayout,
+      fontSizePx: defaultFontSizePx,
+      showTooltip: false
+    }
+  }
+
+  const minimumFontSize = Math.max(1, Math.min(defaultFontSizePx, minFontSizePx))
+
+  for (let fontSize = defaultFontSizePx - 1; fontSize >= minimumFontSize; fontSize -= 1) {
+    const nextLayout = layoutCommentText(comment, fontSize, maxWidthPx, maxHeightPx)
+
+    if (!nextLayout.truncated) {
+      return {
+        ...nextLayout,
+        fontSizePx: fontSize,
+        showTooltip: false
+      }
+    }
+  }
+
+  return {
+    ...defaultLayout,
+    fontSizePx: defaultFontSizePx,
+    showTooltip: true
   }
 }
 
