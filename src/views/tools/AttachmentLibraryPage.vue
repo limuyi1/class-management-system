@@ -234,7 +234,7 @@ function handleCropCancel(): void {
 
 <template>
   <div class="attachment-library-page app-page-shell">
-    <page-header :icon="['solid', 'images']" title="附件库" :subtitle="attachmentCountText">
+    <page-header :icon="['solid', 'images']" title="素材库管理" :subtitle="attachmentCountText">
       <template #left>
         <el-tooltip content="返回工具" placement="top">
           <el-button size="small" circle aria-label="返回工具" @click="backToTools">
@@ -271,11 +271,7 @@ function handleCropCancel(): void {
           <el-button size="small" @click="selectAll" :disabled="attachments.length === 0">
             全选
           </el-button>
-          <el-button
-            size="small"
-            :disabled="selectedCount === 0"
-            @click="clearSelection"
-          >
+          <el-button size="small" :disabled="selectedCount === 0" @click="clearSelection">
             取消选择
           </el-button>
           <el-button
@@ -292,7 +288,7 @@ function handleCropCancel(): void {
 
       <div v-if="attachments.length === 0 && !loading" class="attachment-empty">
         <font-awesome-icon :icon="['solid', 'images']" />
-        <span>拖入图片或点击上传，建立试卷素材库</span>
+        <span>拖入图片或点击上传，建立长期复用素材库</span>
       </div>
 
       <draggable
@@ -305,7 +301,10 @@ function handleCropCancel(): void {
         @end="handleSortEnd"
       >
         <template #item="{ element: attachment }">
-          <article class="attachment-card" :class="{ selected: selectedIds.includes(attachment.id) }">
+          <article
+            class="attachment-card"
+            :class="{ selected: selectedIds.includes(attachment.id) }"
+          >
             <button
               class="attachment-drag-handle"
               type="button"
@@ -341,9 +340,7 @@ function handleCropCancel(): void {
                       <el-dropdown-item @click="handleRename(attachment)">
                         重命名
                       </el-dropdown-item>
-                      <el-dropdown-item @click="openCropper(attachment)">
-                        裁剪
-                      </el-dropdown-item>
+                      <el-dropdown-item @click="openCropper(attachment)"> 裁剪 </el-dropdown-item>
                       <el-dropdown-item divided @click="handleDelete(attachment)">
                         删除
                       </el-dropdown-item>
@@ -352,7 +349,9 @@ function handleCropCancel(): void {
                 </el-dropdown>
               </div>
               <div class="attachment-meta">
-                <span class="attachment-meta__item">{{ attachment.width }} × {{ attachment.height }}</span>
+                <span class="attachment-meta__item"
+                  >{{ attachment.width }} × {{ attachment.height }}</span
+                >
                 <span class="attachment-meta__item">
                   {{ getAttachmentOrientationLabel(attachment) }}
                 </span>
@@ -400,8 +399,7 @@ function handleCropCancel(): void {
   flex: 1;
   padding: 16px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%),
-    #fff;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.96) 100%), #fff;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   box-shadow: 0 18px 40px rgba(15, 23, 42, 0.06);
@@ -458,9 +456,7 @@ function handleCropCancel(): void {
   position: relative;
   min-width: 0;
   padding: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, #ffffff 100%),
-    #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, #ffffff 100%), #fff;
   border: 1px solid #e7edf5;
   border-radius: 16px;
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
@@ -480,7 +476,11 @@ function handleCropCancel(): void {
 .attachment-card.selected {
   border-color: color-mix(in srgb, var(--theme-menu-active) 42%, #bfd6fb);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--theme-menu-active) 6%, #ffffff) 0%, #ffffff 100%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--theme-menu-active) 6%, #ffffff) 0%,
+      #ffffff 100%
+    ),
     #fff;
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--theme-menu-active) 16%, #eef4ff),
@@ -536,8 +536,7 @@ function handleCropCancel(): void {
   width: 100%;
   aspect-ratio: 10 / 8;
   padding: 0;
-  background:
-    linear-gradient(135deg, #f7f9fc 0%, #eef3f9 100%);
+  background: linear-gradient(135deg, #f7f9fc 0%, #eef3f9 100%);
   border: 0;
   border-radius: 12px;
   overflow: hidden;

@@ -82,14 +82,14 @@ function handleConfirm(): void {
 </script>
 
 <template>
-  <el-dialog v-model="visible" title="选择附件" width="900px" :close-on-click-modal="false">
+  <el-dialog v-model="visible" title="从素材库选择" width="900px" :close-on-click-modal="false">
     <div v-loading="loading" class="attachment-selector">
       <div v-if="attachments.length === 0" class="selector-empty">
         <font-awesome-icon :icon="['solid', 'images']" />
-        <span>附件库还没有图片，请先上传图片</span>
+        <span>素材库还没有图片，可先去素材库保存长期复用素材</span>
         <el-button type="primary" size="small" @click="emit('addAttachments')">
           <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
-          去附件库添加
+          去素材库添加
         </el-button>
       </div>
 
@@ -157,9 +157,7 @@ function handleConfirm(): void {
   position: relative;
   min-width: 0;
   padding: 10px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, #ffffff 100%),
-    #fff;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, #ffffff 100%), #fff;
   border: 1px solid #e2e8f0;
   border-radius: 16px;
   box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
@@ -181,7 +179,11 @@ function handleConfirm(): void {
 .selector-card.selected {
   border-color: color-mix(in srgb, var(--theme-menu-active) 42%, #bfd6fb);
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--theme-menu-active) 6%, #ffffff) 0%, #ffffff 100%),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--theme-menu-active) 6%, #ffffff) 0%,
+      #ffffff 100%
+    ),
     #fff;
   box-shadow:
     0 0 0 2px color-mix(in srgb, var(--theme-menu-active) 16%, #eef4ff),

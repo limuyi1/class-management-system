@@ -1,6 +1,5 @@
 import { computed, nextTick, ref, type Ref } from 'vue'
 
-import { getPaperLayoutPreset } from '@/views/tools/constants/paperLayout'
 import { attachmentToObjectUrl } from '@/views/tools/services/attachmentService'
 import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
 import {
@@ -48,31 +47,41 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
   const dragState = ref<PaperLayoutDragStateType | null>(null)
 
   const pageSize = computed(() => getPaperLayoutPageSize(options.settings))
-  const layoutPreset = computed(() => getPaperLayoutPreset(options.settings.orientation))
-  const contentWidth = computed(() => pageSize.value.width - layoutPreset.value.margin * 2)
-  const contentHeight = computed(() => pageSize.value.height - layoutPreset.value.margin * 2)
+  const layoutSettings = computed(() => ({
+    columns: Math.max(options.settings.columns, 1),
+    fitMode: options.settings.fitMode,
+    gap: Math.max(options.settings.gap, 0),
+    margin: Math.max(options.settings.margin, 0)
+  }))
+  const contentWidth = computed(() =>
+    Math.max(pageSize.value.width - layoutSettings.value.margin * 2, 1)
+  )
+  const contentHeight = computed(() =>
+    Math.max(pageSize.value.height - layoutSettings.value.margin * 2, 1)
+  )
   const columnWidth = computed(() => {
-    return (
-      (contentWidth.value - layoutPreset.value.gap * (layoutPreset.value.columns - 1)) /
-      layoutPreset.value.columns
-    )
+    const columns = layoutSettings.value.columns
+    return Math.max((contentWidth.value - layoutSettings.value.gap * (columns - 1)) / columns, 1)
   })
 
   const layoutMetrics = computed(() => ({
     pageSize: pageSize.value,
-    margin: layoutPreset.value.margin,
-    gap: layoutPreset.value.gap,
-    columns: layoutPreset.value.columns,
+    margin: layoutSettings.value.margin,
+    gap: layoutSettings.value.gap,
+    columns: layoutSettings.value.columns,
+    fitMode: layoutSettings.value.fitMode,
     columnWidth: columnWidth.value,
     contentHeight: contentHeight.value
   }))
 
   const pagePlacementMetrics = computed(() => ({
     pageSize: pageSize.value,
-    margin: layoutPreset.value.margin,
-    gap: layoutPreset.value.gap,
-    columns: layoutPreset.value.columns,
-    columnWidth: columnWidth.value
+    margin: layoutSettings.value.margin,
+    gap: layoutSettings.value.gap,
+    columns: layoutSettings.value.columns,
+    fitMode: layoutSettings.value.fitMode,
+    columnWidth: columnWidth.value,
+    contentHeight: contentHeight.value
   }))
 
   const pages = computed(() => buildPaperLayoutPages(canvasItems.value, pageSize.value))
@@ -82,12 +91,14 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     return canvasItems.value.find((item) => item.id === selectedItemId.value)
   })
 
-  const activePageIndex = computed(() => selectedItem.value?.pageIndex ?? activePageNumber.value - 1)
+  const activePageIndex = computed(
+    () => selectedItem.value?.pageIndex ?? activePageNumber.value - 1
+  )
 
   const pageStyle = computed(() => ({
     width: `${mmToPixelPrecise(pageSize.value.width)}px`,
     height: `${mmToPixelPrecise(pageSize.value.height)}px`,
-    '--paper-margin': `${mmToPixelPrecise(layoutPreset.value.margin)}px`
+    '--paper-margin': `${mmToPixelPrecise(layoutSettings.value.margin)}px`
   }))
 
   const scaledPageStyle = computed(() => ({
@@ -98,7 +109,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
   const previewPercent = computed(() => `${Math.round(previewScale.value * 100)}%`)
 
   const currentImagesHint = computed(() => {
-    if (canvasItems.value.length === 0) return '从附件库选择图片后开始排版'
+    if (canvasItems.value.length === 0) return '添加图片后开始排版'
     return `${canvasItems.value.length} 张图片 / ${pageCount.value} 页`
   })
 
@@ -109,7 +120,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     return createPaperLayoutItem(attachment, {
       index,
       dataUrl: attachmentToObjectUrl(attachment),
-      margin: layoutPreset.value.margin,
+      margin: layoutSettings.value.margin,
       columnWidth: columnWidth.value
     })
   }

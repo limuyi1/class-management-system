@@ -49,7 +49,10 @@ const handleMenuClick = (item: MenuItemType) => {
   if (item.disabled) return
   const targetPath = item.targetPath || item.path
   if (item.path === '/setting') {
-    router.push({ path: '/setting', query: { tab: hasData.value ? 'student-info' : 'system-backup' } })
+    router.push({
+      path: '/setting',
+      query: { tab: hasData.value ? 'label-maintenance' : 'system-backup' }
+    })
   } else {
     router.push(targetPath)
   }

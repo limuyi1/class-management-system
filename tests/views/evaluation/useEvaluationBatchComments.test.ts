@@ -65,6 +65,8 @@ const createStudent = (
   ...overrides
 })
 
+const createComment = (length = 105): string => '这'.repeat(length)
+
 describe('useEvaluationBatchComments', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -75,7 +77,7 @@ describe('useEvaluationBatchComments', () => {
 
   it('should format unique non-empty tags for batch prompts', () => {
     expect(formatEvaluationBatchTags(['认真', ' ', '认真', '积极'])).toBe('认真、积极')
-    expect(formatEvaluationBatchTags([])).toBe('暂无')
+    expect(formatEvaluationBatchTags([])).toBe('')
   })
 
   it('should warn when AI is not configured', async () => {
@@ -97,7 +99,10 @@ describe('useEvaluationBatchComments', () => {
       createStudent('李四', { comment: '' })
     ])
     messageBoxMocks.confirm.mockRejectedValue('cancel')
-    aiServiceMocks.generateBatchComments.mockResolvedValue([{ name: '李四', comment: ' 新评语 ' }])
+    const generatedComment = createComment()
+    aiServiceMocks.generateBatchComments.mockResolvedValue([
+      { name: '李四', comment: generatedComment }
+    ])
     const hook = useEvaluationBatchComments({
       students,
       tagCategoryList: ref(tagCategoryList),
@@ -117,9 +122,65 @@ describe('useEvaluationBatchComments', () => {
       DefaultAIPrompts.batchComment,
       expect.objectContaining({ apiKey: 'key' })
     )
-    expect(students.value.map((student) => student.comment)).toEqual(['已有评语', '新评语'])
+    expect(students.value.map((student) => student.comment)).toEqual(['已有评语', generatedComment])
     expect(messageMocks.success).toHaveBeenCalledWith('批量生成完成，已更新 1 条期末评语')
     expect(loadingMocks.close).toHaveBeenCalled()
+  })
+
+  it('should apply generated comments by student name when AI returns shuffled results', async () => {
+    const zhangComment = createComment(101)
+    const liComment = createComment(102)
+    const students = ref([createStudent('张三'), createStudent('李四')])
+    aiServiceMocks.generateBatchComments.mockResolvedValue([
+      { name: '李四', comment: liComment },
+      { name: '张三', comment: zhangComment }
+    ])
+    const hook = useEvaluationBatchComments({
+      students,
+      tagCategoryList: ref(tagCategoryList),
+      aiConfig: createAIConfig()
+    })
+
+    await hook.handleBatchGenerate()
+
+    expect(students.value.map((student) => student.comment)).toEqual([zhangComment, liComment])
+    expect(messageMocks.success).toHaveBeenCalledWith('批量生成完成，已更新 2 条期末评语')
+  })
+
+  it('should skip generated comments shorter than 100 chars', async () => {
+    const validComment = createComment()
+    const students = ref([createStudent('张三'), createStudent('李四')])
+    aiServiceMocks.generateBatchComments.mockResolvedValue([
+      { name: '张三', comment: '太短' },
+      { name: '李四', comment: validComment }
+    ])
+    const hook = useEvaluationBatchComments({
+      students,
+      tagCategoryList: ref(tagCategoryList),
+      aiConfig: createAIConfig()
+    })
+
+    await hook.handleBatchGenerate()
+
+    expect(students.value.map((student) => student.comment)).toEqual([undefined, validComment])
+    expect(messageMocks.warning).toHaveBeenCalledWith('有 1 条评语少于 100 字，已跳过写入')
+    expect(messageMocks.success).toHaveBeenCalledWith('批量生成完成，已更新 1 条期末评语')
+  })
+
+  it('should allow generated comments longer than 120 chars', async () => {
+    const longComment = createComment(130)
+    const students = ref([createStudent('张三')])
+    aiServiceMocks.generateBatchComments.mockResolvedValue([{ name: '张三', comment: longComment }])
+    const hook = useEvaluationBatchComments({
+      students,
+      tagCategoryList: ref(tagCategoryList),
+      aiConfig: createAIConfig()
+    })
+
+    await hook.handleBatchGenerate()
+
+    expect(students.value[0].comment).toBe(longComment)
+    expect(messageMocks.success).toHaveBeenCalledWith('批量生成完成，已更新 1 条期末评语')
   })
 
   it('should polish existing comments and keep blank comments unchanged', async () => {

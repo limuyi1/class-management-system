@@ -15,6 +15,8 @@ vi.mock('@/views/tools/services/attachmentService', () => ({
 const createSettings = (): PaperLayoutSettingsType => ({
   pageType: PagesEnum.A4,
   orientation: 'portrait',
+  layoutMode: 'free',
+  fitMode: 'width',
   columns: 2,
   margin: 10,
   gap: 5

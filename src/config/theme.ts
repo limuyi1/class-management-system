@@ -125,7 +125,7 @@ export const themes: Record<ThemeName, ThemeConfig> = {
   }
 }
 
-export const defaultTheme: ThemeName = 'green'
+export const defaultTheme: ThemeName = 'bluepink'
 
 export const themeOptions: Array<{ name: ThemeName; label: string; color: string }> = [
   { name: 'green', label: '清新绿', color: '#10B981' },

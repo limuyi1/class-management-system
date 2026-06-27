@@ -222,9 +222,8 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const goToEditTags = () => {
     if (!formData.name) return
     router.push({
-      path: '/setting',
+      path: '/student-info',
       query: {
-        tab: 'student-info',
         'edit-tags': '1',
         'student-name': formData.name,
         'return-to': 'comment',

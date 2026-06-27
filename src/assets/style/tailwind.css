@@ -3,15 +3,15 @@
 @theme {
   --font-fy: 'FYFont', sans-serif;
 
-  --color-primary: var(--theme-primary, #10b981);
+  --color-primary: var(--theme-primary, #8b5cf6);
   --color-dark: rgba(31, 41, 55, 0.9);
 }
 
 :root {
-  --theme-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --theme-primary: #10b981;
-  --theme-primary-light: #34d399;
-  --theme-footer-bg: #059669;
-  --theme-menu-active: #10b981;
-  --theme-menu-active-bg: #ecfdf5;
+  --theme-gradient: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+  --theme-primary: #8b5cf6;
+  --theme-primary-light: #c4b5fd;
+  --theme-footer-bg: #6d28d9;
+  --theme-menu-active: #8b5cf6;
+  --theme-menu-active-bg: #f5f3ff;
 }

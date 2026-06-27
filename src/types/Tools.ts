@@ -1,10 +1,14 @@
 import { PagesEnum } from '@/types/Common'
 
 export type PaperLayoutOrientationType = 'portrait' | 'landscape'
+export type PaperLayoutModeType = 'single' | 'double' | 'free'
+export type PaperLayoutFitModeType = 'width' | 'slot'
 
 export interface PaperLayoutSettingsType {
   pageType: PagesEnum
   orientation: PaperLayoutOrientationType
+  layoutMode: PaperLayoutModeType
+  fitMode: PaperLayoutFitModeType
   columns: number
   margin: number
   gap: number

@@ -14,6 +14,12 @@ const menu = [
     disabled: true
   },
   {
+    name: '学生信息',
+    icon: 'user',
+    path: '/student-info',
+    disabled: true
+  },
+  {
     name: '评语',
     icon: 'comments',
     path: '/comment',

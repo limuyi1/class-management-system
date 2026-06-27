@@ -25,6 +25,14 @@ pnpm test:coverage    # Run Vitest with coverage report
 
 - Do not start the dev server (`pnpm dev`, `npm run dev`, `yarn dev`, `bun dev`, etc.) unless the user explicitly asks for it.
 
+### Dependency Install Policy
+
+- Do not run `pnpm install`, `npm install`, `yarn install`, or dependency update commands automatically.
+- Assume dependencies have already been installed by the user unless they explicitly ask you to install or update packages.
+- Do not delete, recreate, clean, prune, or otherwise modify `node_modules/` unless the user explicitly asks for that exact action.
+- If `pnpm test`, `pnpm build`, or another script tries to trigger dependency installation/rebuilding, stop and report the exact issue instead of continuing with install attempts.
+- If local test binaries are missing (for example `node_modules/.bin/vitest`), report that verification could not be run in the current agent environment and ask the user to restore dependencies.
+
 ## Testing
 
 Tests use **Vitest** with `@vue/test-utils` and `happy-dom`. Test files are located in the `tests/` directory:

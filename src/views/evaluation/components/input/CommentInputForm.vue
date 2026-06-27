@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
+import {
+  COMMENT_MAX_LENGTH,
+  COMMENT_MIN_LENGTH,
+  countCommentLength,
+  getCommentLengthError
+} from '@/utils/commentLengthUntil'
+
 import type { TagCategoryType } from '@/types/Setting'
 
 interface Props {
@@ -9,23 +16,20 @@ interface Props {
   currentStudentTags: Record<string, string[]> | null
   hasAnyTags: boolean
   tagCategoryList: TagCategoryType[]
-  generating: boolean
-  canGenerate: boolean
-  showGenerateButton?: boolean
 }
 
 interface Emits {
   (event: 'update:modelValue', value: string | null): void
   (event: 'go-edit-tags'): void
-  (event: 'generate-comment'): void
 }
 
-const props = withDefaults(defineProps<Props>(), {
-  showGenerateButton: true
-})
+const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const commentInputRef = ref<{ focus: () => void } | null>(null)
+
+const commentLength = computed(() => countCommentLength(props.modelValue))
+const commentLengthError = computed(() => getCommentLengthError(props.modelValue))
 
 const activeCategories = computed(() => {
   const tags = props.currentStudentTags
@@ -79,36 +83,14 @@ defineExpose({ focus })
       :model-value="modelValue"
       size="default"
       type="textarea"
-      maxlength="120"
-      show-word-limit
       placeholder="请输入学生期末评语..."
       :rows="5"
       :disabled="disabled"
       @update:model-value="(value: unknown) => emit('update:modelValue', value as string | null)"
     />
-  </el-form-item>
-
-  <el-form-item v-if="showGenerateButton">
-    <el-tooltip
-      :disabled="disabled || hasAnyTags"
-      :content="!disabled && !hasAnyTags ? '该学生暂无标签，请先在设置页面添加标签' : ''"
-      placement="top"
-    >
-      <div style="width: 100%">
-        <el-button
-          class="ai-generate-btn"
-          style="width: 100%"
-          size="default"
-          round
-          :disabled="!canGenerate"
-          :loading="generating"
-          @click="emit('generate-comment')"
-        >
-          <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
-          AI 生成评语
-        </el-button>
-      </div>
-    </el-tooltip>
+    <div class="comment-length" :class="{ 'is-error': !!commentLengthError }">
+      {{ commentLength }}/{{ COMMENT_MIN_LENGTH }}-{{ COMMENT_MAX_LENGTH }} 字
+    </div>
   </el-form-item>
 </template>
 
@@ -196,24 +178,16 @@ defineExpose({ focus })
   }
 }
 
-.ai-generate-btn {
-  height: 36px;
-  font-size: 14px;
-  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-  border: none;
-  color: #fff;
+.comment-length {
+  width: 100%;
+  margin-top: 4px;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #64748b;
 
-  &:hover {
-    opacity: 0.9;
-  }
-
-  &:disabled {
-    background: #cbd5e1;
-    color: #94a3b8;
-  }
-
-  svg {
-    margin-right: 4px;
+  &.is-error {
+    color: #f56c6c;
   }
 }
 </style>

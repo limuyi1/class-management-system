@@ -36,6 +36,8 @@ vi.mock('element-plus', () => ({
 const createSettings = (): PaperLayoutSettingsType => ({
   pageType: PagesEnum.A4,
   orientation: 'portrait',
+  layoutMode: 'free',
+  fitMode: 'width',
   columns: 2,
   margin: 10,
   gap: 5
@@ -69,6 +71,8 @@ const createDraft = (): PaperLayoutDraftRecordType => ({
   settings: {
     pageType: PagesEnum.A3,
     orientation: 'landscape',
+    layoutMode: 'free',
+    fitMode: 'width',
     columns: 3,
     margin: 8,
     gap: 4
@@ -195,6 +199,7 @@ describe('usePaperLayoutDraft', () => {
 
     expect(settings.pageType).toBe(PagesEnum.A3)
     expect(settings.orientation).toBe('landscape')
+    expect(settings.layoutMode).toBe('free')
     expect(setCanvasItems).toHaveBeenCalled()
     expect(items.value.map((item) => [item.id, item.attachmentId, item.documentY])).toEqual([
       ['item-a', 'a', 220],

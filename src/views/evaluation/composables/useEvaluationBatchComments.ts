@@ -4,12 +4,13 @@ import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { generateBatchComments, polishBatchComments } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUntil'
 import { applyPolishedComments, buildCommentPolishTargets } from '@/utils/commentPolishUntil'
+import { COMMENT_MIN_LENGTH, countCommentLength } from '@/utils/commentLengthUntil'
 import { NAME_PROP } from '@/types/Constants'
 import type { AIConfigType } from '@/types/AIConfig'
 import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
 
-const batchSize = 10
+const batchSize = 5
 
 interface EvaluationAIConfigType extends AIConfigType {
   isConfigured: boolean
@@ -30,10 +31,12 @@ export function getEvaluationStudentName(student: StudentDataType): string {
 
 export function formatEvaluationBatchTags(tags: string[]): string {
   const uniqueTags = Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)))
-  return uniqueTags.length ? uniqueTags.join('、') : '暂无'
+  return uniqueTags.length ? uniqueTags.join('、') : ''
 }
 
-async function resolveBatchGenerateMode(students: StudentDataType[]): Promise<GenerateModeType | null> {
+async function resolveBatchGenerateMode(
+  students: StudentDataType[]
+): Promise<GenerateModeType | null> {
   const existingCount = students.filter((item) => item.comment && item.comment.trim()).length
   const emptyCount = students.length - existingCount
 
@@ -152,12 +155,28 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       }
 
       let updatedCount = 0
-      for (let index = 0; index < allResults.length; index++) {
-        const generatedComment = allResults[index].comment?.trim()
-        if (generatedComment) {
-          filteredStudents[index].comment = generatedComment
-          updatedCount++
+      let tooShortCount = 0
+      const resultMap = new Map(
+        allResults
+          .map((item) => [item.name, item.comment?.trim() || ''] as const)
+          .filter(([, comment]) => !!comment)
+      )
+
+      for (const student of filteredStudents) {
+        const generatedComment = resultMap.get(getEvaluationStudentName(student))
+        if (!generatedComment) continue
+
+        if (countCommentLength(generatedComment) < COMMENT_MIN_LENGTH) {
+          tooShortCount++
+          continue
         }
+
+        student.comment = generatedComment
+        updatedCount++
+      }
+
+      if (tooShortCount > 0) {
+        ElMessage.warning(`有 ${tooShortCount} 条评语少于 100 字，已跳过写入`)
       }
 
       ElMessage.success(`批量生成完成，已更新 ${updatedCount} 条期末评语`)

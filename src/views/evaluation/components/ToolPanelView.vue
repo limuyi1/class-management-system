@@ -46,7 +46,6 @@ defineExpose({
         ref="evaluationInputCardRef"
         :auto-next-on-submit="true"
         :prompt-unsaved-on-switch="true"
-        :inline-comment-actions="true"
         @scroll="(index) => emit('scroll', index)"
         @active-student-change="(student) => emit('active-student-change', student)"
       />

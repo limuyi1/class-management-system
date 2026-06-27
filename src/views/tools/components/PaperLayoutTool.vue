@@ -5,15 +5,22 @@ import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 
 import AttachmentSelectorDialog from '@/views/tools/components/AttachmentSelectorDialog.vue'
 import PaperLayoutDraftDialog from '@/views/tools/components/PaperLayoutDraftDialog.vue'
-import { getPaperLayoutPreset } from '@/views/tools/constants/paperLayout'
+import {
+  createDefaultPaperLayoutSettings,
+  getPaperLayoutPreset
+} from '@/views/tools/constants/paperLayout'
 import { PagesEnum } from '@/types/Common'
 import { useToolsStore } from '@/stores/tools'
 import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
-import { getAttachments } from '@/views/tools/services/attachmentService'
+import { createAttachmentRecordsFromFiles } from '@/views/tools/services/attachmentService'
 import { exportPaperLayoutPdf } from '@/views/tools/services/paperLayoutExportService'
 import { usePaperLayoutCanvas } from '@/views/tools/composables/usePaperLayoutCanvas'
 import { usePaperLayoutDraft } from '@/views/tools/composables/usePaperLayoutDraft'
-import type { AttachmentRecordType } from '@/types/Tools'
+import type {
+  AttachmentRecordType,
+  PaperLayoutModeType,
+  PaperLayoutOrientationType
+} from '@/types/Tools'
 
 interface Props {
   fullscreen?: boolean
@@ -25,14 +32,18 @@ const emit = defineEmits<{
 }>()
 
 const previewPanelRef = ref<HTMLElement | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 const exporting = ref(false)
+const uploading = ref(false)
 const selectorVisible = ref(false)
 const draftDialogVisible = ref(false)
-const attachmentCount = ref(0)
 
 const router = useRouter()
 const toolsStore = useToolsStore()
 const settings = toolsStore.paperLayout
+if (!settings.layoutMode || !settings.fitMode) {
+  Object.assign(settings, createDefaultPaperLayoutSettings())
+}
 const {
   activePageIndex,
   autoArrange,
@@ -70,28 +81,22 @@ const {
   settings,
   previewPanelRef
 })
-const {
-  draftCount,
-  handleOpenDraft,
-  handleSaveDraft,
-  refreshDraftCount,
-  resetCurrentDraft
-} = usePaperLayoutDraft({
-  settings,
-  canvasItems,
-  pageSize,
-  toCanvasItem,
-  revokeItemUrls,
-  setCanvasItems,
-  clearSelection
-})
+const { draftCount, handleOpenDraft, handleSaveDraft, refreshDraftCount, resetCurrentDraft } =
+  usePaperLayoutDraft({
+    settings,
+    canvasItems,
+    pageSize,
+    toCanvasItem,
+    revokeItemUrls,
+    setCanvasItems,
+    clearSelection
+  })
 
 onMounted(() => {
   window.addEventListener('resize', fitPreviewWidth)
   window.addEventListener('pointermove', handlePointerMove)
   window.addEventListener('pointerup', handlePointerUp)
   fitPreviewWidth()
-  refreshAttachmentCount()
   refreshDraftCount()
 })
 
@@ -111,28 +116,80 @@ watch(
 )
 
 watch(
-  () => settings.orientation,
-  (orientation) => {
-    Object.assign(settings, getPaperLayoutPreset(orientation))
-  },
-  { immediate: true }
+  () => settings.layoutMode,
+  (layoutMode) => {
+    Object.assign(settings, getPaperLayoutPreset(layoutMode))
+    if (canvasItems.value.length > 0) {
+      autoArrange()
+    }
+  }
 )
+
+function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
+  const labelMap: Record<PaperLayoutModeType, string> = {
+    single: '一页一张',
+    double: '一页两张',
+    free: '自由排版'
+  }
+  return labelMap[layoutMode]
+}
+
+function handleOrientationChange(orientation: PaperLayoutOrientationType): void {
+  settings.orientation = orientation
+  settings.layoutMode = orientation === 'portrait' ? 'single' : 'double'
+}
 
 function goAttachmentLibrary(): void {
   router.push('/tools/attachments')
 }
 
-async function refreshAttachmentCount(): Promise<void> {
-  attachmentCount.value = (await getAttachments()).length
+function openTemporaryUploader(): void {
+  fileInputRef.value?.click()
+}
+
+async function handleTemporaryFileChange(event: Event): Promise<void> {
+  const target = event.target as HTMLInputElement
+  const files = Array.from(target.files || [])
+  target.value = ''
+  await uploadTemporaryFiles(files)
+}
+
+async function uploadTemporaryFiles(files: File[]): Promise<void> {
+  if (files.length === 0) return
+
+  uploading.value = true
+  try {
+    const records = await createAttachmentRecordsFromFiles(files, {
+      idPrefix: 'paper-temp',
+      startSortOrder: canvasItems.value.length
+    })
+    if (records.length === 0) {
+      ElMessage.warning('请选择图片文件')
+      return
+    }
+    handleSelectAttachments(records)
+    ElMessage.success(`已加入 ${records.length} 张图片`)
+  } catch (error) {
+    console.error('临时上传图片失败:', error)
+    ElMessage.error('上传失败')
+  } finally {
+    uploading.value = false
+  }
 }
 
 async function openAttachmentSelector(): Promise<void> {
-  await refreshAttachmentCount()
-  if (attachmentCount.value === 0) {
-    goAttachmentLibrary()
+  selectorVisible.value = true
+}
+
+async function handleAddImageCommand(command: string | number | object): Promise<void> {
+  if (command === 'upload') {
+    openTemporaryUploader()
     return
   }
-  selectorVisible.value = true
+
+  if (command === 'library') {
+    await openAttachmentSelector()
+  }
 }
 
 function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
@@ -147,7 +204,7 @@ async function clearItems(): Promise<void> {
   if (canvasItems.value.length === 0) return
 
   try {
-    await ElMessageBox.confirm('确认清空当前试卷中的图片？附件库中的图片不会删除。', '清空图片', {
+    await ElMessageBox.confirm('确认清空当前试卷中的图片？素材库中的图片不会删除。', '清空图片', {
       confirmButtonText: '清空',
       cancelButtonText: '取消',
       type: 'warning'
@@ -162,7 +219,7 @@ async function clearItems(): Promise<void> {
 
 async function exportPdf(): Promise<void> {
   if (canvasItems.value.length === 0) {
-    ElMessage.warning('请先从附件库选择试卷图片')
+    ElMessage.warning('请先上传或选择试卷图片')
     return
   }
 
@@ -189,18 +246,39 @@ async function exportPdf(): Promise<void> {
     loading.close()
   }
 }
-
 </script>
 
 <template>
   <div class="paper-layout-tool" @click="handleToolClick">
+    <input
+      ref="fileInputRef"
+      class="file-input"
+      type="file"
+      accept="image/*"
+      multiple
+      @change="handleTemporaryFileChange"
+    />
+
     <div class="layout-toolbar">
-      <el-button type="primary" size="small" @click="openAttachmentSelector">
-        <template #icon
-          ><font-awesome-icon :icon="['solid', attachmentCount === 0 ? 'plus' : 'folder-open']"
-        /></template>
-        {{ attachmentCount === 0 ? '去附件库添加' : '选择附件' }}
-      </el-button>
+      <el-dropdown trigger="click" @command="handleAddImageCommand">
+        <el-button type="primary" size="small" :loading="uploading">
+          <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
+          添加图片
+          <font-awesome-icon class="button-caret" :icon="['solid', 'chevron-down']" />
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="upload">
+              <font-awesome-icon :icon="['solid', 'cloud-arrow-up']" />
+              直接上传图片
+            </el-dropdown-item>
+            <el-dropdown-item command="library">
+              <font-awesome-icon :icon="['solid', 'images']" />
+              从素材库选择
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
       <el-button size="small" :disabled="canvasItems.length === 0" @click="autoArrange">
         <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
         重新自动排版
@@ -215,13 +293,46 @@ async function exportPdf(): Promise<void> {
         <el-option label="B3" :value="PagesEnum.B3" />
       </el-select>
       <el-segmented
-        v-model="settings.orientation"
+        :model-value="settings.orientation"
         size="small"
         :options="[
           { label: '纵向', value: 'portrait' },
           { label: '横向', value: 'landscape' }
         ]"
+        @change="handleOrientationChange"
       />
+      <el-segmented
+        v-model="settings.layoutMode"
+        size="small"
+        :options="[
+          { label: '一页一张', value: 'single' },
+          { label: '一页两张', value: 'double' },
+          { label: '自由', value: 'free' }
+        ]"
+      />
+
+      <template v-if="settings.layoutMode === 'free'">
+        <span class="toolbar-field-label">边距</span>
+        <el-input-number
+          v-model="settings.margin"
+          size="small"
+          class="toolbar-number"
+          :min="0"
+          :max="20"
+          :step="1"
+          controls-position="right"
+        />
+        <span class="toolbar-field-label">间距</span>
+        <el-input-number
+          v-model="settings.gap"
+          size="small"
+          class="toolbar-number"
+          :min="0"
+          :max="10"
+          :step="1"
+          controls-position="right"
+        />
+      </template>
 
       <el-divider direction="vertical" />
 
@@ -326,8 +437,8 @@ async function exportPdf(): Promise<void> {
           <div class="preview-title">
             <strong>自由排版画布</strong>
             <span
-              >{{ settings.pageType }}
-              {{ settings.orientation === 'portrait' ? '纵向' : '横向' }}</span
+              >{{ settings.pageType }} {{ settings.orientation === 'portrait' ? '纵向' : '横向' }} /
+              {{ getLayoutModeLabel(settings.layoutMode) }}</span
             >
           </div>
           <div class="preview-actions">
@@ -425,6 +536,15 @@ async function exportPdf(): Promise<void> {
   gap: 10px;
 }
 
+.file-input {
+  display: none;
+}
+
+.button-caret {
+  margin-left: 2px;
+  font-size: 10px;
+}
+
 .layout-toolbar {
   display: flex;
   align-items: center;
@@ -439,6 +559,15 @@ async function exportPdf(): Promise<void> {
 
 .toolbar-select {
   width: 88px;
+}
+
+.toolbar-number {
+  width: 86px;
+}
+
+.toolbar-field-label {
+  color: #6b7280;
+  font-size: 12px;
 }
 
 .toolbar-spacer {
@@ -657,7 +786,7 @@ async function exportPdf(): Promise<void> {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: fill;
+  object-fit: cover;
   pointer-events: none;
 }
 

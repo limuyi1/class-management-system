@@ -5,6 +5,7 @@ export interface ToolItemType {
   path: string
   description: string
   status: 'available' | 'planned'
+  tone?: 'primary' | 'secondary'
   openInNewTab?: boolean
 }
 
@@ -18,19 +19,20 @@ export const toolItems: ToolItemType[] = [
     status: 'available'
   },
   {
-    id: 'attachments',
-    name: '附件库',
-    icon: 'images',
-    path: '/tools/attachments',
-    description: '管理试卷图片素材，支持上传、裁剪、旋转和重命名。',
-    status: 'available'
-  },
-  {
     id: 'paper-layout',
     name: '试卷排版',
     icon: 'file-pdf',
     path: '/tools/paper-layout',
     description: '上传多张试卷图片，按纸张规格排版并导出 PDF。',
     status: 'available'
+  },
+  {
+    id: 'attachments',
+    name: '素材库管理',
+    icon: 'images',
+    path: '/tools/attachments',
+    description: '管理长期复用的图片素材，供试卷排版和后续错题本使用。',
+    status: 'available',
+    tone: 'secondary'
   }
 ]
