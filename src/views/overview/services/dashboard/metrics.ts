@@ -103,8 +103,9 @@ const normalizeMatchedTags = (
  * 为每个单元计算难度偏移信息。
  *
  * 规则：
- * - 班均达到明显高/低的绝对边界：记为 easy/hard
- * - 已有足够历史正常单元时，班均较近期正常基线明显上浮/下探：记为 easy/hard
+ * - 首个单元没有参照物，始终记为 normal，作为后续基线
+ * - 有历史正常单元时，班均较近期正常基线明显上浮/下探：记为 easy/hard
+ * - 没有历史正常基线时，才使用明显高/低的绝对边界：记为 easy/hard
  * - 变化不明显：记为 normal
  *
  * 这个映射一方面用于给对应单元分数做颜色提示，
@@ -121,10 +122,19 @@ const buildUnitDifficultyShiftMap = (
   const easyAverageScore = config.tagRules.easyUnitAverageScore
   const hardAverageScore = config.tagRules.hardUnitAverageScore
 
-  unitMetrics.forEach((metric) => {
+  unitMetrics.forEach((metric, index) => {
+    if (index === 0) {
+      result.set(metric.prop, {
+        shift: 0,
+        difficultyShift: 'normal'
+      })
+      normalUnitAverages.push(metric.averageScore)
+      return
+    }
+
     const recentNormalAverages = getRecentValues(normalUnitAverages, baselineWindow)
-    const hasStableBaseline = recentNormalAverages.length >= baselineWindow
-    const baselineAverage = hasStableBaseline ? averageOf(recentNormalAverages) : null
+    const hasBaseline = recentNormalAverages.length > 0
+    const baselineAverage = hasBaseline ? averageOf(recentNormalAverages) : null
     const absoluteDifficultyShift: DashboardUnitDifficultyShiftType =
       metric.averageScore >= easyAverageScore
         ? 'easy'
@@ -141,9 +151,24 @@ const buildUnitDifficultyShiftMap = (
       baselineAverage === null ? 0 : Number((metric.averageScore - baselineAverage).toFixed(2))
     const relativeDifficultyShift: DashboardUnitDifficultyShiftType =
       Math.abs(relativeShift) >= threshold ? (relativeShift > 0 ? 'easy' : 'hard') : 'normal'
+    const fallbackAbsoluteDifficultyShift: DashboardUnitDifficultyShiftType =
+      hasBaseline && absoluteDifficultyShift === 'easy' ? 'normal' : absoluteDifficultyShift
     const difficultyShift: DashboardUnitDifficultyShiftType =
-      relativeDifficultyShift !== 'normal' ? relativeDifficultyShift : absoluteDifficultyShift
-    const effectiveShift = relativeDifficultyShift !== 'normal' ? relativeShift : absoluteShift
+      relativeDifficultyShift !== 'normal'
+        ? relativeDifficultyShift
+        : fallbackAbsoluteDifficultyShift
+    const relativeEffectiveShift =
+      relativeDifficultyShift === 'easy'
+        ? relativeShift - threshold
+        : relativeDifficultyShift === 'hard'
+          ? relativeShift
+          : 0
+    const effectiveShift =
+      relativeDifficultyShift !== 'normal'
+        ? relativeEffectiveShift
+        : difficultyShift === 'normal'
+          ? 0
+          : absoluteShift
 
     result.set(metric.prop, {
       shift: Number(effectiveShift.toFixed(2)),
@@ -367,18 +392,20 @@ export const buildStudentMetrics = (
       const scores = points.map((point) => point.score)
       const latestScore = scores.length ? scores[scores.length - 1] : null
       const previousScore = scores.length >= 2 ? scores[scores.length - 2] : null
-      const latestUnitDifficultyShift = points.length
-        ? unitDifficultyShiftMap.get(points[points.length - 1].prop)?.shift || 0
-        : 0
       /**
-       * 归一化后的最新成绩：
+       * 难度修正后的成绩序列：
        * - 最近单元整体偏易：扣回班均上浮部分，避免把“全班普涨”误判成个人进步
        * - 最近单元整体偏难：补回班均下探部分，避免把“全班普跌”误判成个人退步
+       * - 所有单元使用同一修正口径，避免用“修正后的最新分”去比较“未修正的上一分”
        */
-      const normalizedLatestScore =
-        latestScore !== null ? Number((latestScore - latestUnitDifficultyShift).toFixed(2)) : null
-      const normalizedScores =
-        normalizedLatestScore !== null ? [...scores.slice(0, -1), normalizedLatestScore] : scores
+      const normalizedScores = points.map((point) =>
+        Number((point.score - (unitDifficultyShiftMap.get(point.prop)?.shift || 0)).toFixed(2))
+      )
+      const normalizedLatestScore = normalizedScores.length
+        ? normalizedScores[normalizedScores.length - 1]
+        : null
+      const normalizedPreviousScore =
+        normalizedScores.length >= 2 ? normalizedScores[normalizedScores.length - 2] : null
       // 历史成绩（不含最新一次），用于计算较历史均分的差值
       const historyScores = scores.slice(0, -1)
       const tagConfigs = config.tagRules.tags
@@ -457,7 +484,7 @@ export const buildStudentMetrics = (
         (tagConfigs.lowRecovery.minHitCount || 2)
       const signals = buildStudentSignals({
         normalizedLatestScore,
-        previousScore,
+        previousScore: normalizedPreviousScore,
         normalizedLatestRecent3,
         latestRecent3Average,
         volatilityDirection,
@@ -572,8 +599,7 @@ export const buildStudentMetrics = (
           signals.isUpwardDirection &&
           signals.latestMomentumUp &&
           actualRecentDelta > 0 &&
-          (signals.recentAscending ||
-            signals.risingDelta >= (tagConfigs.improving.minDelta || 8) ||
+          (signals.risingDelta >= (tagConfigs.improving.minDelta || 8) ||
             latestAboveHistoryAverage)
         ) {
           matchedTags.push(createTag('improving', config))

@@ -89,11 +89,6 @@ interface CropperApiType {
   recycle: () => void
 }
 
-interface CropRealtimeDataType {
-  w?: number
-  h?: number
-}
-
 const currentCompressRatio = computed({
   get: () => (props.compressRatio === undefined ? 0.6 : props.compressRatio),
   set: (value: number | null) => emit('update:compressRatio', value)
@@ -279,7 +274,7 @@ const handleFlipHorizontal = () => handleOperation('flipX')
 const handleFlipVertical = () => handleOperation('flipY')
 const handleReset = () => handleOperation('recycle')
 
-const handleRealtime = (_data: CropRealtimeDataType) => {
+const handleRealtime = () => {
   scheduleCropEstimate()
 }
 

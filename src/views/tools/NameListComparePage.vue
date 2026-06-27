@@ -57,31 +57,6 @@ const systemSource = computed<NameListCompareImportedSourceType>(() => ({
   nameColumn: NAME_LABEL
 }))
 
-const currentSourceConfigs = computed(() => {
-  if (mode.value === 'system') {
-    return [
-      {
-        key: 'comparison' as const,
-        title: '对照来源',
-        description: '导入需要与系统名单核对的名单或表格'
-      }
-    ]
-  }
-
-  return [
-    {
-      key: 'sourceA' as const,
-      title: '名单 A',
-      description: '导入第一份外部名单或表格'
-    },
-    {
-      key: 'sourceB' as const,
-      title: '名单 B',
-      description: '导入第二份外部名单或表格'
-    }
-  ]
-})
-
 const activeSourceMap = computed(() => {
   if (mode.value === 'system') {
     return {
