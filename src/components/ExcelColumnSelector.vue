@@ -3,6 +3,11 @@ import { computed, ref, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
 
+import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUntil'
+
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+
 type ExcelRowType = Record<string, string | number | boolean | null | undefined>
 
 type SelectorModeType = 'initial' | 'incremental' | 'name-only'
@@ -10,14 +15,18 @@ type SelectorModeType = 'initial' | 'incremental' | 'name-only'
 interface Props {
   modelValue: boolean
   mode: SelectorModeType
-  headers: string[]
-  rows: ExcelRowType[]
+  headers?: string[]
+  rows?: ExcelRowType[]
   defaultNameColumn?: string
+  previewRows?: ExcelCellValueType[][]
+  previewMerges?: ExcelMergeRangeType[]
+  suggestedHeaderRowIndex?: number
 }
 
 interface ConfirmPayloadType {
   nameColumn?: string
   scoreColumns: string[]
+  headerRowIndex?: number
 }
 
 const props = defineProps<Props>()
@@ -34,27 +43,58 @@ const localVisible = computed({
 
 const selectedNameColumn = ref('')
 const selectedScoreColumns = ref<string[]>([])
+const selectedHeaderRowIndex = ref(0)
 
 const isInitialMode = computed(() => props.mode === 'initial')
 const isNameOnlyMode = computed(() => props.mode === 'name-only')
-const previewRows = computed(() => props.rows.slice(0, 5))
+const hasHeaderPreview = computed(() => Boolean(props.previewRows?.length))
+const parsedImportData = computed(() => {
+  if (!hasHeaderPreview.value) {
+    return {
+      header: props.headers ?? [],
+      data: props.rows ?? []
+    }
+  }
+  return buildExcelDataFromHeaderRow(props.previewRows ?? [], selectedHeaderRowIndex.value)
+})
+const effectiveHeaders = computed(() => parsedImportData.value.header)
 const scoreHeaders = computed(() => {
-  return props.headers.filter((header) => {
+  return effectiveHeaders.value.filter((header) => {
     if (header === '序号') return false
-    if (!isInitialMode.value && header === '姓名') return false
     return header !== selectedNameColumn.value
   })
 })
+
+const findSuggestedNameColumn = (): string => {
+  return (
+    props.defaultNameColumn ||
+    effectiveHeaders.value.find((header) =>
+      ['姓名', '学生姓名', '学生', '名字'].some((pattern) => header.includes(pattern))
+    ) ||
+    ''
+  )
+}
+
+/**
+ * 当前表头行决定后续列名；切换表头行时必须重置选择，避免旧列名参与导入。
+ */
+const resetSelections = () => {
+  selectedNameColumn.value = findSuggestedNameColumn()
+  selectedScoreColumns.value = []
+}
 
 watch(
   () => props.modelValue,
   (visible) => {
     if (!visible) return
-    selectedNameColumn.value =
-      props.defaultNameColumn || (props.headers.includes('姓名') ? '姓名' : '')
-    selectedScoreColumns.value = []
+    selectedHeaderRowIndex.value = props.suggestedHeaderRowIndex ?? 0
+    resetSelections()
   }
 )
+
+watch(selectedHeaderRowIndex, () => {
+  resetSelections()
+})
 
 watch(selectedNameColumn, () => {
   selectedScoreColumns.value = selectedScoreColumns.value.filter(
@@ -63,7 +103,7 @@ watch(selectedNameColumn, () => {
 })
 
 const handleConfirm = () => {
-  if ((isInitialMode.value || isNameOnlyMode.value) && !selectedNameColumn.value) {
+  if (!selectedNameColumn.value) {
     ElMessage.warning('请选择姓名列')
     return
   }
@@ -74,6 +114,7 @@ const handleConfirm = () => {
   }
 
   emit('confirm', {
+    headerRowIndex: hasHeaderPreview.value ? selectedHeaderRowIndex.value : undefined,
     nameColumn: selectedNameColumn.value,
     scoreColumns: [...selectedScoreColumns.value]
   })
@@ -87,15 +128,28 @@ const handleConfirm = () => {
     width="860px"
   >
     <div class="excel-column-selector">
-      <div class="selector-section" v-if="isInitialMode || isNameOnlyMode">
+      <excel-header-row-picker
+        v-if="hasHeaderPreview"
+        v-model="selectedHeaderRowIndex"
+        :rows="previewRows ?? []"
+        :merges="previewMerges"
+      />
+
+      <div class="selector-section">
         <div class="selector-section__head">
           <div class="selector-section__title">姓名列</div>
           <div class="selector-section__desc">
-            {{ isNameOnlyMode ? '选择用于名单核对的列' : '选择用于生成学生姓名的列' }}
+            {{
+              isNameOnlyMode
+                ? '选择用于名单核对的列'
+                : isInitialMode
+                  ? '选择用于生成学生姓名的列'
+                  : '选择用于匹配系统学生的列'
+            }}
           </div>
         </div>
         <el-radio-group v-model="selectedNameColumn" class="column-options">
-          <el-radio-button v-for="header in headers" :key="header" :value="header">
+          <el-radio-button v-for="header in effectiveHeaders" :key="header" :value="header">
             {{ header }}
           </el-radio-button>
         </el-radio-group>
@@ -113,23 +167,6 @@ const handleConfirm = () => {
             {{ header }}
           </el-checkbox-button>
         </el-checkbox-group>
-      </div>
-
-      <div class="preview-section">
-        <div class="selector-section__head">
-          <div class="selector-section__title">数据预览</div>
-          <div class="selector-section__desc">仅展示前 5 行，用于确认列内容</div>
-        </div>
-        <el-table :data="previewRows" border height="260">
-          <el-table-column
-            v-for="header in headers"
-            :key="header"
-            :prop="header"
-            :label="header"
-            min-width="120"
-            show-overflow-tooltip
-          />
-        </el-table>
       </div>
     </div>
 

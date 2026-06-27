@@ -8,6 +8,23 @@ interface OperationResultType {
 }
 
 type ExcelCellValueType = string | number | boolean | null | undefined
+type ExcelRowType = Record<string, ExcelCellValueType>
+
+interface ExcelMergeRangeType {
+  startRow: number
+  startColumn: number
+  endRow: number
+  endColumn: number
+}
+
+interface ExcelPreviewResultType {
+  rows: ExcelCellValueType[][]
+  merges: ExcelMergeRangeType[]
+  suggestedHeaderRowIndex: number
+}
+
+const EXCEL_PREVIEW_ROW_COUNT = 8
+const NAME_HEADER_PATTERNS = ['姓名', '学生姓名', '学生', '名字']
 
 /**
  * 将表格数据导出为图片
@@ -107,21 +124,16 @@ const exportExcel = (
 }
 
 /**
- * 解析 Excel 文件
- * @param file - 文件对象，来自 el-upload 的 file.raw
- * @returns 包含 header（表头数组）和 data（数据数组）的对象
+ * 使用 FileReader 读取上传的 Excel 文件内容。
+ * 后续预览和正式解析共用同一个二进制读取入口，避免两套读取逻辑出现差异。
  */
-type ExcelRowType = Record<string, string | number | boolean | null | undefined>
-
-const parseExcel = async (
-  file: UploadFile
-): Promise<{ header: string[]; data: ExcelRowType[] }> => {
+const readExcelBinary = async (file: UploadFile): Promise<string> => {
   const rawFile = file.raw
   if (!rawFile) {
     throw new Error('文件内容为空')
   }
 
-  const dataBinary = await new Promise<string>((resolve, reject) => {
+  return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.readAsBinaryString(rawFile)
     reader.onload = (event: ProgressEvent<FileReader>) => {
@@ -136,37 +148,123 @@ const parseExcel = async (
       reject(new Error('读取文件失败'))
     }
   })
+}
 
+const readFirstWorksheet = async (file: UploadFile): Promise<XLSX.WorkSheet> => {
+  const dataBinary = await readExcelBinary(file)
   const workBook = XLSX.read(dataBinary, { type: 'binary', cellDates: true })
-  const firstWorkSheet = workBook.Sheets[workBook.SheetNames[0]]
+  return workBook.Sheets[workBook.SheetNames[0]]
+}
 
-  const header = getRow(firstWorkSheet)
-  const data = XLSX.utils.sheet_to_json<ExcelRowType>(firstWorkSheet)
+const normalizeCellValue = (value: ExcelCellValueType): ExcelCellValueType => {
+  if (typeof value !== 'string') return value
+  const trimmedValue = value.trim()
+  return trimmedValue ? trimmedValue : null
+}
+
+const readWorksheetRows = (sheet: XLSX.WorkSheet): ExcelCellValueType[][] => {
+  return XLSX.utils
+    .sheet_to_json<ExcelCellValueType[]>(sheet, {
+      header: 1,
+      defval: null,
+      raw: false
+    })
+    .map((row) => row.map(normalizeCellValue))
+}
+
+const readWorksheetMerges = (sheet: XLSX.WorkSheet): ExcelMergeRangeType[] => {
+  return (sheet['!merges'] ?? []).map((merge) => ({
+    startRow: merge.s.r,
+    startColumn: merge.s.c,
+    endRow: merge.e.r,
+    endColumn: merge.e.c
+  }))
+}
+
+const getNonEmptyCellCount = (row: ExcelCellValueType[]): number => {
+  return row.filter((cell) => cell !== null && cell !== undefined && cell !== '').length
+}
+
+const rowContainsNameHeader = (row: ExcelCellValueType[]): boolean => {
+  return row.some((cell) => {
+    if (cell === null || cell === undefined) return false
+    const text = String(cell).trim()
+    return NAME_HEADER_PATTERNS.some((pattern) => text.includes(pattern))
+  })
+}
+
+/**
+ * 猜测最可能的表头行：优先选择包含“姓名/学生姓名”等字段的行；
+ * 若没有明显姓名字段，则选择前 8 行中非空单元格最多的行，用户仍可在预览弹窗中手动修正。
+ */
+const guessHeaderRowIndex = (rows: ExcelCellValueType[][]): number => {
+  const previewRows = rows.slice(0, EXCEL_PREVIEW_ROW_COUNT)
+  const nameRowIndex = previewRows.findIndex(rowContainsNameHeader)
+  if (nameRowIndex >= 0) return nameRowIndex
+
+  return previewRows.reduce(
+    (bestIndex, row, index) => {
+      const currentCount = getNonEmptyCellCount(row)
+      const bestCount = getNonEmptyCellCount(previewRows[bestIndex] || [])
+      return currentCount > bestCount ? index : bestIndex
+    },
+    0
+  )
+}
+
+/**
+ * 读取 Excel 预览数据。这里只保留原始行列结构，让用户确认哪一行才是真正表头。
+ */
+const parseExcelPreview = async (file: UploadFile): Promise<ExcelPreviewResultType> => {
+  const firstWorkSheet = await readFirstWorksheet(file)
+  const rows = readWorksheetRows(firstWorkSheet)
+
+  return {
+    rows,
+    merges: readWorksheetMerges(firstWorkSheet),
+    suggestedHeaderRowIndex: guessHeaderRowIndex(rows)
+  }
+}
+
+const createFallbackHeader = (columnIndex: number): string => `UNKNOWN ${columnIndex}`
+
+/**
+ * 根据用户确认的表头行生成业务导入需要的 header/data。
+ * 本函数只使用被选中的单行作为字段名，不拼接上级表头；复杂或重复表头由用户整理 Excel 后再导入。
+ */
+const buildExcelDataFromHeaderRow = (
+  rows: ExcelCellValueType[][],
+  headerRowIndex: number
+): { header: string[]; data: ExcelRowType[] } => {
+  const headerRow = rows[headerRowIndex] || []
+  const header = headerRow.map((cell, index) => {
+    const value = normalizeCellValue(cell)
+    return value === null || value === undefined ? createFallbackHeader(index) : String(value)
+  })
+
+  const data = rows
+    .slice(headerRowIndex + 1)
+    .filter((row) => getNonEmptyCellCount(row) > 0)
+    .map((row) =>
+      header.reduce((acc, column, index) => {
+        acc[column] = normalizeCellValue(row[index] ?? null)
+        return acc
+      }, {} as ExcelRowType)
+    )
 
   return { header, data }
 }
 
 /**
- * 读取工作表指定行的数据
- * @param sheet - 工作表对象
- * @param row - 行索引，默认 0（第一行，表头行）
- * @returns 该行的数据数组
+ * 解析 Excel 文件。
+ * 默认使用自动猜测出的表头行；需要用户确认表头行的导入流程应先调用 parseExcelPreview。
  */
-const getRow = (sheet: XLSX.WorkSheet, row?: number) => {
-  const headers: string[] = []
-  const ref = sheet['!ref']
-  if (!ref) return headers
-  const range = XLSX.utils.decode_range(ref)
-  let C: number
-  const R = row ? row : range.s.r
-
-  for (C = range.s.c; C <= range.e.c; ++C) {
-    const cell = sheet[XLSX.utils.encode_cell({ c: C, r: R })] as XLSX.CellObject | undefined
-    let hdr = 'UNKNOWN ' + C
-    if (cell && cell.t) hdr = XLSX.utils.format_cell(cell)
-    headers.push(hdr)
-  }
-  return headers
+const parseExcel = async (
+  file: UploadFile
+): Promise<{ header: string[]; data: ExcelRowType[] }> => {
+  const preview = await parseExcelPreview(file)
+  return buildExcelDataFromHeaderRow(preview.rows, preview.suggestedHeaderRowIndex)
 }
 
-export { exportExcel, parseExcel, xlsxToImage }
+export { buildExcelDataFromHeaderRow, exportExcel, parseExcel, parseExcelPreview, xlsxToImage }
+export type { ExcelCellValueType, ExcelMergeRangeType, ExcelPreviewResultType, ExcelRowType }

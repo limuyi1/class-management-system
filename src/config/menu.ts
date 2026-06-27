@@ -14,7 +14,7 @@ const menu = [
     disabled: true
   },
   {
-    name: '学生信息',
+    name: '学生',
     icon: 'user',
     path: '/student-info',
     disabled: true

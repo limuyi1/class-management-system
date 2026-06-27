@@ -3,28 +3,46 @@ import { computed, ref, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
 
+import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUntil'
+
 import type { ExcelRowType } from '@/utils/scoreImportUntil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
 import type { CommentImportSelectionType, CommentImportStrategyType } from '@/types/StudentImport'
 
 interface Props {
   modelValue: boolean
-  headers: string[]
-  rows: ExcelRowType[]
+  headers?: string[]
+  rows?: ExcelRowType[]
+  previewRows?: ExcelCellValueType[][]
+  previewMerges?: ExcelMergeRangeType[]
+  suggestedHeaderRowIndex?: number
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
-  confirm: [value: CommentImportSelectionType]
+  confirm: [value: CommentImportSelectionType & { headerRowIndex?: number }]
 }>()
 
+const selectedHeaderRowIndex = ref(0)
 const selectedNameColumn = ref('')
 const selectedCommentColumn = ref('')
 const strategy = ref<CommentImportStrategyType>('fill-empty')
-const previewRows = computed(() => props.rows.slice(0, 5))
+const hasHeaderPreview = computed(() => Boolean(props.previewRows?.length))
+const parsedImportData = computed(() => {
+  if (!hasHeaderPreview.value) {
+    return {
+      header: props.headers ?? [],
+      data: props.rows ?? []
+    }
+  }
+  return buildExcelDataFromHeaderRow(props.previewRows ?? [], selectedHeaderRowIndex.value)
+})
+const effectiveHeaders = computed(() => parsedImportData.value.header)
 const commentColumns = computed(() =>
-  props.headers.filter((header) => header !== selectedNameColumn.value && header !== '序号')
+  effectiveHeaders.value.filter((header) => header !== selectedNameColumn.value && header !== '序号')
 )
 const localVisible = computed({
   get: () => props.modelValue,
@@ -32,17 +50,30 @@ const localVisible = computed({
 })
 
 const findSuggestedColumn = (patterns: string[]): string =>
-  props.headers.find((header) => patterns.some((pattern) => header.includes(pattern))) || ''
+  effectiveHeaders.value.find((header) => patterns.some((pattern) => header.includes(pattern))) ||
+  ''
+
+/**
+ * 根据当前表头行重新推荐姓名列和评语列，防止切换表头行后引用旧字段。
+ */
+const resetSelections = () => {
+  selectedNameColumn.value = findSuggestedColumn(['姓名', '学生姓名', '学生', '名字'])
+  selectedCommentColumn.value = findSuggestedColumn(['期末评语', '评语'])
+}
 
 watch(
   () => props.modelValue,
   (visible) => {
     if (!visible) return
-    selectedNameColumn.value = findSuggestedColumn(['姓名', '名字'])
-    selectedCommentColumn.value = findSuggestedColumn(['期末评语', '评语'])
+    selectedHeaderRowIndex.value = props.suggestedHeaderRowIndex ?? 0
+    resetSelections()
     strategy.value = 'fill-empty'
   }
 )
+
+watch(selectedHeaderRowIndex, () => {
+  resetSelections()
+})
 
 watch(selectedNameColumn, (column) => {
   if (selectedCommentColumn.value === column) selectedCommentColumn.value = ''
@@ -59,6 +90,7 @@ const handleConfirm = () => {
   }
 
   emit('confirm', {
+    headerRowIndex: hasHeaderPreview.value ? selectedHeaderRowIndex.value : undefined,
     nameColumn: selectedNameColumn.value,
     commentColumn: selectedCommentColumn.value,
     strategy: strategy.value
@@ -69,13 +101,20 @@ const handleConfirm = () => {
 <template>
   <el-dialog v-model="localVisible" title="添加评语" width="760px">
     <div class="comment-import-dialog">
+      <excel-header-row-picker
+        v-if="hasHeaderPreview"
+        v-model="selectedHeaderRowIndex"
+        :rows="previewRows ?? []"
+        :merges="previewMerges"
+      />
+
       <div class="column-section">
         <div class="column-section__head">
           <div class="column-section__title">姓名列</div>
           <div class="column-section__description">必选且只能选择一列</div>
         </div>
         <el-radio-group v-model="selectedNameColumn" class="column-options">
-          <el-radio-button v-for="header in headers" :key="header" :value="header">
+          <el-radio-button v-for="header in effectiveHeaders" :key="header" :value="header">
             {{ header }}
           </el-radio-button>
         </el-radio-group>
@@ -110,20 +149,6 @@ const handleConfirm = () => {
           :closable="false"
           show-icon
         />
-      </div>
-
-      <div>
-        <div class="comment-import-dialog__preview-title">数据预览（前 5 行）</div>
-        <el-table :data="previewRows" border height="230">
-          <el-table-column
-            v-for="header in headers"
-            :key="header"
-            :prop="header"
-            :label="header"
-            min-width="120"
-            show-overflow-tooltip
-          />
-        </el-table>
       </div>
     </div>
 
