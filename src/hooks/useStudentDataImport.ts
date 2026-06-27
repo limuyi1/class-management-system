@@ -15,10 +15,11 @@ import {
 } from '@/utils/scoreImportUntil'
 import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/commentImportUntil'
 import { buildInitialStudentImport } from '@/utils/initialStudentImportUntil'
-import { parseExcel } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUntil'
 import { NAME_PROP } from '@/types/Constants'
 
 import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUntil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
 import type {
   CommentImportSelectionType,
   ExcelImportModeType,
@@ -39,6 +40,9 @@ export const useStudentDataImport = () => {
   const excelFileInputRef = ref<HTMLInputElement | null>(null)
   const importingExcel = ref(false)
   const importMode = ref<ExcelImportModeType>('initial')
+  const excelPreviewRows = ref<ExcelCellValueType[][]>([])
+  const excelPreviewMerges = ref<ExcelMergeRangeType[]>([])
+  const suggestedHeaderRowIndex = ref(0)
   const excelHeaders = ref<string[]>([])
   const excelRows = ref<ExcelRowType[]>([])
   const initialDialogVisible = ref(false)
@@ -46,6 +50,7 @@ export const useStudentDataImport = () => {
   const commentDialogVisible = ref(false)
   const conflictDialogVisible = ref(false)
   const pendingScoreColumns = ref<string[]>([])
+  const pendingScoreNameColumn = ref('')
   const conflictColumns = ref<string[]>([])
 
   const resetExcelImport = () => {
@@ -53,9 +58,13 @@ export const useStudentDataImport = () => {
     scoreColumnSelectorVisible.value = false
     commentDialogVisible.value = false
     conflictDialogVisible.value = false
+    excelPreviewRows.value = []
+    excelPreviewMerges.value = []
+    suggestedHeaderRowIndex.value = 0
     excelHeaders.value = []
     excelRows.value = []
     pendingScoreColumns.value = []
+    pendingScoreNameColumn.value = ''
     conflictColumns.value = []
   }
 
@@ -113,20 +122,15 @@ export const useStudentDataImport = () => {
 
     importingExcel.value = true
     try {
-      const { header, data } = await parseExcel({ raw: file } as UploadFile)
-      if (!header.length || !data.length) {
+      const preview = await parseExcelPreview({ raw: file } as UploadFile)
+      if (!preview.rows.length) {
         ElMessage.error('Excel 中没有可导入的数据')
         return
       }
 
-      // 现有成绩导入保持原约束，避免本次新增评语功能改变既有使用习惯。
-      if (importMode.value === 'score' && !header.includes('姓名')) {
-        ElMessage.error('添加成绩时，Excel 必须包含[姓名]列')
-        return
-      }
-
-      excelHeaders.value = header
-      excelRows.value = data
+      excelPreviewRows.value = preview.rows
+      excelPreviewMerges.value = preview.merges
+      suggestedHeaderRowIndex.value = preview.suggestedHeaderRowIndex
       openModeDialog()
     } catch (error) {
       console.error('解析 Excel 失败:', error)
@@ -136,7 +140,32 @@ export const useStudentDataImport = () => {
     }
   }
 
-  const handleInitialConfirm = async (selection: InitialImportSelectionType) => {
+  /**
+   * 各业务弹窗内会选择表头行；真正写入前在这里统一生成 header/data，
+   * 保证初始导入、成绩导入、评语导入使用同一套 Excel 行解析规则。
+   */
+  const applyHeaderRowSelection = (headerRowIndex?: number): boolean => {
+    if (!excelPreviewRows.value.length) return true
+
+    const { header, data } = buildExcelDataFromHeaderRow(
+      excelPreviewRows.value,
+      headerRowIndex ?? suggestedHeaderRowIndex.value
+    )
+    if (!header.length || !data.length) {
+      ElMessage.error('Excel 中没有可导入的数据')
+      return false
+    }
+
+    excelHeaders.value = header
+    excelRows.value = data
+    return true
+  }
+
+  const handleInitialConfirm = async (
+    selection: InitialImportSelectionType & { headerRowIndex?: number }
+  ) => {
+    if (!applyHeaderRowSelection(selection.headerRowIndex)) return
+
     const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
     if (duplicateNames.length) {
       ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
@@ -170,6 +199,7 @@ export const useStudentDataImport = () => {
       rows: excelRows.value,
       existingStudents: items.value,
       existingHeaders: tableHeaders.value,
+      nameColumn: pendingScoreNameColumn.value,
       selectedColumns: pendingScoreColumns.value,
       conflictActions
     })
@@ -206,13 +236,25 @@ export const useStudentDataImport = () => {
     await navigateAfterImport('/math')
   }
 
-  const handleScoreColumnConfirm = async (selection: { scoreColumns: string[] }) => {
-    const duplicateNames = findDuplicateNames(excelRows.value, '姓名')
+  const handleScoreColumnConfirm = async (selection: {
+    nameColumn?: string
+    scoreColumns: string[]
+    headerRowIndex?: number
+  }) => {
+    if (!applyHeaderRowSelection(selection.headerRowIndex)) return
+
+    if (!selection.nameColumn) {
+      ElMessage.warning('请选择姓名列')
+      return
+    }
+
+    const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
     if (duplicateNames.length) {
       ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
       return
     }
 
+    pendingScoreNameColumn.value = selection.nameColumn
     pendingScoreColumns.value = selection.scoreColumns
     conflictColumns.value = getConflictLabels(selection.scoreColumns, tableHeaders.value)
     scoreColumnSelectorVisible.value = false
@@ -224,7 +266,11 @@ export const useStudentDataImport = () => {
     await applyScoreImport({})
   }
 
-  const handleCommentConfirm = async (selection: CommentImportSelectionType) => {
+  const handleCommentConfirm = async (
+    selection: CommentImportSelectionType & { headerRowIndex?: number }
+  ) => {
+    if (!applyHeaderRowSelection(selection.headerRowIndex)) return
+
     const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
     if (duplicateNames.length) {
       ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
@@ -282,6 +328,9 @@ export const useStudentDataImport = () => {
   return {
     excelFileInputRef,
     importingExcel,
+    excelPreviewRows,
+    excelPreviewMerges,
+    suggestedHeaderRowIndex,
     excelHeaders,
     excelRows,
     initialDialogVisible,

@@ -136,6 +136,7 @@ export const buildIncrementalScoreImport = (options: {
   rows: ExcelRowType[]
   existingStudents: StudentDataType[]
   existingHeaders: SettingType[]
+  nameColumn: string
   selectedColumns: string[]
   conflictActions: Record<string, ConflictActionType>
 }): IncrementalScoreImportResultType => {
@@ -178,7 +179,7 @@ export const buildIncrementalScoreImport = (options: {
   const excelRowsByName = new Map<string, ExcelRowType>()
 
   options.rows.forEach((row) => {
-    const name = normalizeName(row['姓名'])
+    const name = normalizeName(row[options.nameColumn])
     if (!name) return
     if (!existingNames.has(name)) {
       stats.ignoredStudentCount += 1

@@ -28,6 +28,9 @@ const hasStudentData = computed(() => items.value.length > 0)
 const {
   excelFileInputRef,
   importingExcel,
+  excelPreviewRows,
+  excelPreviewMerges,
+  suggestedHeaderRowIndex,
   excelHeaders,
   excelRows,
   initialDialogVisible,
@@ -237,6 +240,9 @@ const handleClear = async () => {
       v-model="initialDialogVisible"
       :headers="excelHeaders"
       :rows="excelRows"
+      :preview-rows="excelPreviewRows"
+      :preview-merges="excelPreviewMerges"
+      :suggested-header-row-index="suggestedHeaderRowIndex"
       @confirm="handleInitialConfirm"
     />
     <excel-column-selector
@@ -244,12 +250,18 @@ const handleClear = async () => {
       mode="incremental"
       :headers="excelHeaders"
       :rows="excelRows"
+      :preview-rows="excelPreviewRows"
+      :preview-merges="excelPreviewMerges"
+      :suggested-header-row-index="suggestedHeaderRowIndex"
       @confirm="handleScoreColumnConfirm"
     />
     <comment-import-dialog
       v-model="commentDialogVisible"
       :headers="excelHeaders"
       :rows="excelRows"
+      :preview-rows="excelPreviewRows"
+      :preview-merges="excelPreviewMerges"
+      :suggested-header-row-index="suggestedHeaderRowIndex"
       @confirm="handleCommentConfirm"
     />
     <excel-column-conflict-dialog

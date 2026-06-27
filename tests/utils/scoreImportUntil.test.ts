@@ -58,6 +58,7 @@ describe('scoreImportUntil', () => {
       ],
       existingStudents,
       existingHeaders,
+      nameColumn: '姓名',
       selectedColumns: ['英语'],
       conflictActions: {}
     })
@@ -79,6 +80,7 @@ describe('scoreImportUntil', () => {
       rows: [{ 姓名: '张三', 数学: '99' }],
       existingStudents,
       existingHeaders,
+      nameColumn: '姓名',
       selectedColumns: ['数学'],
       conflictActions: { 数学: 'overwrite' }
     })
@@ -96,6 +98,7 @@ describe('scoreImportUntil', () => {
       rows: [{ 姓名: '张三', 数学: '99', 英语: '88' }],
       existingStudents,
       existingHeaders,
+      nameColumn: '姓名',
       selectedColumns: ['数学', '英语'],
       conflictActions: { 数学: 'skip' }
     })
