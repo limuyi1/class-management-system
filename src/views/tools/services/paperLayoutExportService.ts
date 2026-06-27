@@ -1,6 +1,19 @@
-import { PDFDocument, type PDFImage } from 'pdf-lib'
+import {
+  PDFDocument,
+  clip,
+  endPath,
+  popGraphicsState,
+  pushGraphicsState,
+  rectangle,
+  type PDFImage,
+  type PDFPage
+} from 'pdf-lib'
 
-import type { PaperLayoutCanvasItemType, PaperLayoutPageType } from '@/types/Tools'
+import type {
+  PaperLayoutCanvasItemType,
+  PaperLayoutPageType,
+  PaperLayoutRenderItemType
+} from '@/types/Tools'
 import type { PaperLayoutPageSizeType } from '@/views/tools/utils/paperLayoutCanvas'
 
 const pointPerMm = 72 / 25.4
@@ -23,6 +36,39 @@ const getEmbeddedImage = async (
   return embeddedImage
 }
 
+const drawCoverImage = (
+  page: PDFPage,
+  embeddedImage: PDFImage,
+  item: PaperLayoutRenderItemType,
+  pdfHeight: number
+): void => {
+  const targetX = item.x * pointPerMm
+  const targetY = pdfHeight - (item.localY + item.height) * pointPerMm
+  const targetWidth = item.width * pointPerMm
+  const targetHeight = item.height * pointPerMm
+  const imageRatio = item.naturalWidth / item.naturalHeight
+  const targetRatio = item.width / item.height
+
+  const drawWidth = imageRatio > targetRatio ? targetHeight * imageRatio : targetWidth
+  const drawHeight = imageRatio > targetRatio ? targetHeight : targetWidth / imageRatio
+  const drawX = targetX + (targetWidth - drawWidth) / 2
+  const drawY = targetY + (targetHeight - drawHeight) / 2
+
+  page.pushOperators(
+    pushGraphicsState(),
+    rectangle(targetX, targetY, targetWidth, targetHeight),
+    clip(),
+    endPath()
+  )
+  page.drawImage(embeddedImage, {
+    x: drawX,
+    y: drawY,
+    width: drawWidth,
+    height: drawHeight
+  })
+  page.pushOperators(popGraphicsState())
+}
+
 export const exportPaperLayoutPdf = async (
   pages: PaperLayoutPageType[],
   pageSize: PaperLayoutPageSizeType
@@ -36,13 +82,7 @@ export const exportPaperLayoutPdf = async (
     const page = pdfDoc.addPage([pdfWidth, pdfHeight])
     for (const item of pageData.items) {
       const embeddedImage = await getEmbeddedImage(pdfDoc, cache, item)
-      page.drawImage(embeddedImage, {
-        x: item.x * pointPerMm,
-        // localY 是当前页内坐标；跨页图片会在多个页面重复绘制，并由 PDF 页面边界裁切。
-        y: pdfHeight - (item.localY + item.height) * pointPerMm,
-        width: item.width * pointPerMm,
-        height: item.height * pointPerMm
-      })
+      drawCoverImage(page, embeddedImage, item, pdfHeight)
     }
   }
 

@@ -154,6 +154,12 @@ pnpm type-check
 pnpm lint
 ```
 
+### 自动修复代码规范问题
+
+```bash
+pnpm lint:fix
+```
+
 ## 数据说明
 
 ### 学生数据存储

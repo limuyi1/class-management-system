@@ -1,4 +1,4 @@
-import { AIModelTypeEnum } from '@/types/AIConfig'
+import { AIModelTypeEnum, DefaultAIPrompts } from '@/types/AIConfig'
 
 import type { AIServiceConfig } from '@/ai/types'
 import {
@@ -6,7 +6,8 @@ import {
   generateText,
   getContentFromOpenAIResponse,
   openaiGet,
-  openaiPost
+  openaiPost,
+  withAIRequestTimeout
 } from '@/ai/providers'
 import { parseJsonArray, parseJsonObject } from '@/ai/responseParser'
 
@@ -21,6 +22,11 @@ interface StudentData {
   tags?: string | string[]
   score?: number | Array<{ label: string; value: number | null }>
   comment?: string | null
+}
+
+interface PolishedCommentResult {
+  name: string
+  comment: string
 }
 
 interface ScoreResult {
@@ -65,6 +71,14 @@ function replaceTemplate(template: string, data: Record<string, unknown>): strin
   return result
 }
 
+function normalizeTagsForPrompt(tags: StudentData['tags']): string | string[] {
+  if (Array.isArray(tags)) {
+    return tags.map((tag) => tag.trim()).filter(Boolean)
+  }
+
+  return tags?.trim() || ''
+}
+
 function parseObjectWithFallback<T>(responseText: string, fallback: T, scene: string): T {
   const parsed = parseJsonObject<T>(responseText)
   if (parsed) return parsed
@@ -77,6 +91,16 @@ function parseArrayWithFallback<T>(responseText: string, fallback: T[], scene: s
   if (parsed) return parsed
   console.error(`[AI] ${scene}: failed to parse array from response`, responseText)
   return fallback
+}
+
+function buildCommentStudentPayload(
+  student: StudentData
+): Pick<StudentData, 'name' | 'tags' | 'comment'> {
+  return {
+    name: student.name,
+    tags: normalizeTagsForPrompt(student.tags),
+    comment: student.comment || ''
+  }
 }
 
 async function generateVisionText(
@@ -92,7 +116,7 @@ async function generateVisionText(
         mimeType: 'image/png'
       }
     }
-    const result = await model.generateContent([prompt, imagePart])
+    const result = await withAIRequestTimeout(() => model.generateContent([prompt, imagePart]))
     return result.response.text()
   }
 
@@ -130,7 +154,7 @@ async function generateVisionTextWithMultiImages(
       })
     }
 
-    const result = await model.generateContent(contents)
+    const result = await withAIRequestTimeout(() => model.generateContent(contents))
     return result.response.text()
   }
 
@@ -161,7 +185,7 @@ export async function testAIConnection(config: AIServiceConfig): Promise<boolean
   try {
     if (config.modelType === AIModelTypeEnum.GEMINI) {
       const model = createGeminiModel(config)
-      await model.generateContent('Hello')
+      await withAIRequestTimeout(() => model.generateContent('Hello'))
       return true
     }
 
@@ -180,7 +204,7 @@ export async function fetchAvailableModels(config: AIServiceConfig): Promise<str
   try {
     if (config.modelType === AIModelTypeEnum.GEMINI) {
       const url = `https://generativelanguage.googleapis.com/v1/models?key=${config.apiKey}`
-      const response = await fetch(url)
+      const response = await withAIRequestTimeout(() => fetch(url))
       if (!response.ok) {
         throw new Error(`Failed to fetch Gemini models: ${response.status}`)
       }
@@ -206,8 +230,25 @@ export async function generateSingleComment(
 ): Promise<string> {
   const promptText = replaceTemplate(prompt, {
     name: student.name,
-    tags: student.tags || [],
-    score: student.score ?? null
+    tags: normalizeTagsForPrompt(student.tags),
+    score: '不提供成绩信息'
+  })
+
+  return generateText(config, promptText)
+}
+
+/**
+ * 基于已有评语进行单个润色。
+ */
+export async function polishSingleComment(
+  student: StudentData,
+  prompt: string,
+  config: AIServiceConfig
+): Promise<string> {
+  const promptText = replaceTemplate(prompt || DefaultAIPrompts.singleCommentPolish, {
+    name: student.name,
+    tags: normalizeTagsForPrompt(student.tags),
+    comment: student.comment || ''
   })
 
   return generateText(config, promptText)
@@ -242,7 +283,7 @@ export async function generateBatchComments(
   prompt: string,
   config: AIServiceConfig
 ): Promise<StudentData[]> {
-  const studentsJson = JSON.stringify(students, null, 2)
+  const studentsJson = JSON.stringify(students.map(buildCommentStudentPayload), null, 2)
   const promptText = replaceTemplate(prompt, {
     students: studentsJson
   })
@@ -260,6 +301,23 @@ export async function generateBatchComments(
     ...student,
     comment: resultMap.get(student.name) || student.comment
   }))
+}
+
+/**
+ * 批量润色已有学生评语。
+ */
+export async function polishBatchComments(
+  students: StudentData[],
+  prompt: string,
+  config: AIServiceConfig
+): Promise<PolishedCommentResult[]> {
+  const studentsJson = JSON.stringify(students, null, 2)
+  const promptText = replaceTemplate(prompt || DefaultAIPrompts.batchCommentPolish, {
+    students: studentsJson
+  })
+
+  const responseText = await generateText(config, promptText)
+  return parseArrayWithFallback<PolishedCommentResult>(responseText, [], 'polishBatchComments')
 }
 
 /**

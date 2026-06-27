@@ -8,7 +8,7 @@ interface Props {
   lists: DashboardKeyStudentListType[]
 }
 
-const props = defineProps<Props>()
+defineProps<Props>()
 
 const emit = defineEmits<{
   /** 点击学生行时触发，打开趋势分析抽屉 */

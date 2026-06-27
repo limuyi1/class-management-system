@@ -9,7 +9,7 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 
-import { generateSingleComment } from '@/ai/aiService'
+import { generateSingleComment, polishSingleComment } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUntil'
 
 import type { StudentDataType } from '@/types/StudentData'
@@ -49,6 +49,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
 
   const generating = ref(false)
+  const polishing = ref(false)
   const optionsList = ref<StudentDataType[]>([])
   const currentSelectedIndex = ref<number | null>(null)
 
@@ -221,9 +222,8 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const goToEditTags = () => {
     if (!formData.name) return
     router.push({
-      path: '/setting',
+      path: '/student-info',
       query: {
-        tab: 'student-info',
         'edit-tags': '1',
         'student-name': formData.name,
         'return-to': 'comment',
@@ -269,6 +269,58 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     }
   }
 
+  const handlePolishComment = async () => {
+    if (!formData.id) return
+
+    if (!aiConfigStore.isConfigured) {
+      ElMessage.warning('请先在设置页面配置 AI')
+      return
+    }
+
+    const currentComment = formData.comment?.trim()
+    if (!currentComment) {
+      ElMessage.warning('请先填写或导入评语后再润色')
+      return
+    }
+
+    const item = originList.value[formData.id - 1]
+    if (!item) return
+
+    polishing.value = true
+    try {
+      const allTags = extractStudentTags(item, tagCategoryList.value)
+
+      const comment = await polishSingleComment(
+        {
+          name: getStudentName(item),
+          tags: allTags,
+          comment: currentComment
+        },
+        aiConfigStore.prompts.singleCommentPolish,
+        {
+          modelType: aiConfigStore.modelType,
+          model: aiConfigStore.model,
+          apiKey: aiConfigStore.apiKey,
+          baseUrl: aiConfigStore.baseUrl
+        }
+      )
+
+      const polishedComment = comment.trim()
+      if (!polishedComment) {
+        ElMessage.warning('AI 未返回有效评语，已保留原内容')
+        return
+      }
+
+      formData.comment = polishedComment
+      ElMessage.success('评语润色成功')
+    } catch (error) {
+      console.error('润色评语失败:', error)
+      ElMessage.error('润色评语失败：' + (error as Error).message)
+    } finally {
+      polishing.value = false
+    }
+  }
+
   onMounted(() => {
     autoFocus()
   })
@@ -277,6 +329,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     originList,
     tagCategoryList,
     generating,
+    polishing,
     optionsList,
     formData,
     currentStudentTags,
@@ -290,6 +343,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     resetForm,
     editData,
     goToEditTags,
-    handleGenerateComment
+    handleGenerateComment,
+    handlePolishComment
   }
 }

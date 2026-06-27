@@ -39,6 +39,7 @@ describe('paperLayoutCanvas', () => {
       margin: 10,
       gap: 5,
       columns: 2,
+      fitMode: 'width',
       columnWidth: 40,
       contentHeight: 80
     })
@@ -130,7 +131,9 @@ describe('paperLayoutCanvas', () => {
         margin: 10,
         gap: 5,
         columns: 2,
-        columnWidth: 40
+        fitMode: 'width',
+        columnWidth: 40,
+        contentHeight: 80
       },
       getNextPaperLayoutZIndex([existingItem])
     )
@@ -147,6 +150,25 @@ describe('paperLayoutCanvas', () => {
       [2, 55, 10, 210]
     ])
     expect(placedItems.map((item) => item.zIndex)).toEqual([3, 4])
+  })
+
+  it('should fill the whole target slot in full-page layout mode', () => {
+    const arrangedItems = arrangePaperItems([createItem('a'), createItem('b')], {
+      pageSize: { width: 200, height: 100 },
+      margin: 0,
+      gap: 0,
+      columns: 2,
+      fitMode: 'slot',
+      columnWidth: 100,
+      contentHeight: 100
+    })
+
+    expect(
+      arrangedItems.map((item) => [item.pageIndex, item.x, item.y, item.width, item.height])
+    ).toEqual([
+      [0, 0, 0, 100, 100],
+      [0, 100, 0, 100, 100]
+    ])
   })
 
   it('should calculate the next top z-index from existing canvas items', () => {

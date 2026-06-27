@@ -11,13 +11,11 @@ import type { StudentDataType } from '@/types/StudentData'
 interface Props {
   autoNextOnSubmit?: boolean
   promptUnsavedOnSwitch?: boolean
-  inlineCommentActions?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   autoNextOnSubmit: true,
-  promptUnsavedOnSwitch: true,
-  inlineCommentActions: true
+  promptUnsavedOnSwitch: true
 })
 
 const emit = defineEmits<{
@@ -29,6 +27,7 @@ const {
   originList,
   tagCategoryList,
   generating,
+  polishing,
   optionsList,
   formData,
   currentStudentTags,
@@ -42,7 +41,8 @@ const {
   resetForm,
   editData,
   goToEditTags,
-  handleGenerateComment
+  handleGenerateComment,
+  handlePolishComment
 } = useEvaluationInput({
   autoNextOnSubmit: props.autoNextOnSubmit,
   promptUnsavedOnSwitch: props.promptUnsavedOnSwitch,
@@ -50,7 +50,8 @@ const {
   onScroll: (index) => emit('scroll', index)
 })
 
-const canGenerateComment = computed(() => !!formData.id && hasAnyTags.value)
+const canGenerateComment = computed(() => !!formData.id)
+const canPolishComment = computed(() => !!formData.id && !!formData.comment?.trim())
 const submitText = computed(() => (props.autoNextOnSubmit ? '保存并下一个' : '提 交'))
 
 const handleEditData = (data: StudentDataType) => {
@@ -91,26 +92,15 @@ defineExpose({
             :current-student-tags="currentStudentTags"
             :hasAnyTags="hasAnyTags"
             :tag-category-list="tagCategoryList"
-            :generating="generating"
-            :can-generate="canGenerateComment"
-            :show-generate-button="!props.inlineCommentActions"
             @update:model-value="(value) => (formData.comment = value)"
             @go-edit-tags="goToEditTags"
-            @generate-comment="handleGenerateComment"
           />
         </div>
 
         <div class="action-section">
           <el-form-item>
-            <div class="action-row" :class="{ 'single-action': !props.inlineCommentActions }">
-              <el-tooltip
-                v-if="props.inlineCommentActions"
-                :disabled="!formData.id || hasAnyTags"
-                :content="
-                  formData.id && !hasAnyTags ? '该学生暂无标签，请先在设置页面添加标签' : ''
-                "
-                placement="top"
-              >
+            <div class="action-row">
+              <el-tooltip disabled placement="top">
                 <div class="action-item">
                   <el-button
                     class="ai-generate-btn"
@@ -127,6 +117,22 @@ defineExpose({
                   </el-button>
                 </div>
               </el-tooltip>
+
+              <div class="action-item">
+                <el-button
+                  class="ai-polish-btn"
+                  size="default"
+                  round
+                  :disabled="!canPolishComment"
+                  :loading="polishing"
+                  @click="handlePolishComment"
+                >
+                  <template #icon
+                    ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+                  /></template>
+                  一键润色
+                </el-button>
+              </div>
 
               <div class="action-item">
                 <el-button
@@ -184,17 +190,14 @@ defineExpose({
   gap: 8px;
 }
 
-.action-row.single-action .submit-btn {
-  width: 100%;
-}
-
 .action-item {
   flex: 1;
   min-width: 0;
 }
 
 .submit-btn,
-.ai-generate-btn {
+.ai-generate-btn,
+.ai-polish-btn {
   width: 100%;
 }
 
@@ -229,6 +232,11 @@ defineExpose({
 }
 
 .ai-generate-btn {
+  height: 36px;
+  font-size: 14px;
+}
+
+.ai-polish-btn {
   height: 36px;
   font-size: 14px;
 }

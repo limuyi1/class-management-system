@@ -1,39 +1,51 @@
 import { PagesEnum } from '@/types/Common'
-import type { PaperLayoutOrientationType, PaperLayoutSettingsType } from '@/types/Tools'
+import type {
+  PaperLayoutFitModeType,
+  PaperLayoutModeType,
+  PaperLayoutSettingsType
+} from '@/types/Tools'
 
 export interface PaperLayoutPresetType {
   columns: number
+  fitMode: PaperLayoutFitModeType
   margin: number
   gap: number
 }
 
-const paperLayoutPresetMap: Record<PaperLayoutOrientationType, PaperLayoutPresetType> = {
-  portrait: {
+const paperLayoutPresetMap: Record<PaperLayoutModeType, PaperLayoutPresetType> = {
+  single: {
     columns: 1,
-    margin: 10,
-    gap: 6
+    fitMode: 'slot',
+    margin: 0,
+    gap: 0
   },
-  landscape: {
+  double: {
     columns: 2,
-    margin: 10,
-    gap: 6
+    fitMode: 'slot',
+    margin: 0,
+    gap: 0
+  },
+  free: {
+    columns: 2,
+    fitMode: 'width',
+    margin: 0,
+    gap: 0
   }
 }
 
-export const getPaperLayoutPreset = (
-  orientation: PaperLayoutOrientationType
-): PaperLayoutPresetType => {
-  return paperLayoutPresetMap[orientation]
+export const getPaperLayoutPreset = (layoutMode: PaperLayoutModeType): PaperLayoutPresetType => {
+  return paperLayoutPresetMap[layoutMode]
 }
 
 export const createDefaultPaperLayoutPreset = (): PaperLayoutPresetType => {
-  return getPaperLayoutPreset('landscape')
+  return getPaperLayoutPreset('double')
 }
 
 export const createDefaultPaperLayoutSettings = (): PaperLayoutSettingsType => {
   return {
     pageType: PagesEnum.A4,
-    orientation: 'landscape' as PaperLayoutOrientationType,
+    orientation: 'landscape',
+    layoutMode: 'double',
     ...createDefaultPaperLayoutPreset()
   }
 }
@@ -41,14 +53,20 @@ export const createDefaultPaperLayoutSettings = (): PaperLayoutSettingsType => {
 export const normalizePaperLayoutSettings = (
   settings: {
     pageType?: PagesEnum
-    orientation?: PaperLayoutOrientationType
+    orientation?: PaperLayoutSettingsType['orientation']
+    layoutMode?: PaperLayoutModeType
   } & Partial<PaperLayoutPresetType>
 ): PaperLayoutSettingsType => {
-  const orientation = settings.orientation || 'landscape'
+  const layoutMode = settings.layoutMode || 'double'
+  const preset = getPaperLayoutPreset(layoutMode)
 
   return {
     pageType: settings.pageType || PagesEnum.A4,
-    orientation,
-    ...getPaperLayoutPreset(orientation)
+    orientation: settings.orientation || 'landscape',
+    layoutMode,
+    fitMode: settings.fitMode || preset.fitMode,
+    columns: settings.columns ?? preset.columns,
+    margin: settings.margin ?? preset.margin,
+    gap: settings.gap ?? preset.gap
   }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, h } from 'vue'
+import { computed, ref, h } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -53,7 +53,6 @@ const getStudentName = (student: EditableStudentType): string => {
 const deleteStudent = (row: EditableStudentType) => {
   const index = tableData.value.indexOf(row)
   if (index > -1) {
-    tagCache.delete(getStudentName(row))
     tableData.value.splice(index, 1)
   }
 }
@@ -100,23 +99,14 @@ const tagColorVars = [
 
 const getTagColor = (category: string) => {
   const catIndex = categories.value.findIndex((c) => c.label === category)
-  return tagColorVars[catIndex % tagColorVars.length]
+  return tagColorVars[Math.max(catIndex, 0) % tagColorVars.length]
 }
 
-const tagCache = new Map<string, { label: string; category: string }[]>()
-
-watch(categories, () => {
-  tagCache.clear()
-})
-
 const getRowTags = (row: EditableStudentType): { label: string; category: string }[] => {
-  const cacheKey = getStudentName(row)
-  if (tagCache.has(cacheKey)) {
-    return tagCache.get(cacheKey)!
-  }
   if (!row.tags) {
     return []
   }
+
   const result: { label: string; category: string }[] = []
   for (const [cat, tagList] of Object.entries(row.tags)) {
     if (Array.isArray(tagList)) {
@@ -126,7 +116,7 @@ const getRowTags = (row: EditableStudentType): { label: string; category: string
       })
     }
   }
-  tagCache.set(cacheKey, result)
+
   return result
 }
 
@@ -147,8 +137,6 @@ const closeTagEditor = () => {
 
 const confirmTagEdit = (tags: Record<string, string[]>) => {
   if (!currentEditRow.value) return
-  const name = getStudentName(currentEditRow.value)
-  tagCache.delete(name)
   currentEditRow.value.tags = tags
   closeTagEditor()
 
@@ -164,7 +152,14 @@ const confirmTagEdit = (tags: Record<string, string[]>) => {
 }
 
 const openBatchEditor = () => {
-  batchStudentList.value = [...tableData.value]
+  batchStudentList.value = tableData.value.map((student) => ({
+    ...student,
+    tags: student.tags
+      ? Object.fromEntries(
+          Object.entries(student.tags).map(([category, tags]) => [category, [...tags]])
+        )
+      : undefined
+  }))
   batchDrawerVisible.value = true
 }
 
@@ -173,16 +168,17 @@ const closeBatchEditor = () => {
   batchStudentList.value = []
 }
 
-const confirmBatchEdit = (updatedStudents: EditableStudentType[]) => {
-  updatedStudents.forEach((student) => {
-    const originalStudent = tableData.value.find(
-      (s) => getStudentName(s) === getStudentName(student)
-    )
+const saveBatchEdit = (updatedStudents: EditableStudentType[]) => {
+  updatedStudents.forEach((student, index) => {
+    const originalStudent = tableData.value[index]
     if (originalStudent) {
-      tagCache.delete(getStudentName(student))
       originalStudent.tags = student.tags
     }
   })
+}
+
+const confirmBatchEdit = (updatedStudents: EditableStudentType[]) => {
+  saveBatchEdit(updatedStudents)
   closeBatchEditor()
 }
 
@@ -436,6 +432,7 @@ defineExpose({
     <BatchTagDrawer
       v-model:visible="batchDrawerVisible"
       :student-list="batchStudentList"
+      @save="saveBatchEdit"
       @confirm="confirmBatchEdit"
       @go-tab="goToTab"
     />

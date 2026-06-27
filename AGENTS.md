@@ -13,7 +13,8 @@ pnpm build            # Full build (runs type-check and vite build in parallel)
 pnpm build-only       # Vite build only (no type-check)
 pnpm preview          # Preview production build
 pnpm type-check       # Type-check with vue-tsc
-pnpm lint             # Lint and auto-fix (ESLint)
+pnpm lint             # Lint check (ESLint)
+pnpm lint:fix         # Lint and auto-fix (ESLint)
 pnpm format           # Format source code (Prettier)
 pnpm test             # Run Vitest tests (run mode)
 pnpm test:watch       # Run Vitest tests (watch mode)
@@ -23,6 +24,14 @@ pnpm test:coverage    # Run Vitest with coverage report
 ### Dev Server Policy
 
 - Do not start the dev server (`pnpm dev`, `npm run dev`, `yarn dev`, `bun dev`, etc.) unless the user explicitly asks for it.
+
+### Dependency Install Policy
+
+- Do not run `pnpm install`, `npm install`, `yarn install`, or dependency update commands automatically.
+- Assume dependencies have already been installed by the user unless they explicitly ask you to install or update packages.
+- Do not delete, recreate, clean, prune, or otherwise modify `node_modules/` unless the user explicitly asks for that exact action.
+- If `pnpm test`, `pnpm build`, or another script tries to trigger dependency installation/rebuilding, stop and report the exact issue instead of continuing with install attempts.
+- If local test binaries are missing (for example `node_modules/.bin/vitest`), report that verification could not be run in the current agent environment and ask the user to restore dependencies.
 
 ## Testing
 

@@ -87,19 +87,20 @@ export const getAttachments = async (): Promise<AttachmentRecordType[]> => {
   })
 }
 
-export const addFilesToAttachments = async (files: File[]): Promise<AttachmentRecordType[]> => {
+export const createAttachmentRecordsFromFiles = async (
+  files: File[],
+  options: {
+    idPrefix?: string
+    startSortOrder?: number
+    existingNames?: Set<string>
+  } = {}
+): Promise<AttachmentRecordType[]> => {
   const imageFiles = files.filter((file) => file.type.startsWith('image/'))
-  const existingAttachments = await getAttachments()
-  const existingNames = new Set(existingAttachments.map((attachment) => attachment.name))
-  const hasSortOrder = existingAttachments.some((attachment) => typeof attachment.sortOrder === 'number')
-  let nextSortOrder = hasSortOrder
-    ? existingAttachments.reduce(
-        (maxOrder, attachment) => Math.max(maxOrder, attachment.sortOrder ?? -1),
-        -1
-      ) + 1
-    : existingAttachments.length
+  const existingNames = options.existingNames || new Set<string>()
+  let nextSortOrder = options.startSortOrder ?? 0
   const nextNames = new Set<string>()
-  const records = await Promise.all(
+
+  return Promise.all(
     imageFiles.map(async (file) => {
       const blob = await normalizeImageBlob(file)
       const size = await getBlobImageSize(blob)
@@ -109,7 +110,7 @@ export const addFilesToAttachments = async (files: File[]): Promise<AttachmentRe
       nextNames.add(name)
 
       return {
-        id: createId('attachment'),
+        id: createId(options.idPrefix || 'attachment'),
         name,
         mimeType: blob.type || file.type || 'image/jpeg',
         blob,
@@ -122,6 +123,24 @@ export const addFilesToAttachments = async (files: File[]): Promise<AttachmentRe
       }
     })
   )
+}
+
+export const addFilesToAttachments = async (files: File[]): Promise<AttachmentRecordType[]> => {
+  const existingAttachments = await getAttachments()
+  const existingNames = new Set(existingAttachments.map((attachment) => attachment.name))
+  const hasSortOrder = existingAttachments.some(
+    (attachment) => typeof attachment.sortOrder === 'number'
+  )
+  const nextSortOrder = hasSortOrder
+    ? existingAttachments.reduce(
+        (maxOrder, attachment) => Math.max(maxOrder, attachment.sortOrder ?? -1),
+        -1
+      ) + 1
+    : existingAttachments.length
+  const records = await createAttachmentRecordsFromFiles(files, {
+    existingNames,
+    startSortOrder: nextSortOrder
+  })
 
   if (records.length > 0) {
     await db.attachments.bulkPut(records)

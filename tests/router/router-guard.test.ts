@@ -45,6 +45,20 @@ describe('router guard', () => {
     expect(next).toHaveBeenCalledWith('/tools')
   })
 
+  it('should redirect student info route to tools when no data', async () => {
+    const store = {
+      waitForInitReady: vi.fn().mockResolvedValue(true),
+      enabledData: []
+    }
+    const next = vi.fn()
+    const guard = createDataGuard(() => store)
+
+    await guard({ path: '/student-info' } as never, { path: '/setting' } as never, next)
+
+    expect(store.waitForInitReady).toHaveBeenCalled()
+    expect(next).toHaveBeenCalledWith('/tools')
+  })
+
   it('should allow comment route when data exists', async () => {
     const store = {
       waitForInitReady: vi.fn().mockResolvedValue(true),

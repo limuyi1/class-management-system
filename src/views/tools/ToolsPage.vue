@@ -36,7 +36,7 @@ function resolveToolHref(tool: ToolItemType): string {
           :href="tool.status === 'available' ? resolveToolHref(tool) : undefined"
           :target="tool.status === 'available' ? '_blank' : undefined"
           :rel="tool.status === 'available' ? 'noopener noreferrer' : undefined"
-          :class="{ disabled: tool.status !== 'available' }"
+          :class="{ disabled: tool.status !== 'available', secondary: tool.tone === 'secondary' }"
           @click.prevent="openTool(tool)"
         >
           <span class="tool-card__icon">
@@ -45,7 +45,13 @@ function resolveToolHref(tool: ToolItemType): string {
           <span class="tool-card__content">
             <span class="tool-card__header">
               <strong>{{ tool.name }}</strong>
-              <em>{{ tool.status === 'available' ? '已上线' : '规划中' }}</em>
+              <em>{{
+                tool.tone === 'secondary'
+                  ? '素材管理'
+                  : tool.status === 'available'
+                    ? '已上线'
+                    : '规划中'
+              }}</em>
             </span>
             <span v-if="tool.openInNewTab" class="tool-card__badge">新页签打开</span>
             <span class="tool-card__description">{{ tool.description }}</span>
@@ -58,7 +64,7 @@ function resolveToolHref(tool: ToolItemType): string {
           v-else
           class="tool-card"
           type="button"
-          :class="{ disabled: tool.status !== 'available' }"
+          :class="{ disabled: tool.status !== 'available', secondary: tool.tone === 'secondary' }"
           @click="openTool(tool)"
         >
           <span class="tool-card__icon">
@@ -67,7 +73,13 @@ function resolveToolHref(tool: ToolItemType): string {
           <span class="tool-card__content">
             <span class="tool-card__header">
               <strong>{{ tool.name }}</strong>
-              <em>{{ tool.status === 'available' ? '已上线' : '规划中' }}</em>
+              <em>{{
+                tool.tone === 'secondary'
+                  ? '素材管理'
+                  : tool.status === 'available'
+                    ? '已上线'
+                    : '规划中'
+              }}</em>
             </span>
             <span v-if="tool.openInNewTab" class="tool-card__badge">新页签打开</span>
             <span class="tool-card__description">{{ tool.description }}</span>
@@ -122,6 +134,22 @@ function resolveToolHref(tool: ToolItemType): string {
 .tool-card.disabled {
   cursor: not-allowed;
   opacity: 0.62;
+}
+
+.tool-card.secondary {
+  min-height: 96px;
+  background: #fbfdff;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
+}
+
+.tool-card.secondary .tool-card__icon {
+  color: #64748b;
+  background: #f1f5f9;
+}
+
+.tool-card.secondary .tool-card__header em {
+  color: #64748b;
+  background: #f8fafc;
 }
 
 .tool-card__icon {

@@ -5,7 +5,7 @@ import {
   deletePaperLayoutDraft,
   getPaperLayoutDrafts
 } from '@/views/tools/services/paperLayoutDraftService'
-import type { PaperLayoutDraftRecordType } from '@/types/Tools'
+import type { PaperLayoutDraftRecordType, PaperLayoutModeType } from '@/types/Tools'
 
 const visible = defineModel<boolean>('visible', { required: true })
 const emit = defineEmits<{
@@ -42,6 +42,15 @@ async function handleDelete(draft: PaperLayoutDraftRecordType): Promise<void> {
   await deletePaperLayoutDraft(draft.id)
   await loadDrafts()
 }
+
+function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
+  const labelMap: Record<PaperLayoutModeType, string> = {
+    single: '一页一张',
+    double: '一页两张',
+    free: '自由排版'
+  }
+  return labelMap[layoutMode]
+}
 </script>
 
 <template>
@@ -59,7 +68,8 @@ async function handleDelete(draft: PaperLayoutDraftRecordType): Promise<void> {
             <span>
               {{ draft.settings.pageType }}
               {{ draft.settings.orientation === 'portrait' ? '纵向' : '横向' }} /
-              {{ draft.items.length }} 张图片 /
+              {{ getLayoutModeLabel(draft.settings.layoutMode) }} / {{ draft.items.length }} 张图片
+              /
               {{ new Date(draft.updatedAt).toLocaleString() }}
             </span>
           </div>

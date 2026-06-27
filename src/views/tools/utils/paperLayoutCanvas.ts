@@ -18,6 +18,7 @@ export interface PaperLayoutMetricsType {
   margin: number
   gap: number
   columns: number
+  fitMode: PaperLayoutSettingsType['fitMode']
   columnWidth: number
   contentHeight: number
 }
@@ -33,7 +34,9 @@ export interface PaperLayoutPagePlacementMetricsType {
   margin: number
   gap: number
   columns: number
+  fitMode: PaperLayoutSettingsType['fitMode']
   columnWidth: number
+  contentHeight: number
 }
 
 export const createPaperLayoutId = (prefix: string): string => {
@@ -159,6 +162,7 @@ export const placePaperItemsOnPage = (
   metrics: PaperLayoutPagePlacementMetricsType,
   startZIndex: number
 ): PaperLayoutCanvasItemType[] => {
+  let targetPageIndex = pageIndex
   let currentY = metrics.margin
   let cursorX = metrics.margin
   let rowItemCount = 0
@@ -168,8 +172,8 @@ export const placePaperItemsOnPage = (
   return items.map((item, index) => {
     const imageHeight = metrics.columnWidth * (item.naturalHeight / item.naturalWidth)
     const fitScale = imageHeight > contentHeight ? contentHeight / imageHeight : 1
-    const width = metrics.columnWidth * fitScale
-    const height = imageHeight * fitScale
+    const width = metrics.fitMode === 'slot' ? metrics.columnWidth : metrics.columnWidth * fitScale
+    const height = metrics.fitMode === 'slot' ? metrics.contentHeight : imageHeight * fitScale
 
     if (rowItemCount >= metrics.columns) {
       rowItemCount = 0
@@ -178,10 +182,18 @@ export const placePaperItemsOnPage = (
       rowHeight = 0
     }
 
-    const documentY = pageIndex * metrics.pageSize.height + currentY
+    if (currentY > metrics.margin && currentY + height > metrics.pageSize.height - metrics.margin) {
+      targetPageIndex += 1
+      rowItemCount = 0
+      cursorX = metrics.margin
+      currentY = metrics.margin
+      rowHeight = 0
+    }
+
+    const documentY = targetPageIndex * metrics.pageSize.height + currentY
     const placedItem = {
       ...item,
-      pageIndex,
+      pageIndex: targetPageIndex,
       x: cursorX,
       y: currentY,
       documentY,
@@ -199,7 +211,7 @@ export const placePaperItemsOnPage = (
 
 /**
  * 自动排版按“从左到右、从上到下、超出即分页”的规则放置图片。
- * 图片始终保持原始宽高比；单张图片高于内容区时，会先缩小到当前页可容纳的高度。
+ * 满版模式让图片占满目标区域；自由模式按图片原始比例排布。
  */
 export const arrangePaperItems = (
   items: PaperLayoutCanvasItemType[],
@@ -214,8 +226,8 @@ export const arrangePaperItems = (
   return items.map((item, index) => {
     const imageHeight = metrics.columnWidth * (item.naturalHeight / item.naturalWidth)
     const fitScale = imageHeight > metrics.contentHeight ? metrics.contentHeight / imageHeight : 1
-    const width = metrics.columnWidth * fitScale
-    const height = imageHeight * fitScale
+    const width = metrics.fitMode === 'slot' ? metrics.columnWidth : metrics.columnWidth * fitScale
+    const height = metrics.fitMode === 'slot' ? metrics.contentHeight : imageHeight * fitScale
 
     if (rowItemCount >= metrics.columns) {
       rowItemCount = 0

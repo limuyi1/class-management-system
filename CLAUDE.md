@@ -15,7 +15,8 @@ pnpm build         # Full build (runs type-check + vite build in parallel)
 pnpm build-only    # Vite build only (no type-check)
 pnpm preview       # Preview production build
 pnpm type-check    # Type-check with vue-tsc
-pnpm lint          # Lint and auto-fix with ESLint
+pnpm lint          # Lint check with ESLint
+pnpm lint:fix      # Lint and auto-fix with ESLint
 pnpm format        # Format source code with Prettier
 pnpm test          # Run Vitest tests (run mode)
 pnpm test:watch    # Run Vitest tests (watch mode)
