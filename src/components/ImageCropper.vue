@@ -48,8 +48,17 @@ const MIN_CROP_HEIGHT = 140
 const CROP_SIZE_CHANGE_THRESHOLD = 4
 const COMPRESS_QUALITY = 0.85
 const ESTIMATE_DEBOUNCE_DELAY = 350
-const COMPRESS_RATIO_OPTIONS: Array<{ label: string; value: number | null }> = [
-  { label: '原图', value: null },
+const ORIGINAL_COMPRESS_VALUE = 'original'
+
+type CompressOptionValueType = number | typeof ORIGINAL_COMPRESS_VALUE
+
+interface CompressOptionType {
+  label: string
+  value: CompressOptionValueType
+}
+
+const COMPRESS_RATIO_OPTIONS: Array<CompressOptionType> = [
+  { label: '原图', value: ORIGINAL_COMPRESS_VALUE },
   { label: '80%', value: 0.8 },
   { label: '60%', value: 0.6 },
   { label: '40%', value: 0.4 },
@@ -89,6 +98,17 @@ const currentCompressRatio = computed({
   get: () => (props.compressRatio === undefined ? 0.6 : props.compressRatio),
   set: (value: number | null) => emit('update:compressRatio', value)
 })
+
+const selectedCompressOptionValue = computed<CompressOptionValueType>({
+  get: () => currentCompressRatio.value ?? ORIGINAL_COMPRESS_VALUE,
+  set: (value) => {
+    currentCompressRatio.value = value === ORIGINAL_COMPRESS_VALUE ? null : value
+  }
+})
+
+const getCompressRatioValue = (value: CompressOptionValueType): number | null => {
+  return value === ORIGINAL_COMPRESS_VALUE ? null : value
+}
 
 const updateCropBoxSize = (): boolean => {
   if (!fullscreen.value) {
@@ -263,13 +283,13 @@ const handleRealtime = (_data: CropRealtimeDataType) => {
   scheduleCropEstimate()
 }
 
-const getCompressOptionLabel = (option: { label: string; value: number | null }): string => {
+const getCompressOptionLabel = (option: CompressOptionType): string => {
   if (!cropDataBase64.value) return option.label
-  if (estimating.value && option.value === currentCompressRatio.value) {
+  if (estimating.value && option.value === selectedCompressOptionValue.value) {
     return `${option.label} · 估算中`
   }
 
-  const size = estimateCompressedImageSize(cropDataBase64.value, option.value)
+  const size = estimateCompressedImageSize(cropDataBase64.value, getCompressRatioValue(option.value))
   return `${option.label} · 约${formatFileSize(size)}`
 }
 
@@ -447,7 +467,7 @@ onBeforeUnmount(() => {
         <div v-if="enableCompression" class="compression-control">
           <span class="compression-label">压缩</span>
           <el-select
-            v-model="currentCompressRatio"
+            v-model="selectedCompressOptionValue"
             class="compression-select"
             size="small"
             :teleported="false"

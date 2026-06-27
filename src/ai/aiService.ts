@@ -1,4 +1,4 @@
-import { AIModelTypeEnum } from '@/types/AIConfig'
+import { AIModelTypeEnum, DefaultAIPrompts } from '@/types/AIConfig'
 
 import type { AIServiceConfig } from '@/ai/types'
 import {
@@ -21,6 +21,11 @@ interface StudentData {
   tags?: string | string[]
   score?: number | Array<{ label: string; value: number | null }>
   comment?: string | null
+}
+
+interface PolishedCommentResult {
+  name: string
+  comment: string
 }
 
 interface ScoreResult {
@@ -213,6 +218,23 @@ export async function generateSingleComment(
   return generateText(config, promptText)
 }
 
+/**
+ * 基于已有评语进行单个润色。
+ */
+export async function polishSingleComment(
+  student: StudentData,
+  prompt: string,
+  config: AIServiceConfig
+): Promise<string> {
+  const promptText = replaceTemplate(prompt || DefaultAIPrompts.singleCommentPolish, {
+    name: student.name,
+    tags: student.tags || [],
+    comment: student.comment || ''
+  })
+
+  return generateText(config, promptText)
+}
+
 export async function generateStudentReportSummary(
   student: StudentData,
   config: AIServiceConfig
@@ -260,6 +282,23 @@ export async function generateBatchComments(
     ...student,
     comment: resultMap.get(student.name) || student.comment
   }))
+}
+
+/**
+ * 批量润色已有学生评语。
+ */
+export async function polishBatchComments(
+  students: StudentData[],
+  prompt: string,
+  config: AIServiceConfig
+): Promise<PolishedCommentResult[]> {
+  const studentsJson = JSON.stringify(students, null, 2)
+  const promptText = replaceTemplate(prompt || DefaultAIPrompts.batchCommentPolish, {
+    students: studentsJson
+  })
+
+  const responseText = await generateText(config, promptText)
+  return parseArrayWithFallback<PolishedCommentResult>(responseText, [], 'polishBatchComments')
 }
 
 /**

@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 
 import { useAIConfigStore } from '@/stores/ai-config'
+import { featureFlags } from '@/config/features'
 import { AIModelTypeEnum, AIModelTypeLabels, DefaultAIPrompts } from '@/types/AIConfig'
 import { testAIConnection, fetchAvailableModels } from '@/ai/aiService'
 
@@ -43,9 +44,27 @@ const promptTabs: Array<{
 }> = [
   { key: 'singleComment', label: '单个评语', placeholder: DefaultAIPrompts.singleComment },
   { key: 'batchComment', label: '批量评语', placeholder: DefaultAIPrompts.batchComment },
+  {
+    key: 'singleCommentPolish',
+    label: '单个润色',
+    placeholder: DefaultAIPrompts.singleCommentPolish
+  },
+  {
+    key: 'batchCommentPolish',
+    label: '批量润色',
+    placeholder: DefaultAIPrompts.batchCommentPolish
+  },
   { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore },
   { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate },
-  { key: 'answerGenerate', label: 'AI答题', placeholder: DefaultAIPrompts.answerGenerate },
+  ...(featureFlags.wrongBook
+    ? [
+        {
+          key: 'answerGenerate' as const,
+          label: 'AI答题',
+          placeholder: DefaultAIPrompts.answerGenerate
+        }
+      ]
+    : []),
   { key: 'learningAnalysis', label: '学情分析', placeholder: DefaultAIPrompts.learningAnalysis }
 ]
 
@@ -284,6 +303,9 @@ const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
             </div>
             <div class="tip-item">
               • <code v-pre>{{ tags }}</code> - 单个评语为学生标签；批量评语为轻量化标签短字符串
+            </div>
+            <div class="tip-item">
+              • <code v-pre>{{ comment }}</code> - 单个润色的当前已有评语
             </div>
             <div class="tip-item">
               单个/批量期末评语默认不使用成绩字段，请围绕学生标签和学期表现编写提示词

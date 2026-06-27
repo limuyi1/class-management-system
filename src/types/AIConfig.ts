@@ -41,6 +41,8 @@ export interface AIConfigType {
 export interface AIPromptsType {
   singleComment: string
   batchComment: string
+  singleCommentPolish: string
+  batchCommentPolish: string
   imageScore: string
   tagGenerate: string
   answerGenerate: string
@@ -91,6 +93,41 @@ export const DefaultAIPrompts: AIPromptsType = {
 6. 可恰当引经据典，提升文采与教育意义
 7. 每个学生都必须生成评语，即使标签为空也要生成符合其特点的鼓励性评语
 8. 仅返回JSON数组，不要有其他任何文字`,
+
+  singleCommentPolish: `请基于以下已有期末评语进行润色：
+学生姓名：{{name}}
+学生标签：{{tags}}
+原评语：{{comment}}
+
+角色：小学班主任
+润色要求：
+1. 只在原评语基础上优化表达、语气和文采，不改变核心事实，不新增没有依据的具体事件
+2. 保持积极、温和、鼓励，适合小学生期末评语
+3. 字数参照原评语长度，润色后整体篇幅应与原文接近，不要明显变长或缩短
+4. 开头不出现学生姓名，不使用“该生”“本学生”等书面称谓
+5. 只输出润色后的纯文本，不要标题、解释、Markdown 或 JSON`,
+
+  batchCommentPolish: `请批量润色以下已有期末评语，仅返回标准JSON数组，无任何多余文字、解释或格式符号：
+{{students}}
+
+单条学生数据结构：
+{
+  "name": "姓名",
+  "tags": "学生标签",
+  "comment": "已有评语"
+}
+
+返回格式：
+[
+  { "name": "姓名", "comment": "润色后的评语" }
+]
+
+润色要求：
+1. 只优化已有 comment 的表达、语气和文采，不改变核心事实，不新增没有依据的具体事件
+2. 保持积极、温和、鼓励，适合小学生期末评语
+3. 每条评语字数参照原 comment 长度，润色后整体篇幅应与原文接近，不要明显变长或缩短
+4. 开头不出现学生姓名，不使用“该生”“本学生”等书面称谓
+5. 每条输入都必须返回同名结果；仅返回JSON数组，不要其他任何文字`,
 
   imageScore: `请识别图片中的学生成绩信息。
 图片是一张成绩表或考试成绩截图。

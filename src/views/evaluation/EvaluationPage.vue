@@ -14,7 +14,7 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
-import { generateBatchComments } from '@/ai/aiService'
+import { generateBatchComments, polishBatchComments } from '@/ai/aiService'
 import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUntil'
 import {
   clearEvaluationHandwriteFont,
@@ -26,6 +26,7 @@ import {
   waitForDefaultHandwriteFont
 } from '@/utils/evaluationHandwriteFontUntil'
 import { extractStudentTags } from '@/utils/studentUntil'
+import { applyPolishedComments, buildCommentPolishTargets } from '@/utils/commentPolishUntil'
 import { NAME_PROP } from '@/types/Constants'
 import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
@@ -73,6 +74,7 @@ const previewMode = computed<PreviewModeType>({
  * 批量生成中状态
  */
 const batchGenerating = ref(false)
+const batchPolishing = ref(false)
 const textPdfExporting = ref(false)
 const handwriteFontApplying = ref(false)
 const showDefaultFontSlowNotice = ref(false)
@@ -441,6 +443,90 @@ const handleBatchGenerate = async () => {
   }
 }
 
+const handleBatchPolish = async () => {
+  if (!aiConfigStore.isConfigured) {
+    ElMessage.warning('请先在设置页面配置 AI')
+    return
+  }
+
+  const polishTargets = buildCommentPolishTargets(students.value, (student) =>
+    formatBatchTags(extractStudentTags(student, tagCategoryList.value))
+  )
+
+  if (!polishTargets.length) {
+    ElMessage.warning('当前没有可润色的已有评语')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `将基于当前已有评语润色 ${polishTargets.length} 名学生，空白评语不会生成或覆盖。是否继续？`,
+      'AI 批量润色期末评语',
+      {
+        confirmButtonText: '开始润色',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+  } catch {
+    return
+  }
+
+  batchPolishing.value = true
+  const loading = ElLoading.service({
+    lock: true,
+    text: '正在批量润色期末评语...'
+  })
+
+  try {
+    const BATCH_SIZE = 10
+    const totalBatches = Math.ceil(polishTargets.length / BATCH_SIZE)
+    const allResults: Array<{ name: string; comment?: string | null }> = []
+    const failedBatches: number[] = []
+
+    for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+      const start = batchIndex * BATCH_SIZE
+      const end = Math.min(start + BATCH_SIZE, polishTargets.length)
+      const batchData = polishTargets.slice(start, end)
+
+      loading.setText(`正在润色第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
+
+      try {
+        const result = await polishBatchComments(
+          batchData,
+          aiConfigStore.prompts.batchCommentPolish,
+          {
+            modelType: aiConfigStore.modelType,
+            model: aiConfigStore.model,
+            apiKey: aiConfigStore.apiKey,
+            baseUrl: aiConfigStore.baseUrl
+          }
+        )
+
+        allResults.push(...result)
+      } catch (error) {
+        console.error(`第 ${batchIndex + 1} 批润色失败:`, error)
+        failedBatches.push(batchIndex + 1)
+      }
+    }
+
+    if (failedBatches.length > 0) {
+      ElMessage.warning(
+        `部分批次润色失败：第 ${failedBatches.join('、')} 批（共 ${totalBatches} 批）`
+      )
+    }
+
+    const updatedCount = applyPolishedComments(students.value, allResults)
+    ElMessage.success(`批量润色完成，已更新 ${updatedCount} 条期末评语`)
+  } catch (error) {
+    console.error('批量润色期末评语失败:', error)
+    ElMessage.error('批量润色期末评语失败：' + (error as Error).message)
+  } finally {
+    loading.close()
+    batchPolishing.value = false
+  }
+}
+
 watch(
   () =>
     [route.query['resume-edit'], route.query['student-name'], !!toolPanelViewRef.value] as const,
@@ -502,6 +588,12 @@ defineExpose({ autoFocus })
                 ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
               /></template>
               AI 批量生成
+            </el-button>
+            <el-button :loading="batchPolishing" @click="handleBatchPolish">
+              <template #icon
+                ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+              /></template>
+              AI 批量润色
             </el-button>
             <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
               <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>

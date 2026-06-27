@@ -29,6 +29,7 @@ const {
   originList,
   tagCategoryList,
   generating,
+  polishing,
   optionsList,
   formData,
   currentStudentTags,
@@ -42,7 +43,8 @@ const {
   resetForm,
   editData,
   goToEditTags,
-  handleGenerateComment
+  handleGenerateComment,
+  handlePolishComment
 } = useEvaluationInput({
   autoNextOnSubmit: props.autoNextOnSubmit,
   promptUnsavedOnSwitch: props.promptUnsavedOnSwitch,
@@ -51,6 +53,7 @@ const {
 })
 
 const canGenerateComment = computed(() => !!formData.id && hasAnyTags.value)
+const canPolishComment = computed(() => !!formData.id && !!formData.comment?.trim())
 const submitText = computed(() => (props.autoNextOnSubmit ? '保存并下一个' : '提 交'))
 
 const handleEditData = (data: StudentDataType) => {
@@ -130,6 +133,22 @@ defineExpose({
 
               <div class="action-item">
                 <el-button
+                  class="ai-polish-btn"
+                  size="default"
+                  round
+                  :disabled="!canPolishComment"
+                  :loading="polishing"
+                  @click="handlePolishComment"
+                >
+                  <template #icon
+                    ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
+                  /></template>
+                  一键润色
+                </el-button>
+              </div>
+
+              <div class="action-item">
+                <el-button
                   class="submit-btn"
                   type="primary"
                   size="default"
@@ -194,7 +213,8 @@ defineExpose({
 }
 
 .submit-btn,
-.ai-generate-btn {
+.ai-generate-btn,
+.ai-polish-btn {
   width: 100%;
 }
 
@@ -229,6 +249,11 @@ defineExpose({
 }
 
 .ai-generate-btn {
+  height: 36px;
+  font-size: 14px;
+}
+
+.ai-polish-btn {
   height: 36px;
   font-size: 14px;
 }

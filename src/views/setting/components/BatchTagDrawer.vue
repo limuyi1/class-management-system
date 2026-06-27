@@ -28,7 +28,7 @@ const tagColorVars = [
 
 const getTagColor = (category: string) => {
   const catIndex = categories.value.findIndex((c) => c.label === category)
-  return tagColorVars[catIndex % tagColorVars.length]
+  return tagColorVars[Math.max(catIndex, 0) % tagColorVars.length]
 }
 
 const totalTagCount = computed(() => {
@@ -100,8 +100,13 @@ const saveCurrentTags = () => {
   }
 }
 
-const goToPrevStudent = () => {
+const saveBatchProgress = () => {
   saveCurrentTags()
+  emit('save', props.studentList)
+}
+
+const goToPrevStudent = () => {
+  saveBatchProgress()
   if (currentIndex.value > 0) {
     currentIndex.value--
     loadCurrentStudentTags()
@@ -109,7 +114,7 @@ const goToPrevStudent = () => {
 }
 
 const goToNextStudent = () => {
-  saveCurrentTags()
+  saveBatchProgress()
   if (currentIndex.value < props.studentList.length - 1) {
     currentIndex.value++
     loadCurrentStudentTags()
@@ -147,7 +152,7 @@ watch(
     v-model="drawerVisible"
     title="快捷打标签"
     direction="rtl"
-    size="420px"
+    size="560px"
     :show-close="false"
     destroy-on-close
   >
@@ -226,13 +231,14 @@ watch(
   }
 
   .progress-text {
-    font-size: 14px;
+    font-size: 15px;
     color: #303133;
   }
 
   .current-student {
-    padding: 16px 0;
+    padding: 18px 0;
     border-bottom: 1px solid #e4e7ed;
+    font-size: 15px;
 
     .student-label {
       color: #909399;
@@ -241,13 +247,14 @@ watch(
     .student-name {
       color: #303133;
       font-weight: 600;
+      font-size: 18px;
     }
   }
 
   .tags-section {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 0;
+    padding: 20px 0;
 
     .empty-tags-tip {
       display: flex;
@@ -265,32 +272,36 @@ watch(
     }
 
     .tag-category {
-      margin-bottom: 16px;
+      margin-bottom: 22px;
 
       .category-name {
-        font-size: 14px;
+        font-size: 16px;
         font-weight: 600;
         color: #303133;
-        margin-bottom: 8px;
+        margin-bottom: 12px;
       }
 
       .category-tags {
         display: flex;
         flex-wrap: wrap;
-        gap: 8px;
+        gap: 10px 12px;
 
         .tag-item {
           cursor: pointer;
+          min-height: 34px;
+          padding: 0 14px;
           margin-bottom: 4px;
+          font-size: 15px;
+          line-height: 32px;
         }
       }
     }
   }
 
   .progress-info {
-    padding-top: 12px;
+    padding-top: 14px;
     border-top: 1px solid #e4e7ed;
-    font-size: 14px;
+    font-size: 15px;
     color: #606266;
 
     .progress-bar {
