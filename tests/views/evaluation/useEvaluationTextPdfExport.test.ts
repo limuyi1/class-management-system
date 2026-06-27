@@ -11,6 +11,7 @@ const fontUtilMocks = vi.hoisted(() => ({
 }))
 
 const exportMocks = vi.hoisted(() => ({
+  exportEvaluationTextExcel: vi.fn(),
   exportEvaluationTextPDF: vi.fn()
 }))
 
@@ -29,6 +30,7 @@ const messageMocks = vi.hoisted(() => ({
 }))
 
 vi.mock('@/utils/evaluationHandwriteFontUntil', () => fontUtilMocks)
+vi.mock('@/utils/evaluationTextExcelUntil', () => exportMocks)
 vi.mock('@/utils/evaluationTextPdfUntil', () => exportMocks)
 
 vi.mock('element-plus', () => ({
@@ -74,6 +76,9 @@ describe('useEvaluationTextPdfExport', () => {
     exportMocks.exportEvaluationTextPDF.mockResolvedValue({
       success: true,
       truncatedStudents: []
+    })
+    exportMocks.exportEvaluationTextExcel.mockReturnValue({
+      success: true
     })
     messageBoxMocks.confirm.mockResolvedValue('confirm')
   })
@@ -128,5 +133,51 @@ describe('useEvaluationTextPdfExport', () => {
     )
     expect(loadingMocks.close).toHaveBeenCalled()
     expect(hook.textPdfExporting.value).toBe(false)
+  })
+
+  it('should warn when there are no enabled students to export as Excel', async () => {
+    const hook = useEvaluationTextPdfExport({
+      enabledStudents: ref([]),
+      configuration: createConfiguration()
+    })
+
+    await hook.handleExportTextExcel()
+
+    expect(messageMocks.warning).toHaveBeenCalledWith('没有可导出的学生期末评语')
+    expect(exportMocks.exportEvaluationTextExcel).not.toHaveBeenCalled()
+  })
+
+  it('should export comments as Excel', async () => {
+    const students = ref([createStudent('张三')])
+    const hook = useEvaluationTextPdfExport({
+      enabledStudents: students,
+      configuration: createConfiguration()
+    })
+
+    await hook.handleExportTextExcel()
+
+    expect(exportMocks.exportEvaluationTextExcel).toHaveBeenCalledWith({
+      students: students.value
+    })
+    expect(messageMocks.success).toHaveBeenCalledWith('评语导出成功')
+    expect(loadingMocks.close).toHaveBeenCalled()
+    expect(hook.textExcelExporting.value).toBe(false)
+  })
+
+  it('should show Excel export error message when export fails', async () => {
+    exportMocks.exportEvaluationTextExcel.mockReturnValue({
+      success: false,
+      error: new Error('Excel 导出失败')
+    })
+    const hook = useEvaluationTextPdfExport({
+      enabledStudents: ref([createStudent('张三')]),
+      configuration: createConfiguration()
+    })
+
+    await hook.handleExportTextExcel()
+
+    expect(messageMocks.error).toHaveBeenCalledWith('Excel 导出失败')
+    expect(loadingMocks.close).toHaveBeenCalled()
+    expect(hook.textExcelExporting.value).toBe(false)
   })
 })

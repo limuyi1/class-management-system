@@ -81,10 +81,12 @@ const {
   configuration,
   fontFileInputRef
 })
-const { handleExportTextPDF, textPdfExporting } = useEvaluationTextPdfExport({
-  enabledStudents,
-  configuration
-})
+const { handleExportTextExcel, handleExportTextPDF, textExcelExporting, textPdfExporting } =
+  useEvaluationTextPdfExport({
+    enabledStudents,
+    configuration
+  })
+const textExporting = computed(() => textPdfExporting.value || textExcelExporting.value)
 
 /**
  * 自动聚焦到工具面板
@@ -97,6 +99,17 @@ const handleMoreAction = (command: string | number | object) => {
   if (command !== 'reset-comments') return
 
   void handleResetComments()
+}
+
+const handleExportAction = (command: string | number | object) => {
+  if (command === 'pdf') {
+    void handleExportTextPDF()
+    return
+  }
+
+  if (command === 'excel') {
+    void handleExportTextExcel()
+  }
 }
 
 onMounted(() => {
@@ -227,10 +240,24 @@ defineExpose({ autoFocus })
               /></template>
               AI 批量润色
             </el-button>
-            <el-button :loading="textPdfExporting" @click="handleExportTextPDF">
-              <template #icon><font-awesome-icon :icon="['solid', 'file-lines']" /></template>
-              导出
-            </el-button>
+            <el-dropdown trigger="click" placement="bottom-end" @command="handleExportAction">
+              <el-button :loading="textExporting">
+                <template #icon><font-awesome-icon :icon="['solid', 'file-export']" /></template>
+                导出
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="pdf">
+                    <font-awesome-icon :icon="['solid', 'file-pdf']" />
+                    <span>导出 PDF</span>
+                  </el-dropdown-item>
+                  <el-dropdown-item command="excel">
+                    <font-awesome-icon :icon="['solid', 'file-excel']" />
+                    <span>导出 Excel</span>
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
 
             <el-dropdown trigger="click" placement="bottom-end" @command="handleMoreAction">
               <el-button class="more-action-btn">

@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 
+import { exportEvaluationTextExcel } from '@/utils/evaluationTextExcelUntil'
 import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUntil'
 import { hasUnsupportedEvaluationHandwriteGlyphs } from '@/utils/evaluationHandwriteFontUntil'
 import type { ConfigurationType } from '@/types/Configuration'
@@ -13,6 +14,7 @@ interface UseEvaluationTextPdfExportOptions {
 
 export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOptions) {
   const textPdfExporting = ref(false)
+  const textExcelExporting = ref(false)
 
   async function confirmUnsupportedGlyphs(): Promise<boolean> {
     try {
@@ -82,8 +84,39 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
     }
   }
 
+  async function handleExportTextExcel(): Promise<void> {
+    if (!options.enabledStudents.value.length) {
+      ElMessage.warning('没有可导出的学生期末评语')
+      return
+    }
+
+    textExcelExporting.value = true
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在导出评语Excel...'
+    })
+
+    try {
+      const result = exportEvaluationTextExcel({
+        students: options.enabledStudents.value
+      })
+
+      if (!result.success) {
+        ElMessage.error(result.error?.message || '导出失败！')
+        return
+      }
+
+      ElMessage.success('评语导出成功')
+    } finally {
+      loading.close()
+      textExcelExporting.value = false
+    }
+  }
+
   return {
+    handleExportTextExcel,
     handleExportTextPDF,
+    textExcelExporting,
     textPdfExporting
   }
 }
