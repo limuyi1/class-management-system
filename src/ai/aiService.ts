@@ -24,9 +24,24 @@ interface StudentData {
   comment?: string | null
 }
 
+interface ClassicExpressionUsageType {
+  expression: string
+  count: number
+}
+
+interface BatchCommentOptionsType {
+  classicExpressionUsages?: ClassicExpressionUsageType[]
+  maxClassicExpressionUsage?: number
+}
+
+interface BatchCommentResult extends StudentData {
+  classicExpression?: string
+}
+
 interface PolishedCommentResult {
   name: string
   comment: string
+  classicExpression?: string
 }
 
 interface ScoreResult {
@@ -71,9 +86,12 @@ function replaceTemplate(template: string, data: Record<string, unknown>): strin
   return result
 }
 
-function normalizeTagsForPrompt(tags: StudentData['tags']): string | string[] {
+function normalizeTagsForPrompt(tags: StudentData['tags']): string {
   if (Array.isArray(tags)) {
-    return tags.map((tag) => tag.trim()).filter(Boolean)
+    return tags
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .join('、')
   }
 
   return tags?.trim() || ''
@@ -101,6 +119,23 @@ function buildCommentStudentPayload(
     tags: normalizeTagsForPrompt(student.tags),
     comment: student.comment || ''
   }
+}
+
+function buildClassicExpressionUsageGuidance(options?: BatchCommentOptionsType): string {
+  const usages = options?.classicExpressionUsages || []
+  if (!usages.length) return ''
+
+  const maxUsage = options?.maxClassicExpressionUsage || 2
+  const usageText = usages
+    .map((item) => `- ${item.expression}（已使用 ${item.count} 次）`)
+    .join('\n')
+
+  return `\n\n经典表达频率控制：
+1. 同一句经典表达在本次全班评语中最多使用 ${maxUsage} 次；达到 ${maxUsage} 次后，除非与学生标签和成长方向高度贴合，否则不要继续使用。
+2. 同一批次内不得重复使用同一句经典表达。
+3. 以下经典表达已在前面批次使用较多，本批次请优先避开：
+${usageText}
+4. 每条结果必须额外返回 classicExpression 字段，填写本条评语实际使用的经典表达；若确实未使用，则填空字符串。classicExpression 不要包含解释、出处或额外修饰。`
 }
 
 async function generateVisionText(
@@ -258,7 +293,9 @@ export async function generateStudentReportSummary(
   student: StudentData,
   config: AIServiceConfig
 ): Promise<string> {
-  const scoreDetail = Array.isArray(student.score) ? JSON.stringify(student.score, null, 2) : student.score
+  const scoreDetail = Array.isArray(student.score)
+    ? JSON.stringify(student.score, null, 2)
+    : student.score
   const promptText = `你是一位小学班主任，请根据以下学生阶段成绩信息，生成一份适合展示给家长查看的学习报告正文。
 
 学生姓名：${student.name}
@@ -281,25 +318,28 @@ export async function generateStudentReportSummary(
 export async function generateBatchComments(
   students: StudentData[],
   prompt: string,
-  config: AIServiceConfig
-): Promise<StudentData[]> {
+  config: AIServiceConfig,
+  options?: BatchCommentOptionsType
+): Promise<BatchCommentResult[]> {
   const studentsJson = JSON.stringify(students.map(buildCommentStudentPayload), null, 2)
-  const promptText = replaceTemplate(prompt, {
-    students: studentsJson
-  })
+  const promptText =
+    replaceTemplate(prompt, {
+      students: studentsJson
+    }) + buildClassicExpressionUsageGuidance(options)
 
   const responseText = await generateText(config, promptText)
-  const parsed = parseArrayWithFallback<{ name: string; comment: string }>(
-    responseText,
-    [],
-    'generateBatchComments'
-  )
+  const parsed = parseArrayWithFallback<{
+    name: string
+    comment: string
+    classicExpression?: string
+  }>(responseText, [], 'generateBatchComments')
 
-  const resultMap = new Map(parsed.map((item) => [item.name, item.comment]))
+  const resultMap = new Map(parsed.map((item) => [item.name, item]))
 
   return students.map((student) => ({
     ...student,
-    comment: resultMap.get(student.name) || student.comment
+    comment: resultMap.get(student.name)?.comment || student.comment,
+    classicExpression: resultMap.get(student.name)?.classicExpression
   }))
 }
 
@@ -309,12 +349,14 @@ export async function generateBatchComments(
 export async function polishBatchComments(
   students: StudentData[],
   prompt: string,
-  config: AIServiceConfig
+  config: AIServiceConfig,
+  options?: BatchCommentOptionsType
 ): Promise<PolishedCommentResult[]> {
   const studentsJson = JSON.stringify(students, null, 2)
-  const promptText = replaceTemplate(prompt || DefaultAIPrompts.batchCommentPolish, {
-    students: studentsJson
-  })
+  const promptText =
+    replaceTemplate(prompt || DefaultAIPrompts.batchCommentPolish, {
+      students: studentsJson
+    }) + buildClassicExpressionUsageGuidance(options)
 
   const responseText = await generateText(config, promptText)
   return parseArrayWithFallback<PolishedCommentResult>(responseText, [], 'polishBatchComments')

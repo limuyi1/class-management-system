@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   formatEvaluationBatchTags,
+  normalizeClassicExpression,
   useEvaluationBatchComments
 } from '@/views/evaluation/composables/useEvaluationBatchComments'
 import { AIModelTypeEnum, DefaultAIPrompts, type AIConfigType } from '@/types/AIConfig'
@@ -80,6 +81,11 @@ describe('useEvaluationBatchComments', () => {
     expect(formatEvaluationBatchTags([])).toBe('')
   })
 
+  it('should normalize classic expressions for usage counting', () => {
+    expect(normalizeClassicExpression('“天下大事，必作于细。”')).toBe('天下大事，必作于细')
+    expect(normalizeClassicExpression('')).toBe('')
+  })
+
   it('should warn when AI is not configured', async () => {
     const hook = useEvaluationBatchComments({
       students: ref([createStudent('张三')]),
@@ -120,7 +126,11 @@ describe('useEvaluationBatchComments', () => {
         }
       ],
       DefaultAIPrompts.batchComment,
-      expect.objectContaining({ apiKey: 'key' })
+      expect.objectContaining({ apiKey: 'key' }),
+      {
+        classicExpressionUsages: [],
+        maxClassicExpressionUsage: 2
+      }
     )
     expect(students.value.map((student) => student.comment)).toEqual(['已有评语', generatedComment])
     expect(messageMocks.success).toHaveBeenCalledWith('批量生成完成，已更新 1 条期末评语')
@@ -207,10 +217,43 @@ describe('useEvaluationBatchComments', () => {
         }
       ],
       DefaultAIPrompts.batchCommentPolish,
-      expect.objectContaining({ model: 'gpt-test' })
+      expect.objectContaining({ model: 'gpt-test' }),
+      {
+        classicExpressionUsages: [],
+        maxClassicExpressionUsage: 2
+      }
     )
     expect(students.value.map((student) => student.comment)).toEqual(['润色评语', ''])
     expect(messageMocks.success).toHaveBeenCalledWith('批量润色完成，已更新 1 条期末评语')
     expect(loadingMocks.close).toHaveBeenCalled()
+  })
+
+  it('should pass overused classic expressions to later generation batches', async () => {
+    const students = ref(Array.from({ length: 6 }, (_, index) => createStudent(`学生${index + 1}`)))
+    const generatedComment = createComment()
+    aiServiceMocks.generateBatchComments
+      .mockResolvedValueOnce([
+        { name: '学生1', comment: generatedComment, classicExpression: '天下大事，必作于细' },
+        { name: '学生2', comment: generatedComment, classicExpression: '天下大事，必作于细' },
+        { name: '学生3', comment: generatedComment, classicExpression: '不积跬步，无以至千里' },
+        { name: '学生4', comment: generatedComment, classicExpression: '' },
+        { name: '学生5', comment: generatedComment, classicExpression: '日拱一卒' }
+      ])
+      .mockResolvedValueOnce([
+        { name: '学生6', comment: generatedComment, classicExpression: '锲而不舍，金石可镂' }
+      ])
+    const hook = useEvaluationBatchComments({
+      students,
+      tagCategoryList: ref(tagCategoryList),
+      aiConfig: createAIConfig()
+    })
+
+    await hook.handleBatchGenerate()
+
+    expect(aiServiceMocks.generateBatchComments).toHaveBeenCalledTimes(2)
+    expect(aiServiceMocks.generateBatchComments.mock.calls[1]?.[3]).toEqual({
+      classicExpressionUsages: [{ expression: '天下大事，必作于细', count: 2 }],
+      maxClassicExpressionUsage: 2
+    })
   })
 })
