@@ -11,6 +11,7 @@ import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
 
 const batchSize = 5
+const maxClassicExpressionUsage = 2
 
 interface EvaluationAIConfigType extends AIConfigType {
   isConfigured: boolean
@@ -23,6 +24,12 @@ interface UseEvaluationBatchCommentsOptions {
 }
 
 type GenerateModeType = 'skip' | 'overwrite'
+type ClassicExpressionUsageType = { expression: string; count: number }
+type CommentAIResultType = {
+  name: string
+  comment?: string | null
+  classicExpression?: string | null
+}
 
 export function getEvaluationStudentName(student: StudentDataType): string {
   const name = student[NAME_PROP]
@@ -32,6 +39,33 @@ export function getEvaluationStudentName(student: StudentDataType): string {
 export function formatEvaluationBatchTags(tags: string[]): string {
   const uniqueTags = Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)))
   return uniqueTags.length ? uniqueTags.join('、') : ''
+}
+
+export function normalizeClassicExpression(expression: string | null | undefined): string {
+  return String(expression || '')
+    .trim()
+    .replace(/^[“”"『』「」《》]+|[“”"『』「」《》]+$/g, '')
+    .replace(/[。.!！?？；;：:]+$/g, '')
+    .trim()
+}
+
+function getOverusedClassicExpressions(
+  usageMap: Map<string, number>
+): ClassicExpressionUsageType[] {
+  return Array.from(usageMap.entries())
+    .filter(([, count]) => count >= maxClassicExpressionUsage)
+    .map(([expression, count]) => ({ expression, count }))
+}
+
+function recordClassicExpressionUsage(
+  usageMap: Map<string, number>,
+  results: CommentAIResultType[]
+) {
+  results.forEach((item) => {
+    const expression = normalizeClassicExpression(item.classicExpression)
+    if (!expression) return
+    usageMap.set(expression, (usageMap.get(expression) || 0) + 1)
+  })
 }
 
 async function resolveBatchGenerateMode(
@@ -124,8 +158,9 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
         comment: mode === 'overwrite' ? '' : item.comment || ''
       }))
       const totalBatches = Math.ceil(studentsData.length / batchSize)
-      const allResults: Array<{ name: string; comment: string | null }> = []
+      const allResults: CommentAIResultType[] = []
       const failedBatches: number[] = []
+      const classicExpressionUsageMap = new Map<string, number>()
 
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
         const start = batchIndex * batchSize
@@ -138,10 +173,16 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
           const result = await generateBatchComments(
             batchData,
             options.aiConfig.prompts.batchComment,
-            getAIRequestOptions()
+            getAIRequestOptions(),
+            {
+              classicExpressionUsages: getOverusedClassicExpressions(classicExpressionUsageMap),
+              maxClassicExpressionUsage
+            }
           )
 
-          allResults.push(...(result as Array<{ name: string; comment: string | null }>))
+          const batchResults = result as CommentAIResultType[]
+          allResults.push(...batchResults)
+          recordClassicExpressionUsage(classicExpressionUsageMap, batchResults)
         } catch (error) {
           console.error(`第 ${batchIndex + 1} 批生成失败:`, error)
           failedBatches.push(batchIndex + 1)
@@ -224,8 +265,9 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
 
     try {
       const totalBatches = Math.ceil(polishTargets.length / batchSize)
-      const allResults: Array<{ name: string; comment?: string | null }> = []
+      const allResults: CommentAIResultType[] = []
       const failedBatches: number[] = []
+      const classicExpressionUsageMap = new Map<string, number>()
 
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
         const start = batchIndex * batchSize
@@ -238,10 +280,15 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
           const result = await polishBatchComments(
             batchData,
             options.aiConfig.prompts.batchCommentPolish,
-            getAIRequestOptions()
+            getAIRequestOptions(),
+            {
+              classicExpressionUsages: getOverusedClassicExpressions(classicExpressionUsageMap),
+              maxClassicExpressionUsage
+            }
           )
 
           allResults.push(...result)
+          recordClassicExpressionUsage(classicExpressionUsageMap, result)
         } catch (error) {
           console.error(`第 ${batchIndex + 1} 批润色失败:`, error)
           failedBatches.push(batchIndex + 1)

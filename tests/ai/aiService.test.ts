@@ -83,20 +83,45 @@ describe('aiService', () => {
     generateTextMock.mockResolvedValueOnce(JSON.stringify([{ name: '张三', comment: '生成评语' }]))
 
     const { generateBatchComments } = await import('../../src/ai/aiService')
+    await generateBatchComments([{ name: '张三', tags: [], comment: '' }], '请生成：{{students}}', {
+      modelType: AIModelTypeEnum.OPENAI,
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1'
+    })
+
+    const promptText = generateTextMock.mock.calls[0]?.[1] || ''
+    expect(promptText).toContain('"tags": ""')
+    expect(promptText).not.toContain('暂无')
+  })
+
+  it('appends classic expression usage guidance to batch comment prompts', async () => {
+    generateTextMock.mockResolvedValueOnce(
+      JSON.stringify([
+        { name: '张三', comment: '生成评语', classicExpression: '锲而不舍，金石可镂' }
+      ])
+    )
+
+    const { generateBatchComments } = await import('../../src/ai/aiService')
     await generateBatchComments(
-      [{ name: '张三', tags: [], comment: '' }],
+      [{ name: '张三', tags: '认真', comment: '' }],
       '请生成：{{students}}',
       {
         modelType: AIModelTypeEnum.OPENAI,
         model: 'test-model',
         apiKey: 'test-key',
         baseUrl: 'https://example.com/v1'
+      },
+      {
+        classicExpressionUsages: [{ expression: '天下大事，必作于细', count: 2 }],
+        maxClassicExpressionUsage: 2
       }
     )
 
     const promptText = generateTextMock.mock.calls[0]?.[1] || ''
-    expect(promptText).toContain('"tags": ""')
-    expect(promptText).not.toContain('暂无')
+    expect(promptText).toContain('经典表达频率控制')
+    expect(promptText).toContain('天下大事，必作于细（已使用 2 次）')
+    expect(promptText).toContain('classicExpression')
   })
 
   it('parses batch polish comments from JSON response', async () => {
