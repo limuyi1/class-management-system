@@ -24,6 +24,7 @@ const emit = defineEmits<{
   'update:content': [value: string]
   'update:exportQuality': [value: string]
   'update:exportScale': [value: string]
+  'apply-template-content': []
   'generate-content': []
   export: []
 }>()
@@ -135,7 +136,7 @@ const toggleSelectAll = (): void => {
           </span>
           <div>
             <h3 class="student-report-sidebar__title">正文内容</h3>
-            <p class="student-report-sidebar__description">可 AI 生成后再手动微调文字内容</p>
+            <p class="student-report-sidebar__description">默认使用模板内容，可按需 AI 生成</p>
           </div>
         </div>
       </div>
@@ -144,15 +145,34 @@ const toggleSelectAll = (): void => {
         <el-tag size="small" :type="aiConfigured ? 'success' : 'info'">
           {{ generatorLabel }}
         </el-tag>
-        <el-button
-          size="small"
-          text
-          :loading="generating"
-          :disabled="!selectedCount"
-          @click="emit('generate-content')"
-        >
-          生成内容
-        </el-button>
+        <div class="student-report-sidebar__toolbar-actions">
+          <el-button
+            class="student-report-sidebar__content-button"
+            size="small"
+            plain
+            :disabled="!selectedCount"
+            @click="emit('apply-template-content')"
+          >
+            <template #icon>
+              <font-awesome-icon :icon="['regular', 'file-lines']" />
+            </template>
+            模板正文
+          </el-button>
+          <el-button
+            v-if="aiConfigured"
+            class="student-report-sidebar__content-button"
+            type="primary"
+            size="small"
+            :loading="generating"
+            :disabled="!selectedCount"
+            @click="emit('generate-content')"
+          >
+            <template #icon>
+              <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
+            </template>
+            AI 生成
+          </el-button>
+        </div>
       </div>
 
       <div v-if="contentStatus === 'stale'" class="student-report-sidebar__notice">
@@ -164,7 +184,7 @@ const toggleSelectAll = (): void => {
         type="textarea"
         :rows="11"
         resize="none"
-        placeholder="生成后的正文会显示在这里"
+        placeholder="正文内容会显示在这里"
       />
     </section>
 
@@ -352,10 +372,28 @@ const toggleSelectAll = (): void => {
 
 .student-report-sidebar__toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin: 14px 0 12px;
+}
+
+.student-report-sidebar__toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
+  gap: 6px;
+}
+
+.student-report-sidebar__content-button {
+  min-width: 86px;
+  font-weight: 600;
+}
+
+.student-report-sidebar__content-button + .student-report-sidebar__content-button {
+  margin-left: 0;
 }
 
 .student-report-sidebar__notice {

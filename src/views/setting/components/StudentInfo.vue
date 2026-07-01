@@ -342,7 +342,7 @@ defineExpose({
           resizable
           :edit-render="{ name: 'input' }"
         />
-        <vxe-column field="tags" title="标签" min-width="180" fixed="left" resizable>
+        <vxe-column field="tags" title="标签" min-width="240" fixed="left" resizable>
           <template #header>
             <div class="tags-header">
               <span>标签</span>
@@ -416,7 +416,7 @@ defineExpose({
           :title="item.label"
           sortable
           resizable
-          min-width="150"
+          min-width="180"
           :edit-render="{ name: 'input' }"
         />
       </vxe-table>
