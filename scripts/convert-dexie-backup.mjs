@@ -7,6 +7,8 @@ import { basename, dirname, extname, join, resolve } from 'node:path'
 const LEGACY_DATABASE_NAME = 'scs-database'
 const DATABASE_NAME = 'score-recording-system'
 const DATABASE_VERSION = 1
+const NAME_PROP = 'name'
+const LEGACY_NAME_PROP = 'xing4_ming2'
 
 const TABLES = {
   studentDataset: 'student_dataset',
@@ -70,6 +72,29 @@ const addUpdatedAt = (record) => ({
   updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : nowIso()
 })
 
+const normalizeStudentRecord = (student) => {
+  if (!student || typeof student !== 'object' || Array.isArray(student)) {
+    return student
+  }
+
+  const { [LEGACY_NAME_PROP]: legacyName, ...rest } = student
+  return {
+    ...rest,
+    [NAME_PROP]: student[NAME_PROP] ?? legacyName ?? null
+  }
+}
+
+const normalizeHeaderRecord = (header) => {
+  if (!header || typeof header !== 'object' || Array.isArray(header)) {
+    return header
+  }
+
+  return {
+    ...header,
+    prop: header.prop === LEGACY_NAME_PROP ? NAME_PROP : header.prop
+  }
+}
+
 const transformRecord = (legacyTableName, record) => {
   if (!record || typeof record !== 'object' || Array.isArray(record)) {
     return record
@@ -80,9 +105,17 @@ const transformRecord = (legacyTableName, record) => {
       const { id = 'main', data = [], updatedAt } = record
       return {
         id,
-        students: Array.isArray(data) ? data : [],
+        students: Array.isArray(data) ? data.map(normalizeStudentRecord) : [],
         updatedAt: typeof updatedAt === 'string' ? updatedAt : nowIso()
       }
+    }
+    case 'setting': {
+      return addUpdatedAt({
+        ...stripLegacyMeta(record),
+        tableHeaders: Array.isArray(record.tableHeaders)
+          ? record.tableHeaders.map(normalizeHeaderRecord)
+          : []
+      })
     }
     case 'attachments':
     case 'paperLayoutDrafts':

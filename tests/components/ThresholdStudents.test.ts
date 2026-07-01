@@ -9,8 +9,8 @@ const defaultProps = {
   thresholdMode: 'average' as const,
   avgScore: 60,
   students: [
-    { xing4_ming2: '张三', score: 50 },
-    { xing4_ming2: '李四', score: 55 }
+    { name: '张三', score: 50 },
+    { name: '李四', score: 55 }
   ],
   getScore: (item: { score?: number }) => item.score ?? null
 }

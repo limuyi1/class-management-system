@@ -59,7 +59,7 @@ const createStudent = (
   name: string,
   overrides: Partial<StudentDataType> = {}
 ): StudentDataType => ({
-  xing4_ming2: name,
+  name: name,
   tags: {
     behavior: ['认真']
   },

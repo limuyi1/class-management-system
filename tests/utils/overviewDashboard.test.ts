@@ -13,10 +13,10 @@ describe('overview dashboard builder', () => {
   it('should build dashboard overview data', () => {
     const options = {
       students: [
-        { xing4_ming2: '张三', unit1: 92, unit2: 95, unit3: 93, comment: '表现稳定' },
-        { xing4_ming2: '李四', unit1: 55, unit2: 58, unit3: 54, comment: '' },
-        { xing4_ming2: '王五', unit1: 88, unit2: 62, unit3: 91 },
-        { xing4_ming2: '赵六', unit1: 82, unit2: 74, unit3: 60 }
+        { name: '张三', unit1: 92, unit2: 95, unit3: 93, comment: '表现稳定' },
+        { name: '李四', unit1: 55, unit2: 58, unit3: 54, comment: '' },
+        { name: '王五', unit1: 88, unit2: 62, unit3: 91 },
+        { name: '赵六', unit1: 82, unit2: 74, unit3: 60 }
       ],
       unitHeaders,
       selectedStudentNames: ['张三'],
@@ -35,9 +35,9 @@ describe('overview dashboard builder', () => {
   it('should build focus groups and key student recommendations', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '持续低分', unit1: 55, unit2: 58, unit3: 54 },
-        { xing4_ming2: '明显进步', unit1: 60, unit2: 72, unit3: 85 },
-        { xing4_ming2: '波动下行', unit1: 30, unit2: 90, unit3: 60 }
+        { name: '持续低分', unit1: 55, unit2: 58, unit3: 54 },
+        { name: '明显进步', unit1: 60, unit2: 72, unit3: 85 },
+        { name: '波动下行', unit1: 30, unit2: 90, unit3: 60 }
       ],
       unitHeaders,
       selectedStudentNames: ['持续低分'],
@@ -61,7 +61,7 @@ describe('overview dashboard builder', () => {
 
   it('should build single student trend summaries', () => {
     const result = buildDashboardData({
-      students: [{ xing4_ming2: '王五', unit1: 88, unit2: 62, unit3: 91, comment: '继续保持' }],
+      students: [{ name: '王五', unit1: 88, unit2: 62, unit3: 91, comment: '继续保持' }],
       unitHeaders,
       selectedStudentNames: ['王五'],
       aiConfigured: false,
@@ -78,8 +78,8 @@ describe('overview dashboard builder', () => {
   it('should build compare trend summaries for multiple students', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '甲', unit1: 90, unit2: 80, unit3: 70, unit4: 60 },
-        { xing4_ming2: '乙', unit1: 100, unit2: 100, unit3: 100, unit4: 70 }
+        { name: '甲', unit1: 90, unit2: 80, unit3: 70, unit4: 60 },
+        { name: '乙', unit1: 100, unit2: 100, unit3: 100, unit4: 70 }
       ],
       unitHeaders: [...unitHeaders, { prop: 'unit4', label: '第四单元' }],
       selectedStudentNames: ['甲', '乙'],
@@ -95,8 +95,8 @@ describe('overview dashboard builder', () => {
   it('should prioritize ongoing low scores in focus sections', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '最近已恢复', unit1: 40, unit2: 50, unit3: 80 },
-        { xing4_ming2: '最近仍低分', unit1: 50, unit2: 80, unit3: 40 }
+        { name: '最近已恢复', unit1: 40, unit2: 50, unit3: 80 },
+        { name: '最近仍低分', unit1: 50, unit2: 80, unit3: 40 }
       ],
       unitHeaders,
       selectedStudentNames: ['最近仍低分'],
@@ -114,8 +114,8 @@ describe('overview dashboard builder', () => {
   it('should place downward volatility ahead of upward volatility in recommendations', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '回升波动', unit1: 60, unit2: 30, unit3: 90 },
-        { xing4_ming2: '下降波动', unit1: 30, unit2: 90, unit3: 60 }
+        { name: '回升波动', unit1: 60, unit2: 30, unit3: 90 },
+        { name: '下降波动', unit1: 30, unit2: 90, unit3: 60 }
       ],
       unitHeaders,
       selectedStudentNames: ['下降波动'],
@@ -132,8 +132,8 @@ describe('overview dashboard builder', () => {
   it('should only flag meaningful declines instead of minor consecutive drops', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '明显下滑', unit1: 100, unit2: 97, unit3: 92 },
-        { xing4_ming2: '轻微回落', unit1: 91, unit2: 90, unit3: 88 }
+        { name: '明显下滑', unit1: 100, unit2: 97, unit3: 92 },
+        { name: '轻微回落', unit1: 91, unit2: 90, unit3: 88 }
       ],
       unitHeaders,
       selectedStudentNames: ['明显下滑'],
@@ -152,10 +152,10 @@ describe('overview dashboard builder', () => {
   it('should suppress overlapping tags while keeping meaningful multi-tag risk', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '突发失常', unit1: 92, unit2: 90, unit3: 70 },
-        { xing4_ming2: '低位恶化', unit1: 68, unit2: 58, unit3: 52 },
-        { xing4_ming2: '临界下滑', unit1: 74, unit2: 68, unit3: 61 },
-        { xing4_ming2: '平衡上升', unit1: 50, unit2: 60, unit3: 80 }
+        { name: '突发失常', unit1: 92, unit2: 90, unit3: 70 },
+        { name: '低位恶化', unit1: 68, unit2: 58, unit3: 52 },
+        { name: '临界下滑', unit1: 74, unit2: 68, unit3: 61 },
+        { name: '平衡上升', unit1: 50, unit2: 60, unit3: 80 }
       ],
       unitHeaders,
       selectedStudentNames: ['突发失常'],
@@ -185,9 +185,9 @@ describe('overview dashboard builder', () => {
   it('should ignore class-wide easy exam inflation for upward change tags', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '普涨跟涨A', unit1: 70, unit2: 72, unit3: 80 },
-        { xing4_ming2: '普涨跟涨B', unit1: 68, unit2: 70, unit3: 78 },
-        { xing4_ming2: '真实进步', unit1: 72, unit2: 74, unit3: 90 }
+        { name: '普涨跟涨A', unit1: 70, unit2: 72, unit3: 80 },
+        { name: '普涨跟涨B', unit1: 68, unit2: 70, unit3: 78 },
+        { name: '真实进步', unit1: 72, unit2: 74, unit3: 90 }
       ],
       unitHeaders,
       selectedStudentNames: ['真实进步'],
@@ -206,9 +206,9 @@ describe('overview dashboard builder', () => {
   it('should ignore class-wide hard exam drops for downward change tags', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '普跌跟跌A', unit1: 88, unit2: 86, unit3: 78 },
-        { xing4_ming2: '普跌跟跌B', unit1: 82, unit2: 80, unit3: 72 },
-        { xing4_ming2: '真实下滑', unit1: 90, unit2: 88, unit3: 70 }
+        { name: '普跌跟跌A', unit1: 88, unit2: 86, unit3: 78 },
+        { name: '普跌跟跌B', unit1: 82, unit2: 80, unit3: 72 },
+        { name: '真实下滑', unit1: 90, unit2: 88, unit3: 70 }
       ],
       unitHeaders,
       selectedStudentNames: ['真实下滑'],
@@ -227,9 +227,9 @@ describe('overview dashboard builder', () => {
   it('should align volatility direction with difficulty-adjusted trend', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '平衡上升A', unit1: 40, unit2: 45, unit3: 70 },
-        { xing4_ming2: '平衡上升B', unit1: 50, unit2: 55, unit3: 80 },
-        { xing4_ming2: '波动下行', unit1: 35, unit2: 91, unit3: 32 }
+        { name: '平衡上升A', unit1: 40, unit2: 45, unit3: 70 },
+        { name: '平衡上升B', unit1: 50, unit2: 55, unit3: 80 },
+        { name: '波动下行', unit1: 35, unit2: 91, unit3: 32 }
       ],
       unitHeaders,
       selectedStudentNames: ['波动下行'],
@@ -248,9 +248,9 @@ describe('overview dashboard builder', () => {
   it('should classify non-monotonic rebound as volatile up', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '平衡下探A', unit1: 90, unit2: 70, unit3: 65 },
-        { xing4_ming2: '平衡下探B', unit1: 88, unit2: 68, unit3: 63 },
-        { xing4_ming2: '波动上行', unit1: 35, unit2: 20, unit3: 91 }
+        { name: '平衡下探A', unit1: 90, unit2: 70, unit3: 65 },
+        { name: '平衡下探B', unit1: 88, unit2: 68, unit3: 63 },
+        { name: '波动上行', unit1: 35, unit2: 20, unit3: 91 }
       ],
       unitHeaders,
       selectedStudentNames: ['波动上行'],
@@ -269,9 +269,9 @@ describe('overview dashboard builder', () => {
   it('should treat overall elevated rebound as volatile up even after a pullback', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '平衡基线A', unit1: 60, unit2: 62, unit3: 61 },
-        { xing4_ming2: '平衡基线B', unit1: 58, unit2: 60, unit3: 59 },
-        { xing4_ming2: '王铭睿', unit1: 46, unit2: 88, unit3: 69 }
+        { name: '平衡基线A', unit1: 60, unit2: 62, unit3: 61 },
+        { name: '平衡基线B', unit1: 58, unit2: 60, unit3: 59 },
+        { name: '王铭睿', unit1: 46, unit2: 88, unit3: 69 }
       ],
       unitHeaders,
       selectedStudentNames: ['王铭睿'],
@@ -290,9 +290,9 @@ describe('overview dashboard builder', () => {
   it('should suppress declining when adjusted direction is volatile up', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '基线稳定A', unit1: 60, unit2: 62, unit3: 61 },
-        { xing4_ming2: '基线稳定B', unit1: 58, unit2: 60, unit3: 59 },
-        { xing4_ming2: '冲高回落', unit1: 35, unit2: 91, unit3: 32 }
+        { name: '基线稳定A', unit1: 60, unit2: 62, unit3: 61 },
+        { name: '基线稳定B', unit1: 58, unit2: 60, unit3: 59 },
+        { name: '冲高回落', unit1: 35, unit2: 91, unit3: 32 }
       ],
       unitHeaders,
       selectedStudentNames: ['冲高回落'],
@@ -312,9 +312,9 @@ describe('overview dashboard builder', () => {
   it('should attach difficulty hints to the corresponding trend score segment', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '基线A', unit1: 60, unit2: 62, unit3: 61 },
-        { xing4_ming2: '基线B', unit1: 58, unit2: 60, unit3: 59 },
-        { xing4_ming2: '颜色样例', unit1: 35, unit2: 91, unit3: 32 }
+        { name: '基线A', unit1: 60, unit2: 62, unit3: 61 },
+        { name: '基线B', unit1: 58, unit2: 60, unit3: 59 },
+        { name: '颜色样例', unit1: 35, unit2: 91, unit3: 32 }
       ],
       unitHeaders,
       selectedStudentNames: ['颜色样例'],
@@ -339,7 +339,7 @@ describe('overview dashboard builder', () => {
   it('should not classify mid-high fluctuation as low recovery', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '历史低位样本', unit1: 42, unit2: 55, unit3: 75, unit4: 86, unit5: 83 }
+        { name: '历史低位样本', unit1: 42, unit2: 55, unit3: 75, unit4: 86, unit5: 83 }
       ],
       unitHeaders: [
         ...unitHeaders,
@@ -360,9 +360,9 @@ describe('overview dashboard builder', () => {
   it('should not keep improving after a visible pullback', () => {
     const result = buildDashboardData({
       students: [
-        { xing4_ming2: '回落样本A', unit1: 60, unit2: 62, unit3: 61 },
-        { xing4_ming2: '回落样本B', unit1: 58, unit2: 60, unit3: 59 },
-        { xing4_ming2: '先升后回落', unit1: 44, unit2: 88, unit3: 69 }
+        { name: '回落样本A', unit1: 60, unit2: 62, unit3: 61 },
+        { name: '回落样本B', unit1: 58, unit2: 60, unit3: 59 },
+        { name: '先升后回落', unit1: 44, unit2: 88, unit3: 69 }
       ],
       unitHeaders,
       selectedStudentNames: ['先升后回落'],

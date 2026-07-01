@@ -6,7 +6,7 @@ const replace = vi.fn()
 const waitForInitReady = vi.fn()
 const mockStore = {
   waitForInitReady,
-  enabledData: [] as Array<{ xing4_ming2: string }>
+  enabledData: [] as Array<{ name: string }>
 }
 
 vi.mock('vue-router', () => ({
@@ -40,7 +40,7 @@ describe('RootRedirectPage', () => {
 
   it('should redirect to overview when student data exists', async () => {
     waitForInitReady.mockResolvedValue(undefined)
-    mockStore.enabledData = [{ xing4_ming2: '张三' }]
+    mockStore.enabledData = [{ name: '张三' }]
 
     mount(RootRedirectPage)
     await flush()

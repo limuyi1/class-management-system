@@ -89,7 +89,7 @@ describe('createPersistedStateDexie', () => {
   it('should load and save dataSource with { id, students } structure', async () => {
     mockTables.studentDataset.record = {
       id: 'main',
-      students: [{ xing4_ming2: '张三', yu3_wen2: 88 }],
+      students: [{ name: '张三', yu3_wen2: 88 }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     }
 
@@ -111,32 +111,32 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.items).toEqual([{ xing4_ming2: '张三', yu3_wen2: 88 }])
+    expect(store.$state.items).toEqual([{ name: '张三', yu3_wen2: 88 }])
     expect(store.isInitialLoading).toBe(true)
 
-    store.$state.items = [{ xing4_ming2: '李四', yu3_wen2: 95 }]
+    store.$state.items = [{ name: '李四', yu3_wen2: 95 }]
     await subscribers[0]()
 
     expect(mockTables.studentDataset.put).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'main',
-        students: [{ xing4_ming2: '李四', yu3_wen2: 95 }]
+        students: [{ name: '李四', yu3_wen2: 95 }]
       })
     )
 
     const observer = observers[0]
     observer.next({
       id: 'main',
-      students: [{ xing4_ming2: '王五', yu3_wen2: 76 }],
+      students: [{ name: '王五', yu3_wen2: 76 }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.items).toEqual([{ xing4_ming2: '王五', yu3_wen2: 76 }])
+    expect(store.$state.items).toEqual([{ name: '王五', yu3_wen2: 76 }])
   })
 
   it('should load and patch normal store by stripping id field', async () => {
     mockTables.scoreSettings.record = {
       id: 'main',
-      tableHeaders: [{ prop: 'xing4_ming2', label: '姓名' }],
+      tableHeaders: [{ prop: 'name', label: '姓名' }],
       tagCategory: [],
       tags: {},
       updatedAt: '2026-01-01T00:00:00.000Z'
@@ -166,7 +166,7 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.tableHeaders).toEqual([{ prop: 'xing4_ming2', label: '姓名' }])
+    expect(store.$state.tableHeaders).toEqual([{ prop: 'name', label: '姓名' }])
 
     store.$state.tags = { xing_ge: ['活泼'] }
     await subscribers[0]()
@@ -174,7 +174,7 @@ describe('createPersistedStateDexie', () => {
     expect(mockTables.scoreSettings.put).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'main',
-        tableHeaders: [{ prop: 'xing4_ming2', label: '姓名' }],
+        tableHeaders: [{ prop: 'name', label: '姓名' }],
         tagCategory: [],
         tags: { xing_ge: ['活泼'] }
       })
@@ -211,7 +211,7 @@ describe('createPersistedStateDexie', () => {
     const subscribers: Array<() => Promise<void>> = []
     const store = {
       $id: 'dataSource',
-      $state: { items: [{ xing4_ming2: '张三', yu3_wen2: 88 }] as Array<Record<string, unknown>> },
+      $state: { items: [{ name: '张三', yu3_wen2: 88 }] as Array<Record<string, unknown>> },
       isInitialLoading: false,
       $patch: vi.fn(),
       $subscribe: (callback: () => Promise<void>) => {
@@ -262,12 +262,12 @@ describe('createPersistedStateDexie', () => {
 
     observers[0].next({
       id: 'main',
-      tableHeaders: [{ prop: 'xing4_ming2', label: '姓名' }],
+      tableHeaders: [{ prop: 'name', label: '姓名' }],
       tagCategory: [{ prop: 'you1_dian3', label: '优点' }],
       tags: { you1_dian3: ['认真'] },
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.tableHeaders).toEqual([{ prop: 'xing4_ming2', label: '姓名' }])
+    expect(store.$state.tableHeaders).toEqual([{ prop: 'name', label: '姓名' }])
 
     observers[0].next(undefined)
     expect(store.$state).toEqual({
@@ -295,10 +295,10 @@ describe('createPersistedStateDexie', () => {
 
     observers[0].next({
       id: 'main',
-      students: [{ xing4_ming2: '张三' }],
+      students: [{ name: '张三' }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.items).toEqual([{ xing4_ming2: '张三' }])
+    expect(store.$state.items).toEqual([{ name: '张三' }])
 
     observers[0].next(undefined)
     expect(store.$state.items).toEqual([])
