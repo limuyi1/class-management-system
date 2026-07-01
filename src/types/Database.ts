@@ -13,6 +13,12 @@ export interface DataSourceRecord {
   data: StudentDataType[]
 }
 
+export interface StudentDatasetRecord {
+  id: string
+  students: StudentDataType[]
+  updatedAt: string
+}
+
 export interface WrongBookRecord {
   id: string
   folders: WrongFolder[]
@@ -21,11 +27,23 @@ export interface WrongBookRecord {
   questionTypes: Array<{ value: string; label: string }>
 }
 
+export interface WrongBookStorageRecord extends WrongBookRecord {
+  updatedAt: string
+}
+
 export interface SettingRecord {
   id: string
   tableHeaders: SettingType[]
   tagCategory: TagCategoryType[]
   tags: TagType
+}
+
+export interface ScoreSettingsRecord {
+  id: string
+  tableHeaders: SettingType[]
+  tagCategory: TagCategoryType[]
+  tags: TagType
+  updatedAt: string
 }
 
 export interface ConfigurationRecord {
@@ -48,9 +66,17 @@ export interface ConfigurationRecord {
   evaluationHandwriteFont?: EvaluationHandwriteFontType | null
 }
 
+export interface AppPreferencesRecord extends ConfigurationRecord {
+  updatedAt: string
+}
+
 export interface ThemeRecord {
   id: string
   currentTheme: string
+}
+
+export interface ThemePreferencesRecord extends ThemeRecord {
+  updatedAt: string
 }
 
 export interface AIConfigRecord {
@@ -63,15 +89,27 @@ export interface AIConfigRecord {
   availableModels: string[]
 }
 
+export interface AISettingsRecord extends AIConfigRecord {
+  updatedAt: string
+}
+
 export interface OverviewAnalysisRecord {
   id: string
   analysisText: string
   generatedAt: string
 }
 
+export interface OverviewAnalysisCacheRecord extends OverviewAnalysisRecord {
+  updatedAt: string
+}
+
 export interface ToolsRecord {
   id: string
   paperLayout: PaperLayoutSettingsType
+}
+
+export interface ToolPreferencesRecord extends ToolsRecord {
+  updatedAt: string
 }
 
 export type AttachmentRecord = AttachmentRecordType

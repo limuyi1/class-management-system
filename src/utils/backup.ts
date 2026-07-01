@@ -1,5 +1,6 @@
 import 'dexie-export-import'
 import { db, DB_ID } from '@/db'
+import { DatabaseTableEnum } from '@/db/constants'
 import { dayjs, ElMessage } from 'element-plus'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -11,7 +12,11 @@ import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 
-const TOOL_TABLES = new Set(['attachments', 'paperLayoutDrafts', 'tools'])
+const TOOL_TABLES = new Set<string>([
+  DatabaseTableEnum.Attachments,
+  DatabaseTableEnum.PaperLayoutDrafts,
+  DatabaseTableEnum.ToolPreferences
+])
 
 /**
  * 清空 IndexedDB 只会删除持久化记录，不会自动重置当前页面已经加载的 Pinia 内存状态。
@@ -49,65 +54,72 @@ const hydrateRuntimeStores = async () => {
 
   const [dataSource, setting, configuration, theme, aiConfig, wrongBook, overviewAnalysis, tools] =
     await Promise.all([
-      db.dataSource.get(DB_ID),
-      db.setting.get(DB_ID),
-      db.configuration.get(DB_ID),
-      db.theme.get(DB_ID),
-      db.aiConfig.get(DB_ID),
+      db.studentDataset.get(DB_ID),
+      db.scoreSettings.get(DB_ID),
+      db.appPreferences.get(DB_ID),
+      db.themePreferences.get(DB_ID),
+      db.aiSettings.get(DB_ID),
       db.wrongBook.get(DB_ID),
-      db.overviewAnalysis.get(DB_ID),
-      db.tools.get(DB_ID)
+      db.overviewAnalysisCache.get(DB_ID),
+      db.toolPreferences.get(DB_ID)
     ])
 
-  dataStore.items = dataSource?.data || []
+  dataStore.items = dataSource?.students || []
   dataStore.isInitialLoading = true
 
   if (setting) {
-    const { id, ...state } = setting
+    const { id, updatedAt, ...state } = setting
     void id
+    void updatedAt
     settingStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
   }
   if (configuration) {
-    const { id, ...state } = configuration
+    const { id, updatedAt, ...state } = configuration
     void id
+    void updatedAt
     configurationStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
   }
   if (theme) {
-    const { id, ...state } = theme
+    const { id, updatedAt, ...state } = theme
     void id
+    void updatedAt
     themeStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
     themeStore.applyTheme()
   }
   if (aiConfig) {
-    const { id, ...state } = aiConfig
+    const { id, updatedAt, ...state } = aiConfig
     void id
+    void updatedAt
     aiConfigStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
   }
   if (wrongBook) {
-    const { id, ...state } = wrongBook
+    const { id, updatedAt, ...state } = wrongBook
     void id
+    void updatedAt
     wrongBookStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
   }
   if (overviewAnalysis) {
-    const { id, ...state } = overviewAnalysis
+    const { id, updatedAt, ...state } = overviewAnalysis
     void id
+    void updatedAt
     overviewAnalysisStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
   }
   if (tools) {
-    const { id, ...state } = tools
+    const { id, updatedAt, ...state } = tools
     void id
+    void updatedAt
     toolsStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
@@ -154,7 +166,6 @@ export async function importDatabase(
     const blob = file.slice(0, file.size, 'application/octet-stream')
     setDatabaseImporting(true)
     await db.import(blob, {
-      // 允许导入旧版本备份；当前 v5 到 v7 仅数据库版本号不同，不影响表结构兼容。
       acceptVersionDiff: true,
       acceptMissingTables: true,
       clearTablesBeforeImport: true,
@@ -179,20 +190,21 @@ export async function importDatabase(
 
 export async function clearDatabase(onProgress?: (percent: number) => void, complete?: () => void) {
   try {
-    await db.dataSource.clear()
+    await db.studentDataset.clear()
     onProgress?.(15)
-    await db.wrongBook.clear()
-    onProgress?.(30)
-    await db.setting.clear()
+    await db.scoreSettings.clear()
+    onProgress?.(35)
+    await db.appPreferences.clear()
     onProgress?.(45)
-    await db.configuration.clear()
+    await db.themePreferences.clear()
     onProgress?.(60)
-    await db.theme.clear()
+    await db.aiSettings.clear()
     onProgress?.(80)
-    await db.aiConfig.clear()
+    await db.wrongBook.clear()
+    await db.overviewAnalysisCache.clear()
     await db.attachments.clear()
     await db.paperLayoutDrafts.clear()
-    await db.tools.clear()
+    await db.toolPreferences.clear()
     onProgress?.(90)
     resetRuntimeStores()
     onProgress?.(100)
