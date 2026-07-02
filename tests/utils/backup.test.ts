@@ -5,7 +5,7 @@ const errorMock = vi.fn()
 const setDatabaseImportingMock = vi.fn()
 
 const stores = {
-  dataSource: { items: [], isInitialLoading: false },
+  dataSource: { students: [], isInitialLoading: false },
   setting: { $patch: vi.fn(), $reset: vi.fn() },
   configuration: { $patch: vi.fn(), $reset: vi.fn() },
   theme: { $patch: vi.fn(), applyTheme: vi.fn(), resetTheme: vi.fn() },
@@ -16,14 +16,14 @@ const stores = {
 }
 
 const tableGetMocks = {
-  dataSource: vi.fn(async () => undefined),
-  setting: vi.fn(async () => undefined),
-  configuration: vi.fn(async () => undefined),
-  theme: vi.fn(async () => undefined),
-  aiConfig: vi.fn(async () => undefined),
+  studentDataset: vi.fn(async () => undefined),
+  scoreSettings: vi.fn(async () => undefined),
+  appPreferences: vi.fn(async () => undefined),
+  themePreferences: vi.fn(async () => undefined),
+  aiSettings: vi.fn(async () => undefined),
   wrongBook: vi.fn(async () => undefined),
-  overviewAnalysis: vi.fn(async () => undefined),
-  tools: vi.fn(async () => undefined)
+  overviewAnalysisCache: vi.fn(async () => undefined),
+  toolPreferences: vi.fn(async () => undefined)
 }
 
 const importMock = vi.fn(async () => undefined)
@@ -78,14 +78,14 @@ vi.mock('../../src/db', () => ({
   DB_ID: 'main',
   db: {
     import: importMock,
-    dataSource: { get: tableGetMocks.dataSource, clear: vi.fn() },
-    setting: { get: tableGetMocks.setting, clear: vi.fn() },
-    configuration: { get: tableGetMocks.configuration, clear: vi.fn() },
-    theme: { get: tableGetMocks.theme, clear: vi.fn() },
-    aiConfig: { get: tableGetMocks.aiConfig, clear: vi.fn() },
+    studentDataset: { get: tableGetMocks.studentDataset, clear: vi.fn() },
+    scoreSettings: { get: tableGetMocks.scoreSettings, clear: vi.fn() },
+    appPreferences: { get: tableGetMocks.appPreferences, clear: vi.fn() },
+    themePreferences: { get: tableGetMocks.themePreferences, clear: vi.fn() },
+    aiSettings: { get: tableGetMocks.aiSettings, clear: vi.fn() },
     wrongBook: { get: tableGetMocks.wrongBook, clear: vi.fn() },
-    overviewAnalysis: { get: tableGetMocks.overviewAnalysis, clear: vi.fn() },
-    tools: { get: tableGetMocks.tools, clear: vi.fn() },
+    overviewAnalysisCache: { get: tableGetMocks.overviewAnalysisCache, clear: vi.fn() },
+    toolPreferences: { get: tableGetMocks.toolPreferences, clear: vi.fn() },
     attachments: { clear: vi.fn() },
     paperLayoutDrafts: { clear: vi.fn() },
     export: vi.fn()
@@ -95,7 +95,7 @@ vi.mock('../../src/db', () => ({
 describe('importDatabase', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    stores.dataSource.items = []
+    stores.dataSource.students = []
     stores.dataSource.isInitialLoading = false
   })
 

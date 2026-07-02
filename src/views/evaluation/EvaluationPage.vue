@@ -35,10 +35,10 @@ const route = useRoute()
 const router = useRouter()
 
 const dataStore = useDataSourceStore()
-const { items: students, enabledData: enabledStudents } = storeToRefs(dataStore)
+const { students, enabledData: enabledStudents } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
-const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
+const { tagCategories: tagCategoryList } = storeToRefs(settingStore)
 const aiConfigStore = useAIConfigStore()
 const { percentage, notCompletedCount } = useProgress({
   data: students,

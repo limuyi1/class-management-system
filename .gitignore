@@ -31,3 +31,5 @@ coverage
 .vercel
 
 /.pnpm-store/
+
+/tmp/

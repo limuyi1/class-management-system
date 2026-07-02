@@ -23,7 +23,7 @@ const emit = defineEmits<{
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
-const { items: originList } = storeToRefs(store)
+const { students: originList } = storeToRefs(store)
 
 const searchKeyword = ref('')
 const selectedStudentId = ref<number | null>(null)

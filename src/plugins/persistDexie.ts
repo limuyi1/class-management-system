@@ -3,14 +3,14 @@ import { liveQuery, type Observable } from 'dexie'
 import { db, DB_ID } from '@/db'
 import type { Table } from 'dexie'
 import type {
-  AIConfigRecord,
-  ConfigurationRecord,
-  DataSourceRecord,
-  OverviewAnalysisRecord,
-  SettingRecord,
-  ThemeRecord,
-  ToolsRecord,
-  WrongBookRecord
+  AISettingsRecord,
+  AppPreferencesRecord,
+  OverviewAnalysisCacheRecord,
+  ScoreSettingsRecord,
+  StudentDatasetRecord,
+  ThemePreferencesRecord,
+  ToolPreferencesRecord,
+  WrongBookStorageRecord
 } from '@/types/Database'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -23,34 +23,36 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useToolsStore } from '@/stores/tools'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
+import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
+import { DefaultAIPrompts } from '@/types/AIConfig'
 
 type PersistableRecordType =
-  | DataSourceRecord
-  | WrongBookRecord
-  | SettingRecord
-  | ConfigurationRecord
-  | ThemeRecord
-  | AIConfigRecord
-  | OverviewAnalysisRecord
-  | ToolsRecord
+  | StudentDatasetRecord
+  | ScoreSettingsRecord
+  | AppPreferencesRecord
+  | ThemePreferencesRecord
+  | AISettingsRecord
+  | WrongBookStorageRecord
+  | OverviewAnalysisCacheRecord
+  | ToolPreferencesRecord
 
 interface DataSourceLikeStoreType {
   isInitialLoading: boolean
   $state: {
-    items: StudentDataType[]
+    students: StudentDataType[]
   }
-  $patch: (partialState: { items: StudentDataType[] }) => void
+  $patch: (partialState: { students: StudentDataType[] }) => void
 }
 
 const tableNameMap: Record<string, Table<PersistableRecordType>> = {
+  setting: db.scoreSettings,
+  configuration: db.appPreferences,
+  theme: db.themePreferences,
+  aiConfig: db.aiSettings,
   wrongBook: db.wrongBook,
-  setting: db.setting,
-  configuration: db.configuration,
-  theme: db.theme,
-  aiConfig: db.aiConfig,
-  overviewAnalysis: db.overviewAnalysis,
-  tools: db.tools,
-  dataSource: db.dataSource
+  overviewAnalysis: db.overviewAnalysisCache,
+  tools: db.toolPreferences,
+  dataSource: db.studentDataset
 }
 
 const updatingStores = new Set<string>()
@@ -73,14 +75,23 @@ export function createPersistedStateDexie() {
     const defaultState = cloneState(store.$state)
     const patchStateFromRecord = (record: PersistableRecordType) => {
       const stateRecord = record as unknown as Record<string, unknown>
-      const { id, ...state } = stateRecord
+      const { id, updatedAt, ...state } = stateRecord
       void id
+      void updatedAt
+      if (storeId === 'aiConfig' && state.prompts && typeof state.prompts === 'object') {
+        state.prompts = { ...DefaultAIPrompts, ...(state.prompts as Record<string, unknown>) }
+      }
+      if (storeId === 'setting' && Array.isArray(state.scoreColumns)) {
+        state.scoreColumns = normalizeScoreColumns(
+          state.scoreColumns as Parameters<typeof normalizeScoreColumns>[0]
+        )
+      }
       store.$patch(state as _DeepPartial<StateTree>)
     }
     const resetStoreState = () => {
-      // dataSource 在库中使用 { id, data } 结构，和 store.$state 字段不同，单独恢复。
+      // dataSource 在库中使用 { id, students } 结构，和 store.$state 字段不同，单独恢复。
       if (isDataSource) {
-        dataSourceStore.$patch({ items: [] })
+        dataSourceStore.$patch({ students: [] })
         return
       }
 
@@ -97,8 +108,8 @@ export function createPersistedStateDexie() {
         const record = await table.get(DB_ID)
         if (record) {
           if (isDataSource) {
-            const dataRecord = record as DataSourceRecord
-            dataSourceStore.$patch({ items: dataRecord.data || [] })
+            const dataRecord = record as StudentDatasetRecord
+            dataSourceStore.$patch({ students: dataRecord.students || [] })
           } else {
             patchStateFromRecord(record)
           }
@@ -123,13 +134,21 @@ export function createPersistedStateDexie() {
       try {
         if (isDataSource) {
           const clonableData = JSON.parse(
-            JSON.stringify(dataSourceStore.$state.items)
+            JSON.stringify(dataSourceStore.$state.students)
           ) as StudentDataType[]
-          await table.put({ id: DB_ID, data: clonableData } as DataSourceRecord)
+          await table.put({
+            id: DB_ID,
+            students: clonableData,
+            updatedAt: new Date().toISOString()
+          } as StudentDatasetRecord)
         } else {
           const rawState = store.$state
           const clonableState = JSON.parse(JSON.stringify(rawState))
-          await table.put({ id: DB_ID, ...clonableState } as PersistableRecordType)
+          await table.put({
+            id: DB_ID,
+            ...clonableState,
+            updatedAt: new Date().toISOString()
+          } as PersistableRecordType)
         }
       } catch (error) {
         console.error(`[PersistDexie] Failed to save ${storeId} to IndexedDB:`, error)
@@ -162,8 +181,8 @@ export function createPersistedStateDexie() {
           }
 
           if (isDataSource) {
-            const dataRecord = record as DataSourceRecord
-            dataSourceStore.$patch({ items: dataRecord.data || [] })
+            const dataRecord = record as StudentDatasetRecord
+            dataSourceStore.$patch({ students: dataRecord.students || [] })
           } else {
             patchStateFromRecord(record)
           }

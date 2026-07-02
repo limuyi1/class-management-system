@@ -45,7 +45,8 @@ const createScoreProp = (label: string): string => {
 
 const createHeader = (label: string): SettingType => ({
   prop: createScoreProp(label),
-  label
+  label,
+  disabled: false
 })
 
 export const parseScoreValue = (value: ExcelCellValueType): ScoreValueResultType => {

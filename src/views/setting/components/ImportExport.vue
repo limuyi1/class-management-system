@@ -22,8 +22,8 @@ const progressTitle = ref('')
 const progressPercent = ref(0)
 
 const dataSourceStore = useDataSourceStore()
-const { items } = storeToRefs(dataSourceStore)
-const hasStudentData = computed(() => items.value.length > 0)
+const { students } = storeToRefs(dataSourceStore)
+const hasStudentData = computed(() => students.value.length > 0)
 
 const {
   excelFileInputRef,

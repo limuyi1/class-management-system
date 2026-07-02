@@ -62,7 +62,7 @@ describe('router guard', () => {
   it('should allow comment route when data exists', async () => {
     const store = {
       waitForInitReady: vi.fn().mockResolvedValue(true),
-      enabledData: [{ xing4_ming2: '张三' }]
+      enabledData: [{ name: '张三' }]
     }
     const next = vi.fn()
     const guard = createDataGuard(() => store)

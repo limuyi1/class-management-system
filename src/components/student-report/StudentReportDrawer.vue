@@ -31,7 +31,7 @@ const drawerVisible = computed({
 const dataStore = useDataSourceStore()
 const settingStore = useSettingStore()
 const { enabledData } = storeToRefs(dataStore)
-const { tagCategory } = storeToRefs(settingStore)
+const { tagCategories } = storeToRefs(settingStore)
 
 const report = computed(() => {
   if (!props.student) return null
@@ -40,7 +40,7 @@ const report = computed(() => {
     students: enabledData.value,
     scoreColumns: props.scoreColumns,
     selectedProps: props.scoreColumns.map((item) => item.prop),
-    tagCategories: tagCategory.value,
+    tagCategories: tagCategories.value,
     classLabel: '本班'
   })
 })

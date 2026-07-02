@@ -23,6 +23,7 @@ describe('scoreImportUntil', () => {
     })
 
     expect(result.headers.map((header) => header.label)).toEqual(['数学', '语文'])
+    expect(result.headers.map((header) => header.disabled)).toEqual([false, false])
     expect(result.students).toHaveLength(2)
     expect(result.students[0][NAME_PROP]).toBe('张三')
     expect(result.students[0][result.headers[0].prop]).toBe(96)
@@ -44,7 +45,7 @@ describe('scoreImportUntil', () => {
   })
 
   it('adds new score columns for existing students by name', () => {
-    const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学' }]
+    const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学', disabled: false }]
     const existingStudents: StudentDataType[] = [
       { [NAME_PROP]: '张三', shu4_xue2: 90 },
       { [NAME_PROP]: '李四', shu4_xue2: 80 }
@@ -73,7 +74,7 @@ describe('scoreImportUntil', () => {
   })
 
   it('overwrites existing score columns when conflict action is overwrite', () => {
-    const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学' }]
+    const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学', disabled: false }]
     const existingStudents: StudentDataType[] = [{ [NAME_PROP]: '张三', shu4_xue2: 90 }]
 
     const result = buildIncrementalScoreImport({
@@ -91,7 +92,7 @@ describe('scoreImportUntil', () => {
   })
 
   it('skips existing score columns when conflict action is skip', () => {
-    const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学' }]
+    const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学', disabled: false }]
     const existingStudents: StudentDataType[] = [{ [NAME_PROP]: '张三', shu4_xue2: 90 }]
 
     const result = buildIncrementalScoreImport({
@@ -115,9 +116,11 @@ describe('scoreImportUntil', () => {
     expect(findDuplicateNames([{ 姓名: '张三' }, { 姓名: ' 张三 ' }, { 姓名: '李四' }], '姓名')).toEqual([
       '张三'
     ])
-    expect(getConflictLabels(['数学', '英语'], [{ prop: 'shu4_xue2', label: '数学' }])).toEqual([
-      '数学'
-    ])
+    expect(
+      getConflictLabels(['数学', '英语'], [
+        { prop: 'shu4_xue2', label: '数学', disabled: false }
+      ])
+    ).toEqual(['数学'])
   })
 
   it('parses score values into numbers or null', () => {

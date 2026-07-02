@@ -55,6 +55,11 @@ const promptTabs: Array<{
     placeholder: DefaultAIPrompts.batchCommentPolish
   },
   { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore },
+  {
+    key: 'tagCategoryGenerate',
+    label: '分类生成',
+    placeholder: DefaultAIPrompts.tagCategoryGenerate
+  },
   { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate },
   ...(featureFlags.wrongBook
     ? [

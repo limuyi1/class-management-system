@@ -17,9 +17,9 @@ describe('studentReportUntil', () => {
         { [NAME_PROP]: '李四', unit1: 78, unit2: 86, unit3: 82 }
       ],
       scoreColumns: [
-        { prop: 'unit1', label: '第一单元' },
-        { prop: 'unit2', label: '第二单元' },
-        { prop: 'unit3', label: '第三单元' }
+        { prop: 'unit1', label: '第一单元', disabled: false },
+        { prop: 'unit2', label: '第二单元', disabled: false },
+        { prop: 'unit3', label: '第三单元', disabled: false }
       ],
       selectedProps: ['unit1', 'unit2', 'unit3'],
       tagCategories: []

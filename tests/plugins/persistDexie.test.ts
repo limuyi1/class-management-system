@@ -23,12 +23,14 @@ const createMockTable = (): MockTableType => {
 }
 
 const mockTables = {
-  dataSource: createMockTable(),
-  setting: createMockTable(),
-  configuration: createMockTable(),
-  theme: createMockTable(),
-  aiConfig: createMockTable(),
-  wrongBook: createMockTable()
+  studentDataset: createMockTable(),
+  scoreSettings: createMockTable(),
+  appPreferences: createMockTable(),
+  themePreferences: createMockTable(),
+  aiSettings: createMockTable(),
+  wrongBook: createMockTable(),
+  overviewAnalysisCache: createMockTable(),
+  toolPreferences: createMockTable()
 }
 
 const observers: Array<ObserverType<Record<string, unknown> | undefined>> = []
@@ -55,12 +57,14 @@ vi.mock('../../src/db', () => {
   return {
     DB_ID: 'main',
     db: {
-      dataSource: mockTables.dataSource,
-      setting: mockTables.setting,
-      configuration: mockTables.configuration,
-      theme: mockTables.theme,
-      aiConfig: mockTables.aiConfig,
-      wrongBook: mockTables.wrongBook
+      studentDataset: mockTables.studentDataset,
+      scoreSettings: mockTables.scoreSettings,
+      appPreferences: mockTables.appPreferences,
+      themePreferences: mockTables.themePreferences,
+      aiSettings: mockTables.aiSettings,
+      wrongBook: mockTables.wrongBook,
+      overviewAnalysisCache: mockTables.overviewAnalysisCache,
+      toolPreferences: mockTables.toolPreferences
     }
   }
 })
@@ -82,19 +86,20 @@ describe('createPersistedStateDexie', () => {
     }
   })
 
-  it('should load and save dataSource with { id, data } structure', async () => {
-    mockTables.dataSource.record = {
+  it('should load and save dataSource with { id, students } structure', async () => {
+    mockTables.studentDataset.record = {
       id: 'main',
-      data: [{ xing4_ming2: '张三', yu3_wen2: 88 }]
+      students: [{ name: '张三', yu3_wen2: 88 }],
+      updatedAt: '2026-01-01T00:00:00.000Z'
     }
 
     const subscribers: Array<() => Promise<void>> = []
     const store = {
       $id: 'dataSource',
-      $state: { items: [] as Array<Record<string, unknown>> },
+      $state: { students: [] as Array<Record<string, unknown>> },
       isInitialLoading: false,
-      $patch: (state: { items: Array<Record<string, unknown>> }) => {
-        store.$state.items = state.items
+      $patch: (state: { students: Array<Record<string, unknown>> }) => {
+        store.$state.students = state.students
       },
       $subscribe: (callback: () => Promise<void>) => {
         subscribers.push(callback)
@@ -106,36 +111,43 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.items).toEqual([{ xing4_ming2: '张三', yu3_wen2: 88 }])
+    expect(store.$state.students).toEqual([{ name: '张三', yu3_wen2: 88 }])
     expect(store.isInitialLoading).toBe(true)
 
-    store.$state.items = [{ xing4_ming2: '李四', yu3_wen2: 95 }]
+    store.$state.students = [{ name: '李四', yu3_wen2: 95 }]
     await subscribers[0]()
 
-    expect(mockTables.dataSource.put).toHaveBeenCalledWith({
-      id: 'main',
-      data: [{ xing4_ming2: '李四', yu3_wen2: 95 }]
-    })
+    expect(mockTables.studentDataset.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'main',
+        students: [{ name: '李四', yu3_wen2: 95 }]
+      })
+    )
 
     const observer = observers[0]
-    observer.next({ id: 'main', data: [{ xing4_ming2: '王五', yu3_wen2: 76 }] })
-    expect(store.$state.items).toEqual([{ xing4_ming2: '王五', yu3_wen2: 76 }])
+    observer.next({
+      id: 'main',
+      students: [{ name: '王五', yu3_wen2: 76 }],
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    })
+    expect(store.$state.students).toEqual([{ name: '王五', yu3_wen2: 76 }])
   })
 
   it('should load and patch normal store by stripping id field', async () => {
-    mockTables.setting.record = {
+    mockTables.scoreSettings.record = {
       id: 'main',
-      tableHeaders: [{ prop: 'xing4_ming2', label: '姓名' }],
-      tagCategory: [],
-      tags: {}
+      scoreColumns: [{ prop: 'name', label: '姓名' }],
+      tagCategories: [],
+      tags: {},
+      updatedAt: '2026-01-01T00:00:00.000Z'
     }
 
     const subscribers: Array<() => Promise<void>> = []
     const store = {
       $id: 'setting',
       $state: {
-        tableHeaders: [] as Array<Record<string, unknown>>,
-        tagCategory: [] as Array<Record<string, unknown>>,
+        scoreColumns: [] as Array<Record<string, unknown>>,
+        tagCategories: [] as Array<Record<string, unknown>>,
         tags: {} as Record<string, string[]>
       },
       $patch: (state: Record<string, unknown>) => {
@@ -154,28 +166,68 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.tableHeaders).toEqual([{ prop: 'xing4_ming2', label: '姓名' }])
+    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名', disabled: false }])
 
     store.$state.tags = { xing_ge: ['活泼'] }
     await subscribers[0]()
 
-    expect(mockTables.setting.put).toHaveBeenCalledWith({
+    expect(mockTables.scoreSettings.put).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'main',
+        scoreColumns: [{ prop: 'name', label: '姓名', disabled: false }],
+        tagCategories: [],
+        tags: { xing_ge: ['活泼'] }
+      })
+    )
+  })
+
+  it('should merge missing default AI prompts when loading old aiConfig records', async () => {
+    mockTables.aiSettings.record = {
       id: 'main',
-      tableHeaders: [{ prop: 'xing4_ming2', label: '姓名' }],
-      tagCategory: [],
-      tags: { xing_ge: ['活泼'] }
-    })
+      modelType: 'openai',
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1',
+      prompts: {
+        singleComment: '旧版单个评语提示词'
+      },
+      availableModels: [],
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    }
+
+    const store = {
+      $id: 'aiConfig',
+      $state: {
+        prompts: {} as Record<string, string>
+      },
+      $patch: (state: Record<string, unknown>) => {
+        store.$state = {
+          ...store.$state,
+          ...state
+        } as typeof store.$state
+      },
+      $subscribe: vi.fn()
+    }
+
+    const { DefaultAIPrompts } = await import('../../src/types/AIConfig')
+    const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
+    const plugin = createPersistedStateDexie()
+
+    await plugin({ store } as never)
+
+    expect(store.$state.prompts.singleComment).toBe('旧版单个评语提示词')
+    expect(store.$state.prompts.tagCategoryGenerate).toBe(DefaultAIPrompts.tagCategoryGenerate)
   })
 
   it('should catch and log load errors from db.get', async () => {
-    mockTables.setting.get.mockRejectedValueOnce(new Error('load failed'))
+    mockTables.scoreSettings.get.mockRejectedValueOnce(new Error('load failed'))
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     const store = {
       $id: 'setting',
       $state: {
-        tableHeaders: [] as Array<Record<string, unknown>>,
-        tagCategory: [] as Array<Record<string, unknown>>,
+        scoreColumns: [] as Array<Record<string, unknown>>,
+        tagCategories: [] as Array<Record<string, unknown>>,
         tags: {} as Record<string, string[]>
       },
       $patch: vi.fn(),
@@ -197,7 +249,7 @@ describe('createPersistedStateDexie', () => {
     const subscribers: Array<() => Promise<void>> = []
     const store = {
       $id: 'dataSource',
-      $state: { items: [{ xing4_ming2: '张三', yu3_wen2: 88 }] as Array<Record<string, unknown>> },
+      $state: { students: [{ name: '张三', yu3_wen2: 88 }] as Array<Record<string, unknown>> },
       isInitialLoading: false,
       $patch: vi.fn(),
       $subscribe: (callback: () => Promise<void>) => {
@@ -206,7 +258,7 @@ describe('createPersistedStateDexie', () => {
     }
 
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    mockTables.dataSource.put.mockRejectedValueOnce(new Error('save failed'))
+    mockTables.studentDataset.put.mockRejectedValueOnce(new Error('save failed'))
 
     const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
     const plugin = createPersistedStateDexie()
@@ -228,8 +280,8 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'setting',
       $state: {
-        tableHeaders: [] as Array<Record<string, unknown>>,
-        tagCategory: [] as Array<Record<string, unknown>>,
+        scoreColumns: [] as Array<Record<string, unknown>>,
+        tagCategories: [] as Array<Record<string, unknown>>,
         tags: {} as Record<string, string[]>
       },
       $patch: (state: Record<string, unknown>) => {
@@ -248,27 +300,28 @@ describe('createPersistedStateDexie', () => {
 
     observers[0].next({
       id: 'main',
-      tableHeaders: [{ prop: 'xing4_ming2', label: '姓名' }],
-      tagCategory: [{ prop: 'you1_dian3', label: '优点' }],
-      tags: { you1_dian3: ['认真'] }
+      scoreColumns: [{ prop: 'name', label: '姓名' }],
+      tagCategories: [{ prop: 'you1_dian3', label: '优点' }],
+      tags: { you1_dian3: ['认真'] },
+      updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.tableHeaders).toEqual([{ prop: 'xing4_ming2', label: '姓名' }])
+    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名', disabled: false }])
 
     observers[0].next(undefined)
     expect(store.$state).toEqual({
-      tableHeaders: [],
-      tagCategory: [],
+      scoreColumns: [],
+      tagCategories: [],
       tags: {}
     })
   })
 
-  it('should reset dataSource to empty items when persisted record is deleted', async () => {
+  it('should reset dataSource to empty students when persisted record is deleted', async () => {
     const store = {
       $id: 'dataSource',
-      $state: { items: [] as Array<Record<string, unknown>> },
+      $state: { students: [] as Array<Record<string, unknown>> },
       isInitialLoading: false,
-      $patch: (state: { items: Array<Record<string, unknown>> }) => {
-        store.$state.items = state.items
+      $patch: (state: { students: Array<Record<string, unknown>> }) => {
+        store.$state.students = state.students
       },
       $subscribe: vi.fn()
     }
@@ -278,10 +331,14 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    observers[0].next({ id: 'main', data: [{ xing4_ming2: '张三' }] })
-    expect(store.$state.items).toEqual([{ xing4_ming2: '张三' }])
+    observers[0].next({
+      id: 'main',
+      students: [{ name: '张三' }],
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    })
+    expect(store.$state.students).toEqual([{ name: '张三' }])
 
     observers[0].next(undefined)
-    expect(store.$state.items).toEqual([])
+    expect(store.$state.students).toEqual([])
   })
 })

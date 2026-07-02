@@ -65,7 +65,7 @@ const createConfiguration = (): ConfigurationType => ({
 })
 
 const createStudent = (name: string): StudentDataType => ({
-  xing4_ming2: name,
+  name: name,
   comment: '评语'
 })
 

@@ -3,7 +3,7 @@ import { nextTick, reactive, ref } from 'vue'
 
 import { useTabQuerySync } from '../../src/hooks/useTabQuerySync'
 
-type TabType = 'student-info' | 'label-maintenance'
+type TabType = 'system-backup' | 'label-maintenance'
 
 const flush = async () => {
   await nextTick()
@@ -11,7 +11,7 @@ const flush = async () => {
 }
 
 describe('useTabQuerySync', () => {
-  const validTabs = ['student-info', 'label-maintenance'] as const
+  const validTabs = ['system-backup', 'label-maintenance'] as const
 
   let route: { query: Record<string, unknown> }
   let router: { replace: ReturnType<typeof vi.fn> }
@@ -22,7 +22,7 @@ describe('useTabQuerySync', () => {
     router = {
       replace: vi.fn().mockResolvedValue(undefined)
     }
-    activeTab = ref<TabType>('student-info')
+    activeTab = ref<TabType>('system-backup')
   })
 
   it('should sync tab from query to activeTab', async () => {
@@ -40,10 +40,9 @@ describe('useTabQuerySync', () => {
     expect(activeTab.value).toBe('label-maintenance')
   })
 
-  it('should trigger edit callback and clear edit query', async () => {
-    const onEditTags = vi.fn()
+  it('should ignore edit tag query from legacy student-info tab flow', async () => {
     route.query = {
-      tab: 'student-info',
+      tab: 'system-backup',
       'edit-tags': '1',
       'student-name': '张三'
     }
@@ -52,19 +51,13 @@ describe('useTabQuerySync', () => {
       route: route as never,
       router: router as never,
       activeTab,
-      validTabs,
-      onEditTags
+      validTabs
     })
 
     await flush()
-    await flush()
 
-    expect(onEditTags).toHaveBeenCalledWith('张三')
-    expect(router.replace).toHaveBeenCalled()
-    expect(router.replace).toHaveBeenLastCalledWith({
-      path: '/setting',
-      query: { tab: activeTab.value }
-    })
+    expect(activeTab.value).toBe('system-backup')
+    expect(router.replace).not.toHaveBeenCalled()
   })
 
   it('should sync activeTab changes to route query', async () => {
@@ -89,7 +82,7 @@ describe('useTabQuerySync', () => {
   it('should respect reactive validTabs', async () => {
     const dynamicValidTabs = ref<Array<TabType>>(['label-maintenance'])
     activeTab.value = 'label-maintenance'
-    route.query = { tab: 'student-info' }
+    route.query = { tab: 'system-backup' }
 
     useTabQuerySync({
       route: route as never,
@@ -101,10 +94,10 @@ describe('useTabQuerySync', () => {
     await flush()
     expect(activeTab.value).toBe('label-maintenance')
 
-    dynamicValidTabs.value = ['student-info', 'label-maintenance']
-    route.query = { tab: 'student-info' }
+    dynamicValidTabs.value = ['system-backup', 'label-maintenance']
+    route.query = { tab: 'system-backup' }
     await flush()
 
-    expect(activeTab.value).toBe('student-info')
+    expect(activeTab.value).toBe('system-backup')
   })
 })

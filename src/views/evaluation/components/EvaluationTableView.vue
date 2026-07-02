@@ -139,10 +139,10 @@ const bindResizeObserver = () => {
  */
 const scroll = (index: number) => {
   if (!scrollbarRef.value || !pageInfo.cellLevel || !pageInfo.columnCount) return
-  if (index < 0 || index >= tableData.value.length) return
+  if (index < 1 || index > tableData.value.length) return
 
   const rowIndex = Math.floor((index - 1) / pageInfo.columnCount)
-  const element = document.querySelectorAll('tr')[rowIndex]
+  const element = stageRef.value?.querySelectorAll('tr')[rowIndex]
 
   if (!element) return
   const container = scrollbarRef.value.wrapRef

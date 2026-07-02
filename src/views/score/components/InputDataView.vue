@@ -20,7 +20,7 @@ defineProps<Props>()
 
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
-const { items: originList } = storeToRefs(store)
+const { students: originList } = storeToRefs(store)
 
 const scoreInputCardRef = ref<InstanceType<typeof ScoreInputCard>>()
 

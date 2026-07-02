@@ -34,8 +34,8 @@ export const useStudentDataImport = () => {
   const dataSourceStore = useDataSourceStore()
   const settingStore = useSettingStore()
   const configurationStore = useConfigurationStore()
-  const { items } = storeToRefs(dataSourceStore)
-  const { tableHeaders } = storeToRefs(settingStore)
+  const { students } = storeToRefs(dataSourceStore)
+  const { scoreColumns } = storeToRefs(settingStore)
 
   const excelFileInputRef = ref<HTMLInputElement | null>(null)
   const importingExcel = ref(false)
@@ -74,7 +74,7 @@ export const useStudentDataImport = () => {
   }
 
   const validateSystemNames = (): boolean => {
-    const duplicateNames = findDuplicateNames(items.value, NAME_PROP)
+    const duplicateNames = findDuplicateNames(students.value, NAME_PROP)
     if (!duplicateNames.length) return true
 
     ElMessage.error(`系统中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
@@ -181,8 +181,8 @@ export const useStudentDataImport = () => {
       return
     }
 
-    tableHeaders.value = result.headers
-    items.value = result.students
+    scoreColumns.value = result.headers
+    students.value = result.students
     configurationStore.inputScoreTab = result.headers[0]?.prop ?? null
     resetExcelImport()
 
@@ -197,8 +197,8 @@ export const useStudentDataImport = () => {
   const applyScoreImport = async (conflictActions: Record<string, ConflictActionType>) => {
     const result = buildIncrementalScoreImport({
       rows: excelRows.value,
-      existingStudents: items.value,
-      existingHeaders: tableHeaders.value,
+      existingStudents: students.value,
+      existingHeaders: scoreColumns.value,
       nameColumn: pendingScoreNameColumn.value,
       selectedColumns: pendingScoreColumns.value,
       conflictActions
@@ -210,8 +210,8 @@ export const useStudentDataImport = () => {
       return
     }
 
-    tableHeaders.value = result.headers
-    items.value = result.students
+    scoreColumns.value = result.headers
+    students.value = result.students
     const firstAppliedColumn = pendingScoreColumns.value.find(
       (column) => conflictActions[column] !== 'skip'
     )
@@ -256,7 +256,7 @@ export const useStudentDataImport = () => {
 
     pendingScoreNameColumn.value = selection.nameColumn
     pendingScoreColumns.value = selection.scoreColumns
-    conflictColumns.value = getConflictLabels(selection.scoreColumns, tableHeaders.value)
+    conflictColumns.value = getConflictLabels(selection.scoreColumns, scoreColumns.value)
     scoreColumnSelectorVisible.value = false
 
     if (conflictColumns.value.length) {
@@ -280,7 +280,7 @@ export const useStudentDataImport = () => {
     if (selection.strategy === 'overwrite') {
       const overwriteCount = countOverwrittenComments({
         rows: excelRows.value,
-        existingStudents: items.value,
+        existingStudents: students.value,
         ...selection
       })
       if (overwriteCount > 0) {
@@ -302,7 +302,7 @@ export const useStudentDataImport = () => {
 
     const result = buildIncrementalCommentImport({
       rows: excelRows.value,
-      existingStudents: items.value,
+      existingStudents: students.value,
       ...selection
     })
     if (!result.stats.matchedStudentCount) {
@@ -310,7 +310,7 @@ export const useStudentDataImport = () => {
       return
     }
 
-    items.value = result.students
+    students.value = result.students
     const messages = [
       `新增 ${result.stats.filledCommentCount} 条`,
       `覆盖 ${result.stats.overwrittenCommentCount} 条`,

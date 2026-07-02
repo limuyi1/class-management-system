@@ -5,8 +5,8 @@ import { useScoreStatistics } from '../../src/hooks/useScoreStatistics'
 describe('useScoreStatistics', () => {
   it('should return null stats when no score prop', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', yu3_wen2: 85 },
-      { xing4_ming2: '李四', yu3_wen2: 90 }
+      { name: '张三', yu3_wen2: 85 },
+      { name: '李四', yu3_wen2: 90 }
     ])
     const scoreProp = computed(() => null)
 
@@ -22,9 +22,9 @@ describe('useScoreStatistics', () => {
 
   it('should calculate score statistics correctly', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', yu3_wen2: 85 },
-      { xing4_ming2: '李四', yu3_wen2: 90 },
-      { xing4_ming2: '王五', yu3_wen2: 95 }
+      { name: '张三', yu3_wen2: 85 },
+      { name: '李四', yu3_wen2: 90 },
+      { name: '王五', yu3_wen2: 95 }
     ])
     const scoreProp = computed(() => 'yu3_wen2')
 
@@ -42,10 +42,10 @@ describe('useScoreStatistics', () => {
 
   it('should calculate ranges correctly', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', score: 92 },
-      { xing4_ming2: '李四', score: 85 },
-      { xing4_ming2: '王五', score: 72 },
-      { xing4_ming2: '赵六', score: 65 }
+      { name: '张三', score: 92 },
+      { name: '李四', score: 85 },
+      { name: '王五', score: 72 },
+      { name: '赵六', score: 65 }
     ])
     const scoreProp = computed(() => 'score')
 
@@ -61,10 +61,10 @@ describe('useScoreStatistics', () => {
 
   it('should exclude max score from distribution ranges', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', score: 99 },
-      { xing4_ming2: '李四', score: 98 },
-      { xing4_ming2: '王五', score: 95 },
-      { xing4_ming2: '赵六', score: 89 }
+      { name: '张三', score: 99 },
+      { name: '李四', score: 98 },
+      { name: '王五', score: 95 },
+      { name: '赵六', score: 89 }
     ])
     const scoreProp = computed(() => 'score')
 
@@ -80,10 +80,10 @@ describe('useScoreStatistics', () => {
 
   it('should hide invalid higher ranges when max score is below them', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', score: 88 },
-      { xing4_ming2: '李四', score: 87 },
-      { xing4_ming2: '王五', score: 81 },
-      { xing4_ming2: '赵六', score: 72 }
+      { name: '张三', score: 88 },
+      { name: '李四', score: 87 },
+      { name: '王五', score: 81 },
+      { name: '赵六', score: 72 }
     ])
     const scoreProp = computed(() => 'score')
 
@@ -99,9 +99,9 @@ describe('useScoreStatistics', () => {
 
   it('should filter below threshold students', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', score: 92 },
-      { xing4_ming2: '李四', score: 55 },
-      { xing4_ming2: '王五', score: 45 }
+      { name: '张三', score: 92 },
+      { name: '李四', score: 55 },
+      { name: '王五', score: 45 }
     ])
     const scoreProp = computed(() => 'score')
 
@@ -114,8 +114,8 @@ describe('useScoreStatistics', () => {
   })
 
   it('should update threshold when avgScore changes', () => {
-    const studentsRef = ref<Array<{ xing4_ming2: string; score: number }>>([
-      { xing4_ming2: '张三', score: 70 }
+    const studentsRef = ref<Array<{ name: string; score: number }>>([
+      { name: '张三', score: 70 }
     ])
     const students = computed(() => studentsRef.value)
     const scoreProp = computed(() => 'score')
@@ -127,7 +127,7 @@ describe('useScoreStatistics', () => {
 
     expect(threshold.value).toBe(70)
 
-    studentsRef.value = [{ xing4_ming2: '李四', score: 90 }]
+    studentsRef.value = [{ name: '李四', score: 90 }]
   })
 
   it('should return empty ranges when no students', () => {
@@ -144,9 +144,9 @@ describe('useScoreStatistics', () => {
 
   it('should identify top and bottom students', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', score: 100 },
-      { xing4_ming2: '李四', score: 50 },
-      { xing4_ming2: '王五', score: 100 }
+      { name: '张三', score: 100 },
+      { name: '李四', score: 50 },
+      { name: '王五', score: 100 }
     ])
     const scoreProp = computed(() => 'score')
 
@@ -162,7 +162,7 @@ describe('useScoreStatistics', () => {
   })
 
   it('should get score from student correctly', () => {
-    const students = computed(() => [{ xing4_ming2: '张三', score: 85 }])
+    const students = computed(() => [{ name: '张三', score: 85 }])
     const scoreProp = computed(() => 'score')
 
     const { getScore } = useScoreStatistics({
@@ -170,14 +170,14 @@ describe('useScoreStatistics', () => {
       scoreProp
     })
 
-    expect(getScore({ xing4_ming2: '张三', score: 85 })).toBe(85)
-    expect(getScore({ xing4_ming2: '李四' })).toBeNull()
+    expect(getScore({ name: '张三', score: 85 })).toBe(85)
+    expect(getScore({ name: '李四' })).toBeNull()
   })
 
   it('should handle string score values', () => {
     const students = computed(() => [
-      { xing4_ming2: '张三', score: '85' },
-      { xing4_ming2: '李四', score: '90' }
+      { name: '张三', score: '85' },
+      { name: '李四', score: '90' }
     ])
     const scoreProp = computed(() => 'score')
 

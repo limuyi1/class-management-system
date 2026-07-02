@@ -11,7 +11,7 @@ import type { StudentDataType } from '@/types/StudentData'
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
-const { items: originList } = storeToRefs(store)
+const { students: originList } = storeToRefs(store)
 
 type TagType = 'primary' | 'success' | 'warning' | 'danger' | 'info'
 

@@ -16,14 +16,14 @@ const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 
-const { items: originList } = storeToRefs(store)
-const { tableHeaders } = storeToRefs(settingStore)
+const { students: originList } = storeToRefs(store)
+const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
 const scorePropRef = computed(() => configuration.inputScoreTab)
 const scoreTitle = computed(() => {
   const scoreProp = configuration.inputScoreTab
   if (!scoreProp) return '成绩分布统计'
-  return tableHeaders.value.find((header) => header.prop === scoreProp)?.label || scoreProp
+  return scoreColumns.value.find((header) => header.prop === scoreProp)?.label || scoreProp
 })
 
 const { scoreStats, belowThresholdStudents, threshold, getScore } = useScoreStatistics({
