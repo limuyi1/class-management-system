@@ -1,6 +1,7 @@
 export interface SettingType {
   prop: string
   label: string
+  disabled: boolean
 }
 
 export interface TagCategoryType {

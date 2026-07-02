@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 
+import { ElMessageBox, ElMessage, type InputInstance } from 'element-plus'
 import { storeToRefs } from 'pinia'
-import { pinyin } from 'pinyin-pro'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
+import { generateTagCategories, generateTags } from '@/ai/aiService'
+import { createDefaultTagCategories, createDefaultTags } from '@/config/defaultTags'
+import { createUniqueTagCategories, createUniqueTagCategory } from '@/utils/tagCategoryUntil'
 
-import { ElMessageBox, ElMessage, type InputInstance } from 'element-plus'
 import type { TagCategoryType } from '@/types/Setting'
-import { generateTags } from '@/ai/aiService'
 
 const store = useSettingStore()
 
@@ -37,6 +39,12 @@ const generateCount = ref(10)
 const generateRequirement = ref('')
 const generatedTags = ref<string[]>([])
 const selectedTags = ref<string[]>([])
+const categoryAIDialogVisible = ref(false)
+const categoryGenerating = ref(false)
+const categoryGenerateCount = ref(6)
+const categoryGenerateRequirement = ref('')
+const generatedCategories = ref<string[]>([])
+const selectedCategories = ref<string[]>([])
 
 const aiStore = useAIConfigStore()
 
@@ -54,11 +62,13 @@ const addCategory = () => {
     cancelButtonText: '取消'
   })
     .then(({ value }) => {
-      const newCategory = {
-        prop: pinyin(value, { toneType: 'num', type: 'array' }).join('_'),
-        label: value
+      const newCategory = createUniqueTagCategory(value, list.value)
+      if (!newCategory) {
+        ElMessage.warning('分类名称不能为空或已存在')
+        return
       }
       list.value.push(newCategory)
+      tags.value[newCategory.prop] = []
       activeCategory.value = newCategory.prop
       inputValue.value = ''
     })
@@ -69,6 +79,36 @@ const removeCategory = (item: TagCategoryType) => {
   list.value.splice(list.value.indexOf(item), 1)
   delete tags.value[item.prop]
   activeCategory.value = ''
+}
+
+const restoreDefaultCategories = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '将清空当前所有字典分类和标签，并恢复为系统预设内容。是否继续？',
+      '重置预设分类',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+  } catch {
+    return
+  }
+
+  const defaultCategories = createDefaultTagCategories()
+  const nextTags = createDefaultTags()
+
+  list.value.splice(0, list.value.length, ...defaultCategories)
+  Object.keys(tags.value).forEach((prop) => {
+    delete tags.value[prop]
+  })
+  Object.entries(nextTags).forEach(([prop, tagList]) => {
+    tags.value[prop] = tagList
+  })
+
+  activeCategory.value = defaultCategories[0].prop
+  ElMessage.success('已重置为预设分类')
 }
 
 const handleClose = (tag: string) => {
@@ -161,6 +201,49 @@ const openAIGenerateDialog = () => {
   selectedTags.value = []
 }
 
+const openAIGenerateCategoryDialog = () => {
+  categoryAIDialogVisible.value = true
+  categoryGenerateCount.value = 6
+  categoryGenerateRequirement.value = '适合小学班主任维护学生表现标签，覆盖学习、行为、情绪和交往等维度'
+  generatedCategories.value = []
+  selectedCategories.value = []
+}
+
+const handleGenerateCategories = async () => {
+  if (!aiStore.apiKey.trim()) {
+    ElMessage.warning('请先在AI配置中设置API Key')
+    return
+  }
+
+  categoryGenerating.value = true
+  try {
+    const newCategories = await generateTagCategories(
+      categoryGenerateCount.value,
+      categoryGenerateRequirement.value,
+      aiStore.prompts.tagCategoryGenerate,
+      {
+        modelType: aiStore.modelType,
+        model: aiStore.model,
+        apiKey: aiStore.apiKey,
+        baseUrl: aiStore.baseUrl
+      }
+    )
+
+    const existingLabels = new Set(list.value.map((item) => item.label))
+    const uniqueCategories = Array.from(
+      new Set(newCategories.map((item) => item.trim()).filter(Boolean))
+    ).filter((item) => !existingLabels.has(item))
+
+    generatedCategories.value = uniqueCategories
+    ElMessage.success(`生成成功，共 ${uniqueCategories.length} 个新分类`)
+  } catch (error) {
+    console.error('生成分类失败:', error)
+    ElMessage.error('生成分类失败，请检查AI配置')
+  } finally {
+    categoryGenerating.value = false
+  }
+}
+
 const handleGenerateTags = async () => {
   if (!aiStore.apiKey.trim()) {
     ElMessage.warning('请先在AI配置中设置API Key')
@@ -222,6 +305,29 @@ const handleAddSelectedTags = () => {
   aiDialogVisible.value = false
   ElMessage.success(`成功添加 ${newTags.length} 个标签`)
 }
+
+const handleAddSelectedCategories = () => {
+  if (selectedCategories.value.length === 0) {
+    ElMessage.warning('请先选择要添加的分类')
+    return
+  }
+
+  const newCategories = createUniqueTagCategories(selectedCategories.value, list.value)
+
+  if (newCategories.length === 0) {
+    ElMessage.warning('所选分类均已存在')
+    return
+  }
+
+  newCategories.forEach((category) => {
+    list.value.push(category)
+    tags.value[category.prop] = []
+  })
+
+  activeCategory.value = newCategories[0].prop
+  categoryAIDialogVisible.value = false
+  ElMessage.success(`成功添加 ${newCategories.length} 个分类`)
+}
 </script>
 
 <template>
@@ -229,11 +335,23 @@ const handleAddSelectedTags = () => {
     <div class="label-maintenance-aside">
       <div class="label-maintenance-aside-header">
         <div class="label-maintenance-aside-title">字典分类</div>
-        <el-tooltip effect="dark" content="新增分类" placement="top">
-          <el-button type="primary" circle size="small" @click="addCategory">
-            <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
-          </el-button>
-        </el-tooltip>
+        <div class="label-maintenance-aside-actions">
+          <el-tooltip effect="dark" content="重置预设分类" placement="top">
+            <el-button circle size="small" @click="restoreDefaultCategories">
+              <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip effect="dark" content="AI生成分类" placement="top">
+            <el-button type="primary" circle size="small" @click="openAIGenerateCategoryDialog">
+              <template #icon><font-awesome-icon :icon="['solid', 'robot']" /></template>
+            </el-button>
+          </el-tooltip>
+          <el-tooltip effect="dark" content="新增分类" placement="top">
+            <el-button type="primary" circle size="small" @click="addCategory">
+              <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
+            </el-button>
+          </el-tooltip>
+        </div>
       </div>
       <div
         :class="{
@@ -352,6 +470,75 @@ const handleAddSelectedTags = () => {
       </el-button>
     </template>
   </el-dialog>
+
+  <el-dialog
+    v-model="categoryAIDialogVisible"
+    title="AI生成字典分类"
+    width="600px"
+    :close-on-click-modal="false"
+  >
+    <el-form label-position="top" class="generate-form">
+      <el-form-item label="生成数量">
+        <el-input-number
+          v-model="categoryGenerateCount"
+          :min="1"
+          :max="20"
+          style="width: 100%"
+        />
+      </el-form-item>
+      <el-form-item label="自定义生成要求（可选）">
+        <el-input
+          v-model="categoryGenerateRequirement"
+          type="textarea"
+          :rows="3"
+          placeholder="例如：适合小学班主任维护学生表现标签，覆盖学习、行为、情绪和交往等维度"
+        />
+      </el-form-item>
+      <el-form-item v-if="generatedCategories.length > 0" label="选择要添加的分类">
+        <div class="select-all-wrapper">
+          <el-button
+            size="small"
+            type="primary"
+            link
+            @click="selectedCategories = [...generatedCategories]"
+          >
+            <template #icon><font-awesome-icon :icon="['solid', 'check-double']" /></template>
+            全选
+          </el-button>
+          <el-button size="small" type="info" link @click="selectedCategories = []">
+            取消全选
+          </el-button>
+        </div>
+        <el-checkbox-group v-model="selectedCategories">
+          <div class="tags-grid">
+            <el-checkbox
+              v-for="category in generatedCategories"
+              :key="category"
+              :label="category"
+              :value="category"
+              class="tag-checkbox"
+            >
+              {{ category }}
+            </el-checkbox>
+          </div>
+        </el-checkbox-group>
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="categoryAIDialogVisible = false">取消</el-button>
+      <el-button type="primary" :loading="categoryGenerating" @click="handleGenerateCategories">
+        生成分类
+      </el-button>
+      <el-button
+        type="success"
+        @click="handleAddSelectedCategories"
+        :disabled="generatedCategories.length === 0"
+      >
+        添加选中分类
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped lang="scss">
@@ -363,7 +550,7 @@ const handleAddSelectedTags = () => {
 
   .label-maintenance-aside {
     height: 100%;
-    width: 200px;
+    width: 240px;
     border-right: 1px solid #e2e8f0;
     background: #fcfcfc;
     border-radius: 0 0 0 8px;
@@ -382,6 +569,15 @@ const handleAddSelectedTags = () => {
       font-weight: 700;
       line-height: 32px;
       color: rgba(0, 0, 0, 0.85);
+      flex: 1;
+      min-width: 72px;
+      white-space: nowrap;
+    }
+
+    .label-maintenance-aside-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
 
     .label-maintenance-aside-item {

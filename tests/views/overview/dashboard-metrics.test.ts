@@ -8,10 +8,10 @@ import { buildDashboardData } from '@/views/overview/services/dashboard'
 import { buildStudentMetrics, buildUnitMetrics } from '@/views/overview/services/dashboard/metrics'
 
 const unitHeaders: SettingType[] = [
-  { prop: 'unit1', label: '第一单元' },
-  { prop: 'unit2', label: '第二单元' },
-  { prop: 'unit3', label: '第三单元' },
-  { prop: 'unit4', label: '第四单元' }
+  { prop: 'unit1', label: '第一单元', disabled: false },
+  { prop: 'unit2', label: '第二单元', disabled: false },
+  { prop: 'unit3', label: '第三单元', disabled: false },
+  { prop: 'unit4', label: '第四单元', disabled: false }
 ]
 
 const buildMetrics = (scores: number[]) => {

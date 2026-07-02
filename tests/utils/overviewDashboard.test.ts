@@ -5,9 +5,9 @@ import { buildDashboardData } from '../../src/views/overview/services/dashboard'
 
 describe('overview dashboard builder', () => {
   const unitHeaders = [
-    { prop: 'unit1', label: '第一单元' },
-    { prop: 'unit2', label: '第二单元' },
-    { prop: 'unit3', label: '第三单元' }
+    { prop: 'unit1', label: '第一单元', disabled: false },
+    { prop: 'unit2', label: '第二单元', disabled: false },
+    { prop: 'unit3', label: '第三单元', disabled: false }
   ]
 
   it('should build dashboard overview data', () => {
@@ -81,7 +81,7 @@ describe('overview dashboard builder', () => {
         { name: '甲', unit1: 90, unit2: 80, unit3: 70, unit4: 60 },
         { name: '乙', unit1: 100, unit2: 100, unit3: 100, unit4: 70 }
       ],
-      unitHeaders: [...unitHeaders, { prop: 'unit4', label: '第四单元' }],
+      unitHeaders: [...unitHeaders, { prop: 'unit4', label: '第四单元', disabled: false }],
       selectedStudentNames: ['甲', '乙'],
       aiConfigured: false,
       config: overviewDashboardConfig
@@ -343,8 +343,8 @@ describe('overview dashboard builder', () => {
       ],
       unitHeaders: [
         ...unitHeaders,
-        { prop: 'unit4', label: '第四单元' },
-        { prop: 'unit5', label: '第五单元' }
+        { prop: 'unit4', label: '第四单元', disabled: false },
+        { prop: 'unit5', label: '第五单元', disabled: false }
       ],
       selectedStudentNames: ['历史低位样本'],
       aiConfigured: false,

@@ -155,4 +155,20 @@ describe('aiService', () => {
     expect(generateTextMock.mock.calls[0]?.[1]).toContain('请润色以下评语')
     expect(generateTextMock.mock.calls[0]?.[1]).toContain('"comment": "原评语"')
   })
+
+  it('generates tag categories from JSON response', async () => {
+    generateTextMock.mockResolvedValueOnce(JSON.stringify(['学习习惯', '课堂表现']))
+
+    const { generateTagCategories } = await import('../../src/ai/aiService')
+    const result = await generateTagCategories(2, '覆盖日常表现', '数量：{{count}} 要求：{{requirement}}', {
+      modelType: AIModelTypeEnum.OPENAI,
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1'
+    })
+
+    expect(result).toEqual(['学习习惯', '课堂表现'])
+    expect(generateTextMock.mock.calls[0]?.[1]).toContain('数量：2')
+    expect(generateTextMock.mock.calls[0]?.[1]).toContain('要求：覆盖日常表现')
+  })
 })

@@ -11,6 +11,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
+import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
 
 const TOOL_TABLES = new Set<string>([
   DatabaseTableEnum.Attachments,
@@ -71,6 +72,7 @@ const hydrateRuntimeStores = async () => {
     const { id, updatedAt, ...state } = setting
     void id
     void updatedAt
+    state.scoreColumns = normalizeScoreColumns(state.scoreColumns)
     settingStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })

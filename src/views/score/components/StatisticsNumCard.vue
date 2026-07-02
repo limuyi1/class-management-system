@@ -17,7 +17,7 @@ const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 
 const { students: originList } = storeToRefs(store)
-const { scoreColumns } = storeToRefs(settingStore)
+const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
 const scorePropRef = computed(() => configuration.inputScoreTab)
 const scoreTitle = computed(() => {

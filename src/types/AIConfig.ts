@@ -45,6 +45,7 @@ export interface AIPromptsType {
   batchCommentPolish: string
   imageScore: string
   tagGenerate: string
+  tagCategoryGenerate: string
   answerGenerate: string
   learningAnalysis: string
 }
@@ -179,6 +180,19 @@ export const DefaultAIPrompts: AIPromptsType = {
 1. 必须返回 {{count}} 个标签
 2. 仅返回四字词语，不要其他长度词语
 3. 不要有解释性文字，直接返回数组`,
+
+  tagCategoryGenerate: `请生成 {{count}} 个适合小学班主任维护学生表现标签的字典分类名称。
+
+补充要求：{{requirement}}
+
+分类名称要求：
+1. 适合用于归纳学生表现标签的大类，例如学习习惯、课堂表现、合作交往
+2. 每个分类名称控制在2-6个中文字符
+3. 分类之间不要语义重复，不要生成具体标签
+4. 不要生成“其他”“综合”“默认分类”等泛化名称
+
+仅返回标准JSON数组，不要返回JSON以外的任何文字：
+["分类1", "分类2", "分类3"]`,
 
   answerGenerate: `你是一位专业的小学数学老师。请根据以下题目内容，生成详细的答案和解析。
 

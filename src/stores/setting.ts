@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 
-import type { SettingType, TagCategoryType, TagType } from '@/types/Setting'
+import { createDefaultTagCategories, createDefaultTags } from '@/config/defaultTags'
+import { NAME_PROP } from '@/types/Constants'
+
+import type { SettingType } from '@/types/Setting'
 
 /**
  * 设置状态管理
@@ -19,13 +22,17 @@ export const useSettingStore = defineStore('setting', {
      * 用于对学生进行分组标记，如"优点"、"缺点"、"学习情况"等
      * 每个分类有 prop（唯一标识）和 label（显示名称）
      */
-    tagCategories: [] as Array<TagCategoryType>,
+    tagCategories: createDefaultTagCategories(),
     /**
      * 标签映射表
      * 键为分类属性名（tagCategories.prop），值为该分类下的标签数组
      * 结构示例：{ '优点': ['认真', '积极'], '缺点': ['迟到'] }
      */
-    tags: {} as TagType
+    tags: createDefaultTags()
   }),
+  getters: {
+    enabledScoreColumns: (state) =>
+      state.scoreColumns.filter((item) => item.prop !== NAME_PROP && !item.disabled)
+  },
   actions: {}
 })

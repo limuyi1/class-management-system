@@ -400,6 +400,24 @@ export async function generateTags(
 }
 
 /**
+ * AI 生成学生标签分类
+ */
+export async function generateTagCategories(
+  count: number,
+  requirement: string,
+  prompt: string,
+  config: AIServiceConfig
+): Promise<string[]> {
+  const promptText = replaceTemplate(prompt, {
+    count,
+    requirement: requirement || '无特殊要求'
+  })
+
+  const responseText = await generateText(config, promptText)
+  return parseArrayWithFallback<string>(responseText, [], 'generateTagCategories')
+}
+
+/**
  * 生成班级学情分析
  */
 export async function generateLearningAnalysis(

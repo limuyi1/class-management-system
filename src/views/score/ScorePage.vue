@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
@@ -31,10 +31,9 @@ const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
 
 const { students: originList, enabledData } = storeToRefs(dataStore)
-const { scoreColumns: storedScoreColumns } = storeToRefs(settingStore)
+const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
 
-const scoreColumns = computed(() => storedScoreColumns.value.filter((item) => item.prop !== NAME_PROP))
 const hasUnits = computed(() => scoreColumns.value.length > 0)
 const hasScores = computed(() => dataStore.hasAnyScore)
 /**
@@ -55,11 +54,18 @@ const currentStudent = ref<StudentDataType | null>(null)
 const router = useRouter()
 
 const ensureDefaultScoreTab = () => {
-  if (!configuration.inputScoreTab && scoreColumns.value.length) {
+  const hasCurrentScoreTab = scoreColumns.value.some((item) => item.prop === configuration.inputScoreTab)
+  if (!hasCurrentScoreTab && scoreColumns.value.length) {
     configuration.inputScoreTab = scoreColumns.value[0].prop
+    return
+  }
+
+  if (!scoreColumns.value.length) {
+    configuration.inputScoreTab = null
   }
 }
 ensureDefaultScoreTab()
+watch(scoreColumns, ensureDefaultScoreTab)
 
 const autoFocus = () => {
   inputDataRef.value?.autoFocus()

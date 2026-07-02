@@ -23,6 +23,8 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useToolsStore } from '@/stores/tools'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
+import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
+import { DefaultAIPrompts } from '@/types/AIConfig'
 
 type PersistableRecordType =
   | StudentDatasetRecord
@@ -76,6 +78,14 @@ export function createPersistedStateDexie() {
       const { id, updatedAt, ...state } = stateRecord
       void id
       void updatedAt
+      if (storeId === 'aiConfig' && state.prompts && typeof state.prompts === 'object') {
+        state.prompts = { ...DefaultAIPrompts, ...(state.prompts as Record<string, unknown>) }
+      }
+      if (storeId === 'setting' && Array.isArray(state.scoreColumns)) {
+        state.scoreColumns = normalizeScoreColumns(
+          state.scoreColumns as Parameters<typeof normalizeScoreColumns>[0]
+        )
+      }
       store.$patch(state as _DeepPartial<StateTree>)
     }
     const resetStoreState = () => {

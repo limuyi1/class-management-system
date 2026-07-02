@@ -25,7 +25,7 @@ const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 
 const { students: originList } = storeToRefs(store)
-const { scoreColumns } = storeToRefs(settingStore)
+const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
 const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max: 59 }]
 type CellValueType = string | number | null
@@ -125,7 +125,7 @@ const exportExcelFun = () => {
 }
 
 const exportAllExcelFun = () => {
-  const unitHeaders = scoreColumns.value.filter((h) => h.prop !== NAME_PROP)
+  const unitHeaders = scoreColumns.value
   const scoreLabels = unitHeaders.map((h) => h.label)
 
   const unitAverages = unitHeaders.map((h) => {

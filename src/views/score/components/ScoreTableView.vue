@@ -4,7 +4,6 @@ import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
-import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 import { delay } from '@/utils/commonUntil'
 import { NAME_PROP } from '@/types/Constants'
@@ -18,8 +17,6 @@ interface Props {
   stage: ScorePageStageType
 }
 
-defineProps<Props>()
-
 const emit = defineEmits<{
   'update:scoreTab': [value: string]
   resetScore: []
@@ -28,11 +25,10 @@ const emit = defineEmits<{
 }>()
 
 const store = useDataSourceStore()
-const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
 
 const { enabledData: tableData } = storeToRefs(store)
-const { scoreColumns: storedScoreColumns } = storeToRefs(settingStore)
+const props = defineProps<Props>()
 
 const tableRef = ref()
 const showOnlyUnentered = ref(false)
@@ -41,7 +37,7 @@ const activeRow = ref<StudentDataType | null>(null)
 const currentColumnLabel = computed(() => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return '当前分数'
-  return storedScoreColumns.value.find((item) => item.prop === scoreTab)?.label || scoreTab
+  return props.scoreColumns.find((item) => item.prop === scoreTab)?.label || scoreTab
 })
 
 const getCurrentScore = (row: StudentDataType): number | null => {

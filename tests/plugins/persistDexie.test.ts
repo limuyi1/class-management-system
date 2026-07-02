@@ -166,7 +166,7 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名' }])
+    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名', disabled: false }])
 
     store.$state.tags = { xing_ge: ['活泼'] }
     await subscribers[0]()
@@ -174,11 +174,49 @@ describe('createPersistedStateDexie', () => {
     expect(mockTables.scoreSettings.put).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'main',
-        scoreColumns: [{ prop: 'name', label: '姓名' }],
+        scoreColumns: [{ prop: 'name', label: '姓名', disabled: false }],
         tagCategories: [],
         tags: { xing_ge: ['活泼'] }
       })
     )
+  })
+
+  it('should merge missing default AI prompts when loading old aiConfig records', async () => {
+    mockTables.aiSettings.record = {
+      id: 'main',
+      modelType: 'openai',
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1',
+      prompts: {
+        singleComment: '旧版单个评语提示词'
+      },
+      availableModels: [],
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    }
+
+    const store = {
+      $id: 'aiConfig',
+      $state: {
+        prompts: {} as Record<string, string>
+      },
+      $patch: (state: Record<string, unknown>) => {
+        store.$state = {
+          ...store.$state,
+          ...state
+        } as typeof store.$state
+      },
+      $subscribe: vi.fn()
+    }
+
+    const { DefaultAIPrompts } = await import('../../src/types/AIConfig')
+    const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
+    const plugin = createPersistedStateDexie()
+
+    await plugin({ store } as never)
+
+    expect(store.$state.prompts.singleComment).toBe('旧版单个评语提示词')
+    expect(store.$state.prompts.tagCategoryGenerate).toBe(DefaultAIPrompts.tagCategoryGenerate)
   })
 
   it('should catch and log load errors from db.get', async () => {
@@ -267,7 +305,7 @@ describe('createPersistedStateDexie', () => {
       tags: { you1_dian3: ['认真'] },
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名' }])
+    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名', disabled: false }])
 
     observers[0].next(undefined)
     expect(store.$state).toEqual({

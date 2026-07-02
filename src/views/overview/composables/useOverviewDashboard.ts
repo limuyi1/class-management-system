@@ -7,7 +7,6 @@ import { buildDashboardData } from '@/views/overview/services/dashboard'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
-import { NAME_PROP } from '@/types/Constants'
 
 const getInitialStudentName = (students: Array<{ value: string }>): string | null => {
   return students.length ? students[0].value : null
@@ -25,11 +24,9 @@ export function useOverviewDashboard() {
   const aiConfigStore = useAIConfigStore()
 
   const { enabledData } = storeToRefs(dataStore)
-  const { scoreColumns } = storeToRefs(settingStore)
+  const { enabledScoreColumns: unitHeaders } = storeToRefs(settingStore)
 
   const selectedStudentNames = ref<string[]>([])
-
-  const unitHeaders = computed(() => scoreColumns.value.filter((item) => item.prop !== NAME_PROP))
 
   /**
    * 数据源变化后，重新校验当前选中学生是否仍然有效。

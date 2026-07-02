@@ -41,7 +41,7 @@ const router = useRouter()
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
 const { students: tableData } = storeToRefs(store)
-const { scoreColumns: headers } = storeToRefs(settingStore)
+const { scoreColumns: headers, enabledScoreColumns: enabledHeaders } = storeToRefs(settingStore)
 const { tagCategories: categories } = storeToRefs(settingStore)
 
 const tableRef = ref()
@@ -223,7 +223,23 @@ const isFixedColumn = (column: TableColumnType) => {
   return !!column.fixed
 }
 
-const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex }) => {
+const createHeader = (label: string) => ({
+  prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
+  label,
+  disabled: false
+})
+
+const findHeaderIndexByColumn = (column: TableColumnType): number => {
+  if (!column.field) return -1
+  return headers.value.findIndex((item) => item.prop === column.field)
+}
+
+const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column }) => {
+  const headerIndex = findHeaderIndexByColumn(column as TableColumnType)
+  if (headerIndex === -1) {
+    return
+  }
+
   switch (menu.code) {
     case 'addRight':
       ElMessageBox.prompt('请输入列名', '提示', {
@@ -232,10 +248,7 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
         inputPlaceholder: '请输入列名'
       }).then(({ value }) => {
         if (value) {
-          headers.value?.splice(columnIndex - 1, 0, {
-            prop: pinyin(value, { toneType: 'num', type: 'array' }).join('_'),
-            label: value
-          })
+          headers.value?.splice(headerIndex + 1, 0, createHeader(value))
         }
       })
       break
@@ -246,10 +259,7 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
         inputPlaceholder: '请输入列名'
       }).then(({ value }) => {
         if (value) {
-          headers.value?.splice(columnIndex - 2, 0, {
-            prop: pinyin(value, { toneType: 'num', type: 'array' }).join('_'),
-            label: value
-          })
+          headers.value?.splice(headerIndex, 0, createHeader(value))
         }
       })
       break
@@ -259,7 +269,7 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column, columnIndex })
         cancelButtonText: '取消',
         type: 'warning'
       }).then(() => {
-        headers.value?.splice(columnIndex - 2, 1)
+        headers.value?.splice(headerIndex, 1)
         tableData.value.forEach((e) => {
           if (column.field) {
             delete e[column.field]
@@ -342,7 +352,7 @@ defineExpose({
           resizable
           :edit-render="{ name: 'input' }"
         />
-        <vxe-column field="tags" title="标签" min-width="240" fixed="left" resizable>
+        <vxe-column field="tags" title="标签" min-width="400" fixed="left" resizable>
           <template #header>
             <div class="tags-header">
               <span>标签</span>
@@ -410,7 +420,7 @@ defineExpose({
           </template>
         </vxe-column>
         <vxe-column
-          v-for="item in headers"
+          v-for="item in enabledHeaders"
           :key="item.prop"
           :field="item.prop"
           :title="item.label"
