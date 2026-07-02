@@ -18,6 +18,10 @@ const pendingTagEditorStudent = ref('')
 const returnTo = ref('')
 const returnStudentName = ref('')
 
+const clearEditTagsQuery = async () => {
+  await router.replace({ path: '/student-info' })
+}
+
 const syncEditTagsQuery = async () => {
   if (route.query['edit-tags'] !== '1') return
 
@@ -37,7 +41,7 @@ const syncEditTagsQuery = async () => {
 
   studentInfoRef.value.openTagEditorByName(studentName)
   pendingTagEditorStudent.value = ''
-  await router.replace({ path: '/student-info' })
+  await clearEditTagsQuery()
 }
 
 watch(
@@ -62,7 +66,7 @@ watch(studentInfoRef, async (instance) => {
 
   instance.openTagEditorByName(pendingTagEditorStudent.value)
   pendingTagEditorStudent.value = ''
-  await router.replace({ path: '/student-info' })
+  await clearEditTagsQuery()
 })
 </script>
 

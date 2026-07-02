@@ -282,9 +282,10 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column }) => {
 
 const openTagEditorByName = (name: string) => {
   const student = tableData.value.find((item) => getStudentName(item) === name)
-  if (student) {
-    openTagEditor(student)
-  }
+  if (!student) return false
+
+  openTagEditor(student)
+  return true
 }
 
 // 虚拟删除弹窗状态
