@@ -12,7 +12,7 @@ describe('useDataSourceStore', () => {
 
   it('should initialize with empty data', () => {
     const store = useDataSourceStore()
-    expect(store.items).toEqual([])
+    expect(store.students).toEqual([])
   })
 
   it('should set data correctly', () => {
@@ -21,13 +21,13 @@ describe('useDataSourceStore', () => {
       { name: '张三', yu3_wen2: 85 },
       { name: '李四', yu3_wen2: 90 }
     ]
-    store.items = testData
-    expect(store.items).toEqual(testData)
+    store.students = testData
+    expect(store.students).toEqual(testData)
   })
 
   it('should filter disabled students in enabledData', () => {
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', disabled: false },
       { name: '李四', disabled: true },
       { name: '王五', disabled: false }
@@ -40,7 +40,7 @@ describe('useDataSourceStore', () => {
 
   it('should return empty enabledData when all disabled', () => {
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', disabled: true },
       { name: '李四', disabled: true }
     ]
@@ -50,7 +50,7 @@ describe('useDataSourceStore', () => {
 
   it('should count total enabled students', () => {
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', disabled: false },
       { name: '李四', disabled: true },
       { name: '王五', disabled: false }
@@ -61,7 +61,7 @@ describe('useDataSourceStore', () => {
 
   it('should return 0 totalCount for empty data', () => {
     const store = useDataSourceStore()
-    store.items = []
+    store.students = []
     expect(store.totalCount).toBe(0)
   })
 
@@ -70,7 +70,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', yu3_wen2: 80 },
       { name: '李四', yu3_wen2: 100 }
     ]
@@ -80,7 +80,7 @@ describe('useDataSourceStore', () => {
 
   it('should return 0 average for empty data', () => {
     const store = useDataSourceStore()
-    store.items = []
+    store.students = []
     expect(store.average).toBe(0)
   })
 
@@ -89,7 +89,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', yu3_wen2: 70 },
       { name: '李四', yu3_wen2: 50 },
       { name: '王五', yu3_wen2: 90 }
@@ -103,7 +103,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = []
+    store.students = []
 
     expect(store.passRate).toBe(0)
   })
@@ -113,7 +113,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', yu3_wen2: 85 },
       { name: '李四', yu3_wen2: 70 },
       { name: '王五', yu3_wen2: 90 },
@@ -128,7 +128,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', yu3_wen2: 95 },
       { name: '李四', yu3_wen2: 70 }
     ]
@@ -141,7 +141,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', yu3_wen2: 40 },
       { name: '李四', yu3_wen2: 70 }
     ]
@@ -154,7 +154,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = []
+    store.students = []
 
     expect(store.hasAnyScore).toBe(false)
   })
@@ -164,9 +164,9 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [{ name: '张三', yu3_wen2: 85 }]
+    store.students = [{ name: '张三', yu3_wen2: 85 }]
 
-    expect(store.getItemScore(store.items[0])).toBe(85)
+    expect(store.getItemScore(store.students[0])).toBe(85)
   })
 
   it('should return null when no score tab configured', () => {
@@ -174,9 +174,9 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = null
 
     const store = useDataSourceStore()
-    store.items = [{ name: '张三', yu3_wen2: 85 }]
+    store.students = [{ name: '张三', yu3_wen2: 85 }]
 
-    expect(store.getItemScore(store.items[0])).toBeNull()
+    expect(store.getItemScore(store.students[0])).toBeNull()
   })
 
   it('should calculate comprehensive rating correctly', () => {
@@ -184,7 +184,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', yu3_wen2: 85 },
       { name: '李四', yu3_wen2: 70 }
     ]
@@ -199,7 +199,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
-    store.items = [
+    store.students = [
       { name: '张三', yu3_wen2: 80 },
       { name: '李四', yu3_wen2: '90' },
       { name: '王五', yu3_wen2: null }

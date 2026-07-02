@@ -12,7 +12,7 @@ import type { StudentDataType } from '@/types/StudentData'
 export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
-      items: [] as StudentDataType[],
+      students: [] as StudentDataType[],
       isInitialLoading: false
     }
   },
@@ -21,7 +21,7 @@ export const useDataSourceStore = defineStore('dataSource', {
      * 获取启用状态的学生数据（过滤掉禁用的学生）
      */
     enabledData(): StudentDataType[] {
-      return this.items.filter((item) => item.disabled !== true)
+      return this.students.filter((item) => item.disabled !== true)
     },
     /**
      * 获取所有有效成绩（过滤掉 null 和 undefined 和禁用的学生）
@@ -37,7 +37,7 @@ export const useDataSourceStore = defineStore('dataSource', {
     /**
      * 学生总数（启用状态）
      */
-    totalCount: (state) => state.items.filter((item) => item.disabled !== true).length as number,
+    totalCount: (state) => state.students.filter((item) => item.disabled !== true).length as number,
     /**
      * 有效成绩数量（有分数的学生人数）
      */

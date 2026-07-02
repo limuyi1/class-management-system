@@ -14,7 +14,7 @@ const props = defineProps<TagEditorDialogProps>()
 const emit = defineEmits<TagEditorDialogEmits>()
 
 const settingStore = useSettingStore()
-const { tagCategory: categories, tags: tagOptions } = storeToRefs(settingStore)
+const { tagCategories: categories, tags: tagOptions } = storeToRefs(settingStore)
 
 const cascaderOptions = computed(() => {
   return categories.value.map((cat) => ({

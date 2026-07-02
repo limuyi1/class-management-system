@@ -25,11 +25,11 @@ export function useOverviewDashboard() {
   const aiConfigStore = useAIConfigStore()
 
   const { enabledData } = storeToRefs(dataStore)
-  const { tableHeaders } = storeToRefs(settingStore)
+  const { scoreColumns } = storeToRefs(settingStore)
 
   const selectedStudentNames = ref<string[]>([])
 
-  const unitHeaders = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
+  const unitHeaders = computed(() => scoreColumns.value.filter((item) => item.prop !== NAME_PROP))
 
   /**
    * 数据源变化后，重新校验当前选中学生是否仍然有效。

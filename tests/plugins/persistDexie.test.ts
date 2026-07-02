@@ -96,10 +96,10 @@ describe('createPersistedStateDexie', () => {
     const subscribers: Array<() => Promise<void>> = []
     const store = {
       $id: 'dataSource',
-      $state: { items: [] as Array<Record<string, unknown>> },
+      $state: { students: [] as Array<Record<string, unknown>> },
       isInitialLoading: false,
-      $patch: (state: { items: Array<Record<string, unknown>> }) => {
-        store.$state.items = state.items
+      $patch: (state: { students: Array<Record<string, unknown>> }) => {
+        store.$state.students = state.students
       },
       $subscribe: (callback: () => Promise<void>) => {
         subscribers.push(callback)
@@ -111,10 +111,10 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.items).toEqual([{ name: '张三', yu3_wen2: 88 }])
+    expect(store.$state.students).toEqual([{ name: '张三', yu3_wen2: 88 }])
     expect(store.isInitialLoading).toBe(true)
 
-    store.$state.items = [{ name: '李四', yu3_wen2: 95 }]
+    store.$state.students = [{ name: '李四', yu3_wen2: 95 }]
     await subscribers[0]()
 
     expect(mockTables.studentDataset.put).toHaveBeenCalledWith(
@@ -130,14 +130,14 @@ describe('createPersistedStateDexie', () => {
       students: [{ name: '王五', yu3_wen2: 76 }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.items).toEqual([{ name: '王五', yu3_wen2: 76 }])
+    expect(store.$state.students).toEqual([{ name: '王五', yu3_wen2: 76 }])
   })
 
   it('should load and patch normal store by stripping id field', async () => {
     mockTables.scoreSettings.record = {
       id: 'main',
-      tableHeaders: [{ prop: 'name', label: '姓名' }],
-      tagCategory: [],
+      scoreColumns: [{ prop: 'name', label: '姓名' }],
+      tagCategories: [],
       tags: {},
       updatedAt: '2026-01-01T00:00:00.000Z'
     }
@@ -146,8 +146,8 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'setting',
       $state: {
-        tableHeaders: [] as Array<Record<string, unknown>>,
-        tagCategory: [] as Array<Record<string, unknown>>,
+        scoreColumns: [] as Array<Record<string, unknown>>,
+        tagCategories: [] as Array<Record<string, unknown>>,
         tags: {} as Record<string, string[]>
       },
       $patch: (state: Record<string, unknown>) => {
@@ -166,7 +166,7 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.tableHeaders).toEqual([{ prop: 'name', label: '姓名' }])
+    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名' }])
 
     store.$state.tags = { xing_ge: ['活泼'] }
     await subscribers[0]()
@@ -174,8 +174,8 @@ describe('createPersistedStateDexie', () => {
     expect(mockTables.scoreSettings.put).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'main',
-        tableHeaders: [{ prop: 'name', label: '姓名' }],
-        tagCategory: [],
+        scoreColumns: [{ prop: 'name', label: '姓名' }],
+        tagCategories: [],
         tags: { xing_ge: ['活泼'] }
       })
     )
@@ -188,8 +188,8 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'setting',
       $state: {
-        tableHeaders: [] as Array<Record<string, unknown>>,
-        tagCategory: [] as Array<Record<string, unknown>>,
+        scoreColumns: [] as Array<Record<string, unknown>>,
+        tagCategories: [] as Array<Record<string, unknown>>,
         tags: {} as Record<string, string[]>
       },
       $patch: vi.fn(),
@@ -211,7 +211,7 @@ describe('createPersistedStateDexie', () => {
     const subscribers: Array<() => Promise<void>> = []
     const store = {
       $id: 'dataSource',
-      $state: { items: [{ name: '张三', yu3_wen2: 88 }] as Array<Record<string, unknown>> },
+      $state: { students: [{ name: '张三', yu3_wen2: 88 }] as Array<Record<string, unknown>> },
       isInitialLoading: false,
       $patch: vi.fn(),
       $subscribe: (callback: () => Promise<void>) => {
@@ -242,8 +242,8 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'setting',
       $state: {
-        tableHeaders: [] as Array<Record<string, unknown>>,
-        tagCategory: [] as Array<Record<string, unknown>>,
+        scoreColumns: [] as Array<Record<string, unknown>>,
+        tagCategories: [] as Array<Record<string, unknown>>,
         tags: {} as Record<string, string[]>
       },
       $patch: (state: Record<string, unknown>) => {
@@ -262,28 +262,28 @@ describe('createPersistedStateDexie', () => {
 
     observers[0].next({
       id: 'main',
-      tableHeaders: [{ prop: 'name', label: '姓名' }],
-      tagCategory: [{ prop: 'you1_dian3', label: '优点' }],
+      scoreColumns: [{ prop: 'name', label: '姓名' }],
+      tagCategories: [{ prop: 'you1_dian3', label: '优点' }],
       tags: { you1_dian3: ['认真'] },
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.tableHeaders).toEqual([{ prop: 'name', label: '姓名' }])
+    expect(store.$state.scoreColumns).toEqual([{ prop: 'name', label: '姓名' }])
 
     observers[0].next(undefined)
     expect(store.$state).toEqual({
-      tableHeaders: [],
-      tagCategory: [],
+      scoreColumns: [],
+      tagCategories: [],
       tags: {}
     })
   })
 
-  it('should reset dataSource to empty items when persisted record is deleted', async () => {
+  it('should reset dataSource to empty students when persisted record is deleted', async () => {
     const store = {
       $id: 'dataSource',
-      $state: { items: [] as Array<Record<string, unknown>> },
+      $state: { students: [] as Array<Record<string, unknown>> },
       isInitialLoading: false,
-      $patch: (state: { items: Array<Record<string, unknown>> }) => {
-        store.$state.items = state.items
+      $patch: (state: { students: Array<Record<string, unknown>> }) => {
+        store.$state.students = state.students
       },
       $subscribe: vi.fn()
     }
@@ -298,9 +298,9 @@ describe('createPersistedStateDexie', () => {
       students: [{ name: '张三' }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.items).toEqual([{ name: '张三' }])
+    expect(store.$state.students).toEqual([{ name: '张三' }])
 
     observers[0].next(undefined)
-    expect(store.$state.items).toEqual([])
+    expect(store.$state.students).toEqual([])
   })
 })

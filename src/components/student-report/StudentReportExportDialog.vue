@@ -38,7 +38,7 @@ const dataStore = useDataSourceStore()
 const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
 const { enabledData } = storeToRefs(dataStore)
-const { tagCategory } = storeToRefs(settingStore)
+const { tagCategories } = storeToRefs(settingStore)
 
 const dialogVisible = computed({
   get: () => props.visible,
@@ -62,7 +62,7 @@ const report = computed(() => {
     students: enabledData.value,
     scoreColumns: props.scoreColumns,
     selectedProps: selectedProps.value,
-    tagCategories: tagCategory.value,
+    tagCategories: tagCategories.value,
     classLabel: '本班'
   })
 })

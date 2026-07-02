@@ -45,8 +45,8 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const settingStore = useSettingStore()
   const aiConfigStore = useAIConfigStore()
 
-  const { items: originList } = storeToRefs(dataStore)
-  const { tagCategory: tagCategoryList } = storeToRefs(settingStore)
+  const { students: originList } = storeToRefs(dataStore)
+  const { tagCategories: tagCategoryList } = storeToRefs(settingStore)
 
   const generating = ref(false)
   const polishing = ref(false)

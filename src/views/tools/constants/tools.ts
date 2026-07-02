@@ -28,7 +28,7 @@ export const toolItems: ToolItemType[] = [
   },
   {
     id: 'attachments',
-    name: '素材库管理',
+    name: '素材管理',
     icon: 'images',
     path: '/tools/attachments',
     description: '管理长期复用的图片素材，供试卷排版和后续错题本使用。',

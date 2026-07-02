@@ -31,7 +31,7 @@ const resetRuntimeStores = () => {
   const wrongBookStore = useWrongBookStore()
   const toolsStore = useToolsStore()
 
-  dataStore.items = []
+  dataStore.students = []
   dataStore.isInitialLoading = true
   settingStore.$reset()
   configurationStore.$reset()
@@ -64,7 +64,7 @@ const hydrateRuntimeStores = async () => {
       db.toolPreferences.get(DB_ID)
     ])
 
-  dataStore.items = dataSource?.students || []
+  dataStore.students = dataSource?.students || []
   dataStore.isInitialLoading = true
 
   if (setting) {

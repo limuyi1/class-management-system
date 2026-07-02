@@ -234,7 +234,7 @@ function handleCropCancel(): void {
 
 <template>
   <div class="attachment-library-page app-page-shell">
-    <page-header :icon="['solid', 'images']" title="素材库管理" :subtitle="attachmentCountText">
+    <page-header :icon="['solid', 'images']" title="素材管理" :subtitle="attachmentCountText">
       <template #left>
         <el-tooltip content="返回工具" placement="top">
           <el-button size="small" circle aria-label="返回工具" @click="backToTools">

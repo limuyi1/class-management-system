@@ -49,6 +49,11 @@ const legacyToCurrentTable = {
   paperLayoutDrafts: TABLES.paperLayoutDrafts
 }
 
+const tableNameMap = {
+  ...legacyToCurrentTable,
+  ...Object.fromEntries(Object.values(TABLES).map((tableName) => [tableName, tableName]))
+}
+
 const nowIso = () => new Date().toISOString()
 
 const usage = () => {
@@ -57,9 +62,27 @@ const usage = () => {
 
 const isKeyValueRow = (row) => Array.isArray(row) && row.length === 2
 
+const isPlainRecord = (value) => Boolean(value && typeof value === 'object' && !Array.isArray(value))
+
 const getRowValue = (row) => (isKeyValueRow(row) ? row[1] : row)
 
 const withRowValue = (row, value) => (isKeyValueRow(row) ? [row[0], value] : value)
+
+const stripDexieTypesMeta = (value) => {
+  if (Array.isArray(value)) {
+    return value.map(stripDexieTypesMeta)
+  }
+
+  if (!isPlainRecord(value)) {
+    return value
+  }
+
+  return Object.entries(value).reduce((result, [key, currentValue]) => {
+    if (key === '$types') return result
+    result[key] = stripDexieTypesMeta(currentValue)
+    return result
+  }, {})
+}
 
 const stripLegacyMeta = (record) => {
   const { updatedAt, ...state } = record
@@ -77,7 +100,7 @@ const normalizeStudentRecord = (student) => {
     return student
   }
 
-  const { [LEGACY_NAME_PROP]: legacyName, ...rest } = student
+  const { [LEGACY_NAME_PROP]: legacyName, ...rest } = stripDexieTypesMeta(student)
   return {
     ...rest,
     [NAME_PROP]: student[NAME_PROP] ?? legacyName ?? null
@@ -90,48 +113,126 @@ const normalizeHeaderRecord = (header) => {
   }
 
   return {
-    ...header,
+    ...stripDexieTypesMeta(header),
     prop: header.prop === LEGACY_NAME_PROP ? NAME_PROP : header.prop
   }
 }
 
 const transformRecord = (legacyTableName, record) => {
-  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+  if (!isPlainRecord(record)) {
     return record
   }
 
   switch (legacyTableName) {
     case 'dataSource': {
-      const { id = 'main', data = [], updatedAt } = record
+      const { id = 'main', data = [], updatedAt } = stripDexieTypesMeta(record)
       return {
         id,
         students: Array.isArray(data) ? data.map(normalizeStudentRecord) : [],
         updatedAt: typeof updatedAt === 'string' ? updatedAt : nowIso()
       }
     }
-    case 'setting': {
+    case TABLES.studentDataset: {
+      const { data, students = [], ...state } = stripLegacyMeta(stripDexieTypesMeta(record))
+      void data
       return addUpdatedAt({
-        ...stripLegacyMeta(record),
-        tableHeaders: Array.isArray(record.tableHeaders)
-          ? record.tableHeaders.map(normalizeHeaderRecord)
-          : []
+        ...state,
+        students: Array.isArray(students) ? students.map(normalizeStudentRecord) : []
+      })
+    }
+    case 'setting': {
+      const cleanRecord = stripDexieTypesMeta(record)
+      const scoreColumns = Array.isArray(cleanRecord.scoreColumns)
+        ? cleanRecord.scoreColumns
+        : cleanRecord.tableHeaders
+      const tagCategories = Array.isArray(cleanRecord.tagCategories)
+        ? cleanRecord.tagCategories
+        : cleanRecord.tagCategory
+      const { tableHeaders, tagCategory, ...state } = stripLegacyMeta(cleanRecord)
+      void tableHeaders
+      void tagCategory
+      return addUpdatedAt({
+        ...state,
+        scoreColumns: Array.isArray(scoreColumns) ? scoreColumns.map(normalizeHeaderRecord) : [],
+        tagCategories: Array.isArray(tagCategories) ? tagCategories : []
+      })
+    }
+    case TABLES.scoreSettings: {
+      const cleanRecord = stripDexieTypesMeta(record)
+      const scoreColumns = Array.isArray(cleanRecord.scoreColumns)
+        ? cleanRecord.scoreColumns
+        : cleanRecord.tableHeaders
+      const tagCategories = Array.isArray(cleanRecord.tagCategories)
+        ? cleanRecord.tagCategories
+        : cleanRecord.tagCategory
+      const { tableHeaders, tagCategory, ...state } = stripLegacyMeta(cleanRecord)
+      void tableHeaders
+      void tagCategory
+      return addUpdatedAt({
+        ...state,
+        scoreColumns: Array.isArray(scoreColumns) ? scoreColumns.map(normalizeHeaderRecord) : [],
+        tagCategories: Array.isArray(tagCategories) ? tagCategories : []
       })
     }
     case 'attachments':
     case 'paperLayoutDrafts':
+    case TABLES.attachments:
+    case TABLES.paperLayoutDrafts:
       return record
     default:
-      return addUpdatedAt(stripLegacyMeta(record))
+      return addUpdatedAt(stripLegacyMeta(stripDexieTypesMeta(record)))
   }
 }
 
 const transformRows = (legacyTableName, rows) => {
   if (!Array.isArray(rows)) return []
 
-  return rows.map((row) => {
+  return rows.reduce((convertedRows, row) => {
     const value = getRowValue(row)
     const nextValue = transformRecord(legacyTableName, value)
-    return withRowValue(row, nextValue)
+
+    if (!isPlainRecord(nextValue)) {
+      return convertedRows
+    }
+
+    convertedRows.push(withRowValue(row, nextValue))
+    return convertedRows
+  }, [])
+}
+
+const normalizeDataChunks = (backupData) => {
+  const chunks = backupData?.data
+
+  if (Array.isArray(chunks)) {
+    return chunks.filter(isPlainRecord)
+  }
+
+  if (!isPlainRecord(chunks)) {
+    return []
+  }
+
+  return Object.entries(chunks).map(([tableName, value]) => {
+    if (Array.isArray(value)) {
+      return {
+        tableName,
+        inbound: true,
+        rows: value
+      }
+    }
+
+    if (isPlainRecord(value)) {
+      return {
+        tableName,
+        inbound: value.inbound !== false,
+        rows: Object.hasOwn(value, 'rows') ? (Array.isArray(value.rows) ? value.rows : []) : [value]
+      }
+    }
+
+    return {
+      tableName,
+      inbound: true,
+      rows: []
+    }
   })
 }
 
@@ -149,8 +250,8 @@ const convertBackup = (backup) => {
 
   const chunksByTable = new Map()
 
-  for (const chunk of backup.data.data || []) {
-    const currentTableName = legacyToCurrentTable[chunk.tableName]
+  for (const chunk of normalizeDataChunks(backup.data)) {
+    const currentTableName = tableNameMap[chunk.tableName]
     if (!currentTableName) continue
 
     const rows = transformRows(chunk.tableName, chunk.rows)
@@ -203,7 +304,11 @@ const main = async () => {
   const backup = JSON.parse(raw)
   const converted = convertBackup(backup)
 
-  if (backup.data?.databaseName && backup.data.databaseName !== LEGACY_DATABASE_NAME) {
+  if (
+    backup.data?.databaseName &&
+    backup.data.databaseName !== LEGACY_DATABASE_NAME &&
+    backup.data.databaseName !== DATABASE_NAME
+  ) {
     console.warn(
       `Warning: input databaseName is "${backup.data.databaseName}", expected "${LEGACY_DATABASE_NAME}".`
     )

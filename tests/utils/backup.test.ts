@@ -5,7 +5,7 @@ const errorMock = vi.fn()
 const setDatabaseImportingMock = vi.fn()
 
 const stores = {
-  dataSource: { items: [], isInitialLoading: false },
+  dataSource: { students: [], isInitialLoading: false },
   setting: { $patch: vi.fn(), $reset: vi.fn() },
   configuration: { $patch: vi.fn(), $reset: vi.fn() },
   theme: { $patch: vi.fn(), applyTheme: vi.fn(), resetTheme: vi.fn() },
@@ -95,7 +95,7 @@ vi.mock('../../src/db', () => ({
 describe('importDatabase', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    stores.dataSource.items = []
+    stores.dataSource.students = []
     stores.dataSource.isInitialLoading = false
   })
 

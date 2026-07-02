@@ -6,8 +6,8 @@ import type { ThemeName } from '@/config/theme'
 
 export interface BackupData {
   version: number
-  setting: { tableHeaders: SettingType[]; tagCategory: TagCategoryType[]; tags: TagType }
-  dataSource: { items: StudentDataType[] }
+  setting: { scoreColumns: SettingType[]; tagCategories: TagCategoryType[]; tags: TagType }
+  dataSource: { students: StudentDataType[] }
   configuration: ConfigurationType
   aiConfig: {
     modelType: AIModelTypeEnum

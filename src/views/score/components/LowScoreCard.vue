@@ -12,7 +12,7 @@ import ThresholdStudents from '@/views/score/components/statistics/ThresholdStud
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
-const { items: originList } = storeToRefs(store)
+const { students: originList } = storeToRefs(store)
 
 const scorePropRef = computed(() => configuration.inputScoreTab)
 

@@ -32,7 +32,7 @@ const settingStore = useSettingStore()
 const configuration = useConfigurationStore()
 
 const { enabledData: tableData } = storeToRefs(store)
-const { tableHeaders } = storeToRefs(settingStore)
+const { scoreColumns: storedScoreColumns } = storeToRefs(settingStore)
 
 const tableRef = ref()
 const showOnlyUnentered = ref(false)
@@ -41,7 +41,7 @@ const activeRow = ref<StudentDataType | null>(null)
 const currentColumnLabel = computed(() => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return '当前分数'
-  return tableHeaders.value.find((item) => item.prop === scoreTab)?.label || scoreTab
+  return storedScoreColumns.value.find((item) => item.prop === scoreTab)?.label || scoreTab
 })
 
 const getCurrentScore = (row: StudentDataType): number | null => {

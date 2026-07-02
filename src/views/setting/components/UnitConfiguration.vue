@@ -12,7 +12,7 @@ import { NAME_PROP } from '@/types/Constants'
 
 const store = useSettingStore()
 
-const { tableHeaders: list } = storeToRefs(store)
+const { scoreColumns: list } = storeToRefs(store)
 
 const text = ref('')
 const editing = ref(false)

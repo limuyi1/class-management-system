@@ -8,11 +8,6 @@ import type {
   PaperLayoutSettingsType
 } from './Tools'
 
-export interface DataSourceRecord {
-  id: string
-  data: StudentDataType[]
-}
-
 export interface StudentDatasetRecord {
   id: string
   students: StudentDataType[]
@@ -31,17 +26,10 @@ export interface WrongBookStorageRecord extends WrongBookRecord {
   updatedAt: string
 }
 
-export interface SettingRecord {
-  id: string
-  tableHeaders: SettingType[]
-  tagCategory: TagCategoryType[]
-  tags: TagType
-}
-
 export interface ScoreSettingsRecord {
   id: string
-  tableHeaders: SettingType[]
-  tagCategory: TagCategoryType[]
+  scoreColumns: SettingType[]
+  tagCategories: TagCategoryType[]
   tags: TagType
   updatedAt: string
 }

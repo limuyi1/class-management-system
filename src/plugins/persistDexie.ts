@@ -37,9 +37,9 @@ type PersistableRecordType =
 interface DataSourceLikeStoreType {
   isInitialLoading: boolean
   $state: {
-    items: StudentDataType[]
+    students: StudentDataType[]
   }
-  $patch: (partialState: { items: StudentDataType[] }) => void
+  $patch: (partialState: { students: StudentDataType[] }) => void
 }
 
 const tableNameMap: Record<string, Table<PersistableRecordType>> = {
@@ -81,7 +81,7 @@ export function createPersistedStateDexie() {
     const resetStoreState = () => {
       // dataSource 在库中使用 { id, students } 结构，和 store.$state 字段不同，单独恢复。
       if (isDataSource) {
-        dataSourceStore.$patch({ items: [] })
+        dataSourceStore.$patch({ students: [] })
         return
       }
 
@@ -99,7 +99,7 @@ export function createPersistedStateDexie() {
         if (record) {
           if (isDataSource) {
             const dataRecord = record as StudentDatasetRecord
-            dataSourceStore.$patch({ items: dataRecord.students || [] })
+            dataSourceStore.$patch({ students: dataRecord.students || [] })
           } else {
             patchStateFromRecord(record)
           }
@@ -124,7 +124,7 @@ export function createPersistedStateDexie() {
       try {
         if (isDataSource) {
           const clonableData = JSON.parse(
-            JSON.stringify(dataSourceStore.$state.items)
+            JSON.stringify(dataSourceStore.$state.students)
           ) as StudentDataType[]
           await table.put({
             id: DB_ID,
@@ -172,7 +172,7 @@ export function createPersistedStateDexie() {
 
           if (isDataSource) {
             const dataRecord = record as StudentDatasetRecord
-            dataSourceStore.$patch({ items: dataRecord.students || [] })
+            dataSourceStore.$patch({ students: dataRecord.students || [] })
           } else {
             patchStateFromRecord(record)
           }

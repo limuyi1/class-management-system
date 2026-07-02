@@ -10,7 +10,7 @@ const props = defineProps<BatchTagDrawerProps>()
 const emit = defineEmits<BatchTagDrawerEmits>()
 
 const settingStore = useSettingStore()
-const { tagCategory: categories, tags: tagOptions } = storeToRefs(settingStore)
+const { tagCategories: categories, tags: tagOptions } = storeToRefs(settingStore)
 
 const currentIndex = ref(0)
 const currentStudentTags = ref<Set<string>>(new Set())

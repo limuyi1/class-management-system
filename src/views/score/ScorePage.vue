@@ -30,11 +30,11 @@ const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
 
-const { items: originList, enabledData } = storeToRefs(dataStore)
-const { tableHeaders } = storeToRefs(settingStore)
+const { students: originList, enabledData } = storeToRefs(dataStore)
+const { scoreColumns: storedScoreColumns } = storeToRefs(settingStore)
 const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
 
-const scoreColumns = computed(() => tableHeaders.value.filter((item) => item.prop !== NAME_PROP))
+const scoreColumns = computed(() => storedScoreColumns.value.filter((item) => item.prop !== NAME_PROP))
 const hasUnits = computed(() => scoreColumns.value.length > 0)
 const hasScores = computed(() => dataStore.hasAnyScore)
 /**

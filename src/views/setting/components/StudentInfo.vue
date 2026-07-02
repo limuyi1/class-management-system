@@ -40,9 +40,9 @@ const router = useRouter()
 
 const store = useDataSourceStore()
 const settingStore = useSettingStore()
-const { items: tableData } = storeToRefs(store)
-const { tableHeaders: headers } = storeToRefs(settingStore)
-const { tagCategory: categories } = storeToRefs(settingStore)
+const { students: tableData } = storeToRefs(store)
+const { scoreColumns: headers } = storeToRefs(settingStore)
+const { tagCategories: categories } = storeToRefs(settingStore)
 
 const tableRef = ref()
 
@@ -216,7 +216,7 @@ const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
   visibleMethod: ({ column }) => !isFixedColumn(column as TableColumnType)
 })
 
-const isNotEmpty = computed(() => store.items?.length)
+const isNotEmpty = computed(() => store.students?.length)
 
 const isFixedColumn = (column: TableColumnType) => {
   // 通过 column.fixed 属性判断是否是固定列

@@ -13,7 +13,7 @@ import { generateTags } from '@/ai/aiService'
 
 const store = useSettingStore()
 
-const { tagCategory: list, tags } = storeToRefs(store)
+const { tagCategories: list, tags } = storeToRefs(store)
 
 const InputRef = ref<InputInstance>()
 const inputValue = ref('')

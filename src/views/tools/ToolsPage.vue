@@ -47,7 +47,7 @@ function resolveToolHref(tool: ToolItemType): string {
               <strong>{{ tool.name }}</strong>
               <em>{{
                 tool.tone === 'secondary'
-                  ? '素材管理'
+                  ? '素材库'
                   : tool.status === 'available'
                     ? '已上线'
                     : '规划中'
@@ -75,7 +75,7 @@ function resolveToolHref(tool: ToolItemType): string {
               <strong>{{ tool.name }}</strong>
               <em>{{
                 tool.tone === 'secondary'
-                  ? '素材管理'
+                  ? '素材库'
                   : tool.status === 'available'
                     ? '已上线'
                     : '规划中'
