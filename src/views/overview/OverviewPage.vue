@@ -17,7 +17,6 @@ import { useOverviewAnalysis } from '@/views/overview/composables/useOverviewAna
 import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
-import { NAME_PROP } from '@/types/Constants'
 import type { OverviewDashboardStageType } from '@/types/HomeDashboard'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -25,7 +24,7 @@ import type { StudentDataType } from '@/types/StudentData'
  * 页面层仅负责页面编排、路由和抽屉开关。
  * 业务数据和 AI 逻辑全部下沉到 composable，减少页面脚本负担。
  */
-const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
+const { selectedStudentIds, dashboardData, focusStudent } = useOverviewDashboard()
 const router = useRouter()
 const trendDrawerVisible = ref(false)
 const reportDialogVisible = ref(false)
@@ -48,9 +47,9 @@ const {
   generateAnalysis
 } = useOverviewAnalysis(dashboardData)
 
-const openStudentTrend = (name?: string) => {
-  if (name) {
-    focusStudent(name)
+const openStudentTrend = (studentId?: string) => {
+  if (studentId) {
+    focusStudent(studentId)
   }
 
   trendDrawerVisible.value = true
@@ -84,8 +83,8 @@ const goToEvaluationFromTrend = async () => {
   router.push('/comment')
 }
 
-const handleExportReportFromTrend = (name: string) => {
-  const student = enabledData.value.find((item) => String(item[NAME_PROP] || '') === name)
+const handleExportReportFromTrend = (studentId: string) => {
+  const student = dataStore.getStudentById(studentId)
   if (!student) return
   currentStudent.value = student
   reportDialogVisible.value = true
@@ -186,10 +185,10 @@ const handleGenerateLearningAnalysis = async () => {
     >
       <home-student-trend-panel
         class="drawer-trend-panel"
-        v-model="selectedStudentNames"
+        v-model="selectedStudentIds"
         :student-trend="dashboardData.studentTrend"
         :student-options="dashboardData.studentOptions"
-        :quick-student-names="dashboardData.quickStudentNames"
+        :quick-students="dashboardData.quickStudents"
         :stage="overviewStage"
         @go-evaluation="goToEvaluationFromTrend"
         @export-report="handleExportReportFromTrend"

@@ -32,7 +32,7 @@ const props = defineProps<Props>()
 
 const tableRef = ref()
 const showOnlyUnentered = ref(false)
-const activeRow = ref<StudentDataType | null>(null)
+const activeStudentId = ref<string | null>(null)
 
 const currentColumnLabel = computed(() => {
   const scoreTab = configuration.inputScoreTab
@@ -89,15 +89,15 @@ const sortByCurrentScore = (a: StudentDataType, b: StudentDataType) => {
 }
 
 const rowClassName = ({ row }: { row: StudentDataType }) => {
-  return row === activeRow.value ? 'score-table__active-row' : ''
+  return row.studentId === activeStudentId.value ? 'score-table__active-row' : ''
 }
 
-const scroll = (index: number) => {
-  const rowData = tableData.value[index - 1]
+const scroll = (studentId: string) => {
+  const rowData = tableData.value.find((student) => student.studentId === studentId)
   if (!rowData) return
-  activeRow.value = rowData
+  activeStudentId.value = studentId
 
-  const rowIndex = displayData.value.findIndex((item) => item === rowData)
+  const rowIndex = displayData.value.findIndex((item) => item.studentId === studentId)
   if (rowIndex === -1) return
 
   tableRef.value?.setCurrentRow(rowData)
@@ -137,7 +137,7 @@ const rowBlink = async (index: number) => {
 }
 
 const handleEdit = (data: StudentDataType) => {
-  activeRow.value = data
+  activeStudentId.value = data.studentId
   emit('edit', data)
 }
 
@@ -146,7 +146,7 @@ const handleInspectStudent = (row: StudentDataType) => {
 }
 
 const clearActiveSelection = () => {
-  activeRow.value = null
+  activeStudentId.value = null
   tableRef.value?.setCurrentRow()
 }
 
@@ -192,6 +192,7 @@ defineExpose({
     <el-table
       ref="tableRef"
       :data="displayData"
+      row-key="studentId"
       size="large"
       height="100%"
       border

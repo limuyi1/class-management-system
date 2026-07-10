@@ -1,7 +1,25 @@
 import { describe, expect, it } from 'vitest'
 
 import { overviewDashboardConfig } from '../../src/views/overview/constants/dashboard'
-import { buildDashboardData } from '../../src/views/overview/services/dashboard'
+import { buildDashboardData as buildDashboardDataById } from '../../src/views/overview/services/dashboard'
+
+const buildDashboardData = (options: {
+  students: Array<Record<string, unknown> & { name: string }>
+  unitHeaders: Array<{ prop: string; label: string; disabled: boolean }>
+  selectedStudentNames: string[]
+  aiConfigured: boolean
+  config: typeof overviewDashboardConfig
+}) => {
+  const { selectedStudentNames, ...rest } = options
+  return buildDashboardDataById({
+    ...rest,
+    students: options.students.map((student) => ({
+      ...student,
+      studentId: `id-${student.name}`
+    })),
+    selectedStudentIds: selectedStudentNames.map((name) => `id-${name}`)
+  })
+}
 
 describe('overview dashboard builder', () => {
   const unitHeaders = [
@@ -92,6 +110,28 @@ describe('overview dashboard builder', () => {
     expect(result.studentTrend?.summaries[0]).toContain('当前对比 2 名学生')
   })
 
+  it('should keep same-name students distinct by student ID', () => {
+    const result = buildDashboardDataById({
+      students: [
+        { studentId: 'student-1', name: '张三', unit1: 90, unit2: 80, unit3: 70 },
+        { studentId: 'student-2', name: '张三', unit1: 60, unit2: 70, unit3: 80 }
+      ],
+      unitHeaders,
+      selectedStudentIds: ['student-1', 'student-2'],
+      aiConfigured: false,
+      config: overviewDashboardConfig
+    })
+
+    expect(result.studentOptions.map((option) => option.value)).toEqual([
+      'student-1',
+      'student-2'
+    ])
+    expect(result.studentTrend?.students.map((student) => student.studentId)).toEqual([
+      'student-1',
+      'student-2'
+    ])
+  })
+
   it('should prioritize ongoing low scores in focus sections', () => {
     const result = buildDashboardData({
       students: [
@@ -126,7 +166,7 @@ describe('overview dashboard builder', () => {
     const volatilityList = result.keyStudentLists.find((list) => list.key === 'volatilityWatch')
 
     expect(volatilityList?.items[0].name).toBe('下降波动')
-    expect(result.quickStudentNames).toContain('下降波动')
+    expect(result.quickStudents.map((student) => student.name)).toContain('下降波动')
   })
 
   it('should only flag meaningful declines instead of minor consecutive drops', () => {

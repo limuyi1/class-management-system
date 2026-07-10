@@ -48,7 +48,7 @@ export interface ConfigurationRecord {
   inputScoreTab: string | null
   recentScoreEntries: Record<
     string,
-    Array<{ index: number; name: string; score: number; time: string }>
+    Array<{ studentId: string; name: string; score: number; time: string }>
   >
   scoreImageCompressRatio?: number | null
   evaluationHandwriteFont?: EvaluationHandwriteFontType | null

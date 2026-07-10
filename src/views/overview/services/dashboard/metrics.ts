@@ -380,7 +380,10 @@ export const buildStudentMetrics = (
             prop: header.prop,
             label: header.label,
             score,
-            rank: rankMapByUnit.find((item) => item.prop === header.prop)?.rankMap.get(name) || null,
+            rank:
+              rankMapByUnit
+                .find((item) => item.prop === header.prop)
+                ?.rankMap.get(student.studentId) || null,
             difficultyShift: unitDifficultyShiftMap.get(header.prop)?.difficultyShift || 'normal'
           } satisfies StudentPointType
         })
@@ -665,6 +668,7 @@ export const buildStudentMetrics = (
       }
 
       return {
+        studentId: student.studentId,
         name,
         student,
         points,

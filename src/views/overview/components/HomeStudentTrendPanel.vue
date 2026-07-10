@@ -13,19 +13,20 @@ import AppEChart from '@/components/AppEChart.vue'
 import OverlengthTextTooltip from '@/components/OverlengthTextTooltip.vue'
 import type {
   DashboardStudentOptionType,
+  DashboardQuickStudentType,
   DashboardStudentTrendType,
   OverviewDashboardStageType
 } from '@/types/HomeDashboard'
 
 interface Props {
-  /** 当前选中的学生姓名数组（v-model） */
+  /** 当前选中的学生 ID 数组（v-model） */
   modelValue: string[]
   /** 趋势分析数据，支持单人和多人对比 */
   studentTrend: DashboardStudentTrendType | null
   /** 学生下拉选项列表 */
   studentOptions: DashboardStudentOptionType[]
-  /** 快捷添加按钮的学生名单（来自关注列表） */
-  quickStudentNames: string[]
+  /** 快捷添加按钮的学生（来自关注列表） */
+  quickStudents: DashboardQuickStudentType[]
   /** 展示变体：default 用于总览页，singleReadonly 用于外部单人查看入口 */
   variant?: 'default' | 'singleReadonly'
   /** 总览页当前数据阶段，用于解释趋势空态 */
@@ -37,7 +38,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:modelValue': [value: string[]]
   'go-evaluation': []
-  'export-report': [name: string]
+  'export-report': [studentId: string]
 }>()
 
 const chartMode = ref<'line' | 'bar'>('line')
@@ -101,13 +102,13 @@ const chartOption = computed(() =>
  * 快捷添加学生到对比列表。
  * 已选中学生会被移到列表首位，未选中学生会追加到末尾。
  */
-const addQuickStudent = (name: string) => {
-  if (!selectedValue.value.includes(name) && selectedValue.value.length >= maxCompareCount) {
+const addQuickStudent = (studentId: string) => {
+  if (!selectedValue.value.includes(studentId) && selectedValue.value.length >= maxCompareCount) {
     showMaxCompareWarning()
     return
   }
 
-  const nextValue = [name, ...selectedValue.value.filter((item) => item !== name)]
+  const nextValue = [studentId, ...selectedValue.value.filter((item) => item !== studentId)]
   selectedValue.value = nextValue
 }
 
@@ -120,10 +121,10 @@ const goToEvaluation = () => {
 }
 
 const exportReport = () => {
-  const targetName =
-    props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.name : ''
-  if (!targetName) return
-  emit('export-report', targetName)
+  const targetStudentId =
+    props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.studentId : ''
+  if (!targetStudentId) return
+  emit('export-report', targetStudentId)
 }
 
 const filteredStudentOptions = computed(() => {
@@ -180,15 +181,15 @@ const handleStudentFilter = (query: string) => {
       </div>
     </div>
 
-    <div v-if="!isSingleReadonly && quickStudentNames.length" class="quick-students">
+    <div v-if="!isSingleReadonly && quickStudents.length" class="quick-students">
       <span class="quick-label">快捷加入</span>
       <button
-        v-for="name in quickStudentNames"
-        :key="name"
+        v-for="student in quickStudents"
+        :key="student.studentId"
         class="quick-btn"
-        @click="addQuickStudent(name)"
+        @click="addQuickStudent(student.studentId)"
       >
-        {{ name }}
+        {{ student.name }}
       </button>
       <button v-if="selectedValue.length" class="quick-btn is-clear" @click="clearSelected">
         清空对比
@@ -227,7 +228,7 @@ const handleStudentFilter = (query: string) => {
         >
           <el-tag
             v-for="tag in studentTrend.students[0].tags"
-            :key="`${studentTrend.students[0]?.name}-${tag.key}`"
+            :key="`${studentTrend.students[0]?.studentId}-${tag.key}`"
             size="small"
             round
             effect="plain"
@@ -258,7 +259,7 @@ const handleStudentFilter = (query: string) => {
           <div v-if="studentTrend.mode === 'compare'" class="compare-comment-list">
             <div
               v-for="student in studentTrend.students"
-              :key="student.name"
+              :key="student.studentId"
               class="compare-comment-item"
             >
               <div class="comment-name">{{ student.name }}</div>
@@ -266,7 +267,7 @@ const handleStudentFilter = (query: string) => {
                 <div v-if="student.tags.length" class="compare-tags">
                   <el-tag
                     v-for="tag in student.tags"
-                    :key="`${student.name}-${tag.key}`"
+                    :key="`${student.studentId}-${tag.key}`"
                     size="small"
                     round
                   >

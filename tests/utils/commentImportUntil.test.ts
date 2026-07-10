@@ -6,7 +6,10 @@ import {
 } from '../../src/utils/commentImportUntil'
 import { NAME_PROP } from '../../src/types/Constants'
 
-const students = [{ [NAME_PROP]: '张三', comment: '原评语' }, { [NAME_PROP]: '李四' }]
+const students = [
+  { studentId: 'student-1', [NAME_PROP]: '张三', comment: '原评语' },
+  { studentId: 'student-2', [NAME_PROP]: '李四' }
+]
 
 describe('commentImportUntil', () => {
   it('fills only empty comments by default', () => {
@@ -63,5 +66,23 @@ describe('commentImportUntil', () => {
         strategy: 'overwrite'
       })
     ).toBe(1)
+  })
+
+  it('skips duplicate Excel names and continues importing unique names', () => {
+    const result = buildIncrementalCommentImport({
+      rows: [
+        { 姓名: '张三', 评语: '第一条' },
+        { 姓名: '张三', 评语: '第二条' },
+        { 姓名: '李四', 评语: '李四评语' }
+      ],
+      existingStudents: students,
+      nameColumn: '姓名',
+      commentColumn: '评语',
+      strategy: 'overwrite'
+    })
+
+    expect(result.students[0].comment).toBe('原评语')
+    expect(result.students[1].comment).toBe('李四评语')
+    expect(result.stats.duplicateStudentCount).toBe(2)
   })
 })

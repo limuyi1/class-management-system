@@ -4,7 +4,7 @@ export type PreviewModeType = 'fit' | '50' | '75' | '100' | '125'
 export type EvaluationTableAlignType = 'left' | 'center' | 'right'
 
 export interface RecentScoreEntryType {
-  index: number
+  studentId: string
   name: string
   score: number
   time: string

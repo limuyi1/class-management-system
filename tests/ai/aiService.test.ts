@@ -59,11 +59,21 @@ describe('aiService', () => {
   })
 
   it('strips score data from batch comment prompts', async () => {
-    generateTextMock.mockResolvedValueOnce(JSON.stringify([{ name: '张三', comment: '生成评语' }]))
+    generateTextMock.mockResolvedValueOnce(
+      JSON.stringify([{ studentId: 'student-1', name: '张三', comment: '生成评语' }])
+    )
 
     const { generateBatchComments } = await import('../../src/ai/aiService')
     await generateBatchComments(
-      [{ name: '张三', tags: '认真', score: [{ label: '期末', value: 58 }], comment: '' }],
+      [
+        {
+          studentId: 'student-1',
+          name: '张三',
+          tags: '认真',
+          score: [{ label: '期末', value: 58 }],
+          comment: ''
+        }
+      ],
       '请生成：{{students}}',
       {
         modelType: AIModelTypeEnum.OPENAI,
@@ -75,20 +85,27 @@ describe('aiService', () => {
 
     const promptText = generateTextMock.mock.calls[0]?.[1] || ''
     expect(promptText).toContain('"name": "张三"')
+    expect(promptText).toContain('"studentId": "student-1"')
     expect(promptText).not.toContain('score')
     expect(promptText).not.toContain('58')
   })
 
   it('keeps empty tags blank in batch comment payloads', async () => {
-    generateTextMock.mockResolvedValueOnce(JSON.stringify([{ name: '张三', comment: '生成评语' }]))
+    generateTextMock.mockResolvedValueOnce(
+      JSON.stringify([{ studentId: 'student-1', name: '张三', comment: '生成评语' }])
+    )
 
     const { generateBatchComments } = await import('../../src/ai/aiService')
-    await generateBatchComments([{ name: '张三', tags: [], comment: '' }], '请生成：{{students}}', {
-      modelType: AIModelTypeEnum.OPENAI,
-      model: 'test-model',
-      apiKey: 'test-key',
-      baseUrl: 'https://example.com/v1'
-    })
+    await generateBatchComments(
+      [{ studentId: 'student-1', name: '张三', tags: [], comment: '' }],
+      '请生成：{{students}}',
+      {
+        modelType: AIModelTypeEnum.OPENAI,
+        model: 'test-model',
+        apiKey: 'test-key',
+        baseUrl: 'https://example.com/v1'
+      }
+    )
 
     const promptText = generateTextMock.mock.calls[0]?.[1] || ''
     expect(promptText).toContain('"tags": ""')
@@ -98,13 +115,18 @@ describe('aiService', () => {
   it('appends classic expression usage guidance to batch comment prompts', async () => {
     generateTextMock.mockResolvedValueOnce(
       JSON.stringify([
-        { name: '张三', comment: '生成评语', classicExpression: '锲而不舍，金石可镂' }
+        {
+          studentId: 'student-1',
+          name: '张三',
+          comment: '生成评语',
+          classicExpression: '锲而不舍，金石可镂'
+        }
       ])
     )
 
     const { generateBatchComments } = await import('../../src/ai/aiService')
     await generateBatchComments(
-      [{ name: '张三', tags: '认真', comment: '' }],
+      [{ studentId: 'student-1', name: '张三', tags: '认真', comment: '' }],
       '请生成：{{students}}',
       {
         modelType: AIModelTypeEnum.OPENAI,
@@ -127,16 +149,16 @@ describe('aiService', () => {
   it('parses batch polish comments from JSON response', async () => {
     generateTextMock.mockResolvedValueOnce(
       JSON.stringify([
-        { name: '张三', comment: '润色后评语' },
-        { name: '李四', comment: '润色后评语二' }
+        { studentId: 'student-1', name: '张三', comment: '润色后评语' },
+        { studentId: 'student-2', name: '李四', comment: '润色后评语二' }
       ])
     )
 
     const { polishBatchComments } = await import('../../src/ai/aiService')
     const result = await polishBatchComments(
       [
-        { name: '张三', tags: '认真', comment: '原评语' },
-        { name: '李四', tags: '积极', comment: '原评语二' }
+        { studentId: 'student-1', name: '张三', tags: '认真', comment: '原评语' },
+        { studentId: 'student-2', name: '李四', tags: '积极', comment: '原评语二' }
       ],
       '请润色以下评语：{{students}}',
       {
@@ -148,8 +170,8 @@ describe('aiService', () => {
     )
 
     expect(result).toEqual([
-      { name: '张三', comment: '润色后评语' },
-      { name: '李四', comment: '润色后评语二' }
+      { studentId: 'student-1', name: '张三', comment: '润色后评语' },
+      { studentId: 'student-2', name: '李四', comment: '润色后评语二' }
     ])
     expect(generateTextMock).toHaveBeenCalledTimes(1)
     expect(generateTextMock.mock.calls[0]?.[1]).toContain('请润色以下评语')

@@ -21,7 +21,7 @@ const buildMetrics = (scores: number[]) => {
         ...student,
         [unitHeaders[index].prop]: score
       }),
-      { [NAME_PROP]: '张三' }
+      { studentId: 'student-1', [NAME_PROP]: '张三' }
     )
   ]
   const headers = unitHeaders.slice(0, scores.length)
@@ -56,6 +56,7 @@ describe('overview dashboard student trend', () => {
     const dashboardData = buildDashboardData({
       students: [
         {
+          studentId: 'student-1',
           [NAME_PROP]: '张三',
           unit1: 88,
           unit2: null,
@@ -63,7 +64,7 @@ describe('overview dashboard student trend', () => {
         }
       ],
       unitHeaders: unitHeaders.slice(0, 3),
-      selectedStudentNames: ['张三'],
+      selectedStudentIds: ['student-1'],
       aiConfigured: false,
       config: overviewDashboardConfig
     })

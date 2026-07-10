@@ -7,7 +7,7 @@ import EvaluationInputCard from '@/views/evaluation/components/EvaluationInputCa
 import type { StudentDataType } from '@/types/StudentData'
 
 const emit = defineEmits<{
-  scroll: [index: number]
+  scroll: [studentId: string]
   'active-student-change': [student: StudentDataType | null]
 }>()
 
@@ -46,7 +46,7 @@ defineExpose({
         ref="evaluationInputCardRef"
         :auto-next-on-submit="true"
         :prompt-unsaved-on-switch="true"
-        @scroll="(index) => emit('scroll', index)"
+        @scroll="(studentId) => emit('scroll', studentId)"
         @active-student-change="(student) => emit('active-student-change', student)"
       />
     </div>

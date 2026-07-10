@@ -24,6 +24,7 @@ import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useToolsStore } from '@/stores/tools'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
+import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
 import { DefaultAIPrompts } from '@/types/AIConfig'
 
 type PersistableRecordType =
@@ -86,6 +87,9 @@ export function createPersistedStateDexie() {
           state.scoreColumns as Parameters<typeof normalizeScoreColumns>[0]
         )
       }
+      if (storeId === 'configuration') {
+        state.recentScoreEntries = normalizeRecentScoreEntries(state.recentScoreEntries)
+      }
       store.$patch(state as _DeepPartial<StateTree>)
     }
     const resetStoreState = () => {
@@ -109,7 +113,7 @@ export function createPersistedStateDexie() {
         if (record) {
           if (isDataSource) {
             const dataRecord = record as StudentDatasetRecord
-            dataSourceStore.$patch({ students: dataRecord.students || [] })
+            dataSourceStore.$patch({ students: normalizeStoredStudents(dataRecord.students) })
           } else {
             patchStateFromRecord(record)
           }
@@ -182,7 +186,7 @@ export function createPersistedStateDexie() {
 
           if (isDataSource) {
             const dataRecord = record as StudentDatasetRecord
-            dataSourceStore.$patch({ students: dataRecord.students || [] })
+            dataSourceStore.$patch({ students: normalizeStoredStudents(dataRecord.students) })
           } else {
             patchStateFromRecord(record)
           }

@@ -12,6 +12,7 @@ import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
+import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
 
 const TOOL_TABLES = new Set<string>([
   DatabaseTableEnum.Attachments,
@@ -65,7 +66,7 @@ const hydrateRuntimeStores = async () => {
       db.toolPreferences.get(DB_ID)
     ])
 
-  dataStore.students = dataSource?.students || []
+  dataStore.students = normalizeStoredStudents(dataSource?.students)
   dataStore.isInitialLoading = true
 
   if (setting) {
@@ -81,6 +82,7 @@ const hydrateRuntimeStores = async () => {
     const { id, updatedAt, ...state } = configuration
     void id
     void updatedAt
+    state.recentScoreEntries = normalizeRecentScoreEntries(state.recentScoreEntries)
     configurationStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })

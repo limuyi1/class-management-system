@@ -14,9 +14,9 @@ const { enabledData } = storeToRefs(dataSourceStore)
 
 const hasStudentData = computed(() => enabledData.value.length > 0)
 const studentInfoRef = ref<InstanceType<typeof StudentInfo>>()
-const pendingTagEditorStudent = ref('')
+const pendingTagEditorStudentId = ref('')
 const returnTo = ref('')
-const returnStudentName = ref('')
+const returnStudentId = ref('')
 
 const clearEditTagsQuery = async () => {
   await router.replace({ path: '/student-info' })
@@ -25,22 +25,22 @@ const clearEditTagsQuery = async () => {
 const syncEditTagsQuery = async () => {
   if (route.query['edit-tags'] !== '1') return
 
-  const studentName = route.query['student-name']
-  if (typeof studentName !== 'string' || !studentName) return
+  const studentId = route.query['student-id']
+  if (typeof studentId !== 'string' || !studentId) return
 
   returnTo.value = typeof route.query['return-to'] === 'string' ? route.query['return-to'] : ''
-  returnStudentName.value =
-    typeof route.query['return-student-name'] === 'string' ? route.query['return-student-name'] : ''
+  returnStudentId.value =
+    typeof route.query['return-student-id'] === 'string' ? route.query['return-student-id'] : ''
 
   await nextTick()
 
   if (!studentInfoRef.value) {
-    pendingTagEditorStudent.value = studentName
+    pendingTagEditorStudentId.value = studentId
     return
   }
 
-  studentInfoRef.value.openTagEditorByName(studentName)
-  pendingTagEditorStudent.value = ''
+  studentInfoRef.value.openTagEditorById(studentId)
+  pendingTagEditorStudentId.value = ''
   await clearEditTagsQuery()
 }
 
@@ -62,10 +62,10 @@ watch(
 )
 
 watch(studentInfoRef, async (instance) => {
-  if (!instance || !pendingTagEditorStudent.value) return
+  if (!instance || !pendingTagEditorStudentId.value) return
 
-  instance.openTagEditorByName(pendingTagEditorStudent.value)
-  pendingTagEditorStudent.value = ''
+  instance.openTagEditorById(pendingTagEditorStudentId.value)
+  pendingTagEditorStudentId.value = ''
   await clearEditTagsQuery()
 })
 </script>
@@ -76,7 +76,7 @@ watch(studentInfoRef, async (instance) => {
       <student-info
         ref="studentInfoRef"
         :return-to="returnTo"
-        :return-student-name="returnStudentName"
+        :return-student-id="returnStudentId"
       />
     </div>
   </div>

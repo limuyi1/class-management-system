@@ -3,12 +3,14 @@ import { NAME_PROP } from '@/types/Constants'
 import type { StudentDataType } from '@/types/StudentData'
 
 export interface CommentPolishTargetType {
+  studentId: string
   name: string
   comment: string
   tags?: string | string[]
 }
 
 export interface PolishedCommentResultType {
+  studentId: string
   name: string
   comment?: string | null
 }
@@ -27,6 +29,7 @@ export const buildCommentPolishTargets = (
     if (!comment) return targets
 
     targets.push({
+      studentId: student.studentId,
       name: getStudentName(student),
       comment,
       tags: getTags?.(student)
@@ -42,7 +45,7 @@ export const applyPolishedComments = (
 ): number => {
   const resultMap = new Map(
     results
-      .map((item) => [item.name, item.comment?.trim() || ''] as const)
+      .map((item) => [item.studentId, item.comment?.trim() || ''] as const)
       .filter(([, comment]) => !!comment)
   )
   let updatedCount = 0
@@ -51,7 +54,7 @@ export const applyPolishedComments = (
     const originalComment = student.comment?.trim()
     if (!originalComment) continue
 
-    const polishedComment = resultMap.get(getStudentName(student))
+    const polishedComment = resultMap.get(student.studentId)
     if (!polishedComment) continue
 
     student.comment = polishedComment

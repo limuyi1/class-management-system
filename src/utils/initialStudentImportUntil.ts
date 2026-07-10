@@ -1,4 +1,5 @@
 import { buildInitialScoreImport } from '@/utils/scoreImportUntil'
+import { NAME_PROP } from '@/types/Constants'
 
 import type { ExcelRowType } from '@/utils/scoreImportUntil'
 import type { StudentDataType } from '@/types/StudentData'
@@ -16,13 +17,16 @@ interface InitialStudentImportOptionsType {
  */
 export const buildInitialStudentImport = (options: InitialStudentImportOptionsType) => {
   const scoreResult = buildInitialScoreImport(options)
-  const validRows = options.rows.filter((row) => String(row[options.nameColumn] ?? '').trim())
+  const rowsByName = new Map(
+    options.rows.map((row) => [String(row[options.nameColumn] ?? '').trim(), row])
+  )
   let commentCount = 0
 
-  const students = scoreResult.students.map((student, index) => {
+  const students = scoreResult.students.map((student) => {
     if (!options.commentColumn) return student
 
-    const comment = String(validRows[index]?.[options.commentColumn] ?? '').trim()
+    const name = String(student[NAME_PROP] ?? '').trim()
+    const comment = String(rowsByName.get(name)?.[options.commentColumn] ?? '').trim()
     if (!comment) return student
 
     commentCount += 1

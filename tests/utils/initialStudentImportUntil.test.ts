@@ -18,6 +18,8 @@ describe('initialStudentImportUntil', () => {
 
     expect(result.students).toHaveLength(2)
     expect(result.students[0]).toMatchObject({ [NAME_PROP]: '张三', comment: '表现认真' })
+    expect(result.students[0].studentId).toBeTruthy()
+    expect(result.students[1].studentId).not.toBe(result.students[0].studentId)
     expect(result.students[1].comment).toBeUndefined()
     expect(result.commentCount).toBe(1)
   })
@@ -29,7 +31,8 @@ describe('initialStudentImportUntil', () => {
       scoreColumns: []
     })
 
-    expect(result.students).toEqual([{ [NAME_PROP]: '张三' }, { [NAME_PROP]: '李四' }])
+    expect(result.students.map((student) => student[NAME_PROP])).toEqual(['张三', '李四'])
+    expect(result.students.every((student) => Boolean(student.studentId))).toBe(true)
     expect(result.headers).toEqual([])
     expect(result.commentCount).toBe(0)
   })

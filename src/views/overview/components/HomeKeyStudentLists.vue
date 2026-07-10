@@ -12,7 +12,7 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   /** 点击学生行时触发，打开趋势分析抽屉 */
-  select: [name: string]
+  select: [studentId: string]
 }>()
 
 /**
@@ -70,7 +70,7 @@ const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
         <div class="student-list">
           <overview-student-row
             v-for="item in list.items.slice(0, 3)"
-            :key="`${list.key}-${item.name}`"
+            :key="`${list.key}-${item.studentId}`"
             :item="item"
             :tone="toneMap[list.key]"
             variant="list"

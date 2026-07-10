@@ -12,11 +12,12 @@ import type { RecentScoreEntryType } from '@/types/Configuration'
 
 interface SuggestionItemType {
   value: string
+  studentId: string
   index: number
 }
 
 const emit = defineEmits<{
-  scroll: [index: number]
+  scroll: [studentId: string]
   uploadImage: []
   clearSelection: []
 }>()
@@ -26,7 +27,7 @@ const configuration = useConfigurationStore()
 const { students: originList } = storeToRefs(store)
 
 const searchKeyword = ref('')
-const selectedStudentId = ref<number | null>(null)
+const selectedStudentId = ref<string | null>(null)
 const scoreValue = ref<number | null>(null)
 const recentEntries = ref<RecentScoreEntryType[]>([])
 
@@ -60,6 +61,7 @@ const getMatchedStudents = (query: string): SuggestionItemType[] => {
     .slice(0, 20)
     .map(({ student, index }) => ({
       value: getStudentName(student),
+      studentId: student.studentId,
       index
     }))
 }
@@ -95,14 +97,14 @@ const blurScoreInput = () => {
   scoreInputRef.value?.blur?.()
 }
 
-const selectStudentByIndex = (index: number, shouldFocusScore: boolean = true) => {
-  const item = originList.value[index - 1]
+const selectStudentById = (studentId: string, shouldFocusScore: boolean = true) => {
+  const item = store.getStudentById(studentId)
   if (!item) return
 
-  selectedStudentId.value = index
+  selectedStudentId.value = studentId
   searchKeyword.value = getStudentName(item)
   scoreValue.value = getStudentScore(item)
-  emit('scroll', index)
+  emit('scroll', studentId)
 
   if (shouldFocusScore) {
     nextTick(() => focusScoreInput())
@@ -110,7 +112,7 @@ const selectStudentByIndex = (index: number, shouldFocusScore: boolean = true) =
 }
 
 const handleSuggestionSelect = (item: SuggestionItemType) => {
-  selectStudentByIndex(item.index)
+  selectStudentById(item.studentId)
 }
 
 const handleSearchEnter = () => {
@@ -129,21 +131,21 @@ const handleSearchEnter = () => {
     return
   }
 
-  selectStudentByIndex(target.index)
+  selectStudentById(target.studentId)
 }
 
-const addRecentEntry = (index: number, score: number) => {
+const addRecentEntry = (studentId: string, score: number) => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return
 
-  const student = originList.value[index - 1]
+  const student = store.getStudentById(studentId)
   if (!student) return
   const name = getStudentName(student)
   const time = dayjs().format('HH:mm:ss')
 
   const nextEntries: RecentScoreEntryType[] = [
-    { index, name, score, time },
-    ...recentEntries.value.filter((e) => e.index !== index)
+    { studentId, name, score, time },
+    ...recentEntries.value.filter((entry) => entry.studentId !== studentId)
   ].slice(0, 5)
 
   configuration.recentScoreEntries = {
@@ -186,17 +188,20 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
     return
   }
 
-  const student = originList.value[selectedStudentId.value - 1]
+  const student = store.getStudentById(selectedStudentId.value)
   if (!student) return
 
   const savedScore = scoreValue.value
   student[configuration.inputScoreTab] = savedScore
-  addRecentEntry(selectedStudentId.value, savedScore)
+  addRecentEntry(student.studentId, savedScore)
 
   if (mode === 'next') {
-    const nextIndex = selectedStudentId.value + 1
-    if (nextIndex <= originList.value.length) {
-      selectStudentByIndex(nextIndex)
+    const currentIndex = originList.value.findIndex(
+      (item) => item.studentId === selectedStudentId.value
+    )
+    if (currentIndex >= 0 && currentIndex < originList.value.length - 1) {
+      const nextStudent = originList.value[currentIndex + 1]
+      selectStudentById(nextStudent.studentId)
       return
     }
     resetEntryForm()
@@ -208,7 +213,7 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
 }
 
 const refillEntry = (entry: RecentScoreEntryType) => {
-  selectStudentByIndex(entry.index, false)
+  selectStudentById(entry.studentId, false)
   scoreValue.value = entry.score
   nextTick(() => focusScoreInput())
 }
@@ -222,9 +227,7 @@ const autoFocus = () => {
 }
 
 const editData = (data: StudentDataType) => {
-  const rowIndex = originList.value.findIndex((item) => item === data)
-  if (rowIndex === -1) return
-  selectStudentByIndex(rowIndex + 1)
+  selectStudentById(data.studentId)
 }
 
 /**
@@ -318,7 +321,7 @@ defineExpose({
       <div v-if="recentEntries.length" class="recent-list">
         <div
           v-for="entry in recentEntries"
-          :key="`${entry.index}-${entry.time}`"
+          :key="`${entry.studentId}-${entry.time}`"
           class="recent-item"
         >
           <div class="recent-meta">

@@ -19,7 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  scroll: [index: number]
+  scroll: [studentId: string]
   activeStudentChange: [data: StudentDataType | null]
 }>()
 
@@ -47,11 +47,11 @@ const {
   autoNextOnSubmit: props.autoNextOnSubmit,
   promptUnsavedOnSwitch: props.promptUnsavedOnSwitch,
   onActiveStudentChange: (student) => emit('activeStudentChange', student),
-  onScroll: (index) => emit('scroll', index)
+  onScroll: (studentId) => emit('scroll', studentId)
 })
 
-const canGenerateComment = computed(() => !!formData.id)
-const canPolishComment = computed(() => !!formData.id && !!formData.comment?.trim())
+const canGenerateComment = computed(() => !!formData.studentId)
+const canPolishComment = computed(() => !!formData.studentId && !!formData.comment?.trim())
 const submitText = computed(() => (props.autoNextOnSubmit ? '保存并下一个' : '提 交'))
 
 const handleEditData = (data: StudentDataType) => {
@@ -77,18 +77,18 @@ defineExpose({
         <div class="editor-section">
           <student-select-field
             ref="nameInputRef"
-            :model-value="formData.id"
+            :model-value="formData.studentId"
             :options="optionsList"
             :origin-list="originList"
             :remote-method="remoteMethod"
-            @update:model-value="(value) => (formData.id = value)"
+            @update:model-value="(value) => (formData.studentId = value)"
             @change="selectChange"
           />
 
           <comment-input-form
             ref="commentInputRef"
             :model-value="formData.comment"
-            :disabled="!formData.id"
+            :disabled="!formData.studentId"
             :current-student-tags="currentStudentTags"
             :hasAnyTags="hasAnyTags"
             :tag-category-list="tagCategoryList"
@@ -140,7 +140,7 @@ defineExpose({
                   type="primary"
                   size="default"
                   round
-                  :disabled="!formData.id"
+                  :disabled="!formData.studentId"
                   @click="onSubmit"
                 >
                   <template #icon><font-awesome-icon :icon="['solid', 'paper-plane']" /></template>

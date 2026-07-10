@@ -169,6 +169,7 @@ export const toStudentListItem = (
   const secondaryTags = orderedTags.slice(1)
 
   return {
+    studentId: metric.studentId,
     name: metric.name,
     trendText: formatTrendText(metric.recentThreeScores),
     trendSegments: buildTrendSegments(metric.points.slice(-metric.recentThreeScores.length)),

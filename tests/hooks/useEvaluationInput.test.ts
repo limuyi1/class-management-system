@@ -34,7 +34,9 @@ describe('useEvaluationInput', () => {
 
   it('should navigate to standalone student info page when editing tags from comment editor', async () => {
     const dataSourceStore = useDataSourceStore()
-    dataSourceStore.students = [{ [NAME_PROP]: '张三', comment: '评语' }]
+    dataSourceStore.students = [
+      { studentId: 'student-1', [NAME_PROP]: '张三', comment: '评语' }
+    ]
 
     const wrapper = mount(Harness)
     wrapper.vm.input.editData(dataSourceStore.students[0])
@@ -46,9 +48,9 @@ describe('useEvaluationInput', () => {
       path: '/student-info',
       query: {
         'edit-tags': '1',
-        'student-name': '张三',
+        'student-id': 'student-1',
         'return-to': 'comment',
-        'return-student-name': '张三'
+        'return-student-id': 'student-1'
       }
     })
   })

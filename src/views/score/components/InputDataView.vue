@@ -25,7 +25,7 @@ const { students: originList } = storeToRefs(store)
 const scoreInputCardRef = ref<InstanceType<typeof ScoreInputCard>>()
 
 const emit = defineEmits<{
-  scroll: [index: number]
+  scroll: [studentId: string]
   uploadImage: []
   clearSelection: []
   goUnitSetting: []
@@ -102,7 +102,7 @@ defineExpose({
         <div class="unfinished-list">
           <el-tag
             v-for="item in hasNullScoreList.slice(0, 20)"
-            :key="String(item[NAME_PROP])"
+            :key="item.studentId"
             class="unfinished-tag"
             type="info"
           >
@@ -118,7 +118,7 @@ defineExpose({
     <score-input-card
       v-if="stage !== 'noUnits'"
       ref="scoreInputCardRef"
-      @scroll="(index) => emit('scroll', index)"
+      @scroll="(studentId) => emit('scroll', studentId)"
       @upload-image="emit('uploadImage')"
       @clear-selection="emit('clearSelection')"
     />

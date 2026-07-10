@@ -69,14 +69,14 @@ const emit = defineEmits<Emits>()
 
   <div class="student-tags" v-if="students.length">
     <template v-if="students.length <= 8">
-      <el-tag v-for="item in students" :key="String(item[NAME_PROP])" type="warning" size="small">
+      <el-tag v-for="item in students" :key="item.studentId" type="warning" size="small">
         {{ item[NAME_PROP] }} {{ getScore(item) }}分
       </el-tag>
     </template>
     <template v-else>
       <el-tag
         v-for="item in students.slice(0, 8)"
-        :key="String(item[NAME_PROP])"
+        :key="item.studentId"
         type="warning"
         size="small"
       >
@@ -91,7 +91,7 @@ const emit = defineEmits<Emits>()
         <div class="popover-tags">
           <el-tag
             v-for="item in students.slice(8)"
-            :key="String(item[NAME_PROP])"
+            :key="item.studentId"
             type="warning"
             size="small"
           >

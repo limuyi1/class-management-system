@@ -17,7 +17,7 @@ export interface EvaluationPreviewCardPropsType {
   data: StudentDataType[]
   currentPage?: number
   totalPages?: number
-  activeStudentName?: string
+  activeStudentId?: string
   suppressActiveState?: boolean
 }
 

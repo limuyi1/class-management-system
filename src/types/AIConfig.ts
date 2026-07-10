@@ -79,6 +79,7 @@ export const DefaultAIPrompts: AIPromptsType = {
 
 单条学生数据结构：
 {
+  "studentId": "系统提供的学生ID",
   "name": "姓名",
   "tags": "标签1、标签2、标签3",
   "comment": "生成的评语",
@@ -93,7 +94,7 @@ export const DefaultAIPrompts: AIPromptsType = {
 5. 不要编造具体未提供的事件，可做概括性、保守性的校园表现描述
 
 生成要求：
-1. 每个学生都必须生成一条评语，不得遗漏，不得新增学生，不得修改 name
+1. 每个学生都必须生成一条评语，不得遗漏，不得新增学生，不得修改 studentId 或 name
 2. 评语积极正面、温和鼓励，贴合小学生年龄特点
 3. 紧密结合学生标签体现出的个性、习惯、态度或成长方向展开评价
 4. 每条 comment 必须在最终返回前自行检查字数，按中文正文字符数估算，空格不计入
@@ -104,7 +105,7 @@ export const DefaultAIPrompts: AIPromptsType = {
 9. 对不足之处要委婉表达，并给出积极期待，不使用批评、否定或标签化语言
 10. comment 必须是字符串，不能为 null，不能为空字符串
 11. classicExpression 必须是字符串，填写本条评语实际使用的经典表达；若确实未使用，则填空字符串，不要包含解释、出处或额外修饰
-12. 返回结果中的 name 必须与输入学生姓名完全一致，不得新增、删减、改名或交换学生信息
+12. 返回结果中的 studentId 和 name 必须与输入完全一致，不得新增、删减、修改或交换学生信息
 13. 仅返回标准JSON数组，不要返回JSON以外的任何文字，不要 Markdown，不要代码块`,
 
   singleCommentPolish: `请基于以下已有期末评语进行润色：
@@ -128,6 +129,7 @@ export const DefaultAIPrompts: AIPromptsType = {
 
 单条学生数据结构：
 {
+  "studentId": "系统提供的学生ID",
   "name": "姓名",
   "tags": "学生标签",
   "comment": "已有评语"
@@ -136,6 +138,7 @@ export const DefaultAIPrompts: AIPromptsType = {
 返回格式：
 [
   {
+    "studentId": "系统提供的学生ID",
     "name": "姓名",
     "comment": "润色后的评语",
     "classicExpression": "本条评语实际使用的经典表达，未使用则为空字符串"
@@ -151,7 +154,7 @@ export const DefaultAIPrompts: AIPromptsType = {
 6. 每条 comment 最终都必须保证100-120字之间，不能少于100字，也不能超过120字
 7. 开头不出现学生姓名，不使用“该生”“本学生”等书面称谓
 8. classicExpression 必须是字符串，填写本条评语实际使用的经典表达；若确实未使用，则填空字符串，不要包含解释、出处或额外修饰
-9. 每条输入都必须返回同名结果；仅返回标准JSON数组，不要返回JSON以外的任何文字，不要 Markdown，不要代码块`,
+9. 每条输入都必须原样返回 studentId 和 name；仅返回标准JSON数组，不要返回JSON以外的任何文字，不要 Markdown，不要代码块`,
 
   imageScore: `请识别图片中的学生成绩信息。
 图片是一张成绩表或考试成绩截图。

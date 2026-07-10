@@ -15,6 +15,7 @@ const createTrend = (): DashboardStudentTrendType => ({
   summaries: ['整体表现稳定'],
   students: [
     {
+      studentId: 'student-1',
       name: '张三',
       scoreCount: 3,
       completedComment: true,

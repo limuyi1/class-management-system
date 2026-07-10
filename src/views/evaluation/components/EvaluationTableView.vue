@@ -14,7 +14,7 @@ import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
-  activeStudentName?: string
+  activeStudentId?: string
   suppressActiveState?: boolean
   previewMode?: PreviewModeType
 }
@@ -137,9 +137,10 @@ const bindResizeObserver = () => {
  * 根据学生索引滚动到其所在评语行。
  * 这里按表格行定位，所以索引换算依赖当前列数配置。
  */
-const scroll = (index: number) => {
+const scroll = (studentId: string) => {
   if (!scrollbarRef.value || !pageInfo.cellLevel || !pageInfo.columnCount) return
-  if (index < 1 || index > tableData.value.length) return
+  const index = tableData.value.findIndex((student) => student.studentId === studentId) + 1
+  if (index < 1) return
 
   const rowIndex = Math.floor((index - 1) / pageInfo.columnCount)
   const element = stageRef.value?.querySelectorAll('tr')[rowIndex]
@@ -189,7 +190,7 @@ defineExpose({ scroll })
               :data="data"
               :current-page="index + 1"
               :total-pages="dataSource.length"
-              :active-student-name="props.activeStudentName"
+              :active-student-id="props.activeStudentId"
               :suppress-active-state="props.suppressActiveState"
               @click="handleCardClick"
             />

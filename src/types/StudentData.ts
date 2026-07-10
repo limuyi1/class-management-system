@@ -1,6 +1,7 @@
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP, STUDENT_ID_PROP } from '@/types/Constants'
 
 export interface StudentDataType {
+  [STUDENT_ID_PROP]: string
   [NAME_PROP]: string | null
   disabled?: boolean
   comment?: string

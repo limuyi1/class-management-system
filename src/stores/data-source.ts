@@ -117,6 +117,13 @@ export const useDataSourceStore = defineStore('dataSource', {
   },
   actions: {
     /**
+     * 按系统内部主键获取学生。
+     */
+    getStudentById(studentId: string): StudentDataType | undefined {
+      return this.students.find((student) => student.studentId === studentId)
+    },
+
+    /**
      * 获取指定学生的当前录入分数
      */
     getItemScore(item: StudentDataType): number | null {

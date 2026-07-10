@@ -32,7 +32,7 @@ const aiConfigStore = useAIConfigStore()
 
 const { students: originList, enabledData } = storeToRefs(dataStore)
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
-const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
+const { selectedStudentIds, dashboardData, focusStudent } = useOverviewDashboard()
 
 const hasUnits = computed(() => scoreColumns.value.length > 0)
 const hasScores = computed(() => dataStore.hasAnyScore)
@@ -148,7 +148,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
   })
 
   try {
-    // 识图 -> 姓名匹配 -> 写入当前录入科目
+    // 识图只提供姓名线索；系统先解析为唯一 studentId，再写入当前录入科目。
     const results = await recognizeScoreFromImage(croppedBase64, aiConfigStore.prompts.imageScore, {
       modelType: aiConfigStore.modelType,
       model: aiConfigStore.model,
@@ -171,9 +171,11 @@ const handleCropConfirm = async (croppedBase64: string) => {
     let notMatched: string[] = []
 
     for (const result of results) {
-      const student = originList.value.find(
+      const matchedStudents = originList.value.filter(
         (item: StudentDataType) => String(item[NAME_PROP] || '') === result.name
       )
+      const matchedStudentId = matchedStudents.length === 1 ? matchedStudents[0].studentId : null
+      const student = matchedStudentId ? dataStore.getStudentById(matchedStudentId) : undefined
 
       if (student && result.score !== null) {
         student[scoreTab] = result.score
@@ -201,16 +203,13 @@ const handleCropCancel = () => {
 }
 
 const handleInspectStudent = (student: StudentDataType) => {
-  const name = String(student[NAME_PROP] || '')
-  if (!name) return
-
   currentStudent.value = student
-  focusStudent(name)
+  focusStudent(student.studentId)
   trendDrawerVisible.value = true
 }
 
-const handleExportReportFromTrend = (name: string) => {
-  const student = enabledData.value.find((item) => String(item[NAME_PROP] || '') === name)
+const handleExportReportFromTrend = (studentId: string) => {
+  const student = dataStore.getStudentById(studentId)
   if (!student) return
   currentStudent.value = student
   reportDialogVisible.value = true
@@ -244,7 +243,7 @@ defineExpose({ autoFocus })
         <input-data-view
           ref="inputDataRef"
           :stage="scoreStage"
-          @scroll="(index) => tableRef?.scroll(index)"
+          @scroll="(studentId) => tableRef?.scroll(studentId)"
           @upload-image="handleUploadClick"
           @clear-selection="tableRef?.clearActiveSelection()"
           @go-unit-setting="goToUnitSetting"
@@ -273,10 +272,10 @@ defineExpose({ autoFocus })
     >
       <home-student-trend-panel
         class="drawer-trend-panel"
-        v-model="selectedStudentNames"
+        v-model="selectedStudentIds"
         :student-trend="dashboardData.studentTrend"
         :student-options="dashboardData.studentOptions"
-        :quick-student-names="dashboardData.quickStudentNames"
+        :quick-students="dashboardData.quickStudents"
         variant="singleReadonly"
         @export-report="handleExportReportFromTrend"
       />

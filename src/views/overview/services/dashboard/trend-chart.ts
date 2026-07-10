@@ -195,6 +195,7 @@ export function buildStudentTrendChartOption(
 
     if (chartMode === 'bar') {
       return {
+        id: student.studentId,
         name: student.name,
         type: 'bar',
         barMaxWidth: 26,
@@ -215,6 +216,7 @@ export function buildStudentTrendChartOption(
     }
 
     return {
+      id: student.studentId,
       name: student.name,
       type: 'line',
       smooth: true,

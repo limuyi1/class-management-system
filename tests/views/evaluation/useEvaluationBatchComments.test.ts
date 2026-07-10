@@ -59,6 +59,7 @@ const createStudent = (
   name: string,
   overrides: Partial<StudentDataType> = {}
 ): StudentDataType => ({
+  studentId: `id-${name}`,
   name: name,
   tags: {
     behavior: ['认真']
@@ -107,7 +108,7 @@ describe('useEvaluationBatchComments', () => {
     messageBoxMocks.confirm.mockRejectedValue('cancel')
     const generatedComment = createComment()
     aiServiceMocks.generateBatchComments.mockResolvedValue([
-      { name: '李四', comment: generatedComment }
+      { studentId: 'id-李四', name: '李四', comment: generatedComment }
     ])
     const hook = useEvaluationBatchComments({
       students,
@@ -120,6 +121,7 @@ describe('useEvaluationBatchComments', () => {
     expect(aiServiceMocks.generateBatchComments).toHaveBeenCalledWith(
       [
         {
+          studentId: 'id-李四',
           name: '李四',
           tags: '认真',
           comment: ''
@@ -137,13 +139,13 @@ describe('useEvaluationBatchComments', () => {
     expect(loadingMocks.close).toHaveBeenCalled()
   })
 
-  it('should apply generated comments by student name when AI returns shuffled results', async () => {
+  it('should apply generated comments by student ID when AI returns shuffled results', async () => {
     const zhangComment = createComment(101)
     const liComment = createComment(102)
     const students = ref([createStudent('张三'), createStudent('李四')])
     aiServiceMocks.generateBatchComments.mockResolvedValue([
-      { name: '李四', comment: liComment },
-      { name: '张三', comment: zhangComment }
+      { studentId: 'id-李四', name: '李四', comment: liComment },
+      { studentId: 'id-张三', name: '被模型改名', comment: zhangComment }
     ])
     const hook = useEvaluationBatchComments({
       students,
@@ -161,8 +163,8 @@ describe('useEvaluationBatchComments', () => {
     const validComment = createComment()
     const students = ref([createStudent('张三'), createStudent('李四')])
     aiServiceMocks.generateBatchComments.mockResolvedValue([
-      { name: '张三', comment: '太短' },
-      { name: '李四', comment: validComment }
+      { studentId: 'id-张三', name: '张三', comment: '太短' },
+      { studentId: 'id-李四', name: '李四', comment: validComment }
     ])
     const hook = useEvaluationBatchComments({
       students,
@@ -180,7 +182,9 @@ describe('useEvaluationBatchComments', () => {
   it('should allow generated comments longer than 120 chars', async () => {
     const longComment = createComment(130)
     const students = ref([createStudent('张三')])
-    aiServiceMocks.generateBatchComments.mockResolvedValue([{ name: '张三', comment: longComment }])
+    aiServiceMocks.generateBatchComments.mockResolvedValue([
+      { studentId: 'id-张三', name: '张三', comment: longComment }
+    ])
     const hook = useEvaluationBatchComments({
       students,
       tagCategoryList: ref(tagCategoryList),
@@ -198,7 +202,9 @@ describe('useEvaluationBatchComments', () => {
       createStudent('张三', { comment: '原评语' }),
       createStudent('李四', { comment: '' })
     ])
-    aiServiceMocks.polishBatchComments.mockResolvedValue([{ name: '张三', comment: '润色评语' }])
+    aiServiceMocks.polishBatchComments.mockResolvedValue([
+      { studentId: 'id-张三', name: '张三', comment: '润色评语' }
+    ])
     const hook = useEvaluationBatchComments({
       students,
       tagCategoryList: ref(tagCategoryList),
@@ -211,6 +217,7 @@ describe('useEvaluationBatchComments', () => {
     expect(aiServiceMocks.polishBatchComments).toHaveBeenCalledWith(
       [
         {
+          studentId: 'id-张三',
           name: '张三',
           tags: '认真',
           comment: '原评语'
@@ -233,14 +240,14 @@ describe('useEvaluationBatchComments', () => {
     const generatedComment = createComment()
     aiServiceMocks.generateBatchComments
       .mockResolvedValueOnce([
-        { name: '学生1', comment: generatedComment, classicExpression: '天下大事，必作于细' },
-        { name: '学生2', comment: generatedComment, classicExpression: '天下大事，必作于细' },
-        { name: '学生3', comment: generatedComment, classicExpression: '不积跬步，无以至千里' },
-        { name: '学生4', comment: generatedComment, classicExpression: '' },
-        { name: '学生5', comment: generatedComment, classicExpression: '日拱一卒' }
+        { studentId: 'id-学生1', name: '学生1', comment: generatedComment, classicExpression: '天下大事，必作于细' },
+        { studentId: 'id-学生2', name: '学生2', comment: generatedComment, classicExpression: '天下大事，必作于细' },
+        { studentId: 'id-学生3', name: '学生3', comment: generatedComment, classicExpression: '不积跬步，无以至千里' },
+        { studentId: 'id-学生4', name: '学生4', comment: generatedComment, classicExpression: '' },
+        { studentId: 'id-学生5', name: '学生5', comment: generatedComment, classicExpression: '日拱一卒' }
       ])
       .mockResolvedValueOnce([
-        { name: '学生6', comment: generatedComment, classicExpression: '锲而不舍，金石可镂' }
+        { studentId: 'id-学生6', name: '学生6', comment: generatedComment, classicExpression: '锲而不舍，金石可镂' }
       ])
     const hook = useEvaluationBatchComments({
       students,

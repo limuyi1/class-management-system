@@ -25,6 +25,16 @@ describe('useDataSourceStore', () => {
     expect(store.students).toEqual(testData)
   })
 
+  it('should find the correct student by ID when names are duplicated', () => {
+    const store = useDataSourceStore()
+    store.students = [
+      { studentId: 'student-1', name: '张三' },
+      { studentId: 'student-2', name: '张三' }
+    ]
+
+    expect(store.getStudentById('student-2')).toBe(store.students[1])
+  })
+
   it('should filter disabled students in enabledData', () => {
     const store = useDataSourceStore()
     store.students = [

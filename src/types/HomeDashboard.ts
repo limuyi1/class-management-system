@@ -128,6 +128,11 @@ export interface DashboardStudentOptionType {
   value: string
 }
 
+export interface DashboardQuickStudentType {
+  studentId: string
+  name: string
+}
+
 export interface DashboardStudentTagType {
   key: DashboardTagKeyType
   label: string
@@ -138,6 +143,7 @@ export interface DashboardStudentTagType {
 }
 
 export interface DashboardStudentListItemType {
+  studentId: string
   name: string
   trendText: string
   trendSegments: Array<{
@@ -192,6 +198,7 @@ export interface DashboardStudentTrendPointType {
 }
 
 export interface DashboardStudentTrendStudentType {
+  studentId: string
   name: string
   scoreCount: number
   completedComment: boolean
@@ -235,7 +242,7 @@ export interface DashboardDataType {
   focusGroups: DashboardFocusGroupType[]
   keyStudentLists: DashboardKeyStudentListType[]
   studentOptions: DashboardStudentOptionType[]
-  quickStudentNames: string[]
+  quickStudents: DashboardQuickStudentType[]
   studentTrend: DashboardStudentTrendType | null
   evaluationOverview: DashboardEvaluationOverviewType
 }

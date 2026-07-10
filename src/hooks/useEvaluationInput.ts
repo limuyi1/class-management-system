@@ -16,14 +16,14 @@ import type { StudentDataType } from '@/types/StudentData'
 import { NAME_PROP } from '@/types/Constants'
 
 interface UseEvaluationInputOptions {
-  onScroll: (index: number) => void
+  onScroll: (studentId: string) => void
   autoNextOnSubmit?: boolean
   promptUnsavedOnSwitch?: boolean
   onActiveStudentChange?: (student: StudentDataType | null) => void
 }
 
 interface InputFormDataType {
-  id: number | null
+  studentId: string | null
   name: string
   comment: string | null
 }
@@ -51,20 +51,20 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const generating = ref(false)
   const polishing = ref(false)
   const optionsList = ref<StudentDataType[]>([])
-  const currentSelectedIndex = ref<number | null>(null)
+  const currentSelectedStudentId = ref<string | null>(null)
 
   const nameInputRef = ref<FocusableType | null>(null)
   const commentInputRef = ref<FocusableType | null>(null)
 
   const formData = reactive<InputFormDataType>({
-    id: null,
+    studentId: null,
     name: '',
     comment: null
   })
 
   const currentStudentTags = computed<Record<string, string[]> | null>(() => {
-    if (!formData.id) return null
-    const item = originList.value[formData.id - 1]
+    if (!formData.studentId) return null
+    const item = dataStore.getStudentById(formData.studentId)
     if (!item || !item.tags) return {}
     return item.tags
   })
@@ -100,19 +100,19 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     })
   }
 
-  const fillStudentData = (index: number | null) => {
-    if (!index) return
-    const item = originList.value[index - 1]
+  const fillStudentData = (studentId: string | null) => {
+    if (!studentId) return
+    const item = dataStore.getStudentById(studentId)
     if (!item) return
 
-    currentSelectedIndex.value = index
+    currentSelectedStudentId.value = studentId
     optionsList.value = [item]
-    formData.id = index
+    formData.studentId = studentId
     formData.name = getStudentName(item)
     formData.comment = item.comment || null
     onActiveStudentChange?.(item)
 
-    onScroll(index)
+    onScroll(studentId)
 
     commentInputRef.value?.focus()
   }
@@ -123,17 +123,17 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   }
 
   const hasUnsavedChanges = () => {
-    if (!formData.id) return false
-    const currentItem = originList.value[formData.id - 1]
+    if (!formData.studentId) return false
+    const currentItem = dataStore.getStudentById(formData.studentId)
     if (!currentItem) return false
 
     return normalizeComment(formData.comment) !== normalizeComment(currentItem.comment || '')
   }
 
   const saveCurrentData = () => {
-    if (!formData.id) return false
+    if (!formData.studentId) return false
 
-    const item = originList.value[formData.id - 1]
+    const item = dataStore.getStudentById(formData.studentId)
     if (!item) return false
 
     item.comment = formData.comment?.trim() ? formData.comment : undefined
@@ -141,15 +141,15 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     return true
   }
 
-  const trySwitchStudent = async (nextIndex: number) => {
-    if (!nextIndex || nextIndex < 1 || nextIndex > originList.value.length) return
-    if (formData.id === nextIndex) {
-      fillStudentData(nextIndex)
+  const trySwitchStudent = async (nextStudentId: string) => {
+    if (!dataStore.getStudentById(nextStudentId)) return
+    if (formData.studentId === nextStudentId) {
+      fillStudentData(nextStudentId)
       return
     }
 
     if (!promptUnsavedOnSwitch || !hasUnsavedChanges()) {
-      fillStudentData(nextIndex)
+      fillStudentData(nextStudentId)
       return
     }
 
@@ -164,24 +164,24 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
       })
 
       const saved = saveCurrentData()
-      if (saved) fillStudentData(nextIndex)
+      if (saved) fillStudentData(nextStudentId)
     } catch (action) {
       if (action === 'cancel') {
-        fillStudentData(nextIndex)
+        fillStudentData(nextStudentId)
       }
     }
   }
 
-  const selectChange = (index: number) => {
-    trySwitchStudent(index)
+  const selectChange = (studentId: string) => {
+    trySwitchStudent(studentId)
   }
 
   useEnterUp('stuName', () => {
-    fillStudentData(currentSelectedIndex.value)
+    fillStudentData(currentSelectedStudentId.value)
   })
 
   const resetForm = () => {
-    formData.id = null
+    formData.studentId = null
     formData.name = ''
     formData.comment = null
     optionsList.value = []
@@ -191,16 +191,19 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
 
   const onSubmit = () => {
     const saved = saveCurrentData()
-    if (!saved || !formData.id) return
+    if (!saved || !formData.studentId) return
 
     if (autoNextOnSubmit) {
-      const nextIndex = formData.id + 1
+      const currentIndex = originList.value.findIndex(
+        (student) => student.studentId === formData.studentId
+      )
+      const nextStudent = originList.value[currentIndex + 1]
 
-      if (nextIndex <= originList.value.length) {
-        fillStudentData(nextIndex)
+      if (nextStudent) {
+        fillStudentData(nextStudent.studentId)
       } else {
         ElMessage.info('已是最后一名学生')
-        fillStudentData(formData.id)
+        fillStudentData(formData.studentId)
       }
 
       return
@@ -213,34 +216,31 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     const name = getStudentName(data)
     remoteMethod(name)
 
-    const rowIndex = originList.value.findIndex((item) => item === data)
-    if (rowIndex === -1) return
-
-    trySwitchStudent(rowIndex + 1)
+    trySwitchStudent(data.studentId)
   }
 
   const goToEditTags = () => {
-    if (!formData.name) return
+    if (!formData.studentId) return
     router.push({
       path: '/student-info',
       query: {
         'edit-tags': '1',
-        'student-name': formData.name,
+        'student-id': formData.studentId,
         'return-to': 'comment',
-        'return-student-name': formData.name
+        'return-student-id': formData.studentId
       }
     })
   }
 
   const handleGenerateComment = async () => {
-    if (!formData.id) return
+    if (!formData.studentId) return
 
     if (!aiConfigStore.isConfigured) {
       ElMessage.warning('请先在设置页面配置 AI')
       return
     }
 
-    const item = originList.value[formData.id - 1]
+    const item = dataStore.getStudentById(formData.studentId)
     if (!item) return
 
     generating.value = true
@@ -270,7 +270,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   }
 
   const handlePolishComment = async () => {
-    if (!formData.id) return
+    if (!formData.studentId) return
 
     if (!aiConfigStore.isConfigured) {
       ElMessage.warning('请先在设置页面配置 AI')
@@ -283,7 +283,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
       return
     }
 
-    const item = originList.value[formData.id - 1]
+    const item = dataStore.getStudentById(formData.studentId)
     if (!item) return
 
     polishing.value = true

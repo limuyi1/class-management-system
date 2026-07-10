@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "convert:dexie": "node scripts/convert-dexie-backup.mjs",
+    "migrate:student-ids": "node scripts/add-student-ids-to-dexie-backup.mjs",
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {

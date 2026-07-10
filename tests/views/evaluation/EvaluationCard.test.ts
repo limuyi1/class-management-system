@@ -77,7 +77,7 @@ const mountCard = (comment: string) => {
         tableWidth: 136,
         tableOffsetX: 0
       },
-      data: [{ [NAME_PROP]: '张三', comment }]
+      data: [{ studentId: 'student-1', [NAME_PROP]: '张三', comment }]
     },
     global: {
       stubs: {

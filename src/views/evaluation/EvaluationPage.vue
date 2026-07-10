@@ -14,10 +14,7 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
-import {
-  getEvaluationStudentName,
-  useEvaluationBatchComments
-} from '@/views/evaluation/composables/useEvaluationBatchComments'
+import { useEvaluationBatchComments } from '@/views/evaluation/composables/useEvaluationBatchComments'
 import { useEvaluationHandwriteFont } from '@/views/evaluation/composables/useEvaluationHandwriteFont'
 import { useEvaluationTextPdfExport } from '@/views/evaluation/composables/useEvaluationTextPdfExport'
 import type { PreviewModeType } from '@/types/Configuration'
@@ -46,7 +43,7 @@ const { percentage, notCompletedCount } = useProgress({
 })
 const totalCount = computed(() => students.value.length)
 const completedCount = computed(() => Math.max(0, totalCount.value - notCompletedCount.value))
-const activeStudentName = ref('')
+const activeStudentId = ref('')
 const normalizePreviewMode = (value: string): PreviewModeType => {
   if (value === 'fit' || value === '50' || value === '75' || value === '100' || value === '125') {
     return value
@@ -126,7 +123,7 @@ const handleCardClick = (row: StudentDataType) => {
 }
 
 const handleActiveStudentChange = (row: StudentDataType | null) => {
-  activeStudentName.value = row ? getStudentName(row) : ''
+  activeStudentId.value = row?.studentId || ''
 }
 
 const handleResetComments = async () => {
@@ -159,26 +156,22 @@ const handleResetComments = async () => {
   }
 }
 
-const resumeEditingStudent = async (studentName: string) => {
+const resumeEditingStudent = async (studentId: string) => {
   await nextTick()
-  const student = students.value.find((item) => getStudentName(item) === studentName)
+  const student = dataStore.getStudentById(studentId)
   if (!student || !toolPanelViewRef.value) return false
 
   toolPanelViewRef.value.fillStudentData(student)
   return true
 }
 
-const getStudentName = (student: StudentDataType): string => {
-  return getEvaluationStudentName(student)
-}
-
 watch(
   () =>
-    [route.query['resume-edit'], route.query['student-name'], !!toolPanelViewRef.value] as const,
-  async ([resumeEdit, studentName, ready]) => {
-    if (resumeEdit !== '1' || typeof studentName !== 'string' || !studentName || !ready) return
+    [route.query['resume-edit'], route.query['student-id'], !!toolPanelViewRef.value] as const,
+  async ([resumeEdit, studentId, ready]) => {
+    if (resumeEdit !== '1' || typeof studentId !== 'string' || !studentId || !ready) return
 
-    const resumed = await resumeEditingStudent(studentName)
+    const resumed = await resumeEditingStudent(studentId)
     if (resumed) {
       await router.replace({ path: '/comment' })
     }
@@ -320,7 +313,7 @@ defineExpose({ autoFocus })
       <div class="evaluation-page-left">
         <evaluation-table-view
           ref="evaluationTableViewRef"
-          :active-student-name="activeStudentName"
+          :active-student-id="activeStudentId"
           :preview-mode="previewMode"
           @card-click="handleCardClick"
         />
@@ -329,7 +322,7 @@ defineExpose({ autoFocus })
         <el-scrollbar>
           <tool-panel-view
             ref="toolPanelViewRef"
-            @scroll="(index) => evaluationTableViewRef?.scroll(index)"
+            @scroll="(studentId) => evaluationTableViewRef?.scroll(studentId)"
             @active-student-change="handleActiveStudentChange"
           />
         </el-scrollbar>

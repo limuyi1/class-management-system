@@ -36,8 +36,8 @@ const props = withDefaults(defineProps<EvaluationPreviewCardPropsType>(), {
 })
 
 const isActiveStudent = (student: Record<string, unknown> | undefined) => {
-  if (!student || props.suppressActiveState || !props.activeStudentName) return false
-  return String(student[NAME_PROP] || '') === props.activeStudentName
+  if (!student || props.suppressActiveState || !props.activeStudentId) return false
+  return student.studentId === props.activeStudentId
 }
 
 /**
@@ -132,7 +132,7 @@ const getAdaptiveCommentLineStyle = (
         :style="tableStyle"
       >
         <template v-for="(item, index) in data">
-          <tr v-if="index % pageInfo.columnCount == 0" :key="`${item[NAME_PROP]}_${index}`">
+          <tr v-if="index % pageInfo.columnCount == 0" :key="`${item.studentId}_${index}`">
             <template v-for="e in pageInfo.columnCount" :key="`cell_${index}_${e}`">
               <td
                 v-if="data[index + e - 1]?.[NAME_PROP]"
@@ -148,7 +148,7 @@ const getAdaptiveCommentLineStyle = (
                   <!-- 正文区域复用共享排版结果，预览层额外处理轻微溢出的缩字和 tooltip。 -->
                   <template
                     v-for="commentLayout in [getCommentLayout(data[index + e - 1])]"
-                    :key="`${data[index + e - 1]?.[NAME_PROP]}_${commentLayout.fontSizePx}_${commentLayout.showTooltip}`"
+                    :key="`${data[index + e - 1]?.studentId}_${commentLayout.fontSizePx}_${commentLayout.showTooltip}`"
                   >
                     <el-tooltip
                       :content="String(data[index + e - 1]?.comment || '')"
@@ -162,7 +162,7 @@ const getAdaptiveCommentLineStyle = (
                       >
                         <div
                           v-for="(line, lineIndex) in commentLayout.lines"
-                          :key="`${data[index + e - 1]?.[NAME_PROP]}_${lineIndex}`"
+                          :key="`${data[index + e - 1]?.studentId}_${lineIndex}`"
                           class="table-body-line"
                           :style="getAdaptiveCommentLineStyle(commentLayout, line.indent)"
                         >

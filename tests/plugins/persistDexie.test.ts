@@ -89,7 +89,7 @@ describe('createPersistedStateDexie', () => {
   it('should load and save dataSource with { id, students } structure', async () => {
     mockTables.studentDataset.record = {
       id: 'main',
-      students: [{ name: '张三', yu3_wen2: 88 }],
+      students: [{ studentId: 'student-1', name: '张三', yu3_wen2: 88 }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     }
 
@@ -111,26 +111,30 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.students).toEqual([{ name: '张三', yu3_wen2: 88 }])
+    expect(store.$state.students).toEqual([
+      { studentId: 'student-1', name: '张三', yu3_wen2: 88 }
+    ])
     expect(store.isInitialLoading).toBe(true)
 
-    store.$state.students = [{ name: '李四', yu3_wen2: 95 }]
+    store.$state.students = [{ studentId: 'student-2', name: '李四', yu3_wen2: 95 }]
     await subscribers[0]()
 
     expect(mockTables.studentDataset.put).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'main',
-        students: [{ name: '李四', yu3_wen2: 95 }]
+        students: [{ studentId: 'student-2', name: '李四', yu3_wen2: 95 }]
       })
     )
 
     const observer = observers[0]
     observer.next({
       id: 'main',
-      students: [{ name: '王五', yu3_wen2: 76 }],
+      students: [{ studentId: 'student-3', name: '王五', yu3_wen2: 76 }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.students).toEqual([{ name: '王五', yu3_wen2: 76 }])
+    expect(store.$state.students).toEqual([
+      { studentId: 'student-3', name: '王五', yu3_wen2: 76 }
+    ])
   })
 
   it('should load and patch normal store by stripping id field', async () => {
@@ -333,12 +337,38 @@ describe('createPersistedStateDexie', () => {
 
     observers[0].next({
       id: 'main',
-      students: [{ name: '张三' }],
+      students: [{ studentId: 'student-1', name: '张三' }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.students).toEqual([{ name: '张三' }])
+    expect(store.$state.students).toEqual([{ studentId: 'student-1', name: '张三' }])
 
     observers[0].next(undefined)
     expect(store.$state.students).toEqual([])
+  })
+
+  it('should treat legacy dataSource records without student IDs as empty data', async () => {
+    mockTables.studentDataset.record = {
+      id: 'main',
+      students: [{ name: '张三' }],
+      updatedAt: '2026-01-01T00:00:00.000Z'
+    }
+
+    const store = {
+      $id: 'dataSource',
+      $state: { students: [] as Array<Record<string, unknown>> },
+      isInitialLoading: false,
+      $patch: (state: { students: Array<Record<string, unknown>> }) => {
+        store.$state.students = state.students
+      },
+      $subscribe: vi.fn()
+    }
+
+    const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
+    const plugin = createPersistedStateDexie()
+
+    await plugin({ store } as never)
+
+    expect(store.$state.students).toEqual([])
+    expect(mockTables.studentDataset.put).not.toHaveBeenCalled()
   })
 })

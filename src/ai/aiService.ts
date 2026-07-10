@@ -18,6 +18,7 @@ import { parseJsonArray, parseJsonObject } from '@/ai/responseParser'
  */
 
 interface StudentData {
+  studentId?: string
   name: string
   tags?: string | string[]
   score?: number | Array<{ label: string; value: number | null }>
@@ -39,6 +40,7 @@ interface BatchCommentResult extends StudentData {
 }
 
 interface PolishedCommentResult {
+  studentId: string
   name: string
   comment: string
   classicExpression?: string
@@ -113,12 +115,22 @@ function parseArrayWithFallback<T>(responseText: string, fallback: T[], scene: s
 
 function buildCommentStudentPayload(
   student: StudentData
-): Pick<StudentData, 'name' | 'tags' | 'comment'> {
+): Pick<StudentData, 'studentId' | 'name' | 'tags' | 'comment'> {
   return {
+    studentId: student.studentId,
     name: student.name,
     tags: normalizeTagsForPrompt(student.tags),
     comment: student.comment || ''
   }
+}
+
+function buildStudentIdentityGuidance(): string {
+  return `
+
+学生身份约束：
+1. 每条输入都包含 studentId，返回结果必须原样返回对应的 studentId。
+2. 不得新增、删除、修改、交换 studentId。
+3. 系统只按 studentId 写回结果，缺少 studentId 的结果将被忽略。`
 }
 
 function buildClassicExpressionUsageGuidance(options?: BatchCommentOptionsType): string {
@@ -325,21 +337,22 @@ export async function generateBatchComments(
   const promptText =
     replaceTemplate(prompt, {
       students: studentsJson
-    }) + buildClassicExpressionUsageGuidance(options)
+    }) + buildStudentIdentityGuidance() + buildClassicExpressionUsageGuidance(options)
 
   const responseText = await generateText(config, promptText)
   const parsed = parseArrayWithFallback<{
+    studentId: string
     name: string
     comment: string
     classicExpression?: string
   }>(responseText, [], 'generateBatchComments')
 
-  const resultMap = new Map(parsed.map((item) => [item.name, item]))
+  const resultMap = new Map(parsed.map((item) => [item.studentId, item]))
 
   return students.map((student) => ({
     ...student,
-    comment: resultMap.get(student.name)?.comment || student.comment,
-    classicExpression: resultMap.get(student.name)?.classicExpression
+    comment: resultMap.get(student.studentId || '')?.comment || student.comment,
+    classicExpression: resultMap.get(student.studentId || '')?.classicExpression
   }))
 }
 
@@ -356,7 +369,7 @@ export async function polishBatchComments(
   const promptText =
     replaceTemplate(prompt || DefaultAIPrompts.batchCommentPolish, {
       students: studentsJson
-    }) + buildClassicExpressionUsageGuidance(options)
+    }) + buildStudentIdentityGuidance() + buildClassicExpressionUsageGuidance(options)
 
   const responseText = await generateText(config, promptText)
   return parseArrayWithFallback<PolishedCommentResult>(responseText, [], 'polishBatchComments')

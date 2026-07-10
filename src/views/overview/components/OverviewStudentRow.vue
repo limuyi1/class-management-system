@@ -15,7 +15,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  select: [name: string]
+  select: [studentId: string]
 }>()
 
 /**
@@ -30,7 +30,7 @@ const prefixMap: Record<Props['tone'], string> = {
 }
 
 const handleSelect = () => {
-  emit('select', props.item.name)
+  emit('select', props.item.studentId)
 }
 
 /** 获取头像文本，取姓名首字母大写 */
@@ -91,7 +91,7 @@ const directionIconNameMap = {
       <span class="trend-text">
         <span
           v-for="(segment, index) in item.trendSegments"
-          :key="`${item.name}-${index}-${segment.text}`"
+          :key="`${item.studentId}-${index}-${segment.text}`"
           :class="[`is-${segment.difficultyShift}`]"
         >
           {{ segment.text }}

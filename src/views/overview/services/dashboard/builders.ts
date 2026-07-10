@@ -407,13 +407,13 @@ export const buildTeachingInsights = (unitMetrics: UnitMetricType[]): DashboardT
  */
 export const buildStudentTrend = (
   metrics: StudentMetricType[],
-  selectedStudentNames: string[],
+  selectedStudentIds: string[],
   config: HomeDashboardConfigType,
   unitHeaders: SettingType[],
   kpi?: DashboardKpiType
 ): DashboardStudentTrendType | null => {
-  const selectedMetrics = selectedStudentNames
-    .map((name) => metrics.find((metric) => metric.name === name))
+  const selectedMetrics = selectedStudentIds
+    .map((studentId) => metrics.find((metric) => metric.studentId === studentId))
     .filter((item): item is StudentMetricType => item !== undefined)
 
   if (!selectedMetrics.length) return null
@@ -461,6 +461,7 @@ export const buildStudentTrend = (
       const pointMap = new Map(metric.points.map((point) => [point.prop, point.score]))
 
       return {
+        studentId: metric.studentId,
         name: metric.name,
         scoreCount: metric.points.length,
         completedComment: commentPreview.length > 0,
@@ -484,13 +485,11 @@ export const buildStudentTrend = (
  */
 export const buildStudentOptions = (students: StudentDataType[]): DashboardStudentOptionType[] => {
   return students
-    .map((student) => getStudentName(student))
-    .filter((name, index, array) => array.indexOf(name) === index)
-    .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
-    .map((name) => ({
-      label: name,
-      value: name
+    .map((student) => ({
+      label: getStudentName(student),
+      value: student.studentId
     }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'zh-Hans-CN'))
 }
 
 /**
@@ -594,27 +593,24 @@ const toDashboardUnitOverview = ({
  *                ├─> buildStudentTrend
  *                └─> buildSummaryCards
  *
- * quickStudentNames 用于快速定位，收集关注学生和关键学生列表中出现的姓名（去重，最多16个）。
+ * quickStudents 用于快速定位，按 studentId 去重收集关注学生（最多16个）。
  */
 export const buildOverviewDashboardData = (
   options: BuildOverviewDashboardDataOptions,
   unitMetrics: UnitMetricType[],
   metrics: StudentMetricType[]
 ): DashboardDataType => {
-  const { students, unitHeaders, selectedStudentNames, aiConfigured, config } = options
+  const { students, unitHeaders, selectedStudentIds, aiConfigured, config } = options
   const kpi = buildDashboardKpi(unitMetrics, metrics, config, unitHeaders.length)
   const focusGroups = buildFocusGroups(metrics, config)
   const keyStudentLists = buildKeyStudentLists(metrics, config)
-  const quickStudentNames = Array.from(
-    new Set(
-      [
-        ...focusGroups.flatMap((group) => group.sections.flatMap((section) => section.items)),
-        ...keyStudentLists.flatMap((list) => list.items)
-      ]
-        .map((item) => item.name)
-        .slice(0, 16)
-    )
+  const quickStudentMap = new Map(
+    [
+      ...focusGroups.flatMap((group) => group.sections.flatMap((section) => section.items)),
+      ...keyStudentLists.flatMap((list) => list.items)
+    ].map((item) => [item.studentId, { studentId: item.studentId, name: item.name }])
   )
+  const quickStudents = Array.from(quickStudentMap.values()).slice(0, 16)
 
   return {
     unitHeaders,
@@ -625,10 +621,10 @@ export const buildOverviewDashboardData = (
     focusGroups,
     keyStudentLists,
     studentOptions: buildStudentOptions(students),
-    quickStudentNames,
+    quickStudents,
     studentTrend: buildStudentTrend(
       metrics,
-      selectedStudentNames.slice(0, config.studentTrend.maxCompareCount),
+      selectedStudentIds.slice(0, config.studentTrend.maxCompareCount),
       config,
       unitHeaders,
       kpi

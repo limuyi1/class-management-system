@@ -10,13 +10,11 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import {
   buildIncrementalScoreImport,
-  findDuplicateNames,
   getConflictLabels
 } from '@/utils/scoreImportUntil'
 import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/commentImportUntil'
 import { buildInitialStudentImport } from '@/utils/initialStudentImportUntil'
 import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUntil'
-import { NAME_PROP } from '@/types/Constants'
 
 import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUntil'
 import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
@@ -73,14 +71,6 @@ export const useStudentDataImport = () => {
     excelFileInputRef.value?.click()
   }
 
-  const validateSystemNames = (): boolean => {
-    const duplicateNames = findDuplicateNames(students.value, NAME_PROP)
-    if (!duplicateNames.length) return true
-
-    ElMessage.error(`系统中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-    return false
-  }
-
   /**
    * 导入完成后统一等待数据状态稳定，并校验目标路由是否真正生效。
    */
@@ -105,8 +95,6 @@ export const useStudentDataImport = () => {
       initialDialogVisible.value = true
       return
     }
-    if (!validateSystemNames()) return
-
     if (importMode.value === 'comment') {
       commentDialogVisible.value = true
     } else {
@@ -166,12 +154,6 @@ export const useStudentDataImport = () => {
   ) => {
     if (!applyHeaderRowSelection(selection.headerRowIndex)) return
 
-    const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
-    if (duplicateNames.length) {
-      ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-      return
-    }
-
     const result = buildInitialStudentImport({
       rows: excelRows.value,
       ...selection
@@ -189,6 +171,9 @@ export const useStudentDataImport = () => {
     const summary = [`${result.students.length} 名学生`]
     if (result.headers.length) summary.push(`${result.headers.length} 个成绩列`)
     if (result.commentCount) summary.push(`${result.commentCount} 条评语`)
+    if (result.duplicateStudentCount) {
+      summary.push(`跳过 ${result.duplicateStudentCount} 条重名记录`)
+    }
     ElMessage.success(`导入成功：${summary.join('、')}`)
 
     await navigateAfterImport('/overview')
@@ -227,6 +212,9 @@ export const useStudentDataImport = () => {
     if (result.stats.ignoredStudentCount) {
       messages.push(`忽略 ${result.stats.ignoredStudentCount} 名未匹配学生`)
     }
+    if (result.stats.duplicateStudentCount) {
+      messages.push(`跳过 ${result.stats.duplicateStudentCount} 条重名记录`)
+    }
     if (result.stats.invalidScoreCount) {
       messages.push(`${result.stats.invalidScoreCount} 个成绩无法识别，已置为空`)
     }
@@ -248,12 +236,6 @@ export const useStudentDataImport = () => {
       return
     }
 
-    const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
-    if (duplicateNames.length) {
-      ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-      return
-    }
-
     pendingScoreNameColumn.value = selection.nameColumn
     pendingScoreColumns.value = selection.scoreColumns
     conflictColumns.value = getConflictLabels(selection.scoreColumns, scoreColumns.value)
@@ -270,12 +252,6 @@ export const useStudentDataImport = () => {
     selection: CommentImportSelectionType & { headerRowIndex?: number }
   ) => {
     if (!applyHeaderRowSelection(selection.headerRowIndex)) return
-
-    const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
-    if (duplicateNames.length) {
-      ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-      return
-    }
 
     if (selection.strategy === 'overwrite') {
       const overwriteCount = countOverwrittenComments({
@@ -305,7 +281,7 @@ export const useStudentDataImport = () => {
       existingStudents: students.value,
       ...selection
     })
-    if (!result.stats.matchedStudentCount) {
+    if (!result.stats.matchedStudentCount && !result.stats.duplicateStudentCount) {
       ElMessage.error('Excel 中没有与系统学生匹配的姓名')
       return
     }
@@ -318,6 +294,9 @@ export const useStudentDataImport = () => {
     ]
     if (result.stats.ignoredStudentCount) {
       messages.push(`忽略 ${result.stats.ignoredStudentCount} 名未匹配学生`)
+    }
+    if (result.stats.duplicateStudentCount) {
+      messages.push(`跳过 ${result.stats.duplicateStudentCount} 条重名记录`)
     }
 
     ElMessage.success(`评语导入完成：${messages.join('，')}`)

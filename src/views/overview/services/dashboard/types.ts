@@ -11,7 +11,7 @@ import type { StudentDataType } from '@/types/StudentData'
 export interface BuildOverviewDashboardDataOptions {
   students: StudentDataType[]
   unitHeaders: SettingType[]
-  selectedStudentNames: string[]
+  selectedStudentIds: string[]
   aiConfigured: boolean
   config: HomeDashboardConfigType
 }
@@ -31,6 +31,7 @@ export interface UnitMetricType extends DashboardUnitOverviewType {
 }
 
 export interface StudentMetricType {
+  studentId: string
   name: string
   student: StudentDataType
   points: StudentPointType[]

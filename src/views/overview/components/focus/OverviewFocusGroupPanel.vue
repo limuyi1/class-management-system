@@ -18,7 +18,7 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   expandChange: [expanded: boolean]
-  select: [name: string]
+  select: [studentId: string]
 }>()
 
 /** 默认展示的学生数量，超过则显示"查看全部"按钮 */
@@ -154,7 +154,7 @@ watchEffect(() => {
       <div class="focus-list">
         <overview-student-row
           v-for="item in visibleItems"
-          :key="`${group.key}-${activeSection?.key}-${item.name}`"
+          :key="`${group.key}-${activeSection?.key}-${item.studentId}`"
           :item="item"
           :tone="group.tone"
           variant="panel"

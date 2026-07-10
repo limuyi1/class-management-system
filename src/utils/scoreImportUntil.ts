@@ -1,6 +1,7 @@
 import { pinyin } from 'pinyin-pro'
 
 import { NAME_PROP } from '@/types/Constants'
+import { createStudentId } from '@/utils/studentUntil'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -16,6 +17,7 @@ export interface ScoreValueResultType {
 export interface ScoreImportStatsType {
   invalidScoreCount: number
   ignoredStudentCount: number
+  duplicateStudentCount: number
   addedColumnCount: number
   overwrittenColumnCount: number
   skippedColumnCount: number
@@ -25,6 +27,7 @@ export interface InitialScoreImportResultType {
   headers: SettingType[]
   students: StudentDataType[]
   invalidScoreCount: number
+  duplicateStudentCount: number
 }
 
 export interface IncrementalScoreImportResultType {
@@ -89,6 +92,11 @@ export const findDuplicateNames = (
     .map(([name]) => name)
 }
 
+const getDuplicateNameSet = (
+  rows: Array<ExcelRowType | StudentDataType>,
+  nameKey: string
+): Set<string> => new Set(findDuplicateNames(rows, nameKey))
+
 export const getConflictLabels = (
   selectedColumns: string[],
   existingHeaders: SettingType[]
@@ -104,11 +112,17 @@ export const buildInitialScoreImport = (options: {
 }): InitialScoreImportResultType => {
   const headers = options.scoreColumns.map(createHeader)
   let invalidScoreCount = 0
+  let duplicateStudentCount = 0
+  const duplicateNames = getDuplicateNameSet(options.rows, options.nameColumn)
 
   const students = options.rows
     .map((row) => {
       const name = normalizeName(row[options.nameColumn])
       if (!name) return null
+      if (duplicateNames.has(name)) {
+        duplicateStudentCount += 1
+        return null
+      }
 
       const student = headers.reduce(
         (acc, header) => {
@@ -119,7 +133,7 @@ export const buildInitialScoreImport = (options: {
           acc[header.prop] = scoreResult.value
           return acc
         },
-        { [NAME_PROP]: name } as StudentDataType
+        { studentId: createStudentId(), [NAME_PROP]: name } as StudentDataType
       )
 
       return student
@@ -129,7 +143,8 @@ export const buildInitialScoreImport = (options: {
   return {
     headers,
     students,
-    invalidScoreCount
+    invalidScoreCount,
+    duplicateStudentCount
   }
 }
 
@@ -149,6 +164,7 @@ export const buildIncrementalScoreImport = (options: {
   const stats: ScoreImportStatsType = {
     invalidScoreCount: 0,
     ignoredStudentCount: 0,
+    duplicateStudentCount: 0,
     addedColumnCount: 0,
     overwrittenColumnCount: 0,
     skippedColumnCount: 0
@@ -172,16 +188,22 @@ export const buildIncrementalScoreImport = (options: {
     stats.addedColumnCount += 1
   })
 
+  const duplicateSystemNames = getDuplicateNameSet(options.existingStudents, NAME_PROP)
+  const duplicateExcelNames = getDuplicateNameSet(options.rows, options.nameColumn)
   const existingNames = new Set(
     options.existingStudents
       .map((student) => normalizeName(student[NAME_PROP] as ExcelCellValueType))
-      .filter(Boolean)
+      .filter((name) => Boolean(name) && !duplicateSystemNames.has(name))
   )
   const excelRowsByName = new Map<string, ExcelRowType>()
 
   options.rows.forEach((row) => {
     const name = normalizeName(row[options.nameColumn])
     if (!name) return
+    if (duplicateSystemNames.has(name) || duplicateExcelNames.has(name)) {
+      stats.duplicateStudentCount += 1
+      return
+    }
     if (!existingNames.has(name)) {
       stats.ignoredStudentCount += 1
       return

@@ -129,14 +129,14 @@ export const buildRankMapByUnit = (students: StudentDataType[], unitHeaders: Set
     const rankMap = new Map<string, number>()
     const rankedStudents = students
       .map((student) => ({
-        name: getStudentName(student),
+        studentId: student.studentId,
         score: getNumericScore(student, header.prop)
       }))
-      .filter((item): item is { name: string; score: number } => item.score !== null)
+      .filter((item): item is { studentId: string; score: number } => item.score !== null)
       .sort((a, b) => b.score - a.score)
 
     rankedStudents.forEach((item, index) => {
-      rankMap.set(item.name, index + 1)
+      rankMap.set(item.studentId, index + 1)
     })
 
     return {

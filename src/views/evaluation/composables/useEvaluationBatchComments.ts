@@ -26,6 +26,7 @@ interface UseEvaluationBatchCommentsOptions {
 type GenerateModeType = 'skip' | 'overwrite'
 type ClassicExpressionUsageType = { expression: string; count: number }
 type CommentAIResultType = {
+  studentId: string
   name: string
   comment?: string | null
   classicExpression?: string | null
@@ -153,6 +154,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
         (item) => mode === 'overwrite' || !item.comment?.trim()
       )
       const studentsData = filteredStudents.map((item) => ({
+        studentId: item.studentId,
         name: getEvaluationStudentName(item),
         tags: getStudentTagsText(item),
         comment: mode === 'overwrite' ? '' : item.comment || ''
@@ -199,12 +201,12 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       let tooShortCount = 0
       const resultMap = new Map(
         allResults
-          .map((item) => [item.name, item.comment?.trim() || ''] as const)
+          .map((item) => [item.studentId, item.comment?.trim() || ''] as const)
           .filter(([, comment]) => !!comment)
       )
 
       for (const student of filteredStudents) {
-        const generatedComment = resultMap.get(getEvaluationStudentName(student))
+        const generatedComment = resultMap.get(student.studentId)
         if (!generatedComment) continue
 
         if (countCommentLength(generatedComment) < COMMENT_MIN_LENGTH) {

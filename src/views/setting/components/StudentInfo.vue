@@ -10,6 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
+import { createStudentId } from '@/utils/studentUntil'
 import TagEditorDialog from './TagEditorDialog.vue'
 import BatchTagDrawer from './BatchTagDrawer.vue'
 
@@ -28,12 +29,12 @@ interface TableColumnType {
 
 interface Props {
   returnTo?: string
-  returnStudentName?: string
+  returnStudentId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   returnTo: '',
-  returnStudentName: ''
+  returnStudentId: ''
 })
 
 const router = useRouter()
@@ -51,21 +52,31 @@ const getStudentName = (student: EditableStudentType): string => {
 }
 
 const deleteStudent = (row: EditableStudentType) => {
-  const index = tableData.value.indexOf(row)
+  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
   if (index > -1) {
     tableData.value.splice(index, 1)
   }
 }
 
 const addStudentAbove = (row: EditableStudentType) => {
-  const index = tableData.value.indexOf(row)
-  const newStudent: EditableStudentType = { [NAME_PROP]: '', isNew: true }
+  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
+  if (index === -1) return
+  const newStudent: EditableStudentType = {
+    studentId: createStudentId(),
+    [NAME_PROP]: '',
+    isNew: true
+  }
   tableData.value.splice(index, 0, newStudent)
 }
 
 const addStudentBelow = (row: EditableStudentType) => {
-  const index = tableData.value.indexOf(row)
-  const newStudent: EditableStudentType = { [NAME_PROP]: '', isNew: true }
+  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
+  if (index === -1) return
+  const newStudent: EditableStudentType = {
+    studentId: createStudentId(),
+    [NAME_PROP]: '',
+    isNew: true
+  }
   tableData.value.splice(index + 1, 0, newStudent)
 }
 
@@ -80,7 +91,7 @@ const confirmNewStudent = (row: EditableStudentType) => {
 }
 
 const cancelNewStudent = (row: EditableStudentType) => {
-  const index = tableData.value.indexOf(row)
+  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
   if (index > -1) {
     tableData.value.splice(index, 1)
   }
@@ -140,12 +151,12 @@ const confirmTagEdit = (tags: Record<string, string[]>) => {
   currentEditRow.value.tags = tags
   closeTagEditor()
 
-  if (props.returnTo === 'comment' && props.returnStudentName) {
+  if (props.returnTo === 'comment' && props.returnStudentId) {
     router.push({
       path: '/comment',
       query: {
         'resume-edit': '1',
-        'student-name': props.returnStudentName
+        'student-id': props.returnStudentId
       }
     })
   }
@@ -169,8 +180,8 @@ const closeBatchEditor = () => {
 }
 
 const saveBatchEdit = (updatedStudents: EditableStudentType[]) => {
-  updatedStudents.forEach((student, index) => {
-    const originalStudent = tableData.value[index]
+  updatedStudents.forEach((student) => {
+    const originalStudent = tableData.value.find((item) => item.studentId === student.studentId)
     if (originalStudent) {
       originalStudent.tags = student.tags
     }
@@ -280,8 +291,8 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column }) => {
   }
 }
 
-const openTagEditorByName = (name: string) => {
-  const student = tableData.value.find((item) => getStudentName(item) === name)
+const openTagEditorById = (studentId: string) => {
+  const student = tableData.value.find((item) => item.studentId === studentId)
   if (!student) return false
 
   openTagEditor(student)
@@ -308,7 +319,7 @@ const confirmDelete = () => {
 }
 
 defineExpose({
-  openTagEditorByName
+  openTagEditorById
 })
 </script>
 
@@ -340,6 +351,7 @@ defineExpose({
         height="100%"
         :edit-config="editConfig"
         :menu-config="menuConfig"
+        :row-config="{ keyField: 'studentId' }"
         :data="tableData"
         @menu-click="menuClickEvent"
       >
