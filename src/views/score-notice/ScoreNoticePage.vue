@@ -30,8 +30,10 @@ import {
 import { createStoredZip } from '@/utils/zipUntil'
 import { useEvaluationHandwriteFont } from '@/views/evaluation/composables/useEvaluationHandwriteFont'
 
-import type { ScoreNoticeCommentInputType } from '@/ai/aiService'
+import type { AIServiceConfig } from '@/ai/types'
 import type { ScoreNoticeImportResultType, ScoreNoticeStudentType } from '@/types/ScoreNotice'
+import type { StudentDataType } from '@/types/StudentData'
+import type { ScoreNoticeCommentInputType } from '@/ai/aiService'
 
 interface PreviewExposeType {
   getElement: () => HTMLElement | null
@@ -81,10 +83,15 @@ const backToTools = (): void => {
   router.push('/tools')
 }
 
-const resolveTrendSummary = (student: ScoreNoticeStudentType): string => {
-  const sourceStudent = dataStore.students.find(
+/** 优先按系统 ID 关联，旧导入数据缺少 ID 时才回退为姓名匹配。 */
+const findSourceStudent = (student: ScoreNoticeStudentType): StudentDataType | undefined => {
+  return dataStore.students.find(
     (item) => item.studentId === student.sourceStudentId || item.xing4_ming2 === student.name
   )
+}
+
+const resolveTrendSummary = (student: ScoreNoticeStudentType): string => {
+  const sourceStudent = findSourceStudent(student)
   if (!sourceStudent) return '暂无可靠的历史变化信息'
   const scores = settingStore.enabledScoreColumns
     .map((column) => sourceStudent[column.prop])
@@ -98,9 +105,7 @@ const resolveTrendSummary = (student: ScoreNoticeStudentType): string => {
 }
 
 const resolveTagSummary = (student: ScoreNoticeStudentType): string => {
-  const sourceStudent = dataStore.students.find(
-    (item) => item.studentId === student.sourceStudentId || item.xing4_ming2 === student.name
-  )
+  const sourceStudent = findSourceStudent(student)
   if (!sourceStudent?.tags) return '暂无日常表现标签'
   return Object.values(sourceStudent.tags).flat().filter(Boolean).join('、') || '暂无日常表现标签'
 }
@@ -111,6 +116,13 @@ const buildAIInput = (student: ScoreNoticeStudentType): ScoreNoticeCommentInputT
   gradeSummary: buildGradeSummary(student, store.subjects),
   trendSummary: resolveTrendSummary(student),
   tags: resolveTagSummary(student)
+})
+
+const getAIServiceConfig = (): AIServiceConfig => ({
+  modelType: aiConfigStore.modelType,
+  model: aiConfigStore.model,
+  apiKey: aiConfigStore.apiKey,
+  baseUrl: aiConfigStore.baseUrl
 })
 
 const generateForStudents = async (students: ScoreNoticeStudentType[]): Promise<void> => {
@@ -125,12 +137,7 @@ const generateForStudents = async (students: ScoreNoticeStudentType[]): Promise<
     return
   }
 
-  const config = {
-    modelType: aiConfigStore.modelType,
-    model: aiConfigStore.model,
-    apiKey: aiConfigStore.apiKey,
-    baseUrl: aiConfigStore.baseUrl
-  }
+  const config = getAIServiceConfig()
   if (students.length === 1) {
     const student = students[0]
     const comment = await generateScoreNoticeComment(
@@ -161,12 +168,7 @@ const generateSingleDraft = async (student: ScoreNoticeStudentType): Promise<str
 
   return generateScoreNoticeComment(
     buildAIInput(student),
-    {
-      modelType: aiConfigStore.modelType,
-      model: aiConfigStore.model,
-      apiKey: aiConfigStore.apiKey,
-      baseUrl: aiConfigStore.baseUrl
-    },
+    getAIServiceConfig(),
     aiConfigStore.prompts.scoreNoticeSingleComment
   )
 }

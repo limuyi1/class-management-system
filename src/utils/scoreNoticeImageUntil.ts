@@ -6,6 +6,11 @@ export const sanitizeFileName = (value: string): string => {
   return value.replace(/[\\/:*?"<>|]/g, '_').trim() || '成绩通知'
 }
 
+/**
+ * 将 DOM 预览渲染为 PNG。
+ *
+ * 导出前临时注入手写字体，确保图片与页面预览一致；SVG 生成完毕后立即清除样式，避免污染全局 DOM。
+ */
 export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Promise<Blob> => {
   await document.fonts?.ready
   const width = element.offsetWidth

@@ -2,27 +2,25 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildTemplateScoreNoticeComment,
-  containsConcreteScore,
   getScoreNoticeCommentValidationReasons,
-  normalizeScoreNoticeComment,
-  validateScoreNoticeComment
+  normalizeScoreNoticeComment
 } from '../../src/utils/scoreNoticeCommentUntil'
 import { ScoreNoticeCommentStatusEnum } from '../../src/types/ScoreNotice'
 
 describe('scoreNoticeCommentUntil', () => {
   it('rejects comments that reveal concrete scores or rankings', () => {
-    expect(containsConcreteScore('本次考试获得了95分，整体表现不错。')).toBe(true)
-    expect(containsConcreteScore('本次排名有所提升，继续保持。')).toBe(true)
-    expect(validateScoreNoticeComment('本次考试获得了95分，整体表现不错。')).toBe(false)
     expect(getScoreNoticeCommentValidationReasons('本次考试获得了95分，整体表现不错。')).toEqual(
       expect.arrayContaining(['包含具体数字或百分比'])
+    )
+    expect(getScoreNoticeCommentValidationReasons('本次排名有所提升，继续保持。')).toEqual(
+      expect.arrayContaining(['包含名次或排名信息'])
     )
   })
 
   it('accepts a qualitative exam comment', () => {
     const comment =
       '张明轩平时学习态度认真，课堂上能够保持专注，也愿意主动整理学习中遇到的问题。近期整体状态较为稳定，面对不同学习任务时能够按照自己的节奏认真完成，并逐渐形成了及时复习和归纳整理的习惯。\n\n本次考试中，语文和数学表现较为扎实，英语发挥稳定，科学仍有进一步提升的空间。建议认真分析科学学习中出现的问题，区分知识理解、审题和答题习惯等不同原因，通过回顾课本、整理错题和针对性练习逐项巩固。希望你保持优势学科的学习节奏，同时耐心补足薄弱环节，让各科表现更加均衡。'
-    expect(validateScoreNoticeComment(comment)).toBe(true)
+    expect(getScoreNoticeCommentValidationReasons(comment)).toEqual([])
   })
 
   it('requires score notice comments to contain 180 to 320 Chinese characters', () => {
@@ -60,6 +58,6 @@ describe('scoreNoticeCommentUntil', () => {
 
     expect(comment).toContain('本次考试')
     expect(comment).toContain('语文、科学')
-    expect(validateScoreNoticeComment(comment)).toBe(true)
+    expect(getScoreNoticeCommentValidationReasons(comment)).toEqual([])
   })
 })

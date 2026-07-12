@@ -16,6 +16,7 @@ import {
 import type { ExcelRowType } from '@/utils/xlsxUntil'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 使用列名与列序号生成稳定 ID，允许 Excel 中出现同名科目列。 */
 const createSubjectId = (label: string, index: number): string => {
   const base = pinyin(label, { toneType: 'num', type: 'array' }).join('_') || `subject_${index}`
   return `${base}_${index}`
@@ -23,6 +24,11 @@ const createSubjectId = (label: string, index: number): string => {
 
 const normalizeName = (value: unknown): string => String(value ?? '').trim()
 
+/**
+ * 将 Excel 行转换为成绩通知的独立数据结构。
+ *
+ * 重名学生会被跳过，避免无法可靠关联历史表现或覆盖导入后的评语。
+ */
 export const buildScoreNoticeImport = (options: {
   rows: ExcelRowType[]
   nameColumn: string

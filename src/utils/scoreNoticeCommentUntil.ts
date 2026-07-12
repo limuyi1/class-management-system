@@ -4,14 +4,11 @@ import type { ScoreNoticeStudentType, ScoreNoticeSubjectType } from '@/types/Sco
 export const normalizeScoreNoticeComment = (comment: string): string =>
   comment.replace(/\r\n/g, '\n').replace(/\n[\t ]*\n+/g, '\n').trim()
 
-export const containsConcreteScore = (comment: string): boolean => {
-  return /\d|百分之|第[一二三四五六七八九十]+名|名次|排名|平均分|分数/.test(comment)
-}
-
-export const validateScoreNoticeComment = (comment: string): boolean => {
-  return getScoreNoticeCommentValidationReasons(comment).length === 0
-}
-
+/**
+ * 返回不能直接发送给家长的评语原因。
+ *
+ * 成绩通知只展示等级，因此禁止出现具体分数、百分比和排名；同时限制长度，避免版面溢出。
+ */
 export const getScoreNoticeCommentValidationReasons = (comment: string): string[] => {
   const reasons: string[] = []
   const content = comment.trim()

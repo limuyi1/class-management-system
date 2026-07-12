@@ -14,6 +14,7 @@ export const DEFAULT_50_SCORE_RULE: ScoreNoticeGradeRuleType = {
 
 const FIFTY_SCORE_SUBJECTS = ['道法', '道德与法治', '科学']
 
+/** 将 Excel 中可能带有“等”字的等级统一为 A、B、C。 */
 export const normalizeGradeValue = (value: unknown): string | null => {
   if (value === null || value === undefined) return null
   const normalized = String(value)
@@ -45,6 +46,11 @@ export const getDefaultGradeRule = (subjectLabel: string): ScoreNoticeGradeRuleT
   return { ...(isFiftyScore ? DEFAULT_50_SCORE_RULE : DEFAULT_100_SCORE_RULE) }
 }
 
+/**
+ * 从少量非空样本推断导入数据形态。
+ *
+ * 以 70% 为阈值，避免个别空白或错误单元格把等级表误判为分数表。
+ */
 export const detectScoreNoticeMode = (values: unknown[]): ScoreNoticeModeEnum => {
   const samples = values.filter((value) => value !== null && value !== undefined && value !== '')
   if (!samples.length) return ScoreNoticeModeEnum.Grade
