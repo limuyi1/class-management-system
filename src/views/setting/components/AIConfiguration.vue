@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { useAIConfigStore } from '@/stores/ai-config'
 import { featureFlags } from '@/config/features'
@@ -70,7 +70,17 @@ const promptTabs: Array<{
         }
       ]
     : []),
-  { key: 'learningAnalysis', label: '学情分析', placeholder: DefaultAIPrompts.learningAnalysis }
+  { key: 'learningAnalysis', label: '学情分析', placeholder: DefaultAIPrompts.learningAnalysis },
+  {
+    key: 'scoreNoticeSingleComment',
+    label: '通知单评',
+    placeholder: DefaultAIPrompts.scoreNoticeSingleComment
+  },
+  {
+    key: 'scoreNoticeBatchComment',
+    label: '通知批评',
+    placeholder: DefaultAIPrompts.scoreNoticeBatchComment
+  }
 ]
 
 const handleModelChange = async (val: AIModelTypeEnum) => {
@@ -161,6 +171,24 @@ const handleTestConnection = async () => {
 const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
   store.resetPrompt(promptKey)
   ElMessage.success(`${label}提示词已重置为默认值`)
+}
+
+const handleResetAllPrompts = async (): Promise<void> => {
+  try {
+    await ElMessageBox.confirm(
+      '将覆盖所有自定义提示词并恢复为默认值，此操作无法撤销。确定继续吗？',
+      '重置全部提示词',
+      {
+        confirmButtonText: '重置全部',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    store.resetPrompts()
+    ElMessage.success('所有提示词已重置为默认值')
+  } catch {
+    // 用户取消时保持当前提示词不变
+  }
 }
 </script>
 
@@ -268,9 +296,17 @@ const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
       <el-col :span="16">
         <el-card class="prompt-card">
           <template #header>
-            <div class="card-header">
-              <font-awesome-icon :icon="['solid', 'file-lines']" />
-              <span>提示词配置</span>
+            <div class="card-header prompt-card-header">
+              <div class="prompt-card-header__title">
+                <font-awesome-icon :icon="['solid', 'file-lines']" />
+                <span>提示词配置</span>
+              </div>
+              <el-button type="danger" size="small" plain @click="handleResetAllPrompts">
+                <template #icon>
+                  <font-awesome-icon :icon="['solid', 'rotate-left']" />
+                </template>
+                重置全部
+              </el-button>
             </div>
           </template>
 
@@ -400,6 +436,16 @@ const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
 
     svg {
       color: var(--theme-primary);
+    }
+  }
+
+  .prompt-card-header {
+    justify-content: space-between;
+
+    &__title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   }
 

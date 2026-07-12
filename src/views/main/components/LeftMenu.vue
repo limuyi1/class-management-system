@@ -33,16 +33,18 @@ const activePath = computed(() => {
 })
 
 const menuData = computed(() => {
-  return data.filter((item) => !item.hidden).map((item) => {
-    const newItem = { ...item }
-    if (item.path === '/setting' || item.path === '/tools') {
-      newItem.disabled = false
-    } else {
-      newItem.disabled = !hasData.value
-    }
+  return data
+    .filter((item) => !item.hidden)
+    .map((item) => {
+      const newItem = { ...item }
+      if (item.path === '/setting' || item.path === '/tools') {
+        newItem.disabled = false
+      } else {
+        newItem.disabled = !hasData.value
+      }
 
-    return newItem
-  })
+      return newItem
+    })
 })
 
 const handleMenuClick = (item: MenuItemType) => {

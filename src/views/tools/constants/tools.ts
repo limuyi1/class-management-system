@@ -11,6 +11,14 @@ export interface ToolItemType {
 
 export const toolItems: ToolItemType[] = [
   {
+    id: 'score-notice',
+    name: '成绩通知',
+    icon: 'file-signature',
+    path: '/tools/score-notice',
+    description: '导入考试等级或分数，生成可编辑、可复制和批量导出的学生成绩报告。',
+    status: 'available'
+  },
+  {
     id: 'name-list-compare',
     name: '名单核对',
     icon: 'list-check',

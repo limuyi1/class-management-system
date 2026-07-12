@@ -10,6 +10,7 @@ export enum DatabaseTableEnum {
   WrongBook = 'wrong_book',
   OverviewAnalysisCache = 'overview_analysis_cache',
   ToolPreferences = 'tool_preferences',
+  ScoreNotice = 'score_notice',
   Attachments = 'attachments',
   PaperLayoutDrafts = 'paper_layout_drafts'
 }

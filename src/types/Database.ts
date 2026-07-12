@@ -7,6 +7,7 @@ import type {
   PaperLayoutDraftRecordType,
   PaperLayoutSettingsType
 } from './Tools'
+import type { ScoreNoticeStateType } from './ScoreNotice'
 
 export interface StudentDatasetRecord {
   id: string
@@ -97,6 +98,11 @@ export interface ToolsRecord {
 }
 
 export interface ToolPreferencesRecord extends ToolsRecord {
+  updatedAt: string
+}
+
+export interface ScoreNoticeStorageRecord extends ScoreNoticeStateType {
+  id: string
   updatedAt: string
 }
 

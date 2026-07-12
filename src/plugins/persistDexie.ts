@@ -7,6 +7,7 @@ import type {
   AppPreferencesRecord,
   OverviewAnalysisCacheRecord,
   ScoreSettingsRecord,
+  ScoreNoticeStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,
@@ -22,6 +23,7 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useToolsStore } from '@/stores/tools'
+import { useScoreNoticeStore } from '@/stores/score-notice'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
@@ -30,6 +32,7 @@ import { DefaultAIPrompts } from '@/types/AIConfig'
 type PersistableRecordType =
   | StudentDatasetRecord
   | ScoreSettingsRecord
+  | ScoreNoticeStorageRecord
   | AppPreferencesRecord
   | ThemePreferencesRecord
   | AISettingsRecord
@@ -53,6 +56,7 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   wrongBook: db.wrongBook,
   overviewAnalysis: db.overviewAnalysisCache,
   tools: db.toolPreferences,
+  scoreNotice: db.scoreNotice,
   dataSource: db.studentDataset
 }
 
@@ -215,6 +219,7 @@ export function preloadAllStores() {
     useAIConfigStore(),
     useWrongBookStore(),
     useOverviewAnalysisStore(),
-    useToolsStore()
+    useToolsStore(),
+    useScoreNoticeStore()
   ]
 }

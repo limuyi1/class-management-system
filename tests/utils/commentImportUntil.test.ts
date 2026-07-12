@@ -53,6 +53,25 @@ describe('commentImportUntil', () => {
     expect(result.stats.skippedCommentCount).toBe(1)
   })
 
+  it('keeps the current student-table order when Excel rows use a different order', () => {
+    const result = buildIncrementalCommentImport({
+      rows: [
+        { 姓名: '李四', 评语: '李四的新评语' },
+        { 姓名: '张三', 评语: '张三的新评语' }
+      ],
+      existingStudents: students,
+      nameColumn: '姓名',
+      commentColumn: '评语',
+      strategy: 'overwrite'
+    })
+
+    expect(result.students.map((student) => student[NAME_PROP])).toEqual(['张三', '李四'])
+    expect(result.students.map((student) => student.comment)).toEqual([
+      '张三的新评语',
+      '李四的新评语'
+    ])
+  })
+
   it('counts comments that require overwrite confirmation', () => {
     expect(
       countOverwrittenComments({

@@ -16,8 +16,7 @@ let cachedDefaultFontPromise: Promise<Uint8Array> | null = null
 let activeCustomFontFace: FontFace | null = null
 
 // configuration store 目前通过 JSON 持久化，字体二进制需要转成 base64 才能稳定保存。
-const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-  const bytes = new Uint8Array(buffer)
+const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
   const chunkSize = 0x8000
   let binary = ''
 
@@ -28,6 +27,8 @@ const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
 
   return btoa(binary)
 }
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => uint8ArrayToBase64(new Uint8Array(buffer))
 
 const base64ToUint8Array = (value: string): Uint8Array => {
   const binary = atob(value)
@@ -91,6 +92,16 @@ export const getEvaluationHandwriteFontBytes = async (): Promise<Uint8Array> => 
   }
 
   return fetchDefaultHandwriteFontBytes()
+}
+
+/** 为 DOM 图片导出生成可嵌入 CSS 的字体数据地址。 */
+export const getEvaluationHandwriteFontDataUrl = async (): Promise<string> => {
+  const configuration = useConfigurationStore()
+  const bytes = await getEvaluationHandwriteFontBytes()
+  const mimeType = configuration.evaluationHandwriteFont?.name.toLowerCase().endsWith('.otf')
+    ? 'font/otf'
+    : 'font/ttf'
+  return `data:${mimeType};base64,${uint8ArrayToBase64(bytes)}`
 }
 
 export const saveEvaluationHandwriteFont = async (file: File) => {

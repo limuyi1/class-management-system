@@ -1,4 +1,5 @@
 import { AIModelTypeEnum, DefaultAIPrompts } from '@/types/AIConfig'
+import { normalizeScoreNoticeComment } from '@/utils/scoreNoticeCommentUntil'
 
 import type { AIServiceConfig } from '@/ai/types'
 import {
@@ -62,6 +63,19 @@ interface QuestionResult {
 interface AnswerGenerateResult {
   answer: string
   explanation: string
+}
+
+export interface ScoreNoticeCommentInputType {
+  studentId: string
+  name: string
+  gradeSummary: string
+  trendSummary: string
+  tags: string
+}
+
+export interface ScoreNoticeCommentResultType {
+  studentId: string
+  comment: string
 }
 
 function formatTemplateValue(value: unknown): string {
@@ -337,7 +351,9 @@ export async function generateBatchComments(
   const promptText =
     replaceTemplate(prompt, {
       students: studentsJson
-    }) + buildStudentIdentityGuidance() + buildClassicExpressionUsageGuidance(options)
+    }) +
+    buildStudentIdentityGuidance() +
+    buildClassicExpressionUsageGuidance(options)
 
   const responseText = await generateText(config, promptText)
   const parsed = parseArrayWithFallback<{
@@ -356,6 +372,42 @@ export async function generateBatchComments(
   }))
 }
 
+export async function generateScoreNoticeComment(
+  student: ScoreNoticeCommentInputType,
+  config: AIServiceConfig,
+  prompt = DefaultAIPrompts.scoreNoticeSingleComment
+): Promise<string> {
+  const responseText = await generateText(
+    config,
+    replaceTemplate(prompt, { student: JSON.stringify(student, null, 2) })
+  )
+  return normalizeScoreNoticeComment(responseText)
+}
+
+export async function generateScoreNoticeComments(
+  students: ScoreNoticeCommentInputType[],
+  config: AIServiceConfig,
+  prompt = DefaultAIPrompts.scoreNoticeBatchComment
+): Promise<ScoreNoticeCommentResultType[]> {
+  const responseText = await generateText(
+    config,
+    replaceTemplate(prompt, { students: JSON.stringify(students, null, 2) })
+  )
+  const parsed = parseArrayWithFallback<ScoreNoticeCommentResultType>(
+    responseText,
+    [],
+    'generateScoreNoticeComments'
+  )
+  const resultMap = new Map(
+    parsed.map((item) => [item.studentId, normalizeScoreNoticeComment(item.comment || '')])
+  )
+
+  return students.map((student) => ({
+    studentId: student.studentId,
+    comment: resultMap.get(student.studentId) || ''
+  }))
+}
+
 /**
  * 批量润色已有学生评语。
  */
@@ -369,7 +421,9 @@ export async function polishBatchComments(
   const promptText =
     replaceTemplate(prompt || DefaultAIPrompts.batchCommentPolish, {
       students: studentsJson
-    }) + buildStudentIdentityGuidance() + buildClassicExpressionUsageGuidance(options)
+    }) +
+    buildStudentIdentityGuidance() +
+    buildClassicExpressionUsageGuidance(options)
 
   const responseText = await generateText(config, promptText)
   return parseArrayWithFallback<PolishedCommentResult>(responseText, [], 'polishBatchComments')

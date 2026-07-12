@@ -104,6 +104,7 @@ export const buildIncrementalCommentImport = (
     duplicateStudentCount
   }
 
+  // 只按 Excel 姓名匹配更新评语，始终沿用系统学生数组的当前顺序，避免导入后重排表格。
   const students = options.existingStudents.map((student) => {
     const name = normalizeText(student[NAME_PROP])
     const row = rowsByName.get(name)

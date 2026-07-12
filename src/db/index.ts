@@ -9,6 +9,7 @@ import type {
   OverviewAnalysisCacheRecord,
   PaperLayoutDraftRecord,
   ScoreSettingsRecord,
+  ScoreNoticeStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,
@@ -24,6 +25,7 @@ export class SCSDatabase extends Dexie {
   wrongBook!: Table<WrongBookStorageRecord>
   overviewAnalysisCache!: Table<OverviewAnalysisCacheRecord>
   toolPreferences!: Table<ToolPreferencesRecord>
+  scoreNotice!: Table<ScoreNoticeStorageRecord>
   attachments!: Table<AttachmentRecord>
   paperLayoutDrafts!: Table<PaperLayoutDraftRecord>
 
@@ -42,6 +44,20 @@ export class SCSDatabase extends Dexie {
       [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt'
     })
 
+    this.version(2).stores({
+      [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
+      [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
+      [DatabaseTableEnum.AppPreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.ThemePreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.AISettings]: 'id, updatedAt',
+      [DatabaseTableEnum.WrongBook]: 'id, updatedAt',
+      [DatabaseTableEnum.OverviewAnalysisCache]: 'id, updatedAt',
+      [DatabaseTableEnum.ToolPreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.ScoreNotice]: 'id, updatedAt',
+      [DatabaseTableEnum.Attachments]: 'id, sortOrder, name, createdAt, updatedAt',
+      [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt'
+    })
+
     this.studentDataset = this.table(DatabaseTableEnum.StudentDataset)
     this.scoreSettings = this.table(DatabaseTableEnum.ScoreSettings)
     this.appPreferences = this.table(DatabaseTableEnum.AppPreferences)
@@ -50,6 +66,7 @@ export class SCSDatabase extends Dexie {
     this.wrongBook = this.table(DatabaseTableEnum.WrongBook)
     this.overviewAnalysisCache = this.table(DatabaseTableEnum.OverviewAnalysisCache)
     this.toolPreferences = this.table(DatabaseTableEnum.ToolPreferences)
+    this.scoreNotice = this.table(DatabaseTableEnum.ScoreNotice)
     this.attachments = this.table(DatabaseTableEnum.Attachments)
     this.paperLayoutDrafts = this.table(DatabaseTableEnum.PaperLayoutDrafts)
   }
@@ -66,6 +83,7 @@ export type {
   OverviewAnalysisCacheRecord,
   PaperLayoutDraftRecord,
   ScoreSettingsRecord,
+  ScoreNoticeStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,

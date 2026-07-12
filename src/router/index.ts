@@ -65,6 +65,11 @@ const router = createRouter({
           component: () => import('@/views/tools/PaperLayoutPage.vue')
         },
         {
+          path: '/tools/score-notice',
+          name: 'ScoreNotice',
+          component: () => import('@/views/score-notice/ScoreNoticePage.vue')
+        },
+        {
           path: '/setting',
           name: 'Setting',
           component: () => import('@/views/setting/SettingPage.vue')
@@ -90,6 +95,7 @@ export function createDataGuard(
       '/tools/name-list-compare',
       '/tools/attachments',
       '/tools/paper-layout',
+      '/tools/score-notice',
       '/setting'
     ]
 
