@@ -52,6 +52,12 @@ const subjectGridStyle = computed(() => {
   return { '--subject-card-width': cardWidth }
 })
 const commentLength = computed(() => (props.student?.comment || '').replace(/\s/g, '').length)
+const titleLengthClass = computed(() => {
+  const length = (props.title || '考试成绩通知').replace(/\s/g, '').length
+  if (length > 16) return 'score-report__title--long'
+  if (length > 10) return 'score-report__title--medium'
+  return ''
+})
 const gradeRibbonUrls = [
   gradeRibbonGreenUrl,
   gradeRibbonBlueUrl,
@@ -136,18 +142,20 @@ defineExpose({
       />
 
       <header class="score-report__header">
-        <img class="score-report__logo" :src="logoUrl" alt="" aria-hidden="true" />
-        <div class="score-report__title-wrap">
-          <div class="score-report__title-cap" aria-hidden="true">
-            <span></span><i>✦</i><span></span>
-          </div>
-          <h1>{{ title || '考试成绩通知' }}</h1>
-          <div class="score-report__title-ornament" aria-hidden="true">
-            <span></span>
-            <img :src="ornamentLaurelUrl" alt="" />
-            <img class="score-report__title-star" :src="ornamentStarUrl" alt="" />
-            <img class="score-report__title-laurel--right" :src="ornamentLaurelUrl" alt="" />
-            <span></span>
+        <div class="score-report__heading-group">
+          <img class="score-report__logo" :src="logoUrl" alt="" aria-hidden="true" />
+          <div class="score-report__title-wrap">
+            <div class="score-report__title-cap" aria-hidden="true">
+              <span></span><i>✦</i><span></span>
+            </div>
+            <h1 :class="titleLengthClass">{{ title || '考试成绩通知' }}</h1>
+            <div class="score-report__title-ornament" aria-hidden="true">
+              <span></span>
+              <img :src="ornamentLaurelUrl" alt="" />
+              <img class="score-report__title-star" :src="ornamentStarUrl" alt="" />
+              <img class="score-report__title-laurel--right" :src="ornamentLaurelUrl" alt="" />
+              <span></span>
+            </div>
           </div>
         </div>
       </header>
@@ -369,41 +377,66 @@ defineExpose({
   min-height: 230px;
   padding: 0 55px;
 }
+.score-report__heading-group {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  transform: translateX(-52px);
+}
 .score-report__logo {
   flex: 0 0 auto;
-  width: 178px;
-  height: 178px;
+  width: 190px;
+  height: 190px;
   object-fit: contain;
   filter:
     drop-shadow(0 8px 10px rgba(63, 41, 11, 0.2))
     drop-shadow(0 2px 2px rgba(63, 41, 11, 0.16));
 }
 .score-report__title-wrap {
+  position: relative;
   min-width: 0;
+  width: fit-content;
+  max-width: 900px;
+  padding: 28px 0 52px;
 }
 .score-report__title-wrap h1 {
   max-width: 900px;
-  margin: 8px 0 0;
+  margin: 0;
   overflow-wrap: anywhere;
+  color: #123f3a;
   font-family: 'Source Han Serif SC', STSong, 'Songti SC', SimSun, serif;
-  font-size: 74px;
-  font-weight: 900;
-  line-height: 1.15;
+  font-size: 80px;
+  font-weight: 700;
+  font-synthesis: weight;
+  line-height: 1.1;
   text-align: center;
-  letter-spacing: 5px;
-  -webkit-text-stroke: 0.45px rgba(191, 150, 65, 0.48);
+  letter-spacing: 4px;
+  -webkit-text-stroke: 0.5px rgba(18, 63, 58, 0.5);
   text-shadow:
-    0 1px 0 rgba(255, 247, 220, 0.72),
-    0 3px 4px rgba(48, 34, 11, 0.16);
+    0 2px 0 rgba(255, 248, 224, 0.9),
+    0 3px 5px rgba(48, 34, 11, 0.16);
+}
+.score-report__title-wrap h1.score-report__title--medium {
+  font-size: 68px;
+  letter-spacing: 3px;
+}
+.score-report__title-wrap h1.score-report__title--long {
+  font-size: 56px;
+  letter-spacing: 2px;
 }
 .score-report__title-cap,
 .score-report__title-ornament {
+  position: absolute;
+  left: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #b4822f;
+  transform: translateX(-50%);
 }
 .score-report__title-cap {
+  top: 0;
   gap: 12px;
   font-size: 20px;
 }
@@ -416,8 +449,8 @@ defineExpose({
   transform: scaleX(-1);
 }
 .score-report__title-ornament {
+  bottom: 0;
   gap: 10px;
-  margin-top: 18px;
 }
 .score-report__title-ornament > span {
   width: 145px;
