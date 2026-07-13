@@ -10,6 +10,7 @@ import type {
   PaperLayoutDraftRecord,
   ScoreSettingsRecord,
   ScoreNoticeStorageRecord,
+  SeatingChartStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,
@@ -28,6 +29,7 @@ export class SCSDatabase extends Dexie {
   scoreNotice!: Table<ScoreNoticeStorageRecord>
   attachments!: Table<AttachmentRecord>
   paperLayoutDrafts!: Table<PaperLayoutDraftRecord>
+  seatingCharts!: Table<SeatingChartStorageRecord>
 
   constructor() {
     super(DATABASE_NAME)
@@ -58,6 +60,15 @@ export class SCSDatabase extends Dexie {
       [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt'
     })
 
+    this.version(3).stores({
+      [DatabaseTableEnum.StudentDataset]: 'id, updatedAt', [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
+      [DatabaseTableEnum.AppPreferences]: 'id, updatedAt', [DatabaseTableEnum.ThemePreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.AISettings]: 'id, updatedAt', [DatabaseTableEnum.WrongBook]: 'id, updatedAt',
+      [DatabaseTableEnum.OverviewAnalysisCache]: 'id, updatedAt', [DatabaseTableEnum.ToolPreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.ScoreNotice]: 'id, updatedAt', [DatabaseTableEnum.Attachments]: 'id, sortOrder, name, createdAt, updatedAt',
+      [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt', [DatabaseTableEnum.SeatingCharts]: 'id, updatedAt'
+    })
+
     this.studentDataset = this.table(DatabaseTableEnum.StudentDataset)
     this.scoreSettings = this.table(DatabaseTableEnum.ScoreSettings)
     this.appPreferences = this.table(DatabaseTableEnum.AppPreferences)
@@ -69,6 +80,7 @@ export class SCSDatabase extends Dexie {
     this.scoreNotice = this.table(DatabaseTableEnum.ScoreNotice)
     this.attachments = this.table(DatabaseTableEnum.Attachments)
     this.paperLayoutDrafts = this.table(DatabaseTableEnum.PaperLayoutDrafts)
+    this.seatingCharts = this.table(DatabaseTableEnum.SeatingCharts)
   }
 }
 
@@ -84,6 +96,7 @@ export type {
   PaperLayoutDraftRecord,
   ScoreSettingsRecord,
   ScoreNoticeStorageRecord,
+  SeatingChartStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,

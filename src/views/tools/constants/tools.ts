@@ -11,6 +11,10 @@ export interface ToolItemType {
 
 export const toolItems: ToolItemType[] = [
   {
+    id: 'seating-chart', name: '座位表', icon: 'chair', path: '/tools/seating-chart',
+    description: '创建多套座位方案，支持手动拖拽安排、过道设置和随机排座。', status: 'available'
+  },
+  {
     id: 'score-notice',
     name: '成绩通知',
     icon: 'file-signature',

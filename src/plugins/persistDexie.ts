@@ -8,6 +8,7 @@ import type {
   OverviewAnalysisCacheRecord,
   ScoreSettingsRecord,
   ScoreNoticeStorageRecord,
+  SeatingChartStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,
@@ -24,6 +25,7 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useToolsStore } from '@/stores/tools'
 import { useScoreNoticeStore } from '@/stores/score-notice'
+import { useSeatingChartStore } from '@/stores/seating-chart'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
@@ -39,6 +41,7 @@ type PersistableRecordType =
   | WrongBookStorageRecord
   | OverviewAnalysisCacheRecord
   | ToolPreferencesRecord
+  | SeatingChartStorageRecord
 
 interface DataSourceLikeStoreType {
   isInitialLoading: boolean
@@ -57,6 +60,7 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   overviewAnalysis: db.overviewAnalysisCache,
   tools: db.toolPreferences,
   scoreNotice: db.scoreNotice,
+  seatingChart: db.seatingCharts,
   dataSource: db.studentDataset
 }
 
@@ -93,6 +97,9 @@ export function createPersistedStateDexie() {
       }
       if (storeId === 'configuration') {
         state.recentScoreEntries = normalizeRecentScoreEntries(state.recentScoreEntries)
+      }
+      if (storeId === 'seatingChart') {
+        delete state.activeChartId
       }
       store.$patch(state as _DeepPartial<StateTree>)
     }
@@ -221,5 +228,6 @@ export function preloadAllStores() {
     useOverviewAnalysisStore(),
     useToolsStore(),
     useScoreNoticeStore()
+    ,useSeatingChartStore()
   ]
 }

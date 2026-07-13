@@ -8,6 +8,7 @@ import type {
   PaperLayoutSettingsType
 } from './Tools'
 import type { ScoreNoticeStateType } from './ScoreNotice'
+import type { SeatingChartStateType } from './SeatingChart'
 
 export interface StudentDatasetRecord {
   id: string
@@ -102,6 +103,11 @@ export interface ToolPreferencesRecord extends ToolsRecord {
 }
 
 export interface ScoreNoticeStorageRecord extends ScoreNoticeStateType {
+  id: string
+  updatedAt: string
+}
+
+export interface SeatingChartStorageRecord extends SeatingChartStateType {
   id: string
   updatedAt: string
 }

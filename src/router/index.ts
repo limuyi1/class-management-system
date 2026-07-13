@@ -70,6 +70,11 @@ const router = createRouter({
           component: () => import('@/views/score-notice/ScoreNoticePage.vue')
         },
         {
+          path: '/tools/seating-chart',
+          name: 'SeatingChart',
+          component: () => import('@/views/seating-chart/SeatingChartPage.vue')
+        },
+        {
           path: '/setting',
           name: 'Setting',
           component: () => import('@/views/setting/SettingPage.vue')
@@ -96,6 +101,7 @@ export function createDataGuard(
       '/tools/attachments',
       '/tools/paper-layout',
       '/tools/score-notice',
+      '/tools/seating-chart',
       '/setting'
     ]
 

@@ -12,5 +12,6 @@ export enum DatabaseTableEnum {
   ToolPreferences = 'tool_preferences',
   ScoreNotice = 'score_notice',
   Attachments = 'attachments',
-  PaperLayoutDrafts = 'paper_layout_drafts'
+  PaperLayoutDrafts = 'paper_layout_drafts',
+  SeatingCharts = 'seating_charts'
 }

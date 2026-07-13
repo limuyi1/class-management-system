@@ -10,6 +10,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useThemeStore } from '@/stores/theme'
 import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
+import { useSeatingChartStore } from '@/stores/seating-chart'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
@@ -32,6 +33,7 @@ const resetRuntimeStores = () => {
   const aiConfigStore = useAIConfigStore()
   const wrongBookStore = useWrongBookStore()
   const toolsStore = useToolsStore()
+  const seatingChartStore = useSeatingChartStore()
 
   dataStore.students = []
   dataStore.isInitialLoading = true
@@ -40,6 +42,7 @@ const resetRuntimeStores = () => {
   aiConfigStore.$reset()
   wrongBookStore.$reset()
   toolsStore.$reset()
+  seatingChartStore.$reset()
   // theme 是 setup store，重置时还需要同步刷新 documentElement 上的主题 CSS 变量。
   themeStore.resetTheme()
 }
@@ -53,8 +56,9 @@ const hydrateRuntimeStores = async () => {
   const wrongBookStore = useWrongBookStore()
   const overviewAnalysisStore = useOverviewAnalysisStore()
   const toolsStore = useToolsStore()
+  const seatingChartStore = useSeatingChartStore()
 
-  const [dataSource, setting, configuration, theme, aiConfig, wrongBook, overviewAnalysis, tools] =
+  const [dataSource, setting, configuration, theme, aiConfig, wrongBook, overviewAnalysis, tools, seatingCharts] =
     await Promise.all([
       db.studentDataset.get(DB_ID),
       db.scoreSettings.get(DB_ID),
@@ -64,6 +68,7 @@ const hydrateRuntimeStores = async () => {
       db.wrongBook.get(DB_ID),
       db.overviewAnalysisCache.get(DB_ID),
       db.toolPreferences.get(DB_ID)
+      ,db.seatingCharts.get(DB_ID)
     ])
 
   dataStore.students = normalizeStoredStudents(dataSource?.students)
@@ -127,6 +132,12 @@ const hydrateRuntimeStores = async () => {
     toolsStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
+  }
+  if (seatingCharts) {
+    const { id, updatedAt, ...state } = seatingCharts
+    void id; void updatedAt
+    seatingChartStore.$patch((storeState) => { Object.assign(storeState, state) })
+    seatingChartStore.reconcileStudents()
   }
 }
 
@@ -209,6 +220,7 @@ export async function clearDatabase(onProgress?: (percent: number) => void, comp
     await db.attachments.clear()
     await db.paperLayoutDrafts.clear()
     await db.toolPreferences.clear()
+    await db.seatingCharts.clear()
     onProgress?.(90)
     resetRuntimeStores()
     onProgress?.(100)
