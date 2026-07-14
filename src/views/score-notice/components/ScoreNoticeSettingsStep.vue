@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { computed } from 'vue'
 
 import { useScoreNoticeStore } from '@/stores/score-notice'
 import { ScoreNoticeModeEnum } from '@/types/ScoreNotice'
@@ -16,13 +16,11 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   toggle: []
-  continue: []
   chooseHandwriteFont: []
   clearHandwriteFont: []
 }>()
 
 const store = useScoreNoticeStore()
-const appearanceExpanded = shallowRef(false)
 const canUseScoreMode = computed(() => store.sourceMode === ScoreNoticeModeEnum.Score)
 
 const handleModeChange = (value: string | number | boolean | undefined): void => {
@@ -89,26 +87,12 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
         </div>
       </div>
 
-      <button
-        class="notice-settings__appearance-toggle"
-        type="button"
-        :aria-expanded="appearanceExpanded"
-        @click="appearanceExpanded = !appearanceExpanded"
-      >
-        <span><font-awesome-icon :icon="['solid', 'font']" /> 外观设置</span>
-        <span>
-          {{ handwriteFontName || '默认手写字体' }}
-          <font-awesome-icon
-            :class="{ 'is-expanded': appearanceExpanded }"
-            :icon="['solid', 'chevron-down']"
-          />
-        </span>
-      </button>
-
-      <div v-show="appearanceExpanded" class="notice-settings__appearance">
+      <div class="notice-settings__appearance">
         <div>
-          <strong>学生姓名手写字体</strong>
-          <small>仅影响通知图片中的学生姓名</small>
+          <strong><font-awesome-icon :icon="['solid', 'font']" /> 学生姓名手写字体</strong>
+          <small>
+            当前：{{ handwriteFontName || '默认手写字体' }} · 仅影响通知图片中的学生姓名
+          </small>
         </div>
         <el-button
           size="small"
@@ -124,14 +108,6 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
           @click="emit('clearHandwriteFont')"
         >
           恢复默认
-        </el-button>
-      </div>
-
-      <div class="notice-settings__footer">
-        <span>左侧预览会实时更新</span>
-        <el-button type="primary" @click="emit('continue')">
-          处理学生评语
-          <font-awesome-icon :icon="['solid', 'arrow-right']" />
         </el-button>
       </div>
     </div>
@@ -162,8 +138,7 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
   cursor: not-allowed;
   opacity: 0.55;
 }
-.notice-step__head:focus-visible,
-.notice-settings__appearance-toggle:focus-visible {
+.notice-step__head:focus-visible {
   outline: 2px solid var(--el-color-primary-light-5);
   outline-offset: 3px;
 }
@@ -226,42 +201,15 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
 .notice-settings__grid :deep(.el-segmented) {
   width: 100%;
 }
-.notice-settings__appearance-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-top: 12px;
-  padding: 9px 10px;
-  color: var(--el-text-color-regular);
-  font-size: 12px;
-  background: var(--el-fill-color-lighter);
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 6px;
-  cursor: pointer;
-}
-.notice-settings__appearance-toggle span {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.notice-settings__appearance-toggle span:last-child {
-  min-width: 0;
-  color: var(--el-text-color-secondary);
-}
-.notice-settings__appearance-toggle span:last-child svg {
-  flex: 0 0 auto;
-  font-size: 10px;
-  transition: transform 0.18s ease;
-}
-.notice-settings__appearance-toggle span:last-child svg.is-expanded {
-  transform: rotate(180deg);
-}
 .notice-settings__appearance {
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 10px 3px 2px;
+  margin-top: 12px;
+  padding: 10px;
+  background: var(--el-fill-color-lighter);
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 6px;
 }
 .notice-settings__appearance > div {
   display: flex;
@@ -271,6 +219,9 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
   gap: 2px;
 }
 .notice-settings__appearance strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   overflow: hidden;
   font-size: 12px;
   text-overflow: ellipsis;
@@ -283,21 +234,5 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
 .notice-settings__appearance .el-button {
   flex: 0 0 auto;
   margin-left: 0;
-}
-.notice-settings__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 13px;
-  padding-top: 12px;
-  border-top: 1px solid var(--el-border-color-lighter);
-}
-.notice-settings__footer > span {
-  color: var(--el-text-color-secondary);
-  font-size: 11px;
-}
-.notice-settings__footer .el-button svg {
-  margin-left: 5px;
 }
 </style>

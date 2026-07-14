@@ -78,17 +78,21 @@ describe('ScoreNoticeControlPanel', () => {
       'true'
     )
     expect(wrapper.text()).toContain('期中考试.xlsx')
-    expect(wrapper.text()).toContain('处理学生评语')
+    expect(wrapper.get('.notice-settings__appearance').text()).toContain('默认手写字体')
+    expect(wrapper.get('.notice-settings__appearance').text()).toContain('更换字体')
+    expect(wrapper.find('.notice-settings__appearance-toggle').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('左侧预览会实时更新')
+    expect(wrapper.text()).not.toContain('处理学生评语')
   })
 
-  it('moves from settings to the comment workspace with an explicit next action', async () => {
+  it('opens the comment workspace without closing settings', async () => {
     seedStudents()
     const wrapper = mountPanel()
 
-    await wrapper.get('.notice-settings__footer .el-button--primary').trigger('click')
+    await wrapper.get('[data-testid="notice-section-students"]').trigger('click')
 
     expect(wrapper.get('[data-testid="notice-section-settings"]').attributes('aria-expanded')).toBe(
-      'false'
+      'true'
     )
     expect(wrapper.get('[data-testid="notice-section-students"]').attributes('aria-expanded')).toBe(
       'true'
@@ -97,10 +101,59 @@ describe('ScoreNoticeControlPanel', () => {
     expect(wrapper.text()).toContain('生成待处理评语（1）')
   })
 
+  it('allows each available section to open and close independently', async () => {
+    seedStudents()
+    const wrapper = mountPanel()
+    const importSection = wrapper.get('[data-testid="notice-section-import"]')
+    const settingsSection = wrapper.get('[data-testid="notice-section-settings"]')
+    const studentsSection = wrapper.get('[data-testid="notice-section-students"]')
+
+    await importSection.trigger('click')
+    await studentsSection.trigger('click')
+
+    expect(importSection.attributes('aria-expanded')).toBe('true')
+    expect(settingsSection.attributes('aria-expanded')).toBe('true')
+    expect(studentsSection.attributes('aria-expanded')).toBe('true')
+
+    await settingsSection.trigger('click')
+
+    expect(importSection.attributes('aria-expanded')).toBe('true')
+    expect(settingsSection.attributes('aria-expanded')).toBe('false')
+    expect(studentsSection.attributes('aria-expanded')).toBe('true')
+
+    await studentsSection.trigger('click')
+
+    expect(importSection.attributes('aria-expanded')).toBe('true')
+    expect(settingsSection.attributes('aria-expanded')).toBe('false')
+    expect(studentsSection.attributes('aria-expanded')).toBe('false')
+  })
+
+  it('does not reopen settings when persisted students are patched after filtering', async () => {
+    seedStudents()
+    const store = useScoreNoticeStore()
+    const wrapper = mountPanel()
+    const settingsSection = wrapper.get('[data-testid="notice-section-settings"]')
+
+    await settingsSection.trigger('click')
+    expect(settingsSection.attributes('aria-expanded')).toBe('false')
+
+    const completedFilter = wrapper
+      .findAll('.notice-comments__filters button')
+      .find((button) => button.text().includes('已完成'))
+    expect(completedFilter).toBeDefined()
+
+    await completedFilter!.trigger('click')
+    store.students = store.students.map((student) => ({ ...student }))
+    await wrapper.vm.$nextTick()
+
+    expect(store.selectedStudentId).toBe('student-2')
+    expect(settingsSection.attributes('aria-expanded')).toBe('false')
+  })
+
   it('emits a safe fill-empty batch action from the primary button', async () => {
     seedStudents()
     const wrapper = mountPanel()
-    await wrapper.get('.notice-settings__footer .el-button--primary').trigger('click')
+    await wrapper.get('[data-testid="notice-section-students"]').trigger('click')
 
     await wrapper.get('.notice-comments__batch-button').trigger('click')
 
@@ -111,7 +164,7 @@ describe('ScoreNoticeControlPanel', () => {
     seedStudents()
     const store = useScoreNoticeStore()
     const wrapper = mountPanel()
-    await wrapper.get('.notice-settings__footer .el-button--primary').trigger('click')
+    await wrapper.get('[data-testid="notice-section-students"]').trigger('click')
     const generated =
       '本次考试整体表现较为稳定，平时能够认真完成学习任务，也会主动整理需要巩固的内容。建议继续保持专注听讲、及时订正和规律复习的习惯，让各科基础更加扎实，面对新的学习任务时更有信心。'.repeat(
         3
@@ -135,7 +188,7 @@ describe('ScoreNoticeControlPanel', () => {
     seedStudents()
     const store = useScoreNoticeStore()
     const wrapper = mountPanel()
-    await wrapper.get('.notice-settings__footer .el-button--primary').trigger('click')
+    await wrapper.get('[data-testid="notice-section-students"]').trigger('click')
     const edited = '评语草稿会在切换学生前自动保存。'
 
     await wrapper.get('textarea').setValue(edited)

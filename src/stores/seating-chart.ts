@@ -38,6 +38,17 @@ const clearChartAssignments = (chart: SeatingChartType): void => {
   })
 }
 
+const resolveStoredStudentSource = (
+  chart: SeatingChartType,
+  hasSystemStudents: boolean
+): StudentSourceType => {
+  if (chart.studentSource === 'system' || chart.studentSource === 'excel') {
+    return chart.studentSource
+  }
+  if (hasSystemStudents) return 'system'
+  return chart.excelSource?.students.length ? 'excel' : 'system'
+}
+
 export const useSeatingChartStore = defineStore('seatingChart', {
   state: (): SeatingChartStateType => ({
     charts: [],
@@ -139,6 +150,9 @@ export const useSeatingChartStore = defineStore('seatingChart', {
     },
     setEditingChart(chartId: string): void {
       if (this.charts.some((chart) => chart.id === chartId)) this.editingChartId = chartId
+    },
+    startCreatingChart(): void {
+      this.editingChartId = null
     },
     setSidebarCollapsed(value: boolean): void {
       this.isSidebarCollapsed = value
@@ -244,8 +258,12 @@ export const useSeatingChartStore = defineStore('seatingChart', {
     reconcileStudents(): void {
       const systemStudents = useDataSourceStore().enabledData
       this.charts = this.charts.map((chart) => {
-        const students = resolveSeatingChartStudents(chart, systemStudents)
-        return normalizeChart(chart, new Set(students.map((student) => student.id)))
+        const normalizedChart = {
+          ...chart,
+          studentSource: resolveStoredStudentSource(chart, systemStudents.length > 0)
+        }
+        const students = resolveSeatingChartStudents(normalizedChart, systemStudents)
+        return normalizeChart(normalizedChart, new Set(students.map((student) => student.id)))
       })
       if (!this.charts.some((chart) => chart.id === this.editingChartId)) {
         this.editingChartId = this.charts[0]?.id || null

@@ -49,8 +49,11 @@ const previewVisible = ref(false)
 const specialSeatVisible = ref(false)
 const exportVisible = shallowRef(false)
 const studentImportVisible = shallowRef(false)
-const pendingExcelCreate = shallowRef(false)
-const pendingCreateLayout = ref({ rows: 6, columns: 6 })
+const studentImportTarget = shallowRef<'create' | 'replace'>('create')
+const initialStudentSource = ref<StudentSourceType>(
+  dataSourceStore.enabledData.length ? 'system' : 'excel'
+)
+const initialExcelSource = shallowRef<ExcelStudentSourceType | null>(null)
 const layout = ref({ rows: 6, columns: 6 })
 const initialLayout = ref({ rows: 6, columns: 6 })
 const aisles = ref<number[]>([])
@@ -75,7 +78,11 @@ const visibleSeatRows = computed(() => {
 
 watch(
   () => dataSourceStore.enabledData.map((student) => student.studentId).join(','),
-  () => seatingStore.reconcileStudents()
+  () => {
+    seatingStore.reconcileStudents()
+    if (editingChart.value || initialExcelSource.value) return
+    initialStudentSource.value = dataSourceStore.enabledData.length ? 'system' : 'excel'
+  }
 )
 
 onMounted(() => {
@@ -91,16 +98,13 @@ function backToTools(): void {
   router.push('/tools')
 }
 function createChart(): void {
-  if (dataSourceStore.enabledData.length) {
-    seatingStore.createChart({ studentSource: 'system' })
-    return
-  }
-  pendingExcelCreate.value = true
-  pendingCreateLayout.value = { rows: 6, columns: 6 }
-  studentImportVisible.value = true
+  initialLayout.value = { rows: 6, columns: 6 }
+  initialExcelSource.value = null
+  initialStudentSource.value = dataSourceStore.enabledData.length ? 'system' : 'excel'
+  seatingStore.startCreatingChart()
 }
 function createInitialChart(): void {
-  if (dataSourceStore.enabledData.length) {
+  if (initialStudentSource.value === 'system' && dataSourceStore.enabledData.length) {
     seatingStore.createChart({
       studentSource: 'system',
       rows: initialLayout.value.rows,
@@ -108,9 +112,16 @@ function createInitialChart(): void {
     })
     return
   }
-  pendingExcelCreate.value = true
-  pendingCreateLayout.value = { ...initialLayout.value }
-  studentImportVisible.value = true
+  if (!initialExcelSource.value) {
+    openInitialStudentImport()
+    return
+  }
+  seatingStore.createChart({
+    studentSource: 'excel',
+    excelSource: initialExcelSource.value,
+    rows: initialLayout.value.rows,
+    columns: initialLayout.value.columns
+  })
 }
 
 async function confirmClearAssignments(): Promise<boolean> {
@@ -131,7 +142,7 @@ async function handleStudentSourceChange(source: StudentSourceType): Promise<voi
 
   if (source === 'excel') {
     if (!editingChart.value.excelSource) {
-      pendingExcelCreate.value = false
+      studentImportTarget.value = 'replace'
       studentImportVisible.value = true
       return
     }
@@ -143,25 +154,26 @@ async function handleStudentSourceChange(source: StudentSourceType): Promise<voi
 
 async function openStudentImport(): Promise<void> {
   if (editingChart.value && !(await confirmClearAssignments())) return
-  pendingExcelCreate.value = !editingChart.value
-  pendingCreateLayout.value = editingChart.value
-    ? { rows: editingChart.value.rows, columns: editingChart.value.columns }
-    : { ...initialLayout.value }
+  studentImportTarget.value = editingChart.value ? 'replace' : 'create'
   studentImportVisible.value = true
 }
 
+function openInitialStudentImport(): void {
+  studentImportTarget.value = 'create'
+  studentImportVisible.value = true
+}
+
+function handleInitialStudentSourceChange(source: StudentSourceType): void {
+  initialStudentSource.value = source
+}
+
 function handleExcelStudentImport(source: ExcelStudentSourceType): void {
-  if (pendingExcelCreate.value || !editingChart.value) {
-    seatingStore.createChart({
-      studentSource: 'excel',
-      excelSource: source,
-      rows: pendingCreateLayout.value.rows,
-      columns: pendingCreateLayout.value.columns
-    })
-  } else {
+  if (studentImportTarget.value === 'replace' && editingChart.value) {
     seatingStore.setStudentSource('excel', source)
+  } else {
+    initialExcelSource.value = source
+    initialStudentSource.value = 'excel'
   }
-  pendingExcelCreate.value = false
   ElMessage.success(`已导入 ${source.students.length} 名学生`)
 }
 function selectChart(chartId: string): void {
@@ -327,7 +339,13 @@ function handleKeydown(event: KeyboardEvent): void {
           ><font-awesome-icon :icon="['solid', 'arrow-left']" /></el-button
       ></template>
     </page-header>
-    <div class="seating-workspace" :class="{ collapsed: seatingStore.isSidebarCollapsed }">
+    <div
+      class="seating-workspace"
+      :class="{
+        collapsed: seatingStore.isSidebarCollapsed,
+        'has-chart': Boolean(editingChart)
+      }"
+    >
       <aside class="chart-sidebar">
         <div class="sidebar-heading">
           <strong v-show="!seatingStore.isSidebarCollapsed">座位方案</strong
@@ -381,6 +399,7 @@ function handleKeydown(event: KeyboardEvent): void {
           >
         </div>
         <el-button
+          v-if="editingChart"
           class="create-chart"
           :circle="seatingStore.isSidebarCollapsed"
           type="primary"
@@ -407,16 +426,6 @@ function handleKeydown(event: KeyboardEvent): void {
           @export="exportVisible = true"
           @toggle-fullscreen="toggleFullscreen"
         />
-        <div class="student-source-bar">
-          <student-source-selector
-            :source="editingChart.studentSource"
-            :system-student-count="dataSourceStore.enabledData.length"
-            :excel-file-name="editingChart.excelSource?.fileName"
-            :excel-student-count="editingChart.excelSource?.students.length"
-            @change="handleStudentSourceChange"
-            @upload="openStudentImport"
-          />
-        </div>
         <seating-chart-canvas
           :chart="editingChart"
           :visible-seat-rows="visibleSeatRows"
@@ -433,27 +442,11 @@ function handleKeydown(event: KeyboardEvent): void {
       <main v-else class="chart-editor empty-chart">
         <div class="editor-toolbar">
           <div>
-            <strong>座位表</strong><span class="toolbar-status">设置行列后开始安排学生</span>
+            <strong>新建座位表</strong
+            ><span class="toolbar-status">选择学生名单并设置座位布局</span>
           </div>
-          <div class="toolbar-actions initial-layout">
-            <label
-              >行
-              <el-input-number
-                v-model="initialLayout.rows"
-                size="small"
-                :min="SEATING_CHART_MIN_SIZE"
-                :max="SEATING_CHART_MAX_SIZE"
-                controls-position="right" /></label
-            ><label
-              >列
-              <el-input-number
-                v-model="initialLayout.columns"
-                size="small"
-                :min="SEATING_CHART_MIN_SIZE"
-                :max="SEATING_CHART_MAX_SIZE"
-                controls-position="right" /></label
-            ><el-button size="small" type="primary" @click="createInitialChart">应用布局</el-button
-            ><el-button size="small" @click="toggleFullscreen"
+          <div class="toolbar-actions">
+            <el-button size="small" @click="toggleFullscreen"
               ><font-awesome-icon :icon="['solid', fullscreen ? 'compress' : 'expand']" />{{
                 fullscreen ? '退出全屏' : '全屏'
               }}</el-button
@@ -461,31 +454,85 @@ function handleKeydown(event: KeyboardEvent): void {
           </div>
         </div>
         <div class="empty-chart__content">
-          <font-awesome-icon :icon="['solid', 'chair']" />
-          <h3>
-            {{
-              dataSourceStore.enabledData.length
-                ? '请在上方工具栏设置行列'
-                : '上传 Excel 名单开始排座'
-            }}
-          </h3>
-          <p>
-            {{
-              dataSourceStore.enabledData.length
-                ? '应用布局后即可安排学生、设置过道和随机排座。'
-                : '当前没有系统学生，应用布局后将进入 Excel 名单导入。'
-            }}
-          </p>
-          <el-button
-            v-if="!dataSourceStore.enabledData.length"
-            type="primary"
-            @click="openStudentImport"
-          >
-            <font-awesome-icon :icon="['solid', 'file-arrow-up']" />上传 Excel 名单
-          </el-button>
+          <section class="create-chart-card">
+            <div class="create-chart-card__heading">
+              <span><font-awesome-icon :icon="['solid', 'chair']" /></span>
+              <div>
+                <h3>创建一张新的座位表</h3>
+                <p>完成名单和布局设置后，再进入座位安排。</p>
+              </div>
+            </div>
+
+            <div class="create-chart-field">
+              <div class="create-chart-field__label">
+                <strong>学生名单</strong>
+                <small>系统学生可用时默认选中，也可以上传临时 Excel 名单</small>
+              </div>
+              <student-source-selector
+                :source="initialStudentSource"
+                :system-student-count="dataSourceStore.enabledData.length"
+                :excel-file-name="initialExcelSource?.fileName"
+                :excel-student-count="initialExcelSource?.students.length"
+                @change="handleInitialStudentSourceChange"
+                @upload="openInitialStudentImport"
+              />
+            </div>
+
+            <div class="create-chart-field">
+              <div class="create-chart-field__label">
+                <strong>座位布局</strong>
+                <small>创建后仍可继续调整行列</small>
+              </div>
+              <div class="create-chart-layout">
+                <label
+                  >行
+                  <el-input-number
+                    v-model="initialLayout.rows"
+                    size="small"
+                    :min="SEATING_CHART_MIN_SIZE"
+                    :max="SEATING_CHART_MAX_SIZE"
+                    controls-position="right" /></label
+                ><label
+                  >列
+                  <el-input-number
+                    v-model="initialLayout.columns"
+                    size="small"
+                    :min="SEATING_CHART_MIN_SIZE"
+                    :max="SEATING_CHART_MAX_SIZE"
+                    controls-position="right"
+                /></label>
+              </div>
+            </div>
+
+            <div class="create-chart-card__footer">
+              <span v-if="initialStudentSource === 'system'">
+                将使用 {{ dataSourceStore.enabledData.length }} 名系统学生
+              </span>
+              <span v-else-if="initialExcelSource">
+                将使用 {{ initialExcelSource.students.length }} 名 Excel 学生
+              </span>
+              <span v-else>请先上传 Excel 学生名单</span>
+              <el-button type="primary" @click="createInitialChart">
+                <font-awesome-icon
+                  :icon="[
+                    'solid',
+                    initialStudentSource === 'excel' && !initialExcelSource
+                      ? 'file-arrow-up'
+                      : 'plus'
+                  ]"
+                />
+                {{
+                  initialStudentSource === 'excel' && !initialExcelSource
+                    ? '上传 Excel 名单'
+                    : '创建座位表'
+                }}
+              </el-button>
+            </div>
+          </section>
         </div>
       </main>
       <unassigned-student-panel
+        v-if="editingChart"
         :students="unassignedStudents"
         :total-student-count="activeStudents.length"
         :selected-student-id="selectedStudentId"
@@ -493,7 +540,18 @@ function handleKeydown(event: KeyboardEvent): void {
         @drag-end="draggedStudentId = null"
         @select-student="selectedStudentId = $event"
         @drop-to-unassigned="dropToUnassigned"
-      />
+      >
+        <template v-if="editingChart" #source>
+          <student-source-selector
+            :source="editingChart.studentSource"
+            :system-student-count="dataSourceStore.enabledData.length"
+            :excel-file-name="editingChart.excelSource?.fileName"
+            :excel-student-count="editingChart.excelSource?.students.length"
+            @change="handleStudentSourceChange"
+            @upload="openStudentImport"
+          />
+        </template>
+      </unassigned-student-panel>
     </div>
     <el-dialog v-model="layoutVisible" width="460px"
       ><template #header
@@ -584,7 +642,7 @@ function handleKeydown(event: KeyboardEvent): void {
 }
 .seating-workspace {
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr) 276px;
+  grid-template-columns: 210px minmax(0, 1fr);
   min-height: 620px;
   overflow: hidden;
   border: 1px solid #e6e0ef;
@@ -592,7 +650,13 @@ function handleKeydown(event: KeyboardEvent): void {
   background: #fff;
   box-shadow: 0 14px 38px rgba(50, 35, 81, 0.07);
 }
+.seating-workspace.has-chart {
+  grid-template-columns: 210px minmax(0, 1fr) 276px;
+}
 .seating-workspace.collapsed {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+.seating-workspace.collapsed.has-chart {
   grid-template-columns: 64px minmax(0, 1fr) 276px;
 }
 .chart-sidebar {
@@ -607,11 +671,6 @@ function handleKeydown(event: KeyboardEvent): void {
 .toolbar-actions {
   display: flex;
   align-items: center;
-}
-.student-source-bar {
-  padding: 9px 18px;
-  background: #fbfdff;
-  border-bottom: 1px solid #eeeaf3;
 }
 .sidebar-heading {
   justify-content: space-between;
@@ -712,22 +771,6 @@ function handleKeydown(event: KeyboardEvent): void {
   color: #938a9d;
   font-size: 12px;
 }
-.empty-chart {
-  display: grid;
-  place-content: center;
-  gap: 12px;
-  color: #81768f;
-  text-align: center;
-}
-.empty-chart svg {
-  margin: auto;
-  color: #9d76df;
-  font-size: 34px;
-}
-.empty-chart h3,
-.empty-chart p {
-  margin: 0;
-}
 .random-options {
   display: grid;
   gap: 10px;
@@ -795,31 +838,114 @@ function handleKeydown(event: KeyboardEvent): void {
   flex-direction: column;
 }
 .empty-chart__content {
-  display: grid;
-  place-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
-  gap: 12px;
+  padding: 32px;
   color: #81768f;
-  text-align: center;
 }
-.empty-chart__content > svg {
-  margin: auto;
-  color: #9d76df;
-  font-size: 34px;
+.create-chart-card {
+  width: min(680px, 100%);
+  padding: 26px;
+  background: #fff;
+  border: 1px solid #e8e1ee;
+  border-radius: 16px;
+  box-shadow: 0 16px 38px rgba(57, 39, 76, 0.08);
 }
-.empty-chart h3,
-.empty-chart p {
+.create-chart-card__heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eeeaf3;
+}
+.create-chart-card__heading > span {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 auto;
+  place-items: center;
+  color: #7445bd;
+  background: #f0e9fb;
+  border-radius: 13px;
+  font-size: 19px;
+}
+.create-chart-card h3,
+.create-chart-card p {
   margin: 0;
 }
-.initial-layout label {
+.create-chart-card h3 {
+  color: #33283f;
+  font-size: 17px;
+}
+.create-chart-card p {
+  margin-top: 5px;
+  color: #8d8497;
+  font-size: 12px;
+}
+.create-chart-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  padding: 20px 2px;
+  border-bottom: 1px solid #f0edf3;
+}
+.create-chart-field__label {
+  display: grid;
+  gap: 4px;
+}
+.create-chart-field__label strong {
+  color: #403648;
+  font-size: 14px;
+}
+.create-chart-field__label small {
+  color: #948b9d;
+  font-size: 11px;
+}
+.create-chart-field :deep(.student-source-selector__caption) {
+  display: none;
+}
+.create-chart-layout {
+  display: flex;
+  gap: 10px;
+}
+.create-chart-layout label {
   display: flex;
   align-items: center;
   gap: 6px;
   color: #5f566b;
   font-size: 13px;
 }
-.initial-layout :deep(.el-input-number) {
-  width: 76px;
+.create-chart-layout :deep(.el-input-number) {
+  width: 82px;
+}
+.create-chart-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-top: 20px;
+}
+.create-chart-card__footer > span {
+  color: #8d8497;
+  font-size: 12px;
+}
+.create-chart-card__footer :deep(.el-button) {
+  min-width: 140px;
+}
+@media (max-width: 980px) {
+  .empty-chart__content {
+    padding: 20px;
+  }
+  .create-chart-field {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .create-chart-field :deep(.student-source-selector) {
+    justify-content: flex-start;
+  }
 }
 .seating-chart-page.fullscreen {
   position: fixed;

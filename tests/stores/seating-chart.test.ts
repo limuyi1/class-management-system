@@ -4,6 +4,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSeatingChartStore } from '@/stores/seating-chart'
 
+import type { SeatingChartType } from '@/types/SeatingChart'
+
 describe('useSeatingChartStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -64,5 +66,28 @@ describe('useSeatingChartStore', () => {
     expect(store.assignedCount).toBe(0)
     expect(store.activeStudents).toEqual([{ id: 'student-1', name: '王五' }])
     expect(store.editingChart?.excelSource?.fileName).toBe('名单.xlsx')
+  })
+
+  it('defaults a stored chart without a source to system students when available', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '王五' }]
+    const store = useSeatingChartStore()
+    const chart = store.createChart({ studentSource: 'system', rows: 1, columns: 1 })
+    delete (chart as Partial<SeatingChartType>).studentSource
+
+    store.reconcileStudents()
+
+    expect(store.editingChart?.studentSource).toBe('system')
+    expect(store.activeStudents).toEqual([{ id: 'student-1', name: '王五' }])
+  })
+
+  it('enters the create state without deleting existing charts', () => {
+    const store = useSeatingChartStore()
+    const chart = store.createChart({ studentSource: 'system' })
+
+    store.startCreatingChart()
+
+    expect(store.editingChart).toBeNull()
+    expect(store.charts).toEqual([chart])
   })
 })

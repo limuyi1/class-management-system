@@ -79,6 +79,10 @@ function getStudentInitial(name: string): string {
       </span>
     </div>
 
+    <div v-if="$slots.source" class="unassigned-panel__source">
+      <slot name="source" />
+    </div>
+
     <template v-if="students.length || normalizedSearch">
       <el-input
         v-model="search"
@@ -153,6 +157,25 @@ function getStudentInitial(name: string): string {
   color: #30273b;
   font-size: 14px;
   letter-spacing: 0.01em;
+}
+
+.unassigned-panel__source {
+  margin: 0 -2px 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #eeeaf3;
+}
+
+.unassigned-panel__source :deep(.student-source-selector) {
+  width: 100%;
+}
+
+.unassigned-panel__source :deep(.student-source-selector__caption) {
+  display: none;
+}
+
+.unassigned-panel__source :deep(.el-dropdown),
+.unassigned-panel__source :deep(.student-source-selector__trigger) {
+  width: 100%;
 }
 
 .unassigned-panel__count {

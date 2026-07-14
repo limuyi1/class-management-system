@@ -14,6 +14,25 @@ const global = {
 }
 
 describe('UnassignedStudentPanel', () => {
+  it('renders the data source control above the student list', () => {
+    const wrapper = mount(UnassignedStudentPanel, {
+      props: {
+        students: [{ id: '1', name: '张三' }],
+        totalStudentCount: 1,
+        selectedStudentId: null
+      },
+      slots: {
+        source: '<button class="source-control">系统学生</button>'
+      },
+      global
+    })
+
+    expect(wrapper.get('.unassigned-panel__source').text()).toBe('系统学生')
+    expect(wrapper.get('.unassigned-panel__source').element.compareDocumentPosition(
+      wrapper.get('.unassigned-panel__search').element
+    )).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+  })
+
   it('renders compact student cards and emits selection events', async () => {
     const wrapper = mount(UnassignedStudentPanel, {
       props: {

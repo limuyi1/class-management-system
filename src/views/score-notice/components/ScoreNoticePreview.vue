@@ -163,7 +163,8 @@ defineExpose({
       <div v-if="student" class="score-report__content">
         <div class="score-report__meta">
           <div>
-            <span>学生姓名：</span><strong class="score-report__student-name">{{ student.name }}</strong>
+            <span>学生姓名：</span
+            ><strong class="score-report__student-name">{{ student.name }}</strong>
           </div>
           <div class="score-report__meta-divider"><i>✦</i></div>
           <div>
@@ -172,10 +173,7 @@ defineExpose({
         </div>
 
         <section class="score-report__subject-section">
-          <div
-            class="score-report__subject-grid"
-            :style="subjectGridStyle"
-          >
+          <div class="score-report__subject-grid" :style="subjectGridStyle">
             <div
               v-for="(subject, index) in subjects"
               :key="subject.id"
@@ -196,10 +194,7 @@ defineExpose({
                 <span>{{ subject.label }}</span>
               </div>
               <div class="score-report__subject-separator"><i></i><b>◆</b><i></i></div>
-              <div
-                class="score-report__grade-medal"
-                :class="getScoreLengthClass(subject)"
-              >
+              <div class="score-report__grade-medal" :class="getScoreLengthClass(subject)">
                 <img
                   class="score-report__grade-wreath"
                   :src="gradeLaurelUrl"
@@ -207,7 +202,9 @@ defineExpose({
                   aria-hidden="true"
                 />
                 <div class="score-report__grade-ring">
-                  <span :class="{ 'score-report__score-value': mode === ScoreNoticeModeEnum.Score }">
+                  <span
+                    :class="{ 'score-report__score-value': mode === ScoreNoticeModeEnum.Score }"
+                  >
                     {{ getDisplayValue(subject) }}
                   </span>
                   <img :src="ornamentStarUrl" alt="" aria-hidden="true" />
@@ -389,8 +386,7 @@ defineExpose({
   width: 190px;
   height: 190px;
   object-fit: contain;
-  filter:
-    drop-shadow(0 8px 10px rgba(63, 41, 11, 0.2))
+  filter: drop-shadow(0 8px 10px rgba(63, 41, 11, 0.2))
     drop-shadow(0 2px 2px rgba(63, 41, 11, 0.16));
 }
 .score-report__title-wrap {
@@ -405,7 +401,7 @@ defineExpose({
   margin: 0;
   overflow-wrap: anywhere;
   color: #123f3a;
-  font-family: STSong, 'Songti SC', SimSun, serif;
+  font-family: STSong, 'Songti SC', 'Noto Serif CJK SC', SimSun, serif;
   font-size: 80px;
   font-weight: 700;
   font-synthesis: weight;
@@ -466,9 +462,7 @@ defineExpose({
 .score-report__title-ornament .score-report__title-star {
   width: 34px;
   height: 34px;
-  filter:
-    drop-shadow(0 2px 2px rgba(92, 59, 13, 0.27))
-    drop-shadow(0 0 3px rgba(234, 196, 91, 0.5));
+  filter: drop-shadow(0 2px 2px rgba(92, 59, 13, 0.27)) drop-shadow(0 0 3px rgba(234, 196, 91, 0.5));
 }
 .score-report__title-laurel--right {
   transform: none;
@@ -641,7 +635,7 @@ defineExpose({
 .score-report__grade-ring span {
   position: absolute;
   right: 0;
-  bottom: 27px;
+  bottom: 22px;
   left: 0;
   font-family: Georgia, serif;
   font-size: 55px;
@@ -651,7 +645,7 @@ defineExpose({
 }
 .score-report__grade-ring img {
   position: absolute;
-  bottom: 10px;
+  bottom: 5px;
   left: 50%;
   width: 15px;
   height: 15px;
@@ -854,17 +848,15 @@ defineExpose({
   border-width: 3px;
 }
 .score-report--subjects-compact .score-report__grade-ring span {
-  bottom: 15px;
+  bottom: 10px;
   font-size: 37px;
 }
 .score-report--subjects-compact .score-report__grade-ring img {
-  bottom: 5px;
+  bottom: 1px;
   width: 10px;
   height: 10px;
 }
-.score-report--subjects-compact
-  .score-report__grade-ring
-  .score-report__score-value {
+.score-report--subjects-compact .score-report__grade-ring .score-report__score-value {
   font-size: 30px;
   letter-spacing: -0.5px;
 }
@@ -967,7 +959,7 @@ defineExpose({
   border-width: 2px;
 }
 .score-report--subjects-dense .score-report__grade-ring span {
-  bottom: 7px;
+  bottom: 2px;
   font-size: 28px;
 }
 .score-report--subjects-dense .score-report__grade-ring img {
@@ -977,7 +969,9 @@ defineExpose({
   font-size: 23px;
   letter-spacing: -0.4px;
 }
-.score-report--subjects-dense .score-report__grade-medal--score-length-4 .score-report__score-value {
+.score-report--subjects-dense
+  .score-report__grade-medal--score-length-4
+  .score-report__score-value {
   font-size: 19px;
   letter-spacing: -0.4px;
 }

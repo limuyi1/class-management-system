@@ -37,17 +37,22 @@ const emit = defineEmits<{
 }>()
 
 const store = useScoreNoticeStore()
-const activeStep = shallowRef<StepType>(store.students.length ? 2 : 1)
+const expandedSteps = ref<Array<StepType>>(store.students.length ? [2] : [1])
 const hasUnsavedComment = shallowRef(false)
 const commentWorkspaceRef = ref<InstanceType<typeof ScoreNoticeCommentWorkspace> | null>(null)
 
-const toggleStep = (step: StepType): void => {
-  if (step > 1 && !store.students.length) return
-  activeStep.value = step
+const isStepExpanded = (step: StepType): boolean => expandedSteps.value.includes(step)
+
+const expandStep = (step: StepType): void => {
+  if (isStepExpanded(step)) return
+  expandedSteps.value = [...expandedSteps.value, step]
 }
 
-const continueToComments = (): void => {
-  activeStep.value = 3
+const toggleStep = (step: StepType): void => {
+  if (step > 1 && !store.students.length) return
+  expandedSteps.value = isStepExpanded(step)
+    ? expandedSteps.value.filter((expandedStep) => expandedStep !== step)
+    : [...expandedSteps.value, step]
 }
 
 const setCommentDraft = (comment: string): void => {
@@ -57,13 +62,13 @@ const setCommentDraft = (comment: string): void => {
 defineExpose({ setCommentDraft })
 
 watch(
-  () => store.students,
-  (students, previousStudents) => {
-    if (!students.length) {
-      activeStep.value = 1
+  () => [store.sourceFileName, store.students.length] as const,
+  ([sourceFileName, studentCount], [previousSourceFileName, previousStudentCount]) => {
+    if (!studentCount) {
+      expandedSteps.value = [1]
       return
     }
-    if (students !== previousStudents) activeStep.value = 2
+    if (!previousStudentCount || sourceFileName !== previousSourceFileName) expandStep(2)
   }
 )
 </script>
@@ -78,26 +83,25 @@ watch(
     <el-scrollbar class="notice-panel__scrollbar">
       <div class="notice-panel__scroll-content">
         <score-notice-import-step
-          :expanded="activeStep === 1"
+          :expanded="isStepExpanded(1)"
           @toggle="toggleStep(1)"
           @open-import="emit('openImport')"
         />
 
         <score-notice-settings-step
-          :expanded="activeStep === 2"
+          :expanded="isStepExpanded(2)"
           :disabled="!store.students.length"
           :handwrite-font-name="handwriteFontName"
           :has-custom-handwrite-font="hasCustomHandwriteFont"
           :handwrite-font-applying="handwriteFontApplying"
           @toggle="toggleStep(2)"
-          @continue="continueToComments"
           @choose-handwrite-font="emit('chooseHandwriteFont')"
           @clear-handwrite-font="emit('clearHandwriteFont')"
         />
 
         <score-notice-comment-workspace
           ref="commentWorkspaceRef"
-          :expanded="activeStep === 3"
+          :expanded="isStepExpanded(3)"
           :disabled="!store.students.length"
           :ai-configured="aiConfigured"
           :batch-generating="batchGenerating"
