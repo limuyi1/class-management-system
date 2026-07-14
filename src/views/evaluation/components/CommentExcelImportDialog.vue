@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, shallowRef, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
+import ExcelFileDropzone from '@/components/excel/ExcelFileDropzone.vue'
+import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
 import { buildExcelCommentWorkspace } from '@/utils/commentWorkspaceExcelUntil'
-import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUntil'
 
-import type { UploadFile, UploadFiles, UploadInstance } from 'element-plus'
+import type { UploadFile } from 'element-plus'
 import type { ExcelCommentImportSelectionType } from '@/types/CommentWorkspace'
-import type { ExcelPreviewResultType } from '@/utils/xlsxUntil'
 
 const visible = defineModel<boolean>({ required: true })
 
@@ -16,20 +16,12 @@ const emit = defineEmits<{
   confirm: [value: ExcelCommentImportSelectionType & ReturnType<typeof buildExcelCommentWorkspace>]
 }>()
 
-const uploadRef = ref<UploadInstance>()
-const preview = ref<ExcelPreviewResultType | null>(null)
-const sourceFile = ref<File | null>(null)
-const fileName = ref('')
-const loading = ref(false)
-const headerRowIndex = ref(0)
-const nameColumn = ref('')
-const commentColumn = ref('')
-const tagColumn = ref('')
-
-const parsedData = computed(() => {
-  if (!preview.value) return { header: [], data: [] }
-  return buildExcelDataFromHeaderRow(preview.value.rows, headerRowIndex.value)
-})
+// 公共层维护文件与表头预览；本弹窗只维护评语业务需要的姓名、评语和标签列。
+const { fileName, headerRowIndex, loading, parsedData, preview, sourceFile, parseFile, reset } =
+  useExcelPreviewImport({ errorLogLabel: '读取临时评语 Excel' })
+const nameColumn = shallowRef('')
+const commentColumn = shallowRef('')
+const tagColumn = shallowRef('')
 
 const availableCommentColumns = computed(() =>
   parsedData.value.header.filter(
@@ -53,32 +45,14 @@ const resetSelections = (): void => {
 }
 
 const resetDialog = (): void => {
-  uploadRef.value?.clearFiles()
-  preview.value = null
-  sourceFile.value = null
-  fileName.value = ''
-  headerRowIndex.value = 0
+  reset()
   nameColumn.value = ''
   commentColumn.value = ''
   tagColumn.value = ''
 }
 
-const handleFileChange = async (file: UploadFile, files: UploadFiles): Promise<void> => {
-  void files
-  if (!file.raw) return
-  loading.value = true
-  try {
-    preview.value = await parseExcelPreview(file)
-    sourceFile.value = file.raw
-    fileName.value = file.name
-    headerRowIndex.value = preview.value.suggestedHeaderRowIndex
-    resetSelections()
-  } catch (error) {
-    console.error('读取临时评语 Excel 失败:', error)
-    ElMessage.error('Excel 读取失败，请检查文件格式')
-  } finally {
-    loading.value = false
-  }
+const handleFileChange = async (file: UploadFile): Promise<void> => {
+  if (await parseFile(file)) resetSelections()
 }
 
 const handleConfirm = (): void => {
@@ -144,17 +118,7 @@ watch(visible, (value) => {
         show-icon
         :closable="false"
       />
-      <el-upload
-        ref="uploadRef"
-        drag
-        accept=".xlsx,.xls"
-        :auto-upload="false"
-        :limit="1"
-        :on-change="handleFileChange"
-      >
-        <font-awesome-icon :icon="['solid', 'file-excel']" />
-        <div>{{ fileName || '选择或拖入 Excel 文件' }}</div>
-      </el-upload>
+      <excel-file-dropzone :file-name="fileName" @change="handleFileChange" />
 
       <template v-if="preview">
         <excel-header-row-picker
@@ -203,7 +167,13 @@ watch(visible, (value) => {
 
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" @click="handleConfirm">进入评语处理</el-button>
+      <el-button
+        type="primary"
+        :disabled="loading || !preview || !nameColumn"
+        @click="handleConfirm"
+      >
+        进入评语处理
+      </el-button>
     </template>
   </el-dialog>
 </template>

@@ -1,3 +1,5 @@
+import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
+
 export enum SeatingViewDirectionEnum {
   FacingPlatform = 'facing-platform',
   FacingStudents = 'facing-students'
@@ -23,6 +25,8 @@ export interface SeatingSpecialSeatType {
 export interface SeatingChartType {
   id: string
   name: string
+  studentSource: StudentSourceType
+  excelSource?: ExcelStudentSourceType
   rows: number
   columns: number
   aisleAfterColumns: number[]
@@ -37,7 +41,6 @@ export interface SeatingChartStateType {
   charts: SeatingChartType[]
   editingChartId: string | null
   isSidebarCollapsed: boolean
-  initializationVersion: number
 }
 
 export interface SeatingChartPreviewType {

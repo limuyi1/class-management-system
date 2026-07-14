@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
 
+import ExcelFileDropzone from '@/components/excel/ExcelFileDropzone.vue'
+import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
 import { ScoreNoticeModeEnum } from '@/types/ScoreNotice'
 import { buildScoreNoticeImport, recalculateNoticeGrades } from '@/utils/scoreNoticeImportUntil'
@@ -12,11 +14,9 @@ import {
   detectScoreNoticeMode,
   getDefaultGradeRule
 } from '@/utils/scoreNoticeGradeUntil'
-import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUntil'
 
-import type { UploadFile, UploadFiles, UploadInstance } from 'element-plus'
+import type { UploadFile } from 'element-plus'
 import type { ScoreNoticeGradeRuleType, ScoreNoticeImportResultType } from '@/types/ScoreNotice'
-import type { ExcelPreviewResultType } from '@/utils/xlsxUntil'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
@@ -30,31 +30,42 @@ const emit = defineEmits<{
   confirm: [result: ScoreNoticeImportResultType, fileName: string]
 }>()
 
-const preview = ref<ExcelPreviewResultType | null>(null)
-const fileName = ref('')
-const loading = ref(false)
-const headerRowIndex = ref(0)
-const nameColumn = ref('')
+// 公共层维护文件解析状态；科目选择、成绩模式与等级规则属于成绩通知业务。
+const { fileName, headerRowIndex, loading, parsedData, preview, parseFile, reset } =
+  useExcelPreviewImport({ errorLogLabel: '读取成绩通知 Excel' })
+const nameColumn = shallowRef('')
 const subjectColumns = ref<string[]>([])
-const sourceMode = ref(ScoreNoticeModeEnum.Grade)
-const modeTouched = ref(false)
+const sourceMode = shallowRef(ScoreNoticeModeEnum.Grade)
+const modeTouched = shallowRef(false)
 const rules = ref<Record<string, ScoreNoticeGradeRuleType>>({})
-const uploadRef = ref<UploadInstance>()
 
 const visible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value)
 })
 
-const parsedData = computed(() => {
-  if (!preview.value) return { header: [], data: [] }
-  return buildExcelDataFromHeaderRow(preview.value.rows, headerRowIndex.value)
-})
-
 const availableSubjects = computed(() =>
   parsedData.value.header.filter(
     (header) => header !== nameColumn.value && header !== '序号' && !header.startsWith('UNKNOWN')
   )
+)
+
+const hasInvalidScoreRule = computed(
+  () =>
+    sourceMode.value === ScoreNoticeModeEnum.Score &&
+    subjectColumns.value.some((column) => {
+      const rule = rules.value[column]
+      return !rule || rule.gradeBMin >= rule.gradeAMin || rule.gradeAMin > rule.maxScore
+    })
+)
+
+const canConfirm = computed(
+  () =>
+    !loading.value &&
+    Boolean(preview.value) &&
+    Boolean(nameColumn.value) &&
+    subjectColumns.value.length > 0 &&
+    !hasInvalidScoreRule.value
 )
 
 const resetSelections = (): void => {
@@ -77,10 +88,7 @@ const resetSelections = (): void => {
 }
 
 const resetDialog = (): void => {
-  uploadRef.value?.clearFiles()
-  preview.value = null
-  fileName.value = ''
-  headerRowIndex.value = 0
+  reset()
   nameColumn.value = ''
   subjectColumns.value = []
   sourceMode.value = ScoreNoticeModeEnum.Grade
@@ -88,21 +96,8 @@ const resetDialog = (): void => {
   modeTouched.value = false
 }
 
-const handleFileChange = async (file: UploadFile, files: UploadFiles): Promise<void> => {
-  void files
-  if (!file.raw) return
-  loading.value = true
-  try {
-    preview.value = await parseExcelPreview(file)
-    fileName.value = file.name
-    headerRowIndex.value = preview.value.suggestedHeaderRowIndex
-    resetSelections()
-  } catch (error) {
-    console.error('读取成绩通知 Excel 失败:', error)
-    ElMessage.error('Excel 读取失败，请检查文件格式')
-  } finally {
-    loading.value = false
-  }
+const handleFileChange = async (file: UploadFile): Promise<void> => {
+  if (await parseFile(file)) resetSelections()
 }
 
 const handleModeChange = (value: string | number | boolean | undefined): void => {
@@ -138,13 +133,7 @@ const handleConfirm = (): void => {
     ElMessage.warning('请至少选择一个科目列')
     return
   }
-  if (
-    sourceMode.value === ScoreNoticeModeEnum.Score &&
-    subjectColumns.value.some((column) => {
-      const rule = rules.value[column]
-      return !rule || rule.gradeBMin >= rule.gradeAMin || rule.gradeAMin > rule.maxScore
-    })
-  ) {
+  if (hasInvalidScoreRule.value) {
     ElMessage.warning('请检查分数换算规则，需满足 B线 < A线 ≤ 满分')
     return
   }
@@ -196,21 +185,11 @@ watch(
 <template>
   <el-dialog v-model="visible" title="导入考试成绩" width="920px" :close-on-click-modal="false">
     <div v-loading="loading" class="notice-import">
-      <el-upload
-        ref="uploadRef"
-        class="notice-import__upload"
-        drag
-        accept=".xlsx,.xls"
-        :auto-upload="false"
-        :limit="1"
-        :on-change="handleFileChange"
-      >
-        <font-awesome-icon :icon="['solid', 'file-excel']" />
-        <div>
-          <strong>{{ fileName || '选择或拖入 Excel 文件' }}</strong>
-          <span>支持已有等级或具体分数，导入后可继续确认列和换算规则</span>
-        </div>
-      </el-upload>
+      <excel-file-dropzone
+        :file-name="fileName"
+        description="支持已有等级或具体分数，导入后可继续确认列和换算规则"
+        @change="handleFileChange"
+      />
 
       <template v-if="preview">
         <excel-header-row-picker
@@ -301,7 +280,7 @@ watch(
 
     <template #footer>
       <el-button @click="visible = false">取消</el-button>
-      <el-button type="primary" :disabled="!preview" @click="handleConfirm">确认导入</el-button>
+      <el-button type="primary" :disabled="!canConfirm" @click="handleConfirm">确认导入</el-button>
     </template>
   </el-dialog>
 </template>

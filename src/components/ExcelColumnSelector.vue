@@ -64,6 +64,11 @@ const scoreHeaders = computed(() => {
     return header !== selectedNameColumn.value
   })
 })
+const canConfirm = computed(
+  () =>
+    Boolean(selectedNameColumn.value) &&
+    (isNameOnlyMode.value || isInitialMode.value || selectedScoreColumns.value.length > 0)
+)
 
 const findSuggestedNameColumn = (): string => {
   return (
@@ -172,7 +177,7 @@ const handleConfirm = () => {
 
     <template #footer>
       <el-button @click="localVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleConfirm">
+      <el-button type="primary" :disabled="!canConfirm" @click="handleConfirm">
         {{ isNameOnlyMode ? '确认' : '确认导入' }}
       </el-button>
     </template>

@@ -5,6 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
+import StudentSourceSelector from '@/components/student-source/StudentSourceSelector.vue'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSeatingChartStore } from '@/stores/seating-chart'
 import RandomModeDialog from '@/views/seating-chart/components/RandomModeDialog.vue'
@@ -12,7 +13,10 @@ import RandomSupplementPreviewDialog from '@/views/seating-chart/components/Rand
 import SeatingChartCanvas from '@/views/seating-chart/components/SeatingChartCanvas.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 import SeatingChartExportDialog from '@/views/seating-chart/components/SeatingChartExportDialog.vue'
+import SeatingChartToolbar from '@/views/seating-chart/components/SeatingChartToolbar.vue'
+import SeatingStudentImportDialog from '@/views/seating-chart/components/SeatingStudentImportDialog.vue'
 import SpecialSeatSettingsDialog from '@/views/seating-chart/components/SpecialSeatSettingsDialog.vue'
+import UnassignedStudentPanel from '@/views/seating-chart/components/UnassignedStudentPanel.vue'
 import {
   SeatingSpecialSeatPositionEnum,
   SeatingViewDirectionEnum,
@@ -28,12 +32,14 @@ import {
   SEATING_CHART_MIN_SIZE
 } from '@/utils/seatingChartUntil'
 
+import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
+
 const router = useRouter()
 const seatingStore = useSeatingChartStore()
 const dataSourceStore = useDataSourceStore()
-const { editingChart, unassignedStudents, assignedCount, seatCapacity } = storeToRefs(seatingStore)
+const { activeStudents, editingChart, unassignedStudents, assignedCount, seatCapacity } =
+  storeToRefs(seatingStore)
 const fullscreen = shallowRef(false)
-const search = ref('')
 const draggedStudentId = ref<string | null>(null)
 const selectedStudentId = ref<string | null>(null)
 const layoutVisible = ref(false)
@@ -42,29 +48,21 @@ const randomModeVisible = ref(false)
 const previewVisible = ref(false)
 const specialSeatVisible = ref(false)
 const exportVisible = shallowRef(false)
+const studentImportVisible = shallowRef(false)
+const pendingExcelCreate = shallowRef(false)
+const pendingCreateLayout = ref({ rows: 6, columns: 6 })
 const layout = ref({ rows: 6, columns: 6 })
 const initialLayout = ref({ rows: 6, columns: 6 })
 const aisles = ref<number[]>([])
 const preview = ref<SeatingChartPreviewType | null>(null)
 
 const studentNames = computed(
-  () =>
-    new Map(
-      dataSourceStore.enabledData.map((student) => [
-        student.studentId,
-        student.name || '未命名学生'
-      ])
-    )
+  () => new Map(activeStudents.value.map((student) => [student.id, student.name]))
 )
 const studentNameRecord = computed<Record<string, string>>(() =>
   Object.fromEntries(studentNames.value)
 )
 const visibleSeats = computed(() => (editingChart.value ? getVisibleSeats(editingChart.value) : []))
-const filteredStudents = computed(() =>
-  unassignedStudents.value.filter((student) =>
-    String(student.name || '').includes(search.value.trim())
-  )
-)
 const visibleSeatRows = computed(() => {
   const rows: SeatPositionType[][] = []
   visibleSeats.value.forEach((seat) => {
@@ -81,7 +79,6 @@ watch(
 )
 
 onMounted(() => {
-  seatingStore.clearLegacyDefaultChart()
   seatingStore.reconcileStudents()
   window.addEventListener('keydown', handleKeydown)
 })
@@ -94,10 +91,78 @@ function backToTools(): void {
   router.push('/tools')
 }
 function createChart(): void {
-  seatingStore.createChart()
+  if (dataSourceStore.enabledData.length) {
+    seatingStore.createChart({ studentSource: 'system' })
+    return
+  }
+  pendingExcelCreate.value = true
+  pendingCreateLayout.value = { rows: 6, columns: 6 }
+  studentImportVisible.value = true
 }
 function createInitialChart(): void {
-  seatingStore.createChart(undefined, initialLayout.value.rows, initialLayout.value.columns)
+  if (dataSourceStore.enabledData.length) {
+    seatingStore.createChart({
+      studentSource: 'system',
+      rows: initialLayout.value.rows,
+      columns: initialLayout.value.columns
+    })
+    return
+  }
+  pendingExcelCreate.value = true
+  pendingCreateLayout.value = { ...initialLayout.value }
+  studentImportVisible.value = true
+}
+
+async function confirmClearAssignments(): Promise<boolean> {
+  if (!assignedCount.value) return true
+  try {
+    await ElMessageBox.confirm('更换学生来源后，当前座位安排将被清空。是否继续？', '更换数据来源', {
+      type: 'warning'
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function handleStudentSourceChange(source: StudentSourceType): Promise<void> {
+  if (!editingChart.value || source === editingChart.value.studentSource) return
+  if (!(await confirmClearAssignments())) return
+
+  if (source === 'excel') {
+    if (!editingChart.value.excelSource) {
+      pendingExcelCreate.value = false
+      studentImportVisible.value = true
+      return
+    }
+    seatingStore.setStudentSource('excel', editingChart.value.excelSource)
+    return
+  }
+  seatingStore.setStudentSource('system')
+}
+
+async function openStudentImport(): Promise<void> {
+  if (editingChart.value && !(await confirmClearAssignments())) return
+  pendingExcelCreate.value = !editingChart.value
+  pendingCreateLayout.value = editingChart.value
+    ? { rows: editingChart.value.rows, columns: editingChart.value.columns }
+    : { ...initialLayout.value }
+  studentImportVisible.value = true
+}
+
+function handleExcelStudentImport(source: ExcelStudentSourceType): void {
+  if (pendingExcelCreate.value || !editingChart.value) {
+    seatingStore.createChart({
+      studentSource: 'excel',
+      excelSource: source,
+      rows: pendingCreateLayout.value.rows,
+      columns: pendingCreateLayout.value.columns
+    })
+  } else {
+    seatingStore.setStudentSource('excel', source)
+  }
+  pendingExcelCreate.value = false
+  ElMessage.success(`已导入 ${source.students.length} 名学生`)
 }
 function selectChart(chartId: string): void {
   seatingStore.setEditingChart(chartId)
@@ -182,7 +247,7 @@ function generatePreview(): void {
   if (!editingChart.value) return
   preview.value = createRandomSeats(
     editingChart.value,
-    dataSourceStore.enabledData.map((student) => student.studentId),
+    activeStudents.value.map((student) => student.id),
     true
   )
 }
@@ -233,6 +298,14 @@ function selectSpecialSeat(seat: SeatingSpecialSeatType): void {
 }
 function toggleFullscreen(): void {
   fullscreen.value = !fullscreen.value
+}
+function toggleViewDirection(): void {
+  if (!editingChart.value) return
+  seatingStore.setViewDirection(
+    editingChart.value.viewDirection === SeatingViewDirectionEnum.FacingPlatform
+      ? SeatingViewDirectionEnum.FacingStudents
+      : SeatingViewDirectionEnum.FacingPlatform
+  )
 }
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && fullscreen.value) {
@@ -320,40 +393,29 @@ function handleKeydown(event: KeyboardEvent): void {
         >
       </aside>
       <main v-if="editingChart" class="chart-editor">
-        <div class="editor-toolbar">
-          <div>
-            <strong>{{ editingChart.name }}</strong
-            ><span class="toolbar-status">已安排 {{ assignedCount }} / {{ seatCapacity }}</span>
-          </div>
-          <div class="toolbar-actions">
-            <el-button
-              size="small"
-              @click="
-                seatingStore.setViewDirection(
-                  editingChart.viewDirection === SeatingViewDirectionEnum.FacingPlatform
-                    ? SeatingViewDirectionEnum.FacingStudents
-                    : SeatingViewDirectionEnum.FacingPlatform
-                )
-              "
-              ><font-awesome-icon :icon="['solid', 'rotate']" />{{
-                editingChart.viewDirection === SeatingViewDirectionEnum.FacingPlatform
-                  ? '面向同学'
-                  : '面向讲台'
-              }}</el-button
-            ><el-button size="small" @click="openLayout">行列</el-button
-            ><el-button size="small" @click="openAisles">过道</el-button
-            ><el-button size="small" @click="specialSeatVisible = true"
-              ><font-awesome-icon :icon="['solid', 'crown']" />雅座</el-button
-            ><el-button size="small" type="primary" @click="randomize"
-              ><font-awesome-icon :icon="['solid', 'shuffle']" />随机安排</el-button
-            ><el-button size="small" @click="exportVisible = true"
-              ><font-awesome-icon :icon="['solid', 'file-export']" />导出</el-button
-            ><el-button size="small" @click="toggleFullscreen"
-              ><font-awesome-icon :icon="['solid', fullscreen ? 'compress' : 'expand']" />{{
-                fullscreen ? '退出全屏' : '全屏'
-              }}</el-button
-            >
-          </div>
+        <seating-chart-toolbar
+          :chart-name="editingChart.name"
+          :assigned-count="assignedCount"
+          :seat-capacity="seatCapacity"
+          :view-direction="editingChart.viewDirection"
+          :fullscreen="fullscreen"
+          @open-layout="openLayout"
+          @open-aisles="openAisles"
+          @open-special-seats="specialSeatVisible = true"
+          @toggle-direction="toggleViewDirection"
+          @randomize="randomize"
+          @export="exportVisible = true"
+          @toggle-fullscreen="toggleFullscreen"
+        />
+        <div class="student-source-bar">
+          <student-source-selector
+            :source="editingChart.studentSource"
+            :system-student-count="dataSourceStore.enabledData.length"
+            :excel-file-name="editingChart.excelSource?.fileName"
+            :excel-student-count="editingChart.excelSource?.students.length"
+            @change="handleStudentSourceChange"
+            @upload="openStudentImport"
+          />
         </div>
         <seating-chart-canvas
           :chart="editingChart"
@@ -378,6 +440,7 @@ function handleKeydown(event: KeyboardEvent): void {
               >行
               <el-input-number
                 v-model="initialLayout.rows"
+                size="small"
                 :min="SEATING_CHART_MIN_SIZE"
                 :max="SEATING_CHART_MAX_SIZE"
                 controls-position="right" /></label
@@ -385,11 +448,12 @@ function handleKeydown(event: KeyboardEvent): void {
               >列
               <el-input-number
                 v-model="initialLayout.columns"
+                size="small"
                 :min="SEATING_CHART_MIN_SIZE"
                 :max="SEATING_CHART_MAX_SIZE"
                 controls-position="right" /></label
-            ><el-button type="primary" @click="createInitialChart">应用布局</el-button
-            ><el-button @click="toggleFullscreen"
+            ><el-button size="small" type="primary" @click="createInitialChart">应用布局</el-button
+            ><el-button size="small" @click="toggleFullscreen"
               ><font-awesome-icon :icon="['solid', fullscreen ? 'compress' : 'expand']" />{{
                 fullscreen ? '退出全屏' : '全屏'
               }}</el-button
@@ -398,38 +462,38 @@ function handleKeydown(event: KeyboardEvent): void {
         </div>
         <div class="empty-chart__content">
           <font-awesome-icon :icon="['solid', 'chair']" />
-          <h3>请在上方工具栏设置行列</h3>
-          <p>应用布局后即可安排学生、设置过道和随机排座。</p>
+          <h3>
+            {{
+              dataSourceStore.enabledData.length
+                ? '请在上方工具栏设置行列'
+                : '上传 Excel 名单开始排座'
+            }}
+          </h3>
+          <p>
+            {{
+              dataSourceStore.enabledData.length
+                ? '应用布局后即可安排学生、设置过道和随机排座。'
+                : '当前没有系统学生，应用布局后将进入 Excel 名单导入。'
+            }}
+          </p>
+          <el-button
+            v-if="!dataSourceStore.enabledData.length"
+            type="primary"
+            @click="openStudentImport"
+          >
+            <font-awesome-icon :icon="['solid', 'file-arrow-up']" />上传 Excel 名单
+          </el-button>
         </div>
       </main>
-      <aside class="unassigned-panel" @dragover.prevent @drop="dropToUnassigned">
-        <div class="unassigned-heading">
-          <strong>未安排学生</strong
-          ><el-tag type="warning">{{ unassignedStudents.length }} 人</el-tag>
-        </div>
-        <el-input v-model="search" placeholder="搜索学生姓名" clearable
-          ><template #prefix><font-awesome-icon :icon="['solid', 'magnifying-glass']" /></template
-        ></el-input>
-        <p class="panel-tip">点击学生后再点击座位，也可完成安排</p>
-        <div class="student-list">
-          <button
-            v-for="student in filteredStudents"
-            :key="student.studentId"
-            class="student-card"
-            :class="{ selected: student.studentId === selectedStudentId }"
-            draggable="true"
-            @dragstart="draggedStudentId = student.studentId"
-            @dragend="draggedStudentId = null"
-            @click="selectedStudentId = student.studentId"
-          >
-            <span>{{ student.name || '未命名学生' }}</span
-            ><font-awesome-icon :icon="['solid', 'grip-vertical']" />
-          </button>
-          <div v-if="!filteredStudents.length" class="student-empty">
-            {{ search ? '没有匹配的学生' : '全部学生均已安排' }}
-          </div>
-        </div>
-      </aside>
+      <unassigned-student-panel
+        :students="unassignedStudents"
+        :total-student-count="activeStudents.length"
+        :selected-student-id="selectedStudentId"
+        @drag-start="draggedStudentId = $event"
+        @drag-end="draggedStudentId = null"
+        @select-student="selectedStudentId = $event"
+        @drop-to-unassigned="dropToUnassigned"
+      />
     </div>
     <el-dialog v-model="layoutVisible" width="460px"
       ><template #header
@@ -505,6 +569,10 @@ function handleKeydown(event: KeyboardEvent): void {
       @regenerate="generatePreview"
       @confirm="applyPreview"
     />
+    <seating-student-import-dialog
+      v-model="studentImportVisible"
+      @confirm="handleExcelStudentImport"
+    />
   </div>
 </template>
 
@@ -535,11 +603,15 @@ function handleKeydown(event: KeyboardEvent): void {
   border-right: 1px solid #eeeaf3;
 }
 .sidebar-heading,
-.unassigned-heading,
 .editor-toolbar,
 .toolbar-actions {
   display: flex;
   align-items: center;
+}
+.student-source-bar {
+  padding: 9px 18px;
+  background: #fbfdff;
+  border-bottom: 1px solid #eeeaf3;
 }
 .sidebar-heading {
   justify-content: space-between;
@@ -601,8 +673,20 @@ function handleKeydown(event: KeyboardEvent): void {
 .editor-toolbar {
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
+  min-width: 0;
+  height: 48px;
+  padding: 0 14px;
+  overflow-x: auto;
+  overflow-y: hidden;
   border-bottom: 1px solid #eeeaf3;
+  scrollbar-width: none;
+}
+.editor-toolbar::-webkit-scrollbar {
+  display: none;
+}
+.editor-toolbar > div:first-child {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .editor-toolbar strong {
   font-size: 17px;
@@ -614,60 +698,19 @@ function handleKeydown(event: KeyboardEvent): void {
   font-size: 12px;
 }
 .toolbar-actions {
-  flex-wrap: wrap;
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 7px;
+  white-space: nowrap;
 }
-.unassigned-panel {
-  padding: 16px;
-  background: #fff;
-  border-left: 1px solid #eeeaf3;
+.toolbar-actions :deep(.el-button) {
+  flex-shrink: 0;
+  margin-left: 0;
 }
-.unassigned-heading {
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-.panel-tip,
 .dialog-tip {
   color: #938a9d;
   font-size: 12px;
-}
-.student-list {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 12px;
-}
-.student-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-width: 0;
-  padding: 10px;
-  border: 1px solid #ece7f1;
-  border-radius: 9px;
-  color: #443850;
-  background: #fcfbfd;
-  cursor: grab;
-}
-.student-card:hover,
-.student-card.selected {
-  border-color: #a78bdb;
-  background: #f5f0ff;
-}
-.student-card span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.student-card svg {
-  color: #aaa0b3;
-}
-.student-empty {
-  grid-column: 1/-1;
-  padding: 35px 8px;
-  color: #9a919f;
-  text-align: center;
 }
 .empty-chart {
   display: grid;
@@ -798,18 +841,6 @@ function handleKeydown(event: KeyboardEvent): void {
 .chart-item__name {
   font-size: 13px;
 }
-.unassigned-panel {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.student-list {
-  align-content: start;
-  flex: 1;
-  min-height: 0;
-  padding-right: 4px;
-  overflow-y: auto;
-}
 .preview-classroom {
   display: flex;
   flex-direction: column;
@@ -911,14 +942,6 @@ function handleKeydown(event: KeyboardEvent): void {
   }
   .chart-sidebar {
     display: none;
-  }
-  .unassigned-panel {
-    border-top: 1px solid #eeeaf3;
-    border-left: 0;
-  }
-  .editor-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
   }
   .toolbar-actions {
     justify-content: flex-start;

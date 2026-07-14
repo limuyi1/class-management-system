@@ -1,21 +1,83 @@
 <script setup lang="ts">
-import { computed, shallowRef } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 
+import { PagesEnum } from '@/types/Common'
 import {
   SeatingSpecialSeatPositionEnum,
   SeatingViewDirectionEnum,
   type SeatPositionType,
   type SeatingChartType
 } from '@/types/SeatingChart'
+import { buildSeatingChartPageLayout } from '@/utils/seatingChartPageLayoutUntil'
 import { getSeatKey, getVisibleSeats } from '@/utils/seatingChartUntil'
 
-const props = defineProps<{
-  chart: SeatingChartType
-  studentNames: Record<string, string>
-  showEmptyLabels: boolean
-}>()
+import type { CSSProperties } from 'vue'
+import type { SeatingChartPageOrientationType } from '@/utils/seatingChartPageLayoutUntil'
 
+const props = withDefaults(
+  defineProps<{
+    chart: SeatingChartType
+    studentNames: Record<string, string>
+    showTitle?: boolean
+    showEmptyLabels: boolean
+    pageType?: PagesEnum
+    orientation?: SeatingChartPageOrientationType
+    layoutScalePercent?: number
+  }>(),
+  {
+    showTitle: true,
+    pageType: PagesEnum.A4,
+    orientation: 'landscape',
+    layoutScalePercent: 100
+  }
+)
+
+const previewHostRef = shallowRef<HTMLElement | null>(null)
 const exportElementRef = shallowRef<HTMLElement | null>(null)
+const contentElementRef = shallowRef<HTMLElement | null>(null)
+const previewWidth = shallowRef(0)
+const previewHeight = shallowRef(0)
+const naturalWidth = shallowRef(760)
+const naturalHeight = shallowRef(540)
+let contentResizeObserver: ResizeObserver | null = null
+
+const pageLayout = computed(() =>
+  buildSeatingChartPageLayout(props.chart, props.pageType, props.orientation, 1, props.showTitle)
+)
+const paperStyle = computed<CSSProperties>(() => ({
+  width: `${pageLayout.value.pageWidth}px`,
+  height: `${pageLayout.value.pageHeight}px`
+}))
+const previewPaperScale = computed(() => {
+  if (!previewWidth.value || !previewHeight.value) return 1
+  return Math.min(
+    (previewWidth.value - 8) / pageLayout.value.pageWidth,
+    (previewHeight.value - 8) / pageLayout.value.pageHeight,
+    1
+  )
+})
+const previewStageStyle = computed<CSSProperties>(() => ({
+  width: `${pageLayout.value.pageWidth * previewPaperScale.value}px`,
+  height: `${pageLayout.value.pageHeight * previewPaperScale.value}px`
+}))
+const previewPaperStyle = computed<CSSProperties>(() => ({
+  transform: `scale(${previewPaperScale.value})`
+}))
+const contentViewportStyle = computed<CSSProperties>(() => ({
+  inset: `${pageLayout.value.margin}px`
+}))
+const contentScale = computed(() => {
+  const availableWidth = pageLayout.value.pageWidth - pageLayout.value.margin * 2
+  const availableHeight = pageLayout.value.pageHeight - pageLayout.value.margin * 2
+  const fitScale = Math.min(
+    availableWidth / naturalWidth.value,
+    availableHeight / naturalHeight.value
+  )
+  return fitScale * (props.layoutScalePercent / 100)
+})
+const contentStyle = computed<CSSProperties>(() => ({
+  transform: `translate(-50%, -50%) scale(${contentScale.value})`
+}))
 const facingStudents = computed(
   () => props.chart.viewDirection === SeatingViewDirectionEnum.FacingStudents
 )
@@ -31,6 +93,36 @@ const visibleSeatRows = computed(() => {
 const visibleColumnSeats = computed(() => visibleSeatRows.value[0] || [])
 const enabledSpecialSeats = computed(() => props.chart.specialSeats.filter((seat) => seat.enabled))
 
+function measureContent(): void {
+  if (!contentElementRef.value) return
+  if (contentElementRef.value.offsetWidth > 0)
+    naturalWidth.value = contentElementRef.value.offsetWidth
+  if (contentElementRef.value.offsetHeight > 0) {
+    naturalHeight.value = contentElementRef.value.offsetHeight
+  }
+}
+
+function measurePreviewHost(): void {
+  if (!previewHostRef.value) return
+  previewWidth.value = previewHostRef.value.clientWidth
+  previewHeight.value = previewHostRef.value.clientHeight
+}
+
+onMounted(async () => {
+  await nextTick()
+  measureContent()
+  measurePreviewHost()
+  if (typeof ResizeObserver === 'undefined') return
+  contentResizeObserver = new ResizeObserver(() => {
+    measureContent()
+    measurePreviewHost()
+  })
+  if (contentElementRef.value) contentResizeObserver.observe(contentElementRef.value)
+  if (previewHostRef.value) contentResizeObserver.observe(previewHostRef.value)
+})
+
+onBeforeUnmount(() => contentResizeObserver?.disconnect())
+
 function hasAisleAfterSeat(seat: SeatPositionType): boolean {
   const aisleColumn = facingStudents.value ? seat.column - 1 : seat.column
   return props.chart.aisleAfterColumns.includes(aisleColumn)
@@ -41,6 +133,10 @@ function getSpecialSeatName(position: SeatingSpecialSeatPositionEnum): string {
   return seat?.studentId ? props.studentNames[seat.studentId] || '未命名学生' : ''
 }
 
+function isSpecialSeatEnabled(position: SeatingSpecialSeatPositionEnum): boolean {
+  return Boolean(props.chart.specialSeats.find((seat) => seat.position === position)?.enabled)
+}
+
 function getElement(): HTMLElement | null {
   return exportElementRef.value
 }
@@ -49,101 +145,142 @@ defineExpose({ getElement })
 </script>
 
 <template>
-  <article ref="exportElementRef" class="seating-export-sheet">
-    <header class="sheet-header">
-      <h2>{{ chart.name }}</h2>
-    </header>
+  <div ref="previewHostRef" class="seating-export-preview">
+    <div class="preview-paper-stage" :style="previewStageStyle">
+      <div class="preview-paper-display" :style="previewPaperStyle">
+        <article ref="exportElementRef" class="seating-export-sheet" :style="paperStyle">
+          <div class="paper-content-viewport" :style="contentViewportStyle">
+            <div ref="contentElementRef" class="seating-export-content" :style="contentStyle">
+              <header v-if="showTitle" class="sheet-header">
+                <h2>{{ chart.name }}</h2>
+              </header>
 
-    <div class="classroom-plan" :class="{ 'facing-students': facingStudents }">
-      <div class="platform-area">
-        <div class="special-seat-slot special-seat-slot--left">
-          <div
-            v-if="
-              chart.specialSeats.find(
-                (seat) => seat.position === SeatingSpecialSeatPositionEnum.PlatformLeft
-              )?.enabled
-            "
-            class="export-special-seat"
-          >
-            <small>讲台左侧</small>
-            <strong>{{
-              getSpecialSeatName(SeatingSpecialSeatPositionEnum.PlatformLeft) ||
-              (showEmptyLabels ? '空座位' : '')
-            }}</strong>
-          </div>
-        </div>
-        <div class="export-platform">
-          <span>讲 台</span>
-          <small>PLATFORM</small>
-        </div>
-        <div class="special-seat-slot special-seat-slot--right">
-          <div
-            v-if="
-              chart.specialSeats.find(
-                (seat) => seat.position === SeatingSpecialSeatPositionEnum.PlatformRight
-              )?.enabled
-            "
-            class="export-special-seat"
-          >
-            <small>讲台右侧</small>
-            <strong>{{
-              getSpecialSeatName(SeatingSpecialSeatPositionEnum.PlatformRight) ||
-              (showEmptyLabels ? '空座位' : '')
-            }}</strong>
-          </div>
-        </div>
-      </div>
+              <div class="classroom-plan" :class="{ 'facing-students': facingStudents }">
+                <div class="platform-area">
+                  <div
+                    v-if="isSpecialSeatEnabled(SeatingSpecialSeatPositionEnum.PlatformLeft)"
+                    class="special-seat-slot special-seat-slot--left"
+                  >
+                    <div class="export-special-seat">
+                      <small>讲台左侧</small>
+                      <strong>{{
+                        getSpecialSeatName(SeatingSpecialSeatPositionEnum.PlatformLeft) ||
+                        (showEmptyLabels ? '空座位' : '')
+                      }}</strong>
+                    </div>
+                  </div>
+                  <div class="export-platform">
+                    <span>讲 台</span>
+                    <small>PLATFORM</small>
+                  </div>
+                  <div
+                    v-if="isSpecialSeatEnabled(SeatingSpecialSeatPositionEnum.PlatformRight)"
+                    class="special-seat-slot special-seat-slot--right"
+                  >
+                    <div class="export-special-seat">
+                      <small>讲台右侧</small>
+                      <strong>{{
+                        getSpecialSeatName(SeatingSpecialSeatPositionEnum.PlatformRight) ||
+                        (showEmptyLabels ? '空座位' : '')
+                      }}</strong>
+                    </div>
+                  </div>
+                </div>
 
-      <div class="seat-layout">
-        <div class="column-headers">
-          <span class="axis-corner"></span>
-          <template v-for="seat in visibleColumnSeats" :key="`export-column-${seat.column}`">
-            <span class="column-header">{{ seat.column + 1 }}<small>列</small></span>
-            <span v-if="hasAisleAfterSeat(seat)" class="aisle aisle--header"></span>
-          </template>
-        </div>
+                <div class="seat-layout">
+                  <div class="column-headers">
+                    <span class="axis-corner"></span>
+                    <template
+                      v-for="seat in visibleColumnSeats"
+                      :key="`export-column-${seat.column}`"
+                    >
+                      <span class="column-header">{{ seat.column + 1 }}<small>列</small></span>
+                      <span v-if="hasAisleAfterSeat(seat)" class="aisle aisle--header"></span>
+                    </template>
+                  </div>
 
-        <div class="seat-rows">
-          <div v-for="row in visibleSeatRows" :key="row[0].row" class="seat-row">
-            <span class="row-header">{{ row[0].row + 1 }}<small>排</small></span>
-            <template v-for="seat in row" :key="getSeatKey(seat.row, seat.column)">
-              <div class="export-seat" :class="{ occupied: seat.studentId }">
-                <strong v-if="seat.studentId">
-                  {{ studentNames[seat.studentId] || '未命名学生' }}
-                </strong>
-                <span v-else-if="showEmptyLabels">空座位</span>
+                  <div class="seat-rows">
+                    <div v-for="row in visibleSeatRows" :key="row[0].row" class="seat-row">
+                      <span class="row-header">{{ row[0].row + 1 }}<small>排</small></span>
+                      <template v-for="seat in row" :key="getSeatKey(seat.row, seat.column)">
+                        <div class="export-seat" :class="{ occupied: seat.studentId }">
+                          <strong v-if="seat.studentId">
+                            {{ studentNames[seat.studentId] || '未命名学生' }}
+                          </strong>
+                          <span v-else-if="showEmptyLabels">空座位</span>
+                        </div>
+                        <span v-if="hasAisleAfterSeat(seat)" class="aisle"></span>
+                      </template>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <span v-if="hasAisleAfterSeat(seat)" class="aisle"></span>
-            </template>
+
+              <footer class="sheet-footer">
+                <span>共 {{ chart.seats.length + enabledSpecialSeats.length }} 个座位</span>
+                <span>过道 {{ chart.aisleAfterColumns.length }} 处</span>
+              </footer>
+            </div>
           </div>
-        </div>
+        </article>
       </div>
     </div>
-
-    <footer class="sheet-footer">
-      <span>共 {{ chart.seats.length + enabledSpecialSeats.length }} 个座位</span>
-      <span>过道 {{ chart.aisleAfterColumns.length }} 处</span>
-    </footer>
-  </article>
+  </div>
 </template>
 
 <style scoped lang="scss">
+.seating-export-preview {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  place-items: center;
+  overflow: hidden;
+}
+
+.preview-paper-stage {
+  position: relative;
+  flex: none;
+}
+
+.preview-paper-display {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
 .seating-export-sheet {
   --ink: #29232e;
   --muted: #7a7180;
   --line: #d9d1dc;
   --paper: #fffefa;
   --accent: #5d3f7d;
+  position: relative;
   box-sizing: border-box;
-  width: max-content;
-  min-width: 760px;
-  padding: 34px 38px 26px;
+  flex: none;
+  overflow: hidden;
   color: var(--ink);
   background:
     linear-gradient(rgba(117, 91, 75, 0.035) 1px, transparent 1px) 0 0/100% 28px,
     var(--paper);
   border: 1px solid #e7dfd5;
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+.paper-content-viewport {
+  position: absolute;
+  overflow: hidden;
+}
+
+.seating-export-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  box-sizing: border-box;
+  width: max-content;
+  transform-origin: center;
 }
 
 .sheet-header,

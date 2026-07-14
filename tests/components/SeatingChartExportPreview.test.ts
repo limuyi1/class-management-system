@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import SeatingChartExportPreview from '@/views/seating-chart/components/SeatingChartExportPreview.vue'
+import { PagesEnum } from '@/types/Common'
 import {
   SeatingSpecialSeatPositionEnum,
   SeatingViewDirectionEnum,
@@ -22,6 +23,7 @@ function createChart(): SeatingChartType {
   return {
     id: 'chart-1',
     name: '一班座位表',
+    studentSource: 'system',
     rows: 2,
     columns: 2,
     aisleAfterColumns: [0],
@@ -55,6 +57,9 @@ describe('SeatingChartExportPreview', () => {
     expect(wrapper.text()).toContain('张三')
     expect(wrapper.text()).toContain('李四')
     expect(wrapper.text()).toContain('空座位')
+    expect(wrapper.findAll('.platform-area > *')).toHaveLength(2)
+    expect(wrapper.find('.special-seat-slot--left').exists()).toBe(true)
+    expect(wrapper.find('.special-seat-slot--right').exists()).toBe(false)
     expect(wrapper.findAll('.aisle:not(.aisle--header)')).toHaveLength(2)
     expect(wrapper.findAll('.export-seat')).toHaveLength(4)
   })
@@ -74,5 +79,54 @@ describe('SeatingChartExportPreview', () => {
     expect(wrapper.findAll('.column-header').map((item) => item.text())).toEqual(['2列', '1列'])
     expect(wrapper.findAll('.export-seat')).toHaveLength(4)
     expect(wrapper.findAll('.export-seat').some((item) => item.text() === '空座位')).toBe(false)
+  })
+
+  it('renders a paper canvas using the selected page orientation', () => {
+    const wrapper = mount(SeatingChartExportPreview, {
+      props: {
+        chart: createChart(),
+        studentNames: {},
+        showEmptyLabels: true,
+        pageType: PagesEnum.A4,
+        orientation: 'portrait'
+      }
+    })
+
+    const paperStyle = wrapper.get('.seating-export-sheet').attributes('style')
+    expect(paperStyle).toContain('width: 595.28px')
+    expect(paperStyle).toContain('height: 841.89px')
+  })
+
+  it('updates all paper content without changing the paper size', async () => {
+    const wrapper = mount(SeatingChartExportPreview, {
+      props: {
+        chart: createChart(),
+        studentNames: {},
+        showEmptyLabels: true,
+        layoutScalePercent: 100
+      }
+    })
+    const originalStyle = wrapper.get('.seating-export-content').attributes('style')
+
+    const originalPaperStyle = wrapper.get('.seating-export-sheet').attributes('style')
+    await wrapper.setProps({ layoutScalePercent: 90 })
+
+    expect(wrapper.get('.seating-export-content').attributes('style')).not.toBe(originalStyle)
+    expect(wrapper.get('.seating-export-sheet').attributes('style')).toBe(originalPaperStyle)
+  })
+
+  it('hides the title and its divider together', () => {
+    const wrapper = mount(SeatingChartExportPreview, {
+      props: {
+        chart: createChart(),
+        studentNames: {},
+        showTitle: false,
+        showEmptyLabels: true
+      }
+    })
+
+    expect(wrapper.find('.sheet-header').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('一班座位表')
+    expect(wrapper.find('.classroom-plan').exists()).toBe(true)
   })
 })

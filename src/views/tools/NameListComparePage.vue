@@ -2,13 +2,14 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { ElMessage, type UploadFile } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import NameListCompareResultCard from '@/views/tools/components/NameListCompareResultCard.vue'
 
-import { exportExcel, parseExcel } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow, exportExcel } from '@/utils/xlsxUntil'
 import {
   buildNameEntries,
   buildNameListCompareResult,
@@ -41,6 +42,8 @@ const suggestedNameColumn = ref('')
 
 const dataSourceStore = useDataSourceStore()
 const { enabledData } = storeToRefs(dataSourceStore)
+// 文件读取、空表校验和错误提示走公共层；双来源槽位与姓名列确认仍由名单核对维护。
+const { parseRawFile } = useExcelPreviewImport({ errorLogLabel: '导入名单 Excel' })
 
 const systemRows = computed<NameListCompareRowType[]>(() => {
   return enabledData.value.map((student) => ({
@@ -135,26 +138,26 @@ async function handleFileChange(event: Event): Promise<void> {
   target.value = ''
   if (!file) return
 
-  try {
-    const { header, data } = await parseExcel({ raw: file } as UploadFile)
-    if (header.length === 0) {
-      ElMessage.warning('未读取到可用表头')
-      return
-    }
-
-    importedSources.value[pendingImportKey.value] = {
-      key: pendingImportKey.value,
-      kind: 'excel',
-      label: file.name,
-      headers: header,
-      rows: data,
-      nameColumn: ''
-    }
-    openNameColumnDialog(pendingImportKey.value)
-  } catch (error) {
-    console.error('导入 Excel 失败:', error)
-    ElMessage.error('导入 Excel 失败')
+  const preview = await parseRawFile(file)
+  if (!preview) return
+  const { header, data } = buildExcelDataFromHeaderRow(
+    preview.rows,
+    preview.suggestedHeaderRowIndex
+  )
+  if (header.length === 0) {
+    ElMessage.warning('未读取到可用表头')
+    return
   }
+
+  importedSources.value[pendingImportKey.value] = {
+    key: pendingImportKey.value,
+    kind: 'excel',
+    label: file.name,
+    headers: header,
+    rows: data,
+    nameColumn: ''
+  }
+  openNameColumnDialog(pendingImportKey.value)
 }
 
 function confirmPasteImport(): void {

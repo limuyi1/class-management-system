@@ -98,9 +98,6 @@ export function createPersistedStateDexie() {
       if (storeId === 'configuration') {
         state.recentScoreEntries = normalizeRecentScoreEntries(state.recentScoreEntries)
       }
-      if (storeId === 'seatingChart') {
-        delete state.activeChartId
-      }
       store.$patch(state as _DeepPartial<StateTree>)
     }
     const resetStoreState = () => {

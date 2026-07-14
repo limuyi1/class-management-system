@@ -5,6 +5,7 @@ import { createRandomSeats, createSeats, createSpecialSeats, getVisibleSeats, no
 
 const chart = (rows = 2, columns = 2): SeatingChartType => ({
   id: 'chart', name: '测试', rows, columns, aisleAfterColumns: [],
+  studentSource: 'system',
   viewDirection: SeatingViewDirectionEnum.FacingPlatform, seats: createSeats(rows, columns),
   specialSeats: createSpecialSeats(),
   createdAt: '', updatedAt: ''
@@ -49,5 +50,26 @@ describe('seatingChartUntil', () => {
     expect(specialSeat.studentId).toBe('a')
     expect(random.randomizedStudentIds).toEqual(expect.arrayContaining(['b', 'c']))
     expect(random.randomizedStudentIds).not.toContain('a')
+  })
+
+  it('keeps empty seats at the end of the last row after full randomization', () => {
+    const source = chart(2, 3)
+    const random = createRandomSeats(source, ['a', 'b', 'c', 'd'])
+
+    expect(random.seats.slice(0, 4).every((seat) => seat.studentId)).toBe(true)
+    expect(random.seats.slice(4).map((seat) => [seat.row, seat.column, seat.studentId])).toEqual([
+      [1, 1, null],
+      [1, 2, null]
+    ])
+  })
+
+  it('fills earlier empty seats first without moving existing assignments in supplement mode', () => {
+    const source = chart(2, 2)
+    source.seats[1].studentId = 'fixed'
+    const random = createRandomSeats(source, ['fixed', 'new'], true)
+
+    expect(random.seats[0].studentId).toBe('new')
+    expect(random.seats[1].studentId).toBe('fixed')
+    expect(random.seats.slice(2).every((seat) => !seat.studentId)).toBe(true)
   })
 })

@@ -157,6 +157,12 @@ tests/               # Test files
 └── utils/           # Utility function tests
 ```
 
+## Font Asset Policy
+
+- `src/assets/font/SourceHanSerifSC-Regular.otf` is a large backup-only font asset. Do not use it as a default UI font, reference it from new styles, or embed it in new PNG/PDF/export implementations.
+- Do not expand existing dependencies on `SourceHanSerifSC-Regular.otf`. Prefer system fonts or an existing purpose-built subset font such as `SourceHanSerifSC-LabelSubset.otf` when the required glyph coverage is known.
+- Activating the backup font for any new runtime use requires explicit user approval.
+
 ## Important Notes
 
 - Build output goes to `dist/` directory

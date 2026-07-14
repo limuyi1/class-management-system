@@ -327,7 +327,6 @@ defineExpose({ autoFocus })
         <font-awesome-icon :icon="['solid', 'file-excel']" />
       </div>
       <h3>上传 Excel 开始处理评语</h3>
-      <p>当前没有系统学生，可临时导入其他班级名单；数据只在本页面使用，不会写入系统。</p>
       <el-button type="primary" size="large" @click="handleUploadRequest">
         <template #icon><font-awesome-icon :icon="['solid', 'file-arrow-up']" /></template>
         上传 Excel

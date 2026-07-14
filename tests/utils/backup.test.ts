@@ -12,7 +12,8 @@ const stores = {
   aiConfig: { $patch: vi.fn(), $reset: vi.fn() },
   wrongBook: { $patch: vi.fn(), $reset: vi.fn() },
   overviewAnalysis: { $patch: vi.fn() },
-  tools: { $patch: vi.fn(), $reset: vi.fn() }
+  tools: { $patch: vi.fn(), $reset: vi.fn() },
+  seatingChart: { $patch: vi.fn(), $reset: vi.fn(), reconcileStudents: vi.fn() }
 }
 
 const tableGetMocks = {
@@ -23,7 +24,8 @@ const tableGetMocks = {
   aiSettings: vi.fn(async () => undefined),
   wrongBook: vi.fn(async () => undefined),
   overviewAnalysisCache: vi.fn(async () => undefined),
-  toolPreferences: vi.fn(async () => undefined)
+  toolPreferences: vi.fn(async () => undefined),
+  seatingCharts: vi.fn(async () => undefined)
 }
 
 const importMock = vi.fn(async () => undefined)
@@ -74,6 +76,10 @@ vi.mock('../../src/stores/tools', () => ({
   useToolsStore: vi.fn(() => stores.tools)
 }))
 
+vi.mock('../../src/stores/seating-chart', () => ({
+  useSeatingChartStore: vi.fn(() => stores.seatingChart)
+}))
+
 vi.mock('../../src/db', () => ({
   DB_ID: 'main',
   db: {
@@ -86,6 +92,7 @@ vi.mock('../../src/db', () => ({
     wrongBook: { get: tableGetMocks.wrongBook, clear: vi.fn() },
     overviewAnalysisCache: { get: tableGetMocks.overviewAnalysisCache, clear: vi.fn() },
     toolPreferences: { get: tableGetMocks.toolPreferences, clear: vi.fn() },
+    seatingCharts: { get: tableGetMocks.seatingCharts, clear: vi.fn() },
     attachments: { clear: vi.fn() },
     paperLayoutDrafts: { clear: vi.fn() },
     export: vi.fn()

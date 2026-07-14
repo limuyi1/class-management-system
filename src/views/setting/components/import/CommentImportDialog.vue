@@ -154,7 +154,13 @@ const handleConfirm = () => {
 
     <template #footer>
       <el-button @click="localVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleConfirm">确认导入</el-button>
+      <el-button
+        type="primary"
+        :disabled="!effectiveHeaders.length || !selectedNameColumn || !selectedCommentColumn"
+        @click="handleConfirm"
+      >
+        确认导入
+      </el-button>
     </template>
   </el-dialog>
 </template>

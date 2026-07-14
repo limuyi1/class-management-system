@@ -61,7 +61,7 @@ describe('useEvaluationHandwriteFont', () => {
   })
 
   it('should shorten long font names while keeping the extension', () => {
-    expect(formatHandwriteFontName('SourceHanSerifSC-Regular.otf')).toBe('Sourc...lar.otf')
+    expect(formatHandwriteFontName('ExampleHandwritingFont.ttf')).toBe('Examp...ont.ttf')
     expect(formatHandwriteFontName('short.otf')).toBe('short.otf')
   })
 

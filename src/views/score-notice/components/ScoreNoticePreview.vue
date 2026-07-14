@@ -405,7 +405,7 @@ defineExpose({
   margin: 0;
   overflow-wrap: anywhere;
   color: #123f3a;
-  font-family: 'Source Han Serif SC', STSong, 'Songti SC', SimSun, serif;
+  font-family: STSong, 'Songti SC', SimSun, serif;
   font-size: 80px;
   font-weight: 700;
   font-synthesis: weight;

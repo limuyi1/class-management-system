@@ -26,7 +26,7 @@ describe('CommentSourceBar', () => {
     expect(wrapper.emitted('change')).toEqual([['excel']])
   })
 
-  it('shows temporary source state without a second visible upload button', async () => {
+  it('shows Excel source state without a second visible upload button', async () => {
     const wrapper = mount(CommentSourceBar, {
       props: {
         source: 'excel',
@@ -43,7 +43,7 @@ describe('CommentSourceBar', () => {
 
     expect(wrapper.get('.source-trigger').text()).toContain('外班评语.xlsx')
     expect(wrapper.get('.source-trigger').text()).toContain('42 人')
-    expect(wrapper.text()).toContain('临时处理，不写入系统')
+    expect(wrapper.text()).not.toContain('不写入系统')
     expect(wrapper.find('.replace-file').exists()).toBe(false)
     ;(
       wrapper.vm as unknown as { handleSourceCommand: (command: string) => void }

@@ -27,6 +27,7 @@ function createChart(): SeatingChartType {
   return {
     id: 'chart-1',
     name: '测试座位表',
+    studentSource: 'system',
     rows: 2,
     columns: 2,
     aisleAfterColumns: [0],

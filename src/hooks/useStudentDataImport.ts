@@ -1,9 +1,9 @@
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { UploadFile } from 'element-plus'
 
+import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import router from '@/router'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useDataSourceStore } from '@/stores/data-source'
@@ -14,10 +14,9 @@ import {
 } from '@/utils/scoreImportUntil'
 import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/commentImportUntil'
 import { buildInitialStudentImport } from '@/utils/initialStudentImportUntil'
-import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUntil'
 
 import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUntil'
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
 import type {
   CommentImportSelectionType,
   ExcelImportModeType,
@@ -36,11 +35,19 @@ export const useStudentDataImport = () => {
   const { scoreColumns } = storeToRefs(settingStore)
 
   const excelFileInputRef = ref<HTMLInputElement | null>(null)
-  const importingExcel = ref(false)
+  // 设置页保留 .dexie/Excel 共用的原生 input；Excel 解析状态统一交给公共 composable。
+  const {
+    loading: importingExcel,
+    preview: excelPreview,
+    parseRawFile,
+    reset: resetExcelPreview
+  } = useExcelPreviewImport({ errorLogLabel: '解析 Excel', errorMessage: '导入失败！' })
   const importMode = ref<ExcelImportModeType>('initial')
-  const excelPreviewRows = ref<ExcelCellValueType[][]>([])
-  const excelPreviewMerges = ref<ExcelMergeRangeType[]>([])
-  const suggestedHeaderRowIndex = ref(0)
+  const excelPreviewRows = computed(() => excelPreview.value?.rows ?? [])
+  const excelPreviewMerges = computed(() => excelPreview.value?.merges ?? [])
+  const suggestedHeaderRowIndex = computed(
+    () => excelPreview.value?.suggestedHeaderRowIndex ?? 0
+  )
   const excelHeaders = ref<string[]>([])
   const excelRows = ref<ExcelRowType[]>([])
   const initialDialogVisible = ref(false)
@@ -56,9 +63,7 @@ export const useStudentDataImport = () => {
     scoreColumnSelectorVisible.value = false
     commentDialogVisible.value = false
     conflictDialogVisible.value = false
-    excelPreviewRows.value = []
-    excelPreviewMerges.value = []
-    suggestedHeaderRowIndex.value = 0
+    resetExcelPreview()
     excelHeaders.value = []
     excelRows.value = []
     pendingScoreColumns.value = []
@@ -108,24 +113,7 @@ export const useStudentDataImport = () => {
     input.value = ''
     if (!file) return
 
-    importingExcel.value = true
-    try {
-      const preview = await parseExcelPreview({ raw: file } as UploadFile)
-      if (!preview.rows.length) {
-        ElMessage.error('Excel 中没有可导入的数据')
-        return
-      }
-
-      excelPreviewRows.value = preview.rows
-      excelPreviewMerges.value = preview.merges
-      suggestedHeaderRowIndex.value = preview.suggestedHeaderRowIndex
-      openModeDialog()
-    } catch (error) {
-      console.error('解析 Excel 失败:', error)
-      ElMessage.error('导入失败！')
-    } finally {
-      importingExcel.value = false
-    }
+    if (await parseRawFile(file)) openModeDialog()
   }
 
   /**

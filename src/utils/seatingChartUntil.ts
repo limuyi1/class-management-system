@@ -83,17 +83,26 @@ export function shuffled<T>(items: T[]): T[] {
 }
 
 export function createRandomSeats(chart: SeatingChartType, studentIds: string[], supplement = false) {
-  const seats = supplement ? chart.seats.map((seat) => ({ ...seat })) : createSeats(chart.rows, chart.columns)
+  const seats = supplement
+    ? chart.seats.map((seat) => ({ ...seat }))
+    : createSeats(chart.rows, chart.columns)
   const assigned = new Set([
     ...seats.map((seat) => seat.studentId).filter(Boolean),
     ...chart.specialSeats.map((seat) => seat.studentId).filter(Boolean)
   ] as string[])
   const candidates = studentIds.filter((id) => !assigned.has(id))
-  const emptySeats = seats.filter((seat) => !seat.studentId)
+  /**
+   * 随机排座只打乱学生，不打乱座位位置。
+   * 按排、列从前往后填充，人数不足时空座会稳定集中在最后一排。
+   * 补充模式沿用同一顺序，但不会移动已经安排好的学生。
+   */
+  const emptySeats = seats
+    .filter((seat) => !seat.studentId)
+    .sort((left, right) => left.row - right.row || left.column - right.column)
   const shuffledCandidates = shuffled(candidates)
   const randomizedStudentIds = shuffledCandidates.slice(0, emptySeats.length)
   const unassignedStudentIds = shuffledCandidates.slice(emptySeats.length)
-  shuffled(emptySeats).forEach((seat, index) => {
+  emptySeats.forEach((seat, index) => {
     seat.studentId = randomizedStudentIds[index] || null
   })
   return {
