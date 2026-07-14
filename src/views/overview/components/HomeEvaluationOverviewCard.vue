@@ -24,7 +24,7 @@ const completionLabel = computed(() => {
  */
 const handleCardClick = (target: 'comment' | 'setting') => {
   if (target === 'comment') {
-    router.push('/comment')
+    router.push('/tools/comments')
     return
   }
 

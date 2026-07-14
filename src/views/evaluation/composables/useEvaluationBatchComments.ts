@@ -23,7 +23,7 @@ interface UseEvaluationBatchCommentsOptions {
   aiConfig: EvaluationAIConfigType
 }
 
-type GenerateModeType = 'skip' | 'overwrite'
+export type EvaluationBatchGenerateModeType = 'skip' | 'overwrite'
 type ClassicExpressionUsageType = { expression: string; count: number }
 type CommentAIResultType = {
   studentId: string
@@ -71,7 +71,7 @@ function recordClassicExpressionUsage(
 
 async function resolveBatchGenerateMode(
   students: StudentDataType[]
-): Promise<GenerateModeType | null> {
+): Promise<EvaluationBatchGenerateModeType | null> {
   const existingCount = students.filter((item) => item.comment && item.comment.trim()).length
   const emptyCount = students.length - existingCount
 
@@ -129,7 +129,9 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
     }
   }
 
-  async function handleBatchGenerate(): Promise<void> {
+  async function handleBatchGenerate(
+    requestedMode?: EvaluationBatchGenerateModeType
+  ): Promise<void> {
     if (!options.aiConfig.isConfigured) {
       ElMessage.warning('请先在设置页面配置 AI')
       return
@@ -140,8 +142,13 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       return
     }
 
-    const mode = await resolveBatchGenerateMode(options.students.value)
+    const mode = requestedMode ?? (await resolveBatchGenerateMode(options.students.value))
     if (!mode) return
+
+    if (mode === 'skip' && options.students.value.every((item) => item.comment?.trim())) {
+      ElMessage.info('当前没有空白评语需要生成')
+      return
+    }
 
     batchGenerating.value = true
     const loading = ElLoading.service({

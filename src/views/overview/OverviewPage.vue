@@ -80,7 +80,7 @@ const goToScoreInput = () => {
 const goToEvaluationFromTrend = async () => {
   trendDrawerVisible.value = false
   await nextTick()
-  router.push('/comment')
+  router.push('/tools/comments')
 }
 
 const handleExportReportFromTrend = (studentId: string) => {
@@ -109,7 +109,10 @@ const handleGenerateLearningAnalysis = async () => {
             <font-awesome-icon :icon="['solid', 'chart-simple']" />
             <span>学生趋势分析</span>
           </button>
-          <button class="header-action-pill is-light is-warning" @click="router.push('/comment')">
+          <button
+            class="header-action-pill is-light is-warning"
+            @click="router.push('/tools/comments')"
+          >
             <font-awesome-icon :icon="['solid', 'pen-to-square']" />
             <span>待写评语 {{ dashboardData.evaluationOverview.pendingCount }} 人</span>
           </button>

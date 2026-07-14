@@ -1,8 +1,16 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createDataGuard } from '../../src/router'
+import router, { createDataGuard } from '../../src/router'
 
 describe('router guard', () => {
+  it('keeps the legacy comment URL and redirects it to the tool workspace', () => {
+    const legacyRoute = router.getRoutes().find((route) => route.path === '/comment')
+    const toolRoute = router.getRoutes().find((route) => route.path === '/tools/comments')
+
+    expect(legacyRoute?.redirect).toBe('/tools/comments')
+    expect(toolRoute).toBeDefined()
+  })
+
   it('should allow tools route without data check', async () => {
     const store = {
       waitForInitReady: vi.fn().mockResolvedValue(true),
@@ -59,17 +67,17 @@ describe('router guard', () => {
     expect(next).toHaveBeenCalledWith('/tools')
   })
 
-  it('should allow comment route when data exists', async () => {
+  it('should allow the comment tool without system student data', async () => {
     const store = {
       waitForInitReady: vi.fn().mockResolvedValue(true),
-      enabledData: [{ name: '张三' }]
+      enabledData: []
     }
     const next = vi.fn()
     const guard = createDataGuard(() => store)
 
-    await guard({ path: '/comment' } as never, { path: '/setting' } as never, next)
+    await guard({ path: '/tools/comments' } as never, { path: '/setting' } as never, next)
 
-    expect(store.waitForInitReady).toHaveBeenCalled()
+    expect(store.waitForInitReady).not.toHaveBeenCalled()
     expect(next).toHaveBeenCalledWith()
   })
 })

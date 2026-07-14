@@ -20,12 +20,6 @@ const menu = [
     disabled: true
   },
   {
-    name: '评语',
-    icon: 'comments',
-    path: '/comment',
-    disabled: true
-  },
-  {
     name: '错题本',
     icon: 'clipboard-list',
     path: '/wrong-book',

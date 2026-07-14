@@ -1,4 +1,4 @@
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, type Ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { match } from 'pinyin-pro'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -13,6 +13,7 @@ import { generateSingleComment, polishSingleComment } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUntil'
 
 import type { StudentDataType } from '@/types/StudentData'
+import type { TagCategoryType } from '@/types/Setting'
 import { NAME_PROP } from '@/types/Constants'
 
 interface UseEvaluationInputOptions {
@@ -20,6 +21,9 @@ interface UseEvaluationInputOptions {
   autoNextOnSubmit?: boolean
   promptUnsavedOnSwitch?: boolean
   onActiveStudentChange?: (student: StudentDataType | null) => void
+  students?: Ref<StudentDataType[]>
+  tagCategoryList?: Ref<TagCategoryType[]>
+  allowTagEditing?: boolean
 }
 
 interface InputFormDataType {
@@ -45,8 +49,14 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const settingStore = useSettingStore()
   const aiConfigStore = useAIConfigStore()
 
-  const { students: originList } = storeToRefs(dataStore)
-  const { tagCategories: tagCategoryList } = storeToRefs(settingStore)
+  const { students: systemStudents } = storeToRefs(dataStore)
+  const { tagCategories: systemTagCategories } = storeToRefs(settingStore)
+  const originList = options.students ?? systemStudents
+  const tagCategoryList = options.tagCategoryList ?? systemTagCategories
+  const allowTagEditing = options.allowTagEditing ?? true
+
+  const getStudentById = (studentId: string): StudentDataType | undefined =>
+    originList.value.find((student) => student.studentId === studentId)
 
   const generating = ref(false)
   const polishing = ref(false)
@@ -64,7 +74,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
 
   const currentStudentTags = computed<Record<string, string[]> | null>(() => {
     if (!formData.studentId) return null
-    const item = dataStore.getStudentById(formData.studentId)
+    const item = getStudentById(formData.studentId)
     if (!item || !item.tags) return {}
     return item.tags
   })
@@ -102,7 +112,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
 
   const fillStudentData = (studentId: string | null) => {
     if (!studentId) return
-    const item = dataStore.getStudentById(studentId)
+    const item = getStudentById(studentId)
     if (!item) return
 
     currentSelectedStudentId.value = studentId
@@ -124,7 +134,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
 
   const hasUnsavedChanges = () => {
     if (!formData.studentId) return false
-    const currentItem = dataStore.getStudentById(formData.studentId)
+    const currentItem = getStudentById(formData.studentId)
     if (!currentItem) return false
 
     return normalizeComment(formData.comment) !== normalizeComment(currentItem.comment || '')
@@ -133,7 +143,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const saveCurrentData = () => {
     if (!formData.studentId) return false
 
-    const item = dataStore.getStudentById(formData.studentId)
+    const item = getStudentById(formData.studentId)
     if (!item) return false
 
     item.comment = formData.comment?.trim() ? formData.comment : undefined
@@ -142,7 +152,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   }
 
   const trySwitchStudent = async (nextStudentId: string) => {
-    if (!dataStore.getStudentById(nextStudentId)) return
+    if (!getStudentById(nextStudentId)) return
     if (formData.studentId === nextStudentId) {
       fillStudentData(nextStudentId)
       return
@@ -220,7 +230,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   }
 
   const goToEditTags = () => {
-    if (!formData.studentId) return
+    if (!allowTagEditing || !formData.studentId) return
     router.push({
       path: '/student-info',
       query: {
@@ -240,7 +250,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
       return
     }
 
-    const item = dataStore.getStudentById(formData.studentId)
+    const item = getStudentById(formData.studentId)
     if (!item) return
 
     generating.value = true
@@ -283,7 +293,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
       return
     }
 
-    const item = dataStore.getStudentById(formData.studentId)
+    const item = getStudentById(formData.studentId)
     if (!item) return
 
     polishing.value = true
@@ -334,6 +344,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     formData,
     currentStudentTags,
     hasAnyTags,
+    allowTagEditing,
     nameInputRef,
     commentInputRef,
     autoFocus,

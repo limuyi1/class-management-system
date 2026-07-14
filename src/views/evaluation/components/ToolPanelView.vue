@@ -5,6 +5,15 @@ import ConfigurationCard from '@/views/evaluation/components/ConfigurationCard.v
 import EvaluationInputCard from '@/views/evaluation/components/EvaluationInputCard.vue'
 
 import type { StudentDataType } from '@/types/StudentData'
+import type { TagCategoryType } from '@/types/Setting'
+
+interface Props {
+  students?: StudentDataType[]
+  tagCategoryList?: TagCategoryType[]
+  allowTagEditing?: boolean
+}
+
+defineProps<Props>()
 
 const emit = defineEmits<{
   scroll: [studentId: string]
@@ -46,6 +55,9 @@ defineExpose({
         ref="evaluationInputCardRef"
         :auto-next-on-submit="true"
         :prompt-unsaved-on-switch="true"
+        :students="students"
+        :tag-category-list="tagCategoryList"
+        :allow-tag-editing="allowTagEditing"
         @scroll="(studentId) => emit('scroll', studentId)"
         @active-student-change="(student) => emit('active-student-change', student)"
       />

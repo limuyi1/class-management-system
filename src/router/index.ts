@@ -32,7 +32,7 @@ const router = createRouter({
         {
           path: '/comment',
           name: 'Comment',
-          component: () => import('@/views/evaluation/EvaluationPage.vue')
+          redirect: '/tools/comments'
         },
         {
           path: '/student-info',
@@ -48,6 +48,11 @@ const router = createRouter({
           path: '/tools',
           name: 'Tools',
           component: () => import('@/views/tools/ToolsPage.vue')
+        },
+        {
+          path: '/tools/comments',
+          name: 'CommentTool',
+          component: () => import('@/views/evaluation/EvaluationPage.vue')
         },
         {
           path: '/tools/name-list-compare',
@@ -97,6 +102,7 @@ export function createDataGuard(
   ) => {
     const allowedPaths = [
       '/tools',
+      '/tools/comments',
       '/tools/name-list-compare',
       '/tools/attachments',
       '/tools/paper-layout',

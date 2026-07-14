@@ -47,7 +47,7 @@ const toggleExpanded = () => {
       <span class="summary-main">
         <span class="summary-title">
           <font-awesome-icon :icon="['solid', 'sliders']" />
-          页面设置
+          预览与导出设置
         </span>
         <span class="summary-text">{{ summaryText }}</span>
       </span>
@@ -58,7 +58,7 @@ const toggleExpanded = () => {
       />
     </button>
 
-    <div class="config-body config-body--basic">
+    <div v-show="expanded" class="config-body config-body--basic">
       <div class="config-grid-panel config-grid-panel--basic">
         <div class="config-item config-item--shrink">
           <label>预览缩放</label>

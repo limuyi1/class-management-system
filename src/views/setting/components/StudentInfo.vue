@@ -153,7 +153,7 @@ const confirmTagEdit = (tags: Record<string, string[]>) => {
 
   if (props.returnTo === 'comment' && props.returnStudentId) {
     router.push({
-      path: '/comment',
+      path: '/tools/comments',
       query: {
         'resume-edit': '1',
         'student-id': props.returnStudentId

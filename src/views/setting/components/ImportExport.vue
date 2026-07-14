@@ -10,7 +10,6 @@ import { useStudentDataImport } from '@/hooks/useStudentDataImport'
 import ExcelColumnConflictDialog from '@/components/ExcelColumnConflictDialog.vue'
 import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
 import { clearDatabase, exportDatabase, importDatabase } from '@/utils/backup'
-import CommentImportDialog from '@/views/setting/components/import/CommentImportDialog.vue'
 import ImportActionMenu from '@/views/setting/components/import/ImportActionMenu.vue'
 import InitialImportDialog from '@/views/setting/components/import/InitialImportDialog.vue'
 import ImportProgress from './ImportProgress.vue'
@@ -35,14 +34,12 @@ const {
   excelRows,
   initialDialogVisible,
   scoreColumnSelectorVisible,
-  commentDialogVisible,
   conflictDialogVisible,
   conflictColumns,
   triggerExcelImport,
   handleExcelFileChange,
   handleInitialConfirm,
   handleScoreColumnConfirm,
-  handleCommentConfirm,
   handleConflictConfirm,
   resetExcelImport
 } = useStudentDataImport()
@@ -156,7 +153,7 @@ const handleClear = async () => {
     <el-card>
       <div class="import-export-title">数据导入导出</div>
       <p class="import-export-desc">
-        Excel 可初始化学生名单，或按姓名添加成绩和期末评语；.dexie 用于全量备份与恢复。
+        Excel 可初始化学生名单或按姓名添加成绩；.dexie 用于全量备份与恢复。
       </p>
 
       <div class="import-export-actions">
@@ -187,7 +184,7 @@ const handleClear = async () => {
             <div class="action-desc">
               {{
                 hasStudentData
-                  ? '按姓名添加成绩或评语，也可以使用 .dexie 恢复全量备份'
+                  ? '按姓名添加成绩，也可以使用 .dexie 恢复全量备份'
                   : '从 Excel 创建学生，可同时选择成绩列和评语列'
               }}
             </div>
@@ -197,7 +194,6 @@ const handleClear = async () => {
             :loading="importingBackup || importingExcel"
             @initial="triggerExcelImport('initial')"
             @score="triggerExcelImport('score')"
-            @comment="triggerExcelImport('comment')"
           />
           <input
             ref="excelFileInputRef"
@@ -227,7 +223,7 @@ const handleClear = async () => {
 
       <div class="backup-tip">
         <font-awesome-icon :icon="['solid', 'circle-info']" />
-        <span>.dexie 恢复会覆盖当前数据；Excel 空白评语不会覆盖已有内容</span>
+        <span>.dexie 恢复会覆盖当前数据；评语 Excel 请在“工具 → 评语处理”中使用</span>
       </div>
     </el-card>
 
@@ -254,15 +250,6 @@ const handleClear = async () => {
       :preview-merges="excelPreviewMerges"
       :suggested-header-row-index="suggestedHeaderRowIndex"
       @confirm="handleScoreColumnConfirm"
-    />
-    <comment-import-dialog
-      v-model="commentDialogVisible"
-      :headers="excelHeaders"
-      :rows="excelRows"
-      :preview-rows="excelPreviewRows"
-      :preview-merges="excelPreviewMerges"
-      :suggested-header-row-index="suggestedHeaderRowIndex"
-      @confirm="handleCommentConfirm"
     />
     <excel-column-conflict-dialog
       v-model="conflictDialogVisible"

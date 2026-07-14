@@ -17,6 +17,7 @@ interface Props {
   activeStudentId?: string
   suppressActiveState?: boolean
   previewMode?: PreviewModeType
+  students?: StudentDataType[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -32,7 +33,8 @@ const handleCardClick = (row: StudentDataType) => {
 }
 
 const store = useDataSourceStore()
-const { enabledData: tableData } = storeToRefs(store)
+const { enabledData } = storeToRefs(store)
+const tableData = computed(() => props.students ?? enabledData.value)
 
 const configurationStore = useConfigurationStore()
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
@@ -63,7 +65,7 @@ onBeforeUnmount(() => {
 
 watch(
   () => [
-    tableData.value.length,
+    tableData.value,
     configurationStore.pageType,
     configurationStore.evaluationCardWidth,
     configurationStore.evaluationCardHeight,

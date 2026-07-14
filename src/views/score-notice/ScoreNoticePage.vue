@@ -179,7 +179,9 @@ const handleGenerateSingle = async (): Promise<void> => {
   singleGenerating.value = true
   try {
     controlPanelRef.value?.setCommentDraft(await generateSingleDraft(student))
-    ElMessage.success(aiConfigStore.isConfigured ? '评语已生成，请点击保存修改' : '模板评语已生成，请点击保存修改')
+    ElMessage.success(
+      aiConfigStore.isConfigured ? '评语已生成，请点击保存修改' : '模板评语已生成，请点击保存修改'
+    )
   } catch (error) {
     console.error('生成成绩通知评语失败:', error)
     ElMessage.error('评语生成失败，请稍后重试')
@@ -188,46 +190,7 @@ const handleGenerateSingle = async (): Promise<void> => {
   }
 }
 
-const resolveBatchGenerateMode = async (
-  students: ScoreNoticeStudentType[]
-): Promise<BatchGenerateModeType | null> => {
-  const existingCount = students.filter((student) => student.comment.trim()).length
-  const emptyCount = students.length - existingCount
-
-  if (existingCount === 0) return 'overwrite'
-
-  if (emptyCount === 0) {
-    try {
-      await ElMessageBox.confirm('所有学生已有评语，是否全部重新生成？', 'AI 批量生成评语', {
-        confirmButtonText: '覆盖所有',
-        cancelButtonText: '取消',
-        type: 'info',
-        distinguishCancelAndClose: true
-      })
-      return 'overwrite'
-    } catch {
-      return null
-    }
-  }
-
-  try {
-    await ElMessageBox.confirm(
-      `检测到 ${students.length} 名学生中已有 ${existingCount} 名学生有评语，请选择生成方式`,
-      'AI 批量生成评语',
-      {
-        confirmButtonText: '覆盖所有',
-        cancelButtonText: '仅填充空白评语',
-        type: 'info',
-        distinguishCancelAndClose: true
-      }
-    )
-    return 'overwrite'
-  } catch (action) {
-    return action === 'cancel' ? 'skip' : null
-  }
-}
-
-const handleGenerateBatch = async (): Promise<void> => {
+const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> => {
   const candidates = store.students.filter(
     (student) =>
       ![ScoreNoticeCommentStatusEnum.Missing, ScoreNoticeCommentStatusEnum.Generating].includes(
@@ -239,10 +202,26 @@ const handleGenerateBatch = async (): Promise<void> => {
     return
   }
 
-  const mode = await resolveBatchGenerateMode(candidates)
-  if (!mode) return
+  if (mode === 'overwrite') {
+    try {
+      await ElMessageBox.confirm(
+        `将覆盖 ${candidates.length} 名学生现有评语，生成后仍可逐条修改。是否继续？`,
+        '重新生成全部评语',
+        {
+          confirmButtonText: '确认重新生成',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+    } catch {
+      return
+    }
+  }
   const targets = candidates.filter((student) => mode === 'overwrite' || !student.comment.trim())
-  if (!targets.length) return
+  if (!targets.length) {
+    ElMessage.info('没有待处理的评语')
+    return
+  }
 
   batchGenerating.value = true
   stopBatchRequested.value = false
@@ -329,12 +308,6 @@ const handleCopyImage = async (): Promise<void> => {
   }
 }
 
-const handleCopyStudent = async (studentId: string): Promise<void> => {
-  store.selectStudent(studentId)
-  await nextTick()
-  await handleCopyImage()
-}
-
 const waitForRender = async (): Promise<void> => {
   await nextTick()
   await new Promise<void>((resolve) =>
@@ -352,7 +325,8 @@ const handleExportZip = async (): Promise<void> => {
   }
   const blankStudents = exportableStudents.filter((student) => !student.comment.trim())
   const reviewStudents = exportableStudents.filter(
-    (student) => getScoreNoticeCommentValidationReasons(student.comment).length > 0 && student.comment.trim()
+    (student) =>
+      getScoreNoticeCommentValidationReasons(student.comment).length > 0 && student.comment.trim()
   )
   if (blankStudents.length || reviewStudents.length) {
     const details = [
@@ -476,6 +450,7 @@ onBeforeUnmount(() => {
 
       <score-notice-control-panel
         ref="controlPanelRef"
+        :ai-configured="aiConfigStore.isConfigured"
         :batch-generating="batchGenerating"
         :batch-processed="batchProcessed"
         :batch-total="batchTotal"
@@ -492,7 +467,6 @@ onBeforeUnmount(() => {
         @choose-handwrite-font="handleChooseHandwriteFont"
         @clear-handwrite-font="handleClearHandwriteFont"
         @copy-image="handleCopyImage"
-        @copy-student="handleCopyStudent"
         @export-zip="handleExportZip"
       />
     </main>
