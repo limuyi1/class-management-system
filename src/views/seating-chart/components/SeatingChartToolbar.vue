@@ -1,19 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-
-import { SeatingViewDirectionEnum } from '@/types/SeatingChart'
-
 interface SeatingChartToolbarPropsType {
   chartName: string
   assignedCount: number
   seatCapacity: number
-  viewDirection: SeatingViewDirectionEnum
   fullscreen: boolean
 }
 
 type LayoutCommandType = 'layout' | 'aisles' | 'special-seats'
 
-const props = defineProps<SeatingChartToolbarPropsType>()
+defineProps<SeatingChartToolbarPropsType>()
 
 /**
  * 座位表工具栏只负责公共的操作编排，不直接修改座位表数据。
@@ -23,15 +18,10 @@ const emit = defineEmits<{
   openLayout: []
   openAisles: []
   openSpecialSeats: []
-  toggleDirection: []
   randomize: []
   export: []
   toggleFullscreen: []
 }>()
-
-const directionLabel = computed(() =>
-  props.viewDirection === SeatingViewDirectionEnum.FacingPlatform ? '面向同学' : '面向讲台'
-)
 
 /** 将布局下拉菜单的命令转换为语义明确的页面事件。 */
 function handleLayoutCommand(command: LayoutCommandType): void {
@@ -57,7 +47,7 @@ function handleLayoutCommand(command: LayoutCommandType): void {
         </el-button>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item command="layout">行列设置</el-dropdown-item>
+            <el-dropdown-item command="layout">行列与列号设置</el-dropdown-item>
             <el-dropdown-item command="aisles">过道设置</el-dropdown-item>
             <el-dropdown-item command="special-seats">
               <font-awesome-icon :icon="['solid', 'crown']" />
@@ -66,17 +56,6 @@ function handleLayoutCommand(command: LayoutCommandType): void {
           </el-dropdown-menu>
         </template>
       </el-dropdown>
-
-      <el-tooltip :content="directionLabel" placement="bottom">
-        <el-button
-          size="small"
-          circle
-          :aria-label="directionLabel"
-          @click="emit('toggleDirection')"
-        >
-          <font-awesome-icon :icon="['solid', 'rotate']" />
-        </el-button>
-      </el-tooltip>
 
       <span class="seating-toolbar__divider" aria-hidden="true"></span>
 

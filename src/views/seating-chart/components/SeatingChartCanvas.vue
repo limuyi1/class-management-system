@@ -3,8 +3,8 @@ import { computed, shallowRef } from 'vue'
 
 import { useSeatingChartViewport } from '@/views/seating-chart/composables/useSeatingChartViewport'
 import {
+  SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
-  SeatingViewDirectionEnum,
   type SeatPositionType,
   type SeatingChartType,
   type SeatingSpecialSeatType
@@ -31,11 +31,11 @@ const seatViewportRef = shallowRef<HTMLElement | null>(null)
 const rows = computed(() => props.chart.rows)
 const columns = computed(() => props.chart.columns)
 const aisleCount = computed(() => props.chart.aisleAfterColumns.length)
-const layoutKey = computed(() => props.chart.viewDirection)
+const layoutKey = computed(() => props.chart.firstColumnSide)
 const visibleColumnSeats = computed(() => props.visibleSeatRows[0] || [])
 const hasSpecialSeats = computed(() => props.chart.specialSeats.some((seat) => seat.enabled))
-const facingStudents = computed(
-  () => props.chart.viewDirection === SeatingViewDirectionEnum.FacingStudents
+const firstColumnOnRight = computed(
+  () => props.chart.firstColumnSide === SeatingFirstColumnSideEnum.Right
 )
 
 const { stageStyle, contentStyle } = useSeatingChartViewport({
@@ -47,7 +47,7 @@ const { stageStyle, contentStyle } = useSeatingChartViewport({
 })
 
 function hasAisleAfterSeat(seat: SeatPositionType): boolean {
-  const aisleColumn = facingStudents.value ? seat.column - 1 : seat.column
+  const aisleColumn = firstColumnOnRight.value ? seat.column - 1 : seat.column
   return props.chart.aisleAfterColumns.includes(aisleColumn)
 }
 
@@ -57,12 +57,9 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
 </script>
 
 <template>
-  <div class="classroom" :class="{ 'facing-students': facingStudents }">
+  <div class="classroom">
     <div class="platform-shell">
-      <div
-        class="platform-row"
-        :class="{ 'reverse-sides': facingStudents, 'has-special-seats': hasSpecialSeats }"
-      >
+      <div class="platform-row" :class="{ 'has-special-seats': hasSpecialSeats }">
         <template v-for="specialSeat in chart.specialSeats" :key="specialSeat.position">
           <button
             v-if="specialSeat.enabled"
@@ -166,10 +163,6 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
   background: radial-gradient(circle at 1px 1px, #e8e3ec 1px, transparent 0) 0 0/18px 18px #fbfafc;
 }
 
-.classroom.facing-students {
-  flex-direction: column-reverse;
-}
-
 .platform-shell {
   position: relative;
   z-index: 6;
@@ -184,10 +177,6 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
   gap: 10px;
   min-width: 0;
   min-height: 38px;
-}
-
-.platform-row.reverse-sides {
-  flex-direction: row-reverse;
 }
 
 .platform {

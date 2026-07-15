@@ -1,14 +1,31 @@
 import { describe, expect, it } from 'vitest'
 
-import { SeatingSpecialSeatPositionEnum, SeatingViewDirectionEnum, type SeatingChartType } from '@/types/SeatingChart'
-import { createRandomSeats, createSeats, createSpecialSeats, getVisibleSeats, normalizeChart, resizeSeats } from '@/utils/seatingChartUntil'
+import {
+  SeatingFirstColumnSideEnum,
+  SeatingSpecialSeatPositionEnum,
+  type SeatingChartType
+} from '@/types/SeatingChart'
+import {
+  createRandomSeats,
+  createSeats,
+  createSpecialSeats,
+  getVisibleSeats,
+  normalizeChart,
+  resizeSeats
+} from '@/utils/seatingChartUntil'
 
 const chart = (rows = 2, columns = 2): SeatingChartType => ({
-  id: 'chart', name: '测试', rows, columns, aisleAfterColumns: [],
+  id: 'chart',
+  name: '测试',
+  rows,
+  columns,
+  aisleAfterColumns: [],
   studentSource: 'system',
-  viewDirection: SeatingViewDirectionEnum.FacingPlatform, seats: createSeats(rows, columns),
+  firstColumnSide: SeatingFirstColumnSideEnum.Left,
+  seats: createSeats(rows, columns),
   specialSeats: createSpecialSeats(),
-  createdAt: '', updatedAt: ''
+  createdAt: '',
+  updatedAt: ''
 })
 
 describe('seatingChartUntil', () => {
@@ -30,20 +47,33 @@ describe('seatingChartUntil', () => {
     expect(result.aisleAfterColumns).toEqual([0])
   })
 
-  it('randomizes only available capacity and flips visual order without changing source coordinates', () => {
+  it('randomizes only available capacity and reverses columns without reversing rows', () => {
     const source = chart(1, 2)
     const random = createRandomSeats(source, ['a', 'b', 'c'])
     expect(random.seats.filter((seat) => seat.studentId)).toHaveLength(2)
     expect(random.unassignedCount).toBe(1)
     expect(random.unassignedStudentIds).toHaveLength(1)
     expect(['a', 'b', 'c']).toContain(random.unassignedStudentIds[0])
-    source.viewDirection = SeatingViewDirectionEnum.FacingStudents
+    source.firstColumnSide = SeatingFirstColumnSideEnum.Right
     expect(getVisibleSeats(source).map((seat) => seat.column)).toEqual([1, 0])
+  })
+
+  it('migrates the legacy view direction to the matching first-column side', () => {
+    const source = chart()
+    const legacyChart = { ...source, viewDirection: 'facing-students' }
+    delete (legacyChart as Partial<SeatingChartType>).firstColumnSide
+
+    const result = normalizeChart(legacyChart as SeatingChartType, new Set())
+
+    expect(result.firstColumnSide).toBe(SeatingFirstColumnSideEnum.Right)
+    expect('viewDirection' in result).toBe(false)
   })
 
   it('keeps enabled special-seat students fixed during randomization', () => {
     const source = chart(1, 2)
-    const specialSeat = source.specialSeats.find((seat) => seat.position === SeatingSpecialSeatPositionEnum.PlatformLeft)!
+    const specialSeat = source.specialSeats.find(
+      (seat) => seat.position === SeatingSpecialSeatPositionEnum.PlatformLeft
+    )!
     specialSeat.enabled = true
     specialSeat.studentId = 'a'
     const random = createRandomSeats(source, ['a', 'b', 'c'])

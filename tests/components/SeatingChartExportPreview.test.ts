@@ -4,8 +4,8 @@ import { mount } from '@vue/test-utils'
 import SeatingChartExportPreview from '@/views/seating-chart/components/SeatingChartExportPreview.vue'
 import { PagesEnum } from '@/types/Common'
 import {
+  SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
-  SeatingViewDirectionEnum,
   type SeatingChartType
 } from '@/types/SeatingChart'
 import { createSeats, createSpecialSeats } from '@/utils/seatingChartUntil'
@@ -27,7 +27,7 @@ function createChart(): SeatingChartType {
     rows: 2,
     columns: 2,
     aisleAfterColumns: [0],
-    viewDirection: SeatingViewDirectionEnum.FacingPlatform,
+    firstColumnSide: SeatingFirstColumnSideEnum.Left,
     seats,
     specialSeats,
     createdAt: '',
@@ -64,9 +64,9 @@ describe('SeatingChartExportPreview', () => {
     expect(wrapper.findAll('.export-seat')).toHaveLength(4)
   })
 
-  it('keeps empty seat outlines while hiding labels and reverses the visible direction', () => {
+  it('keeps empty seat outlines while hiding labels and places the first column on the right', () => {
     const chart = createChart()
-    chart.viewDirection = SeatingViewDirectionEnum.FacingStudents
+    chart.firstColumnSide = SeatingFirstColumnSideEnum.Right
     const wrapper = mount(SeatingChartExportPreview, {
       props: {
         chart,
@@ -75,7 +75,7 @@ describe('SeatingChartExportPreview', () => {
       }
     })
 
-    expect(wrapper.find('.classroom-plan').classes()).toContain('facing-students')
+    expect(wrapper.find('.classroom-plan > .platform-area').exists()).toBe(true)
     expect(wrapper.findAll('.column-header').map((item) => item.text())).toEqual(['2列', '1列'])
     expect(wrapper.findAll('.export-seat')).toHaveLength(4)
     expect(wrapper.findAll('.export-seat').some((item) => item.text() === '空座位')).toBe(false)

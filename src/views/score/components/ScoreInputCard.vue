@@ -305,7 +305,7 @@ defineExpose({
         :min="0"
         :max="100"
         :precision="1"
-        controls-position="right"
+        :controls="false"
         placeholder="0~100分"
         @keydown.enter="handleScoreKeyDownEnter"
       />

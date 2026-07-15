@@ -1,11 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import {
-  SeatingViewDirectionEnum,
-  type SeatingChartPreviewType,
-  type SeatingChartType
-} from '@/types/SeatingChart'
+import type { SeatingChartPreviewType, SeatingChartType } from '@/types/SeatingChart'
 import { getSeatKey, getVisibleSeats } from '@/utils/seatingChartUntil'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
@@ -62,18 +58,10 @@ const fixedCount = computed(() => {
     </div>
 
     <div class="preview-body">
-      <div
-        class="preview-classroom"
-        :class="{
-          'facing-students': chart.viewDirection === SeatingViewDirectionEnum.FacingStudents
-        }"
-      >
+      <div class="preview-classroom">
         <div
           class="preview-platform-row"
-          :class="{
-            'reverse-sides': chart.viewDirection === SeatingViewDirectionEnum.FacingStudents,
-            'has-special-seats': chart.specialSeats.some((seat) => seat.enabled)
-          }"
+          :class="{ 'has-special-seats': chart.specialSeats.some((seat) => seat.enabled) }"
         >
           <template v-for="specialSeat in chart.specialSeats" :key="specialSeat.position"
             ><div v-if="specialSeat.enabled" class="preview-special-seat">
@@ -231,9 +219,6 @@ const fixedCount = computed(() => {
   background: radial-gradient(circle at 1px 1px, #e7dff1 1px, transparent 0) 0 0/18px 18px #fbfafe;
   border: 1px solid #e8e1ee;
   border-radius: 16px;
-}
-.preview-classroom.facing-students {
-  flex-direction: column-reverse;
 }
 .preview-platform {
   display: flex;
@@ -414,9 +399,6 @@ const fixedCount = computed(() => {
   justify-content: center;
   gap: 9px;
   min-width: max-content;
-}
-.preview-platform-row.reverse-sides {
-  flex-direction: row-reverse;
 }
 .preview-platform-row.has-special-seats .preview-platform {
   width: 230px;

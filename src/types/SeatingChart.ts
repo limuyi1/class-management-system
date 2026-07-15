@@ -1,8 +1,8 @@
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 
-export enum SeatingViewDirectionEnum {
-  FacingPlatform = 'facing-platform',
-  FacingStudents = 'facing-students'
+export enum SeatingFirstColumnSideEnum {
+  Left = 'left',
+  Right = 'right'
 }
 
 export interface SeatPositionType {
@@ -30,7 +30,7 @@ export interface SeatingChartType {
   rows: number
   columns: number
   aisleAfterColumns: number[]
-  viewDirection: SeatingViewDirectionEnum
+  firstColumnSide: SeatingFirstColumnSideEnum
   seats: SeatPositionType[]
   specialSeats: SeatingSpecialSeatType[]
   createdAt: string

@@ -4,13 +4,17 @@ import { computed, ref, h } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
-import { ElMessage, ElMessageBox, ElPopover, ElTooltip } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { pinyin } from 'pinyin-pro'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { createStudentId } from '@/utils/studentUntil'
+import {
+  buildStudentInfoTagSummaryMap,
+  getStudentInfoTagSummary
+} from '@/views/student-info/utils/studentInfoTableUntil'
 import TagEditorDialog from './TagEditorDialog.vue'
 import BatchTagDrawer from './BatchTagDrawer.vue'
 
@@ -46,6 +50,8 @@ const { scoreColumns: headers, enabledScoreColumns: enabledHeaders } = storeToRe
 const { tagCategories: categories } = storeToRefs(settingStore)
 
 const tableRef = ref()
+const rowConfig = { keyField: 'studentId', height: 48 }
+const virtualYConfig = { enabled: true, gt: 40, oSize: 5 }
 
 const getStudentName = (student: EditableStudentType): string => {
   return String(student[NAME_PROP] || '')
@@ -97,39 +103,12 @@ const cancelNewStudent = (row: EditableStudentType) => {
   }
 }
 
-const tagColorVars = [
-  'var(--theme-tag-1)',
-  'var(--theme-tag-2)',
-  'var(--theme-tag-3)',
-  'var(--theme-tag-4)',
-  'var(--theme-tag-5)',
-  'var(--theme-tag-6)',
-  'var(--theme-tag-7)',
-  'var(--theme-tag-8)'
-]
+const rowTagSummaryMap = computed(() =>
+  buildStudentInfoTagSummaryMap(tableData.value, categories.value)
+)
 
-const getTagColor = (category: string) => {
-  const catIndex = categories.value.findIndex((c) => c.label === category)
-  return tagColorVars[Math.max(catIndex, 0) % tagColorVars.length]
-}
-
-const getRowTags = (row: EditableStudentType): { label: string; category: string }[] => {
-  if (!row.tags) {
-    return []
-  }
-
-  const result: { label: string; category: string }[] = []
-  for (const [cat, tagList] of Object.entries(row.tags)) {
-    if (Array.isArray(tagList)) {
-      tagList.forEach((tag: string) => {
-        const catInfo = categories.value.find((c) => c.prop === cat)
-        result.push({ label: tag, category: catInfo?.label || cat })
-      })
-    }
-  }
-
-  return result
-}
+const getRowTagSummary = (row: EditableStudentType) =>
+  getStudentInfoTagSummary(rowTagSummaryMap.value, row.studentId)
 
 const dialogVisible = ref(false)
 const batchDrawerVisible = ref(false)
@@ -351,7 +330,8 @@ defineExpose({
         height="100%"
         :edit-config="editConfig"
         :menu-config="menuConfig"
-        :row-config="{ keyField: 'studentId' }"
+        :row-config="rowConfig"
+        :virtual-y-config="virtualYConfig"
         :data="tableData"
         @menu-click="menuClickEvent"
       >
@@ -365,7 +345,7 @@ defineExpose({
           resizable
           :edit-render="{ name: 'input' }"
         />
-        <vxe-column field="tags" title="标签" min-width="400" fixed="left" resizable>
+        <vxe-column field="tags" title="标签" min-width="300" fixed="left" resizable>
           <template #header>
             <div class="tags-header">
               <span>标签</span>
@@ -376,18 +356,21 @@ defineExpose({
           </template>
           <template #default="{ row }">
             <div class="tags-cell" @click="openTagEditor(row)">
-              <div class="tags-cell-inner" v-if="getRowTags(row).length > 0">
+              <div class="tags-cell-inner" v-if="getRowTagSummary(row).visibleTags.length > 0">
                 <el-tag
-                  v-for="(tag, index) in getRowTags(row)"
-                  :key="index"
+                  v-for="tag in getRowTagSummary(row).visibleTags"
+                  :key="tag.key"
                   size="small"
-                  :color="getTagColor(tag.category)"
+                  :color="tag.color"
                   effect="dark"
-                  class="mr-1 mb-1"
+                  class="tags-cell__tag"
                   disable-transitions
                 >
                   {{ tag.label }}
                 </el-tag>
+                <span v-if="getRowTagSummary(row).hiddenCount" class="tags-cell__more">
+                  +{{ getRowTagSummary(row).hiddenCount }}
+                </span>
               </div>
               <span v-else class="tags-placeholder">
                 <font-awesome-icon :icon="['solid', 'plus']" />
@@ -419,16 +402,12 @@ defineExpose({
               >
                 <font-awesome-icon :icon="['fas', 'trash']" />
               </span>
-              <el-tooltip effect="dark" content="上方添加一行" placement="top">
-                <span class="operation-icon" @click="addStudentAbove(row)">
-                  <font-awesome-icon :icon="['fas', 'chevron-up']" />
-                </span>
-              </el-tooltip>
-              <el-tooltip effect="dark" content="下方添加一行" placement="top">
-                <span class="operation-icon" @click="addStudentBelow(row)">
-                  <font-awesome-icon :icon="['fas', 'chevron-down']" />
-                </span>
-              </el-tooltip>
+              <span class="operation-icon" title="上方添加一行" @click="addStudentAbove(row)">
+                <font-awesome-icon :icon="['fas', 'chevron-up']" />
+              </span>
+              <span class="operation-icon" title="下方添加一行" @click="addStudentBelow(row)">
+                <font-awesome-icon :icon="['fas', 'chevron-down']" />
+              </span>
             </div>
           </template>
         </vxe-column>
@@ -475,7 +454,7 @@ defineExpose({
 
 .tags-cell {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-start;
   align-items: center;
   padding: 2px 4px;
@@ -486,8 +465,24 @@ defineExpose({
 
 .tags-cell-inner {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
   gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tags-cell__tag {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tags-cell__more {
+  flex-shrink: 0;
+  color: #909399;
+  font-size: 12px;
 }
 
 .tags-placeholder {

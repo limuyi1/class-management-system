@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import {
-  SeatingViewDirectionEnum,
+  SeatingFirstColumnSideEnum,
   type SeatingChartStateType,
   type SeatingChartType,
   type SeatPositionType
@@ -22,6 +22,7 @@ interface CreateSeatingChartOptionsType {
   name?: string
   rows?: number
   columns?: number
+  firstColumnSide?: SeatingFirstColumnSideEnum
   studentSource: StudentSourceType
   excelSource?: ExcelStudentSourceType
 }
@@ -104,7 +105,7 @@ export const useSeatingChartStore = defineStore('seatingChart', {
         rows,
         columns,
         aisleAfterColumns: [],
-        viewDirection: SeatingViewDirectionEnum.FacingPlatform,
+        firstColumnSide: options.firstColumnSide ?? SeatingFirstColumnSideEnum.Left,
         seats: createSeats(rows, columns),
         specialSeats: createSpecialSeats(),
         createdAt: timestamp,
@@ -170,9 +171,9 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       clearChartAssignments(chart)
       chart.updatedAt = now()
     },
-    setViewDirection(direction: SeatingViewDirectionEnum): void {
+    setFirstColumnSide(side: SeatingFirstColumnSideEnum): void {
       if (!this.editingChart) return
-      this.editingChart.viewDirection = direction
+      this.editingChart.firstColumnSide = side
       this.editingChart.updatedAt = now()
     },
     resizeChart(rows: number, columns: number): void {

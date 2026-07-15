@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
-
-const StudentInfo = defineAsyncComponent(() => import('@/views/setting/components/StudentInfo.vue'))
+import StudentInfo from '@/views/setting/components/StudentInfo.vue'
 
 const route = useRoute()
 const router = useRouter()

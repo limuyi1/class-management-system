@@ -3,8 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSeatingChartStore } from '@/stores/seating-chart'
-
-import type { SeatingChartType } from '@/types/SeatingChart'
+import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
 
 describe('useSeatingChartStore', () => {
   beforeEach(() => {
@@ -89,5 +88,19 @@ describe('useSeatingChartStore', () => {
 
     expect(store.editingChart).toBeNull()
     expect(store.charts).toEqual([chart])
+  })
+
+  it('stores which side contains the first column', () => {
+    const store = useSeatingChartStore()
+    store.createChart({
+      studentSource: 'system',
+      firstColumnSide: SeatingFirstColumnSideEnum.Right
+    })
+
+    expect(store.editingChart?.firstColumnSide).toBe(SeatingFirstColumnSideEnum.Right)
+
+    store.setFirstColumnSide(SeatingFirstColumnSideEnum.Left)
+
+    expect(store.editingChart?.firstColumnSide).toBe(SeatingFirstColumnSideEnum.Left)
   })
 })

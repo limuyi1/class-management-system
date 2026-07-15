@@ -5,7 +5,7 @@ import {
   buildSystemSeatingStudents,
   resolveSeatingChartStudents
 } from '@/utils/seatingChartStudentUntil'
-import { SeatingViewDirectionEnum, type SeatingChartType } from '@/types/SeatingChart'
+import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
 import { createSeats, createSpecialSeats } from '@/utils/seatingChartUntil'
 
 const createChart = (): SeatingChartType => ({
@@ -22,7 +22,7 @@ const createChart = (): SeatingChartType => ({
   rows: 2,
   columns: 2,
   aisleAfterColumns: [],
-  viewDirection: SeatingViewDirectionEnum.FacingPlatform,
+  firstColumnSide: SeatingFirstColumnSideEnum.Left,
   seats: createSeats(2, 2),
   specialSeats: createSpecialSeats(),
   createdAt: '',

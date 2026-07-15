@@ -1,6 +1,6 @@
 import {
   SeatingSpecialSeatPositionEnum,
-  SeatingViewDirectionEnum,
+  SeatingFirstColumnSideEnum,
   type SeatPositionType,
   type SeatingChartType,
   type SeatingSpecialSeatType
@@ -8,6 +8,11 @@ import {
 
 export const SEATING_CHART_MIN_SIZE = 1
 export const SEATING_CHART_MAX_SIZE = 20
+
+interface LegacySeatingChartType extends Omit<SeatingChartType, 'firstColumnSide'> {
+  firstColumnSide?: SeatingFirstColumnSideEnum
+  viewDirection?: 'facing-platform' | 'facing-students'
+}
 
 export function createSpecialSeats(): SeatingSpecialSeatType[] {
   return [
@@ -28,23 +33,49 @@ export function getSeatKey(row: number, column: number): string {
   return `${row}-${column}`
 }
 
-export function resizeSeats(chart: SeatingChartType, rows: number, columns: number): SeatPositionType[] {
-  const existing = new Map(chart.seats.map((seat) => [getSeatKey(seat.row, seat.column), seat.studentId]))
+export function resizeSeats(
+  chart: SeatingChartType,
+  rows: number,
+  columns: number
+): SeatPositionType[] {
+  const existing = new Map(
+    chart.seats.map((seat) => [getSeatKey(seat.row, seat.column), seat.studentId])
+  )
   return createSeats(rows, columns).map((seat) => ({
     ...seat,
     studentId: existing.get(getSeatKey(seat.row, seat.column)) || null
   }))
 }
 
-export function getResizeAffectedCount(chart: SeatingChartType, rows: number, columns: number): number {
-  return chart.seats.filter((seat) => seat.studentId && (seat.row >= rows || seat.column >= columns)).length
+export function getResizeAffectedCount(
+  chart: SeatingChartType,
+  rows: number,
+  columns: number
+): number {
+  return chart.seats.filter(
+    (seat) => seat.studentId && (seat.row >= rows || seat.column >= columns)
+  ).length
 }
 
 export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>): SeatingChartType {
-  const rows = Math.min(SEATING_CHART_MAX_SIZE, Math.max(SEATING_CHART_MIN_SIZE, Math.floor(chart.rows)))
-  const columns = Math.min(SEATING_CHART_MAX_SIZE, Math.max(SEATING_CHART_MIN_SIZE, Math.floor(chart.columns)))
+  const legacyChart = chart as LegacySeatingChartType
+  const firstColumnSide =
+    legacyChart.firstColumnSide === SeatingFirstColumnSideEnum.Right ||
+    legacyChart.viewDirection === 'facing-students'
+      ? SeatingFirstColumnSideEnum.Right
+      : SeatingFirstColumnSideEnum.Left
+  const rows = Math.min(
+    SEATING_CHART_MAX_SIZE,
+    Math.max(SEATING_CHART_MIN_SIZE, Math.floor(chart.rows))
+  )
+  const columns = Math.min(
+    SEATING_CHART_MAX_SIZE,
+    Math.max(SEATING_CHART_MIN_SIZE, Math.floor(chart.columns))
+  )
   const seen = new Set<string>()
-  const stored = new Map(chart.seats.map((seat) => [getSeatKey(seat.row, seat.column), seat.studentId]))
+  const stored = new Map(
+    chart.seats.map((seat) => [getSeatKey(seat.row, seat.column), seat.studentId])
+  )
   const seats = createSeats(rows, columns).map((seat) => {
     const studentId = stored.get(getSeatKey(seat.row, seat.column))
     if (!studentId || !studentIds.has(studentId) || seen.has(studentId)) return seat
@@ -61,10 +92,13 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     seen.add(studentId)
     return { ...defaultSeat, enabled: true, studentId }
   })
+  const normalizedChart = { ...legacyChart }
+  delete normalizedChart.viewDirection
   return {
-    ...chart,
+    ...normalizedChart,
     rows,
     columns,
+    firstColumnSide,
     seats,
     specialSeats,
     aisleAfterColumns: [...new Set(chart.aisleAfterColumns)]
@@ -82,7 +116,11 @@ export function shuffled<T>(items: T[]): T[] {
   return result
 }
 
-export function createRandomSeats(chart: SeatingChartType, studentIds: string[], supplement = false) {
+export function createRandomSeats(
+  chart: SeatingChartType,
+  studentIds: string[],
+  supplement = false
+) {
   const seats = supplement
     ? chart.seats.map((seat) => ({ ...seat }))
     : createSeats(chart.rows, chart.columns)
@@ -115,8 +153,6 @@ export function createRandomSeats(chart: SeatingChartType, studentIds: string[],
 
 export function getVisibleSeats(chart: SeatingChartType): SeatPositionType[] {
   const seats = [...chart.seats]
-  if (chart.viewDirection === SeatingViewDirectionEnum.FacingStudents) {
-    return seats.sort((a, b) => b.row - a.row || b.column - a.column)
-  }
-  return seats.sort((a, b) => a.row - b.row || a.column - b.column)
+  const columnOrder = chart.firstColumnSide === SeatingFirstColumnSideEnum.Right ? -1 : 1
+  return seats.sort((a, b) => a.row - b.row || (a.column - b.column) * columnOrder)
 }

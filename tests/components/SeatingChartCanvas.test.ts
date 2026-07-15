@@ -3,8 +3,8 @@ import { mount } from '@vue/test-utils'
 
 import SeatingChartCanvas from '@/views/seating-chart/components/SeatingChartCanvas.vue'
 import {
+  SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
-  SeatingViewDirectionEnum,
   type SeatingChartType
 } from '@/types/SeatingChart'
 import { createSeats, createSpecialSeats } from '@/utils/seatingChartUntil'
@@ -31,7 +31,7 @@ function createChart(): SeatingChartType {
     rows: 2,
     columns: 2,
     aisleAfterColumns: [0],
-    viewDirection: SeatingViewDirectionEnum.FacingPlatform,
+    firstColumnSide: SeatingFirstColumnSideEnum.Left,
     seats,
     specialSeats,
     createdAt: '',
@@ -73,12 +73,12 @@ describe('SeatingChartCanvas', () => {
     expect(wrapper.text()).not.toContain('讲台左侧')
   })
 
-  it('emits seat interactions and moves the fixed platform below the grid by direction class', async () => {
+  it('reverses only columns while keeping the platform above the first row', async () => {
     const chart = createChart()
-    chart.viewDirection = SeatingViewDirectionEnum.FacingStudents
+    chart.firstColumnSide = SeatingFirstColumnSideEnum.Right
     const visibleSeatRows = [
-      [chart.seats[3], chart.seats[2]],
-      [chart.seats[1], chart.seats[0]]
+      [chart.seats[1], chart.seats[0]],
+      [chart.seats[3], chart.seats[2]]
     ]
     const wrapper = mount(SeatingChartCanvas, {
       props: {
@@ -89,13 +89,15 @@ describe('SeatingChartCanvas', () => {
       }
     })
 
-    expect(wrapper.classes()).toContain('facing-students')
+    expect(wrapper.find('.platform-shell').element.nextElementSibling).toBe(
+      wrapper.find('.seat-viewport').element
+    )
     expect(wrapper.findAll('.seat-column-header').map((item) => item.text())).toEqual([
       '2列',
       '1列'
     ])
 
     await wrapper.find('.seat-row .seat').trigger('click')
-    expect(wrapper.emitted('selectSeat')?.[0]).toEqual([chart.seats[3]])
+    expect(wrapper.emitted('selectSeat')?.[0]).toEqual([chart.seats[1]])
   })
 })

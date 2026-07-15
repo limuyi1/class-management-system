@@ -18,8 +18,8 @@ import SeatingStudentImportDialog from '@/views/seating-chart/components/Seating
 import SpecialSeatSettingsDialog from '@/views/seating-chart/components/SpecialSeatSettingsDialog.vue'
 import UnassignedStudentPanel from '@/views/seating-chart/components/UnassignedStudentPanel.vue'
 import {
+  SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
-  SeatingViewDirectionEnum,
   type SeatingChartPreviewType,
   type SeatingSpecialSeatType,
   type SeatPositionType
@@ -54,8 +54,16 @@ const initialStudentSource = ref<StudentSourceType>(
   dataSourceStore.enabledData.length ? 'system' : 'excel'
 )
 const initialExcelSource = shallowRef<ExcelStudentSourceType | null>(null)
-const layout = ref({ rows: 6, columns: 6 })
-const initialLayout = ref({ rows: 6, columns: 6 })
+const layout = ref({
+  rows: 6,
+  columns: 6,
+  firstColumnSide: SeatingFirstColumnSideEnum.Left
+})
+const initialLayout = ref({
+  rows: 6,
+  columns: 6,
+  firstColumnSide: SeatingFirstColumnSideEnum.Left
+})
 const aisles = ref<number[]>([])
 const preview = ref<SeatingChartPreviewType | null>(null)
 
@@ -98,7 +106,11 @@ function backToTools(): void {
   router.push('/tools')
 }
 function createChart(): void {
-  initialLayout.value = { rows: 6, columns: 6 }
+  initialLayout.value = {
+    rows: 6,
+    columns: 6,
+    firstColumnSide: SeatingFirstColumnSideEnum.Left
+  }
   initialExcelSource.value = null
   initialStudentSource.value = dataSourceStore.enabledData.length ? 'system' : 'excel'
   seatingStore.startCreatingChart()
@@ -108,7 +120,8 @@ function createInitialChart(): void {
     seatingStore.createChart({
       studentSource: 'system',
       rows: initialLayout.value.rows,
-      columns: initialLayout.value.columns
+      columns: initialLayout.value.columns,
+      firstColumnSide: initialLayout.value.firstColumnSide
     })
     return
   }
@@ -120,7 +133,8 @@ function createInitialChart(): void {
     studentSource: 'excel',
     excelSource: initialExcelSource.value,
     rows: initialLayout.value.rows,
-    columns: initialLayout.value.columns
+    columns: initialLayout.value.columns,
+    firstColumnSide: initialLayout.value.firstColumnSide
   })
 }
 
@@ -198,7 +212,11 @@ async function deleteChart(chartId: string): Promise<void> {
 }
 function openLayout(): void {
   if (!editingChart.value) return
-  layout.value = { rows: editingChart.value.rows, columns: editingChart.value.columns }
+  layout.value = {
+    rows: editingChart.value.rows,
+    columns: editingChart.value.columns,
+    firstColumnSide: editingChart.value.firstColumnSide
+  }
   layoutVisible.value = true
 }
 async function confirmLayout(): Promise<void> {
@@ -213,6 +231,7 @@ async function confirmLayout(): Promise<void> {
       type: 'warning'
     })
   seatingStore.resizeChart(layout.value.rows, layout.value.columns)
+  seatingStore.setFirstColumnSide(layout.value.firstColumnSide)
   layoutVisible.value = false
 }
 function openAisles(): void {
@@ -311,14 +330,6 @@ function selectSpecialSeat(seat: SeatingSpecialSeatType): void {
 function toggleFullscreen(): void {
   fullscreen.value = !fullscreen.value
 }
-function toggleViewDirection(): void {
-  if (!editingChart.value) return
-  seatingStore.setViewDirection(
-    editingChart.value.viewDirection === SeatingViewDirectionEnum.FacingPlatform
-      ? SeatingViewDirectionEnum.FacingStudents
-      : SeatingViewDirectionEnum.FacingPlatform
-  )
-}
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && fullscreen.value) {
     fullscreen.value = false
@@ -416,12 +427,10 @@ function handleKeydown(event: KeyboardEvent): void {
           :chart-name="editingChart.name"
           :assigned-count="assignedCount"
           :seat-capacity="seatCapacity"
-          :view-direction="editingChart.viewDirection"
           :fullscreen="fullscreen"
           @open-layout="openLayout"
           @open-aisles="openAisles"
           @open-special-seats="specialSeatVisible = true"
-          @toggle-direction="toggleViewDirection"
           @randomize="randomize"
           @export="exportVisible = true"
           @toggle-fullscreen="toggleFullscreen"
@@ -502,6 +511,18 @@ function handleKeydown(event: KeyboardEvent): void {
                     controls-position="right"
                 /></label>
               </div>
+              <div class="first-column-setting">
+                <span>第一列位置</span>
+                <el-radio-group v-model="initialLayout.firstColumnSide" size="small">
+                  <el-radio-button :value="SeatingFirstColumnSideEnum.Left">
+                    第 1 列在左侧
+                  </el-radio-button>
+                  <el-radio-button :value="SeatingFirstColumnSideEnum.Right">
+                    第 1 列在右侧
+                  </el-radio-button>
+                </el-radio-group>
+                <small>以当前座位表视图为准，讲台始终位于上方</small>
+              </div>
             </div>
 
             <div class="create-chart-card__footer">
@@ -557,8 +578,8 @@ function handleKeydown(event: KeyboardEvent): void {
       ><template #header
         ><seating-dialog-header
           icon="table-cells"
-          title="设置座位行列"
-          description="调整规则座位网格，原有安排会尽量保留"
+          title="设置座位布局"
+          description="调整规则座位网格和第一列位置，原有安排会尽量保留"
       /></template>
       <div class="compact-layout-form">
         <label
@@ -574,6 +595,18 @@ function handleKeydown(event: KeyboardEvent): void {
             :min="SEATING_CHART_MIN_SIZE"
             :max="SEATING_CHART_MAX_SIZE"
         /></label>
+      </div>
+      <div class="first-column-setting first-column-setting--dialog">
+        <span>第一列位置</span>
+        <el-radio-group v-model="layout.firstColumnSide">
+          <el-radio-button :value="SeatingFirstColumnSideEnum.Left">
+            第 1 列在左侧
+          </el-radio-button>
+          <el-radio-button :value="SeatingFirstColumnSideEnum.Right">
+            第 1 列在右侧
+          </el-radio-button>
+        </el-radio-group>
+        <small>通常选择靠近教室门或走廊的一侧；讲台始终位于上方</small>
       </div>
       <template #footer
         ><el-button @click="layoutVisible = false">取消</el-button
@@ -921,6 +954,29 @@ function handleKeydown(event: KeyboardEvent): void {
 .create-chart-layout :deep(.el-input-number) {
   width: 82px;
 }
+.first-column-setting {
+  display: grid;
+  grid-column: 2;
+  gap: 8px;
+  justify-items: start;
+}
+.first-column-setting > span {
+  color: #5f566b;
+  font-size: 13px;
+  font-weight: 600;
+}
+.first-column-setting > small {
+  color: #948b9d;
+  font-size: 11px;
+}
+.first-column-setting--dialog {
+  grid-column: auto;
+  margin-top: 14px;
+  padding: 14px;
+  background: #fcfbfd;
+  border: 1px solid #ebe5ef;
+  border-radius: 11px;
+}
 .create-chart-card__footer {
   display: flex;
   align-items: center;
@@ -945,6 +1001,9 @@ function handleKeydown(event: KeyboardEvent): void {
   }
   .create-chart-field :deep(.student-source-selector) {
     justify-content: flex-start;
+  }
+  .first-column-setting {
+    grid-column: 1;
   }
 }
 .seating-chart-page.fullscreen {
@@ -973,9 +1032,6 @@ function handleKeydown(event: KeyboardEvent): void {
   gap: 16px;
   min-width: 0;
   overflow: auto;
-}
-.preview-classroom.facing-students {
-  flex-direction: column-reverse;
 }
 .preview-platform {
   width: 55%;

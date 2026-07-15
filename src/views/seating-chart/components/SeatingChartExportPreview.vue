@@ -3,8 +3,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 
 import { PagesEnum } from '@/types/Common'
 import {
+  SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
-  SeatingViewDirectionEnum,
   type SeatPositionType,
   type SeatingChartType
 } from '@/types/SeatingChart'
@@ -78,8 +78,8 @@ const contentScale = computed(() => {
 const contentStyle = computed<CSSProperties>(() => ({
   transform: `translate(-50%, -50%) scale(${contentScale.value})`
 }))
-const facingStudents = computed(
-  () => props.chart.viewDirection === SeatingViewDirectionEnum.FacingStudents
+const firstColumnOnRight = computed(
+  () => props.chart.firstColumnSide === SeatingFirstColumnSideEnum.Right
 )
 const visibleSeatRows = computed(() => {
   const rows: SeatPositionType[][] = []
@@ -124,7 +124,7 @@ onMounted(async () => {
 onBeforeUnmount(() => contentResizeObserver?.disconnect())
 
 function hasAisleAfterSeat(seat: SeatPositionType): boolean {
-  const aisleColumn = facingStudents.value ? seat.column - 1 : seat.column
+  const aisleColumn = firstColumnOnRight.value ? seat.column - 1 : seat.column
   return props.chart.aisleAfterColumns.includes(aisleColumn)
 }
 
@@ -155,7 +155,7 @@ defineExpose({ getElement })
                 <h2>{{ chart.name }}</h2>
               </header>
 
-              <div class="classroom-plan" :class="{ 'facing-students': facingStudents }">
+              <div class="classroom-plan">
                 <div class="platform-area">
                   <div
                     v-if="isSpecialSeatEnabled(SeatingSpecialSeatPositionEnum.PlatformLeft)"
@@ -169,10 +169,7 @@ defineExpose({ getElement })
                       }}</strong>
                     </div>
                   </div>
-                  <div class="export-platform">
-                    <span>讲 台</span>
-                    <small>PLATFORM</small>
-                  </div>
+                  <div class="export-platform">讲 台</div>
                   <div
                     v-if="isSpecialSeatEnabled(SeatingSpecialSeatPositionEnum.PlatformRight)"
                     class="special-seat-slot special-seat-slot--right"
@@ -315,17 +312,9 @@ defineExpose({ getElement })
   padding: 28px 4px 24px;
 }
 
-.classroom-plan.facing-students {
-  flex-direction: column-reverse;
-}
-
 .platform-area {
   justify-content: center;
   gap: 12px;
-}
-
-.classroom-plan.facing-students .platform-area {
-  flex-direction: row-reverse;
 }
 
 .special-seat-slot {
