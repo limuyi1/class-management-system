@@ -11,6 +11,7 @@ import type {
   ScoreSettingsRecord,
   ScoreNoticeStorageRecord,
   SeatingChartStorageRecord,
+  DutyRosterStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,
@@ -30,6 +31,7 @@ export class SCSDatabase extends Dexie {
   attachments!: Table<AttachmentRecord>
   paperLayoutDrafts!: Table<PaperLayoutDraftRecord>
   seatingCharts!: Table<SeatingChartStorageRecord>
+  dutyRosters!: Table<DutyRosterStorageRecord>
 
   constructor() {
     super(DATABASE_NAME)
@@ -61,12 +63,34 @@ export class SCSDatabase extends Dexie {
     })
 
     this.version(3).stores({
-      [DatabaseTableEnum.StudentDataset]: 'id, updatedAt', [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
-      [DatabaseTableEnum.AppPreferences]: 'id, updatedAt', [DatabaseTableEnum.ThemePreferences]: 'id, updatedAt',
-      [DatabaseTableEnum.AISettings]: 'id, updatedAt', [DatabaseTableEnum.WrongBook]: 'id, updatedAt',
-      [DatabaseTableEnum.OverviewAnalysisCache]: 'id, updatedAt', [DatabaseTableEnum.ToolPreferences]: 'id, updatedAt',
-      [DatabaseTableEnum.ScoreNotice]: 'id, updatedAt', [DatabaseTableEnum.Attachments]: 'id, sortOrder, name, createdAt, updatedAt',
-      [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt', [DatabaseTableEnum.SeatingCharts]: 'id, updatedAt'
+      [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
+      [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
+      [DatabaseTableEnum.AppPreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.ThemePreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.AISettings]: 'id, updatedAt',
+      [DatabaseTableEnum.WrongBook]: 'id, updatedAt',
+      [DatabaseTableEnum.OverviewAnalysisCache]: 'id, updatedAt',
+      [DatabaseTableEnum.ToolPreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.ScoreNotice]: 'id, updatedAt',
+      [DatabaseTableEnum.Attachments]: 'id, sortOrder, name, createdAt, updatedAt',
+      [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt',
+      [DatabaseTableEnum.SeatingCharts]: 'id, updatedAt'
+    })
+
+    this.version(4).stores({
+      [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
+      [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
+      [DatabaseTableEnum.AppPreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.ThemePreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.AISettings]: 'id, updatedAt',
+      [DatabaseTableEnum.WrongBook]: 'id, updatedAt',
+      [DatabaseTableEnum.OverviewAnalysisCache]: 'id, updatedAt',
+      [DatabaseTableEnum.ToolPreferences]: 'id, updatedAt',
+      [DatabaseTableEnum.ScoreNotice]: 'id, updatedAt',
+      [DatabaseTableEnum.Attachments]: 'id, sortOrder, name, createdAt, updatedAt',
+      [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt',
+      [DatabaseTableEnum.SeatingCharts]: 'id, updatedAt',
+      [DatabaseTableEnum.DutyRosters]: 'id, updatedAt'
     })
 
     this.studentDataset = this.table(DatabaseTableEnum.StudentDataset)
@@ -81,6 +105,7 @@ export class SCSDatabase extends Dexie {
     this.attachments = this.table(DatabaseTableEnum.Attachments)
     this.paperLayoutDrafts = this.table(DatabaseTableEnum.PaperLayoutDrafts)
     this.seatingCharts = this.table(DatabaseTableEnum.SeatingCharts)
+    this.dutyRosters = this.table(DatabaseTableEnum.DutyRosters)
   }
 }
 
@@ -97,6 +122,7 @@ export type {
   ScoreSettingsRecord,
   ScoreNoticeStorageRecord,
   SeatingChartStorageRecord,
+  DutyRosterStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,

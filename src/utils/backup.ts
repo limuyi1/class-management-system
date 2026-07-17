@@ -11,6 +11,7 @@ import { useThemeStore } from '@/stores/theme'
 import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useSeatingChartStore } from '@/stores/seating-chart'
+import { useDutyRosterStore } from '@/stores/duty-roster'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
@@ -34,6 +35,7 @@ const resetRuntimeStores = () => {
   const wrongBookStore = useWrongBookStore()
   const toolsStore = useToolsStore()
   const seatingChartStore = useSeatingChartStore()
+  const dutyRosterStore = useDutyRosterStore()
 
   dataStore.students = []
   dataStore.isInitialLoading = true
@@ -43,6 +45,7 @@ const resetRuntimeStores = () => {
   wrongBookStore.$reset()
   toolsStore.$reset()
   seatingChartStore.$reset()
+  dutyRosterStore.$reset()
   // theme 是 setup store，重置时还需要同步刷新 documentElement 上的主题 CSS 变量。
   themeStore.resetTheme()
 }
@@ -57,19 +60,31 @@ const hydrateRuntimeStores = async () => {
   const overviewAnalysisStore = useOverviewAnalysisStore()
   const toolsStore = useToolsStore()
   const seatingChartStore = useSeatingChartStore()
+  const dutyRosterStore = useDutyRosterStore()
 
-  const [dataSource, setting, configuration, theme, aiConfig, wrongBook, overviewAnalysis, tools, seatingCharts] =
-    await Promise.all([
-      db.studentDataset.get(DB_ID),
-      db.scoreSettings.get(DB_ID),
-      db.appPreferences.get(DB_ID),
-      db.themePreferences.get(DB_ID),
-      db.aiSettings.get(DB_ID),
-      db.wrongBook.get(DB_ID),
-      db.overviewAnalysisCache.get(DB_ID),
-      db.toolPreferences.get(DB_ID)
-      ,db.seatingCharts.get(DB_ID)
-    ])
+  const [
+    dataSource,
+    setting,
+    configuration,
+    theme,
+    aiConfig,
+    wrongBook,
+    overviewAnalysis,
+    tools,
+    seatingCharts,
+    dutyRosters
+  ] = await Promise.all([
+    db.studentDataset.get(DB_ID),
+    db.scoreSettings.get(DB_ID),
+    db.appPreferences.get(DB_ID),
+    db.themePreferences.get(DB_ID),
+    db.aiSettings.get(DB_ID),
+    db.wrongBook.get(DB_ID),
+    db.overviewAnalysisCache.get(DB_ID),
+    db.toolPreferences.get(DB_ID),
+    db.seatingCharts.get(DB_ID),
+    db.dutyRosters.get(DB_ID)
+  ])
 
   dataStore.students = normalizeStoredStudents(dataSource?.students)
   dataStore.isInitialLoading = true
@@ -135,9 +150,21 @@ const hydrateRuntimeStores = async () => {
   }
   if (seatingCharts) {
     const { id, updatedAt, ...state } = seatingCharts
-    void id; void updatedAt
-    seatingChartStore.$patch((storeState) => { Object.assign(storeState, state) })
+    void id
+    void updatedAt
+    seatingChartStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
     seatingChartStore.reconcileStudents()
+  }
+  if (dutyRosters) {
+    const { id, updatedAt, ...state } = dutyRosters
+    void id
+    void updatedAt
+    dutyRosterStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+    dutyRosterStore.reconcileStudents()
   }
 }
 
@@ -221,6 +248,7 @@ export async function clearDatabase(onProgress?: (percent: number) => void, comp
     await db.paperLayoutDrafts.clear()
     await db.toolPreferences.clear()
     await db.seatingCharts.clear()
+    await db.dutyRosters.clear()
     onProgress?.(90)
     resetRuntimeStores()
     onProgress?.(100)

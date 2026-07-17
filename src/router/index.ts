@@ -80,6 +80,11 @@ const router = createRouter({
           component: () => import('@/views/seating-chart/SeatingChartPage.vue')
         },
         {
+          path: '/tools/duty-roster',
+          name: 'DutyRoster',
+          component: () => import('@/views/duty-roster/DutyRosterPage.vue')
+        },
+        {
           path: '/setting',
           name: 'Setting',
           component: () => import('@/views/setting/SettingPage.vue')
@@ -108,6 +113,7 @@ export function createDataGuard(
       '/tools/paper-layout',
       '/tools/score-notice',
       '/tools/seating-chart',
+      '/tools/duty-roster',
       '/setting'
     ]
 

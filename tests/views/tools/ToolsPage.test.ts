@@ -32,6 +32,7 @@ describe('ToolsPage', () => {
     expect(sections[1].find('.tool-section__title').text()).toBe('班级管理')
     expect(sections[1].findAll('.tool-card__title').map((item) => item.text())).toEqual([
       '座位表',
+      '值日表',
       '名单核对'
     ])
     expect(sections[2].find('.tool-section__title').text()).toBe('文档与素材')

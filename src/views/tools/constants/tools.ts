@@ -60,6 +60,14 @@ export const toolItems: ToolItemType[] = [
     category: 'class-management'
   },
   {
+    id: 'duty-roster',
+    name: '值日表',
+    icon: 'broom',
+    path: '/tools/duty-roster',
+    description: '按天或按周安排清洁岗位，支持拖拽分工、值日组长和打印导出。',
+    category: 'class-management'
+  },
+  {
     id: 'name-list-compare',
     name: '名单核对',
     icon: 'list-check',

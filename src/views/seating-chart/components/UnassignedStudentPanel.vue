@@ -6,12 +6,18 @@ import type { StudentSourceStudentType } from '@/types/StudentSource'
 interface UnassignedStudentPanelPropsType {
   students: StudentSourceStudentType[]
   totalStudentCount: number
-  selectedStudentId: string | null
+  selectedStudentId?: string | null
+  interactionTip?: string
+  completeDescription?: string
 }
 
 type EmptyStateType = 'search' | 'complete' | 'no-students'
 
-const props = defineProps<UnassignedStudentPanelPropsType>()
+const props = withDefaults(defineProps<UnassignedStudentPanelPropsType>(), {
+  selectedStudentId: null,
+  interactionTip: '拖拽或点击学生进行安排',
+  completeDescription: '所有学生都已放入座位'
+})
 
 /**
  * 未安排学生面板只负责搜索、状态展示和学生交互，不直接修改座位数据。
@@ -48,7 +54,7 @@ const emptyTitle = computed(() => {
 const emptyDescription = computed(() => {
   if (emptyState.value === 'search') return '换个关键词，或清除当前搜索'
   if (emptyState.value === 'no-students') return '导入名单后，学生将在这里显示'
-  return '所有学生都已放入座位'
+  return props.completeDescription
 })
 
 const emptyIcon = computed(() => {
@@ -96,7 +102,7 @@ function getStudentInitial(name: string): string {
       </el-input>
       <p class="unassigned-panel__tip">
         <font-awesome-icon :icon="['solid', 'arrow-pointer']" />
-        拖拽或点击学生进行安排
+        {{ interactionTip }}
       </p>
     </template>
 

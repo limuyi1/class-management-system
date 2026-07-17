@@ -9,6 +9,7 @@ import type {
 } from './Tools'
 import type { ScoreNoticeStateType } from './ScoreNotice'
 import type { SeatingChartStateType } from './SeatingChart'
+import type { DutyRosterStateType } from './DutyRoster'
 
 export interface StudentDatasetRecord {
   id: string
@@ -108,6 +109,11 @@ export interface ScoreNoticeStorageRecord extends ScoreNoticeStateType {
 }
 
 export interface SeatingChartStorageRecord extends SeatingChartStateType {
+  id: string
+  updatedAt: string
+}
+
+export interface DutyRosterStorageRecord extends DutyRosterStateType {
   id: string
   updatedAt: string
 }

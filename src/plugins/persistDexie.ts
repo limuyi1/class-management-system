@@ -9,6 +9,7 @@ import type {
   ScoreSettingsRecord,
   ScoreNoticeStorageRecord,
   SeatingChartStorageRecord,
+  DutyRosterStorageRecord,
   StudentDatasetRecord,
   ThemePreferencesRecord,
   ToolPreferencesRecord,
@@ -26,6 +27,7 @@ import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useToolsStore } from '@/stores/tools'
 import { useScoreNoticeStore } from '@/stores/score-notice'
 import { useSeatingChartStore } from '@/stores/seating-chart'
+import { useDutyRosterStore } from '@/stores/duty-roster'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
@@ -42,6 +44,7 @@ type PersistableRecordType =
   | OverviewAnalysisCacheRecord
   | ToolPreferencesRecord
   | SeatingChartStorageRecord
+  | DutyRosterStorageRecord
 
 interface DataSourceLikeStoreType {
   isInitialLoading: boolean
@@ -61,6 +64,7 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   tools: db.toolPreferences,
   scoreNotice: db.scoreNotice,
   seatingChart: db.seatingCharts,
+  dutyRoster: db.dutyRosters,
   dataSource: db.studentDataset
 }
 
@@ -224,7 +228,8 @@ export function preloadAllStores() {
     useWrongBookStore(),
     useOverviewAnalysisStore(),
     useToolsStore(),
-    useScoreNoticeStore()
-    ,useSeatingChartStore()
+    useScoreNoticeStore(),
+    useSeatingChartStore(),
+    useDutyRosterStore()
   ]
 }

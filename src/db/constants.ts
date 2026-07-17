@@ -13,5 +13,6 @@ export enum DatabaseTableEnum {
   ScoreNotice = 'score_notice',
   Attachments = 'attachments',
   PaperLayoutDrafts = 'paper_layout_drafts',
-  SeatingCharts = 'seating_charts'
+  SeatingCharts = 'seating_charts',
+  DutyRosters = 'duty_rosters'
 }
