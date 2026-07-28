@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 
 import AttachmentSelectorDialog from '@/views/tools/components/AttachmentSelectorDialog.vue'
 import PaperLayoutDraftDialog from '@/views/tools/components/PaperLayoutDraftDialog.vue'
@@ -224,10 +225,7 @@ async function exportPdf(): Promise<void> {
   }
 
   exporting.value = true
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出 PDF...'
-  })
+  startLoading('正在导出 PDF...')
 
   try {
     const blob = await exportPaperLayoutPdf(pages.value, pageSize.value)
@@ -243,7 +241,7 @@ async function exportPdf(): Promise<void> {
     ElMessage.error('导出失败')
   } finally {
     exporting.value = false
-    loading.close()
+    stopLoading()
   }
 }
 </script>

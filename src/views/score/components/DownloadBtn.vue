@@ -8,7 +8,8 @@ import { passingScoreRanges } from '@/config/score'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
-import { dayjs, ElLoading, ElMessage } from 'element-plus'
+import { dayjs, ElMessage } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import { NAME_PROP } from '@/types/Constants'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -31,10 +32,7 @@ const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max:
 type CellValueType = string | number | null
 
 const exportWorkbook = (fileName: string, workbook: XLSX.WorkBook) => {
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出Excel...'
-  })
+  startLoading('正在导出Excel...')
 
   try {
     const result = exportExcel(undefined, undefined, fileName, workbook)
@@ -44,7 +42,7 @@ const exportWorkbook = (fileName: string, workbook: XLSX.WorkBook) => {
     }
     ElMessage.success('导出成功')
   } finally {
-    loading.close()
+    stopLoading()
   }
 }
 

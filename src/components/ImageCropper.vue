@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { ElDialog, ElButton, ElLoading, ElMessage } from 'element-plus'
+import { ElDialog, ElButton, ElMessage } from 'element-plus'
+import { runWithLoading } from '@/hooks/useLoading'
 import { VueCropper } from 'vue-cropper'
 import 'vue-cropper/dist/index.css'
 
@@ -300,36 +301,29 @@ const handleConfirm = async () => {
   if (!cropperRef.value) return
 
   loading.value = true
-  let fullscreenLoading: ReturnType<typeof ElLoading.service> | null = null
 
   try {
-    fullscreenLoading = ElLoading.service({
-      lock: true,
-      text: props.enableCompression ? '正在裁剪并压缩图片...' : '正在裁剪图片...',
-      background: 'rgba(255, 255, 255, 0.8)'
-    })
-
-    const cropper = cropperRef.value as unknown as CropperApiType
-    const croppedDataUrl = await new Promise<string>((resolve) => {
-      cropper.getCropData((data: string) => resolve(data))
-    })
-
-    let confirmedBase64 = ''
-
-    if (props.enableCompression) {
-      const compressed = await compressDataUrlByRatio(
-        croppedDataUrl,
-        currentCompressRatio.value,
-        COMPRESS_QUALITY
-      )
-      confirmedBase64 = compressed.base64
-    } else {
-      confirmedBase64 = dataUrlToBase64(croppedDataUrl)
-    }
+    const confirmedBase64 = await runWithLoading(
+      props.enableCompression ? '正在裁剪并压缩图片...' : '正在裁剪图片...',
+      async () => {
+        const cropper = cropperRef.value as unknown as CropperApiType
+        const croppedDataUrl = await new Promise<string>((resolve) => {
+          cropper.getCropData((data: string) => resolve(data))
+        })
+        if (props.enableCompression) {
+          const compressed = await compressDataUrlByRatio(
+            croppedDataUrl,
+            currentCompressRatio.value,
+            COMPRESS_QUALITY
+          )
+          return compressed.base64
+        }
+        return dataUrlToBase64(croppedDataUrl)
+      },
+      'rgba(255, 255, 255, 0.8)'
+    )
 
     loading.value = false
-    fullscreenLoading?.close()
-    fullscreenLoading = null
     emit('update:visible', false)
     emit('confirm', confirmedBase64)
   } catch (error) {
@@ -337,7 +331,6 @@ const handleConfirm = async () => {
     ElMessage.error('裁剪失败，请重试')
   } finally {
     loading.value = false
-    fullscreenLoading?.close()
   }
 }
 

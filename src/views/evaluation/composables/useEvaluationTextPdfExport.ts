@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 
 import { exportEvaluationTextExcel } from '@/utils/evaluationTextExcelUntil'
 import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUntil'
@@ -53,10 +54,7 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
     if (!shouldExport) return
 
     textPdfExporting.value = true
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在导出文字版PDF...'
-    })
+    startLoading('正在导出文字版PDF...')
 
     try {
       const result = await exportEvaluationTextPDF({
@@ -79,7 +77,7 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
         )
       }
     } finally {
-      loading.close()
+      stopLoading()
       textPdfExporting.value = false
     }
   }
@@ -91,10 +89,7 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
     }
 
     textExcelExporting.value = true
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在导出评语Excel...'
-    })
+    startLoading('正在导出评语Excel...')
 
     try {
       const result = exportEvaluationTextExcel({
@@ -108,7 +103,7 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
 
       ElMessage.success('评语导出成功')
     } finally {
-      loading.close()
+      stopLoading()
       textExcelExporting.value = false
     }
   }

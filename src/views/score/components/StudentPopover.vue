@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { runWithLoading } from '@/hooks/useLoading'
 import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
@@ -30,15 +31,12 @@ const props = withDefaults(defineProps<Props>(), {
  * @param command
  */
 const xlsxToImageCommand = async (command: string) => {
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出图片，请稍后...'
+  const result = await runWithLoading('正在导出图片，请稍后...', async () => {
+    return await xlsxToImage(
+      buildData(command === 'exist'),
+      `${props.downloadFileName}-${new Date().toLocaleString()}.png`
+    )
   })
-  const result = await xlsxToImage(
-    buildData(command === 'exist'),
-    `${props.downloadFileName}-${new Date().toLocaleString()}.png`
-  )
-  loading.close()
   if (!result.success) {
     ElMessage.error(result.error?.message || '导出图片失败')
     return

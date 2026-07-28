@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElDialog, ElForm, ElButton, ElMessage, ElLoading, ElTooltip } from 'element-plus'
+import { ElDialog, ElForm, ElButton, ElMessage, ElTooltip } from 'element-plus'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { fileToBase64 } from '@/utils/fileUntil'
 import { generateAnswerFromQuestion } from '@/ai/aiService'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import ImageCropper from '@/components/ImageCropper.vue'
 import type { WrongQuestion } from '@/types/WrongBook'
 import BasicInfoCard from './BasicInfoCard.vue'
@@ -157,11 +158,7 @@ const handleAIAnswer = async () => {
   }
 
   aiAnswerLoading.value = true
-  const loading = ElLoading.service({
-    lock: true,
-    text: 'AI 正在生成答案和解析...',
-    background: 'rgba(255, 255, 255, 0.8)'
-  })
+  startLoading('AI 正在生成答案和解析...', 'rgba(255, 255, 255, 0.8)')
 
   try {
     const config = {
@@ -191,7 +188,7 @@ const handleAIAnswer = async () => {
     ElMessage.error('AI 答题失败，请检查 AI 配置')
   } finally {
     aiAnswerLoading.value = false
-    loading.close()
+    stopLoading()
   }
 }
 

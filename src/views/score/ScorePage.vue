@@ -5,7 +5,7 @@
  */
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
@@ -23,6 +23,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUntil'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import { NAME_PROP } from '@/types/Constants'
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
@@ -146,10 +147,7 @@ const handleUploadClick = () => {
 const handleCropConfirm = async (croppedBase64: string) => {
   cropperVisible.value = false
 
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在识别成绩...'
-  })
+  startLoading('正在识别成绩...')
 
   try {
     // 识图只提供姓名线索；系统先解析为唯一 studentId，再写入当前录入科目。
@@ -198,7 +196,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
     console.error('识别成绩失败:', error)
     ElMessage.error('识别失败：' + (error as Error).message)
   } finally {
-    loading.close()
+    stopLoading()
   }
 }
 

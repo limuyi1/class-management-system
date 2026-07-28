@@ -3,7 +3,8 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { startLoading, stopLoading, updateLoadingText } from '@/hooks/useLoading'
 
 import PageHeader from '@/components/PageHeader.vue'
 import ScoreNoticeControlPanel from '@/views/score-notice/components/ScoreNoticeControlPanel.vue'
@@ -288,7 +289,7 @@ const handleImportConfirm = (result: ScoreNoticeImportResultType, fileName: stri
 const handleCopyImage = async (): Promise<void> => {
   const element = previewRef.value?.getElement()
   if (!element || !selectedStudent.value) return
-  const loading = ElLoading.service({ lock: true, text: '正在生成高清图片...' })
+  startLoading('正在生成高清图片...')
   try {
     const blob = await renderScoreNoticeBlob(element, 2)
     const copied = await copyPngBlob(blob)
@@ -305,7 +306,7 @@ const handleCopyImage = async (): Promise<void> => {
     console.error('生成成绩通知图片失败:', error)
     ElMessage.error('图片生成失败，请稍后重试')
   } finally {
-    loading.close()
+    stopLoading()
   }
 }
 
@@ -347,13 +348,13 @@ const handleExportZip = async (): Promise<void> => {
 
   exporting.value = true
   exportProcessed.value = 0
-  const loading = ElLoading.service({ lock: true, text: '正在生成第 1 张成绩通知...' })
+  startLoading('正在生成第 1 张成绩通知...')
   const entries: Array<{ name: string; data: Blob }> = []
   const failedNames: string[] = []
   try {
     for (const [index, student] of exportableStudents.entries()) {
       exportStudent.value = student
-      loading.setText(`正在生成 ${index + 1}/${exportableStudents.length}：${student.name}`)
+      updateLoadingText(`正在生成 ${index + 1}/${exportableStudents.length}：${student.name}`)
       await waitForRender()
       const element = exportPreviewRef.value?.getElement()
       if (!element) throw new Error('离屏预览未就绪')
@@ -371,7 +372,7 @@ const handleExportZip = async (): Promise<void> => {
     }
 
     if (!entries.length) throw new Error('所有图片均生成失败')
-    loading.setText('正在打包 ZIP...')
+    updateLoadingText('正在打包 ZIP...')
     const zipBlob = await createStoredZip(entries)
     downloadBlob(zipBlob, `${sanitizeFileName(store.title)}_${store.noticeDate}.zip`)
     if (failedNames.length) {
@@ -385,7 +386,7 @@ const handleExportZip = async (): Promise<void> => {
   } finally {
     exporting.value = false
     exportStudent.value = null
-    loading.close()
+    stopLoading()
   }
 }
 

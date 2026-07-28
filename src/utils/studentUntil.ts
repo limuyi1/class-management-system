@@ -86,5 +86,5 @@ export function extractStudentTags(
       allTags.push(...tagList)
     }
   }
-  return allTags
+  return Array.from(new Set(allTags.map((item) => item.trim()).filter(Boolean)))
 }

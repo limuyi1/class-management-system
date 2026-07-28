@@ -1,6 +1,6 @@
 import { PagesEnum } from '@/types/Common'
 import { DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
-import { getSeatingChartPageSize } from '@/utils/seatingChartPageLayoutUntil'
+import { getPageSize } from '@/utils/pageSizeInPixelUntil'
 
 export interface DutyRosterPageLayoutType {
   pageWidth: number
@@ -32,7 +32,7 @@ export function buildDutyRosterPageLayout(
   showTitle = true,
   showNotes = true
 ): DutyRosterPageLayoutType {
-  const { width: pageWidth, height: pageHeight } = getSeatingChartPageSize(pageType, 'landscape')
+  const { width: pageWidth, height: pageHeight } = getPageSize(pageType, 'landscape')
   const margin = pageType === PagesEnum.A3 || pageType === PagesEnum.B3 ? 24 : 18
   const availableWidth = pageWidth - margin * 2
   const availableHeight = pageHeight - margin * 2

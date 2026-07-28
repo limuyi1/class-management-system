@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, shallowRef, watch } from 'vue'
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 
 import { PagesEnum } from '@/types/Common'
 import type { DutyRosterType } from '@/types/DutyRoster'
@@ -72,7 +73,7 @@ function resetLayoutScale(): void {
 async function exportRoster(): Promise<void> {
   if (exporting.value) return
   exporting.value = true
-  const loading = ElLoading.service({ lock: true, text: '正在生成值日表...' })
+  startLoading('正在生成值日表...')
   try {
     await nextTick()
     const element = previewRef.value?.getElement()
@@ -92,7 +93,7 @@ async function exportRoster(): Promise<void> {
     console.error('导出值日表失败:', error)
     ElMessage.error(error instanceof Error ? error.message : '值日表导出失败')
   } finally {
-    loading.close()
+    stopLoading()
     exporting.value = false
   }
 }

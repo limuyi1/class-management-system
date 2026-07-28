@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { startLoading, stopLoading, updateLoadingText } from '@/hooks/useLoading'
 
 import { generateBatchComments, polishBatchComments } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUntil'
@@ -151,10 +152,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
     }
 
     batchGenerating.value = true
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在批量生成期末评语...'
-    })
+    startLoading('正在批量生成期末评语...')
 
     try {
       const filteredStudents = options.students.value.filter(
@@ -176,7 +174,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
         const end = Math.min(start + batchSize, studentsData.length)
         const batchData = studentsData.slice(start, end)
 
-        loading.setText(`正在生成第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
+        updateLoadingText(`正在生成第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
 
         try {
           const result = await generateBatchComments(
@@ -234,7 +232,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       console.error('批量生成期末评语失败:', error)
       ElMessage.error('批量生成期末评语失败：' + (error as Error).message)
     } finally {
-      loading.close()
+      stopLoading()
       batchGenerating.value = false
     }
   }
@@ -267,10 +265,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
     }
 
     batchPolishing.value = true
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在批量润色期末评语...'
-    })
+    startLoading('正在批量润色期末评语...')
 
     try {
       const totalBatches = Math.ceil(polishTargets.length / batchSize)
@@ -283,7 +278,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
         const end = Math.min(start + batchSize, polishTargets.length)
         const batchData = polishTargets.slice(start, end)
 
-        loading.setText(`正在润色第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
+        updateLoadingText(`正在润色第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
 
         try {
           const result = await polishBatchComments(
@@ -316,7 +311,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       console.error('批量润色期末评语失败:', error)
       ElMessage.error('批量润色期末评语失败：' + (error as Error).message)
     } finally {
-      loading.close()
+      stopLoading()
       batchPolishing.value = false
     }
   }

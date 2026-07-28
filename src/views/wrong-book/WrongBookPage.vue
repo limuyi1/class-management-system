@@ -2,7 +2,7 @@
 /** 错题本页面 — 文件夹管理、题目编辑、图片处理、AI 答案和试卷生成 */
 import { computed, ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 import PageHeader from '@/components/PageHeader.vue'
 import FolderTree from '@/views/wrong-book/components/FolderTree.vue'
@@ -14,6 +14,7 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeQuestionFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUntil'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import type { WrongQuestion } from '@/types/WrongBook'
 
 const wrongBookStore = useWrongBookStore()
@@ -86,11 +87,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
   cropperVisible.value = false
   uploading.value = true
 
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在识别题目，请稍候...',
-    background: 'rgba(255, 255, 255, 0.8)'
-  })
+  startLoading('正在识别题目，请稍候...', 'rgba(255, 255, 255, 0.8)')
 
   try {
     const result = await recognizeQuestionFromImage(croppedBase64, {
@@ -119,7 +116,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
     ElMessage.error('识别失败：' + (error as Error).message)
   } finally {
     uploading.value = false
-    loading.close()
+    stopLoading()
   }
 }
 

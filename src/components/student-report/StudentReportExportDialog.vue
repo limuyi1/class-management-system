@@ -3,7 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { storeToRefs } from 'pinia'
 
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 import StudentReportExportSidebar from '@/components/student-report/StudentReportExportSidebar.vue'
 import StudentReportPreviewCard from '@/components/student-report/StudentReportPreviewCard.vue'
@@ -16,6 +16,7 @@ import {
   buildStudentReportTemplateText,
   exportStudentReportImage
 } from '@/utils/studentReportUntil'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -190,10 +191,7 @@ const handleExport = async (): Promise<void> => {
   if (!previewRef.value) return
 
   exporting.value = true
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出学习报告图片...'
-  })
+  startLoading('正在导出学习报告图片...')
 
   try {
     await nextTick()
@@ -215,7 +213,7 @@ const handleExport = async (): Promise<void> => {
     dialogVisible.value = false
   } finally {
     exporting.value = false
-    loading.close()
+    stopLoading()
   }
 }
 

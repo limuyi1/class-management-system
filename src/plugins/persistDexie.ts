@@ -70,7 +70,7 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
 
 const updatingStores = new Set<string>()
 
-const cloneState = <T>(state: T): T => JSON.parse(JSON.stringify(state)) as T
+const cloneState = <T>(state: T): T => structuredClone(state)
 
 export function createPersistedStateDexie() {
   return async ({ store }: PiniaPluginContext) => {
@@ -149,8 +149,8 @@ export function createPersistedStateDexie() {
       }
       try {
         if (isDataSource) {
-          const clonableData = JSON.parse(
-            JSON.stringify(dataSourceStore.$state.students)
+          const clonableData = structuredClone(
+            dataSourceStore.$state.students
           ) as StudentDataType[]
           await table.put({
             id: DB_ID,
@@ -159,7 +159,7 @@ export function createPersistedStateDexie() {
           } as StudentDatasetRecord)
         } else {
           const rawState = store.$state
-          const clonableState = JSON.parse(JSON.stringify(rawState))
+          const clonableState = structuredClone(rawState)
           await table.put({
             id: DB_ID,
             ...clonableState,

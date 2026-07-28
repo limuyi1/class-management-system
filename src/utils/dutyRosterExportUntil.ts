@@ -2,7 +2,7 @@ import domtoimage from 'dom-to-image'
 import { PDFDocument } from 'pdf-lib'
 
 import { PagesEnum } from '@/types/Common'
-import { getSeatingChartPageSize } from '@/utils/seatingChartPageLayoutUntil'
+import { getPageSize } from '@/utils/pageSizeInPixelUntil'
 
 export type DutyRosterExportFormatType = 'png' | 'pdf'
 
@@ -49,7 +49,7 @@ export async function createDutyRosterPdf(options: DutyRosterPdfOptionsType): Pr
   const pdfDoc = await PDFDocument.create()
   const imageBytes = new Uint8Array(await options.imageBlob.arrayBuffer())
   const image = await pdfDoc.embedPng(imageBytes)
-  const pageSize = getSeatingChartPageSize(options.pageType, 'landscape')
+  const pageSize = getPageSize(options.pageType, 'landscape')
   const page = pdfDoc.addPage([pageSize.width, pageSize.height])
   page.drawImage(image, { x: 0, y: 0, width: pageSize.width, height: pageSize.height })
   const bytes = await pdfDoc.save()

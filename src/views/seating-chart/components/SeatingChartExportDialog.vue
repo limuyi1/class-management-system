@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, shallowRef, watch } from 'vue'
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 
 import { PagesEnum } from '@/types/Common'
 import type { SeatingChartType } from '@/types/SeatingChart'
@@ -102,7 +103,7 @@ function resetLayoutScale(): void {
 async function handleExport(): Promise<void> {
   if (exporting.value) return
   exporting.value = true
-  const loading = ElLoading.service({ lock: true, text: '正在生成座位表...' })
+  startLoading('正在生成座位表...')
   try {
     const baseName = `${sanitizeSeatingChartFileName(props.chart.name)}_${formatSeatingChartExportDate()}`
     await nextTick()
@@ -126,7 +127,7 @@ async function handleExport(): Promise<void> {
     console.error('导出座位表失败:', error)
     ElMessage.error(error instanceof Error ? error.message : '座位表导出失败')
   } finally {
-    loading.close()
+    stopLoading()
     exporting.value = false
   }
 }

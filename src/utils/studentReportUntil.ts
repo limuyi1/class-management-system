@@ -3,6 +3,7 @@ import domtoimage from 'dom-to-image'
 import { NAME_PROP } from '@/types/Constants'
 import type { SettingType, TagCategoryType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
+import { extractStudentTags } from '@/utils/studentUntil'
 
 interface OperationResultType {
   success: boolean
@@ -110,21 +111,6 @@ const formatGeneratedAt = (): string => {
   })
     .format(new Date())
     .replace(/\//g, '-')
-}
-
-const extractStudentTags = (student: StudentDataType, categories: TagCategoryType[]): string[] => {
-  const tagMap = student.tags
-  if (!tagMap) return []
-
-  const orderedTags: string[] = []
-  categories.forEach((category) => {
-    const tags = tagMap[category.prop]
-    if (Array.isArray(tags) && tags.length > 0) {
-      orderedTags.push(...tags)
-    }
-  })
-
-  return Array.from(new Set(orderedTags.map((item) => item.trim()).filter(Boolean)))
 }
 
 const resolveTrendLabel = (scoreItems: StudentReportScoreItemType[]): string => {

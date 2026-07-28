@@ -1,4 +1,5 @@
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import domtoimage from 'dom-to-image'
 import type { ComputedRef, Ref } from 'vue'
 
@@ -114,10 +115,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
     container.style.pointerEvents = 'none'
     document.body.appendChild(container)
 
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在导出图片，请稍后...'
-    })
+    startLoading('正在导出图片，请稍后...')
 
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -131,7 +129,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       console.error('导出低分学生图片失败:', error)
       ElMessage.error('下载失败')
     } finally {
-      loading.close()
+      stopLoading()
       container.remove()
     }
   }
