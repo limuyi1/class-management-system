@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 工具中心页面 — 版纸排版、附件库、名单对比等功能入口 */
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'

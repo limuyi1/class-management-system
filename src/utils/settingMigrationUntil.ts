@@ -1,3 +1,7 @@
+/**
+ * 设置数据迁移工具
+ * 用于版本升级时的旧数据格式兼容和标准化转换
+ */
 import type { SettingType } from '@/types/Setting'
 
 type LegacySettingType = Omit<SettingType, 'disabled'> & {

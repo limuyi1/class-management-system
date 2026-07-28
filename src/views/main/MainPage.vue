@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 主布局页面 — 左侧导航菜单 + 右侧路由出口 */
 import { ref } from 'vue'
 
 import LeftMenu from '@/views/main/components/LeftMenu.vue'

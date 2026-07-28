@@ -17,12 +17,19 @@ import type { TagCategoryType } from '@/types/Setting'
 import { NAME_PROP } from '@/types/Constants'
 
 interface UseEvaluationInputOptions {
+  /** 选中学生时的滚动回调 */
   onScroll: (studentId: string) => void
+  /** 提交后是否自动跳到下一个学生 */
   autoNextOnSubmit?: boolean
+  /** 切换学生时如未保存是否弹窗确认 */
   promptUnsavedOnSwitch?: boolean
+  /** 当前激活学生变化回调 */
   onActiveStudentChange?: (student: StudentDataType | null) => void
+  /** 外部传入的学生列表 */
   students?: Ref<StudentDataType[]>
+  /** 外部传入的标签分类列表 */
   tagCategoryList?: Ref<TagCategoryType[]>
+  /** 是否允许编辑标签 */
   allowTagEditing?: boolean
 }
 
@@ -36,6 +43,10 @@ interface FocusableType {
   focus: () => void
 }
 
+/**
+ * 期末评语录入交互逻辑
+ * 提供学生搜索选择、评语编辑、AI 生成/润色、标签跳转等完整录入体验
+ */
 export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const {
     onScroll,

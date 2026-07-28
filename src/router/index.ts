@@ -1,3 +1,7 @@
+/**
+ * Vue Router 路由配置
+ * 使用 hash 模式，支持 /overview, /score, /evaluation, /setting 等主要路由
+ */
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 import MainPage from '@/views/main/MainPage.vue'

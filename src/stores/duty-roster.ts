@@ -49,6 +49,10 @@ const touch = (roster: DutyRosterType): void => {
   roster.updatedAt = now()
 }
 
+/**
+ * 值日表状态管理
+ * 管理工作日/周模式的值日安排，包括分组、岗位、分配、组长设置等
+ */
 export const useDutyRosterStore = defineStore('dutyRoster', {
   state: (): DutyRosterStateType => ({
     rosters: [],

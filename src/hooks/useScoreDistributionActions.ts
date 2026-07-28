@@ -13,6 +13,7 @@ interface UseScoreDistributionActionsOptions {
   getScore: (item: ScoreStudentType) => number | null
 }
 
+/** 将 DOM 元素渲染为 PNG DataURL */
 const toPng = async (element: HTMLElement, scale = 2): Promise<string> => {
   const width = element.scrollWidth
   const height = element.scrollHeight
@@ -31,9 +32,14 @@ const toPng = async (element: HTMLElement, scale = 2): Promise<string> => {
   })
 }
 
+/**
+ * 成绩分布操作（复制和图片导出）
+ * 提供成绩统计数据复制到剪贴板、低分学生列表导出为图片的功能
+ */
 export function useScoreDistributionActions(options: UseScoreDistributionActionsOptions) {
   const { scoreStats, belowThresholdStudents, threshold, title, getScore } = options
 
+  /** 将成绩分布统计复制到剪贴板 */
   const copyToClipboard = () => {
     if (!scoreStats.value) return
 
@@ -62,6 +68,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       })
   }
 
+  /** 将低分学生列表导出为图片 */
   const downloadImage = async (mode: 'withScore' | 'nameOnly') => {
     const students = [...belowThresholdStudents.value].sort(
       (a, b) => (getScore(b) || 0) - (getScore(a) || 0)

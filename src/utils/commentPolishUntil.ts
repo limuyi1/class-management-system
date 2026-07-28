@@ -1,7 +1,12 @@
+/**
+ * 评语润色工具
+ * 提供批量评语润色的目标数据构造和结果解析
+ */
 import { NAME_PROP } from '@/types/Constants'
 
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 单条评语润色目标 */
 export interface CommentPolishTargetType {
   studentId: string
   name: string
@@ -9,6 +14,7 @@ export interface CommentPolishTargetType {
   tags?: string | string[]
 }
 
+/** 润色后的评语结果 */
 export interface PolishedCommentResultType {
   studentId: string
   name: string
@@ -20,6 +26,7 @@ const getStudentName = (student: StudentDataType): string => {
   return name === null || name === undefined ? '' : String(name)
 }
 
+/** 从学生数据中构造润色目标列表（跳过空评语） */
 export const buildCommentPolishTargets = (
   students: StudentDataType[],
   getTags?: (student: StudentDataType) => string | string[]

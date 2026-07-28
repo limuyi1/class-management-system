@@ -50,6 +50,10 @@ const resolveStoredStudentSource = (
   return chart.excelSource?.students.length ? 'excel' : 'system'
 }
 
+/**
+ * 座位表状态管理
+ * 管理教室座位表的创建、编辑、随机排座、学生分配等操作
+ */
 export const useSeatingChartStore = defineStore('seatingChart', {
   state: (): SeatingChartStateType => ({
     charts: [],

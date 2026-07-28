@@ -1,3 +1,4 @@
+/** 纸张尺寸像素换算工具 */
 import type { PagesEnum } from '@/types/Common'
 
 const getDPI = () => {

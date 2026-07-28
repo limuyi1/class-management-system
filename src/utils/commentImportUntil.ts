@@ -1,3 +1,7 @@
+/**
+ * 评语增量导入工具
+ * 将 Excel 评语数据按姓名匹配到现有学生，支持填充空值 / 覆盖已有两种策略
+ */
 import { NAME_PROP } from '@/types/Constants'
 
 import type { ExcelRowType } from '@/utils/scoreImportUntil'

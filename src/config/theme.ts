@@ -1,5 +1,7 @@
+/** 主题色彩配置 */
 export type ThemeName = 'green' | 'orange' | 'purple' | 'bluepink'
 
+/** 主题配置项 */
 export interface ThemeConfig {
   name: ThemeName
   label: string

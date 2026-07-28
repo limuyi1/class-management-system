@@ -1,3 +1,4 @@
+/** 默认标签分类和标签数据 */
 import type { TagCategoryType, TagType } from '@/types/Setting'
 
 export const defaultTagCategories: TagCategoryType[] = [

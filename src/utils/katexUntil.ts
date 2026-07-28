@@ -1,3 +1,4 @@
+/** KaTeX 数学公式渲染工具 */
 import { marked } from 'marked'
 import katex from 'katex'
 

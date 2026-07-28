@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 期末评语管理页面
+ * 展示学生期末评语列表，提供编辑、AI 生成、批量导入和 PDF 导出功能
+ */
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'

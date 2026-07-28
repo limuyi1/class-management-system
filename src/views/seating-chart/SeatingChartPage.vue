@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 座位表页面 — 教室布局设计、随机排座、学生拖拽分配和导出 */
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'

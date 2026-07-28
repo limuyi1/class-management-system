@@ -1,3 +1,7 @@
+/**
+ * ZIP 压缩工具
+ * 提供内存中创建 ZIP 文件的功能（CRC-32 + Deflate）
+ */
 const textEncoder = new TextEncoder()
 
 const crcTable = Array.from({ length: 256 }, (_, value) => {

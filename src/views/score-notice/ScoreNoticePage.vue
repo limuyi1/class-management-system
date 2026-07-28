@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 成绩通知单页面 — 等级/分数制通知单导入、预览、评语编辑和导出 */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 

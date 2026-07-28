@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 概览仪表盘页面 — 展示 KPI、关注学生、趋势图表、单元分析和评语概览 */
 import { computed, nextTick, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'

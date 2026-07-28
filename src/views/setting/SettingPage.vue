@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 系统设置页面 — 标签维护、学生管理、导入导出、AI 配置、单元管理 */
 import { computed, defineAsyncComponent, ref } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'

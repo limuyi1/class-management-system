@@ -29,6 +29,10 @@ const createDefaultState = (): ScoreNoticeStateType => ({
   selectedStudentId: ''
 })
 
+/**
+ * 成绩通知单状态管理
+ * 管理等级制/分数制通知单的导入、学生列表、评语编辑和科目等级规则
+ */
 export const useScoreNoticeStore = defineStore('scoreNotice', {
   state: (): ScoreNoticeStateType => createDefaultState(),
   getters: {

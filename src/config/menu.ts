@@ -1,3 +1,4 @@
+/** 左侧导航菜单配置 */
 import { featureFlags } from '@/config/features'
 
 const menu = [

@@ -1,5 +1,6 @@
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 评语页面布局信息（每页卡片行列数、边距等） */
 export interface EvaluationPageInfoType {
   pageWidth: number
   pageHeight: number
@@ -12,6 +13,7 @@ export interface EvaluationPageInfoType {
   tableOffsetX: number
 }
 
+/** 评语预览卡片组件 Props */
 export interface EvaluationPreviewCardPropsType {
   pageInfo: EvaluationPageInfoType
   data: StudentDataType[]
@@ -21,6 +23,7 @@ export interface EvaluationPreviewCardPropsType {
   suppressActiveState?: boolean
 }
 
+/** 评语预览卡片组件 Emits */
 export interface EvaluationPreviewCardEmitsType {
   click: [row: StudentDataType]
 }

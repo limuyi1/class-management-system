@@ -1,6 +1,9 @@
+/** IndexedDB 数据库名称 */
 export const DATABASE_NAME = 'score-recording-system'
+/** 所有 Store 持久化记录的统一主键 */
 export const DATABASE_MAIN_RECORD_ID = 'main'
 
+/** 数据库表名枚举 */
 export enum DatabaseTableEnum {
   StudentDataset = 'student_dataset',
   ScoreSettings = 'score_settings',

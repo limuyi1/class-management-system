@@ -1,3 +1,7 @@
+/**
+ * 值日表核心工具
+ * 提供值日分组、岗位、分配、学生剔除等底层操作
+ */
 import {
   DutyPeriodEnum,
   DutyRosterModeEnum,

@@ -1,3 +1,6 @@
+/**
+ * 初始学生名单导入工具
+ */
 import { buildInitialScoreImport } from '@/utils/scoreImportUntil'
 import { NAME_PROP } from '@/types/Constants'
 

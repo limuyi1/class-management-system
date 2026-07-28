@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 错题本页面 — 文件夹管理、题目编辑、图片处理、AI 答案和试卷生成 */
 import { computed, ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElLoading, ElMessage } from 'element-plus'

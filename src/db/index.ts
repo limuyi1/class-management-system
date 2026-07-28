@@ -1,3 +1,7 @@
+/**
+ * IndexedDB 数据库初始化
+ * 使用 Dexie 管理版本化 schema，支持 4 个版本的渐进式迁移
+ */
 import Dexie, { type Table } from 'dexie'
 
 import { DATABASE_MAIN_RECORD_ID, DATABASE_NAME, DatabaseTableEnum } from '@/db/constants'

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩管理页面
+ * 提供成绩录入、表格展示、统计分析三大功能模块的入口
+ */
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'

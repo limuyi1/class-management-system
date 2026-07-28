@@ -1,9 +1,13 @@
 import { PagesEnum } from '@/types/Common'
 
+/** 版纸方向：纵向 / 横向 */
 export type PaperLayoutOrientationType = 'portrait' | 'landscape'
+/** 排版模式：单栏 / 双栏 / 自由 */
 export type PaperLayoutModeType = 'single' | 'double' | 'free'
+/** 素材缩放模式：按宽度适配 / 按槽位适配 */
 export type PaperLayoutFitModeType = 'width' | 'slot'
 
+/** 版纸布局设置 */
 export interface PaperLayoutSettingsType {
   pageType: PagesEnum
   orientation: PaperLayoutOrientationType
@@ -14,10 +18,12 @@ export interface PaperLayoutSettingsType {
   gap: number
 }
 
+/** 工具模块 Store 状态 */
 export interface ToolsStateType {
   paperLayout: PaperLayoutSettingsType
 }
 
+/** 附件库记录 */
 export interface AttachmentRecordType {
   id: string
   name: string
@@ -31,6 +37,7 @@ export interface AttachmentRecordType {
   updatedAt: string
 }
 
+/** 版纸素材项 */
 export interface PaperLayoutCanvasItemType {
   id: string
   attachmentId: string
@@ -49,6 +56,7 @@ export interface PaperLayoutCanvasItemType {
   zIndex: number
 }
 
+/** 版纸渲染项（扩展了页面内局部 Y 坐标） */
 export interface PaperLayoutRenderItemType extends PaperLayoutCanvasItemType {
   /**
    * 当前页面内的渲染 Y 坐标。同一张图片跨页时会在多页生成渲染片段，
@@ -57,11 +65,13 @@ export interface PaperLayoutRenderItemType extends PaperLayoutCanvasItemType {
   localY: number
 }
 
+/** 版纸分页信息 */
 export interface PaperLayoutPageType {
   index: number
   items: PaperLayoutRenderItemType[]
 }
 
+/** 版纸拖拽状态 */
 export interface PaperLayoutDragStateType {
   itemId: string
   mode: 'move' | 'resize'
@@ -74,6 +84,7 @@ export interface PaperLayoutDragStateType {
   startHeight: number
 }
 
+/** 版纸草稿项（可序列化的素材快照） */
 export interface PaperLayoutDraftItemType {
   attachmentId: string
   name: string
@@ -92,6 +103,7 @@ export interface PaperLayoutDraftItemType {
   zIndex?: number
 }
 
+/** 版纸草稿持久化记录 */
 export interface PaperLayoutDraftRecordType {
   id: string
   name: string

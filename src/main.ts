@@ -1,3 +1,7 @@
+/**
+ * 应用入口文件
+ * 注册 Pinia、Vue Router、Element Plus、FontAwesome 等全局插件
+ */
 import './assets/style/main.css'
 import './assets/style/element.scss'
 

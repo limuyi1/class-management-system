@@ -2,6 +2,10 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import { themes, type ThemeName, type ThemeConfig, defaultTheme } from '@/config/theme'
 
+/**
+ * 主题状态管理（Setup Store）
+ * 管理当前主题切换，并将主题颜色写入 documentElement CSS 变量
+ */
 export const useThemeStore = defineStore('theme', () => {
   const currentTheme = ref<ThemeName>(defaultTheme)
 
@@ -16,6 +20,7 @@ export const useThemeStore = defineStore('theme', () => {
     applyTheme()
   }
 
+  /** 将当前主题的颜色配置写入 documentElement CSS 变量 */
   const applyTheme = () => {
     const config = themes[currentTheme.value]
     const root = document.documentElement

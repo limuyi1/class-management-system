@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 值日表页面 — 分组、岗位、学生分配、组长设置和导出 */
 import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'

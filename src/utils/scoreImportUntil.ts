@@ -1,3 +1,7 @@
+/**
+ * 成绩导入工具
+ * 负责 Excel 成绩数据的解析、校验、冲突检测和增量合并导入
+ */
 import { pinyin } from 'pinyin-pro'
 
 import { NAME_PROP } from '@/types/Constants'
@@ -9,11 +13,13 @@ export type ExcelCellValueType = string | number | boolean | null | undefined
 export type ExcelRowType = Record<string, ExcelCellValueType>
 export type ConflictActionType = 'overwrite' | 'skip'
 
+/** 成绩值解析结果 */
 export interface ScoreValueResultType {
   value: number | null
   invalid: boolean
 }
 
+/** 成绩导入统计 */
 export interface ScoreImportStatsType {
   invalidScoreCount: number
   ignoredStudentCount: number
@@ -23,6 +29,7 @@ export interface ScoreImportStatsType {
   skippedColumnCount: number
 }
 
+/** 初次成绩导入结果（含表头和学生数据） */
 export interface InitialScoreImportResultType {
   headers: SettingType[]
   students: StudentDataType[]

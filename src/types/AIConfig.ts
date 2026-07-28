@@ -1,3 +1,4 @@
+/** AI 模型提供商枚举 */
 export enum AIModelTypeEnum {
   OPENAI = 'openai',
   GEMINI = 'gemini',
@@ -6,6 +7,7 @@ export enum AIModelTypeEnum {
   DEEPSEEK = 'deepseek'
 }
 
+/** AI 模型提供商的中文标签 */
 export const AIModelTypeLabels: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.OPENAI]: 'OpenAI',
   [AIModelTypeEnum.GEMINI]: 'Google Gemini',
@@ -14,6 +16,7 @@ export const AIModelTypeLabels: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.DEEPSEEK]: 'DeepSeek'
 }
 
+/** 各 AI 提供商的默认 API 地址 */
 export const AIModelDefaultBaseUrls: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.OPENAI]: 'https://api.openai.com/v1',
   [AIModelTypeEnum.GEMINI]: 'https://generativelanguage.googleapis.com/v1',
@@ -22,6 +25,7 @@ export const AIModelDefaultBaseUrls: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.DEEPSEEK]: 'https://api.deepseek.com/v1'
 }
 
+/** 各 AI 提供商的默认模型 */
 export const AIModelDefaultModels: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.OPENAI]: 'gpt-4o-mini',
   [AIModelTypeEnum.GEMINI]: 'gemini-2.0-flash',
@@ -30,25 +34,43 @@ export const AIModelDefaultModels: Record<AIModelTypeEnum, string> = {
   [AIModelTypeEnum.DEEPSEEK]: 'deepseek-chat'
 }
 
+/** AI 配置类型（完整配置） */
 export interface AIConfigType {
+  /** AI 模型提供商 */
   modelType: AIModelTypeEnum
+  /** 模型名称 */
   model: string
+  /** API Key */
   apiKey: string
+  /** API 基础 URL */
   baseUrl: string
+  /** 各场景的 Prompt 配置 */
   prompts: AIPromptsType
 }
 
+/** AI Prompt 配置，按业务场景区分 */
 export interface AIPromptsType {
+  /** 单条评语生成 */
   singleComment: string
+  /** 批量评语生成 */
   batchComment: string
+  /** 单条评语润色 */
   singleCommentPolish: string
+  /** 批量评语润色 */
   batchCommentPolish: string
+  /** 图片成绩识别 */
   imageScore: string
+  /** 标签生成 */
   tagGenerate: string
+  /** 标签分类生成 */
   tagCategoryGenerate: string
+  /** 答案生成 */
   answerGenerate: string
+  /** 学情分析 */
   learningAnalysis: string
+  /** 成绩通知单-单条评语 */
   scoreNoticeSingleComment: string
+  /** 成绩通知单-批量评语 */
   scoreNoticeBatchComment: string
 }
 

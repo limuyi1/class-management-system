@@ -4,6 +4,7 @@ import type { ComputedRef } from 'vue'
 import { NAME_PROP } from '@/types/Constants'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 分数段统计 */
 export interface ScoreRangeType {
   label: string
   min: number
@@ -13,6 +14,7 @@ export interface ScoreRangeType {
   students: string[]
 }
 
+/** 成绩统计结果 */
 export interface ScoreStatisticsType {
   maxScore: number
   maxScoreCount: number
@@ -36,12 +38,17 @@ interface UseScoreStatisticsOptions {
   scoreProp: ComputedRef<string | null>
 }
 
+/**
+ * 成绩统计分析
+ * 根据学生列表和选中的成绩列计算最高分、最低分、平均分、各分数段分布等统计信息
+ */
 export function useScoreStatistics(options: UseScoreStatisticsOptions) {
   const { students, scoreProp } = options
 
   const threshold = ref(60)
   const thresholdMode = ref<'average' | 'custom'>('average')
 
+  /** 从学生数据中提取数值型分数 */
   const getScore = (item: StudentDataType): number | null => {
     if (!scoreProp.value) return null
     const score = item[scoreProp.value]

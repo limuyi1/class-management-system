@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学生信息页 — 学生列表展示、筛选和标签编辑 */
 import { computed, nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
