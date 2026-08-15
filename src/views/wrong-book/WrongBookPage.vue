@@ -13,7 +13,7 @@ import ImageCropper from '@/components/ImageCropper.vue'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeQuestionFromImage } from '@/ai/aiService'
-import { fileToBase64 } from '@/utils/fileUntil'
+import { fileToBase64 } from '@/utils/fileUtil'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
 import type { WrongQuestion } from '@/types/WrongBook'
 

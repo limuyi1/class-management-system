@@ -13,8 +13,8 @@ import {
 import { runWithLoading } from '@/hooks/useLoading'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { PagesEnum } from '@/types/Common'
-import { exportPDF } from '@/utils/pdfUntil'
-import { renderKatex } from '@/utils/katexUntil'
+import { exportPDF } from '@/utils/pdfUtil'
+import { renderKatex } from '@/utils/katexUtil'
 import type { WrongQuestion } from '@/types/WrongBook'
 
 interface Props {

@@ -1,5 +1,5 @@
 import { AIModelTypeEnum, DefaultAIPrompts } from '@/types/AIConfig'
-import { normalizeScoreNoticeComment } from '@/utils/scoreNoticeCommentUntil'
+import { normalizeScoreNoticeComment } from '@/utils/scoreNoticeCommentUtil'
 
 import type { AIServiceConfig } from '@/ai/types'
 import {
@@ -18,6 +18,7 @@ import { parseJsonArray, parseJsonObject } from '@/ai/responseParser'
  * 支持生成评语、识别图片成绩、生成标签等功能
  */
 
+/** 传递给 AI 的学生数据 */
 interface StudentData {
   studentId?: string
   name: string
@@ -26,20 +27,24 @@ interface StudentData {
   comment?: string | null
 }
 
+/** 经典表达使用情况 */
 interface ClassicExpressionUsageType {
   expression: string
   count: number
 }
 
+/** 批量评语生成的附加选项 */
 interface BatchCommentOptionsType {
   classicExpressionUsages?: ClassicExpressionUsageType[]
   maxClassicExpressionUsage?: number
 }
 
+/** 批量评语生成结果 */
 interface BatchCommentResult extends StudentData {
   classicExpression?: string
 }
 
+/** 批量润色结果 */
 interface PolishedCommentResult {
   studentId: string
   name: string
@@ -47,11 +52,13 @@ interface PolishedCommentResult {
   classicExpression?: string
 }
 
+/** 图片识别的学生成绩结果 */
 interface ScoreResult {
   name: string
   score: number | null
 }
 
+/** 图片识别的题目结果 */
 interface QuestionResult {
   question: string
   answer: string
@@ -60,11 +67,13 @@ interface QuestionResult {
   hasImage: boolean
 }
 
+/** 题目答案与解析生成结果 */
 interface AnswerGenerateResult {
   answer: string
   explanation: string
 }
 
+/** 成绩通知单单个学生评语生成的输入 */
 export interface ScoreNoticeCommentInputType {
   studentId: string
   name: string
@@ -73,11 +82,13 @@ export interface ScoreNoticeCommentInputType {
   tags: string
 }
 
+/** 成绩通知单单个学生评语生成结果 */
 export interface ScoreNoticeCommentResultType {
   studentId: string
   comment: string
 }
 
+/** 将模板占位值格式化为可读文本（数组拼接、空值返回「暂无」） */
 function formatTemplateValue(value: unknown): string {
   if (Array.isArray(value)) {
     if (!value.length) return '暂无'
@@ -93,6 +104,7 @@ function formatTemplateValue(value: unknown): string {
   return String(value)
 }
 
+/** 将模板中的 {{key}} 占位符替换为对应数据 */
 function replaceTemplate(template: string, data: Record<string, unknown>): string {
   let result = template
   for (const [key, value] of Object.entries(data)) {
@@ -102,6 +114,7 @@ function replaceTemplate(template: string, data: Record<string, unknown>): strin
   return result
 }
 
+/** 将标签数据规范化为提示词所需的顿号分隔字符串 */
 function normalizeTagsForPrompt(tags: StudentData['tags']): string {
   if (Array.isArray(tags)) {
     return tags
@@ -113,6 +126,7 @@ function normalizeTagsForPrompt(tags: StudentData['tags']): string {
   return tags?.trim() || ''
 }
 
+/** 解析 JSON 对象，失败时返回兜底值并记录错误 */
 function parseObjectWithFallback<T>(responseText: string, fallback: T, scene: string): T {
   const parsed = parseJsonObject<T>(responseText)
   if (parsed) return parsed
@@ -120,6 +134,7 @@ function parseObjectWithFallback<T>(responseText: string, fallback: T, scene: st
   return fallback
 }
 
+/** 解析 JSON 数组，失败时返回兜底值并记录错误 */
 function parseArrayWithFallback<T>(responseText: string, fallback: T[], scene: string): T[] {
   const parsed = parseJsonArray<T>(responseText)
   if (parsed) return parsed
@@ -127,6 +142,7 @@ function parseArrayWithFallback<T>(responseText: string, fallback: T[], scene: s
   return fallback
 }
 
+/** 构建批量评语请求中单个学生的载荷 */
 function buildCommentStudentPayload(
   student: StudentData
 ): Pick<StudentData, 'studentId' | 'name' | 'tags' | 'comment'> {
@@ -138,6 +154,7 @@ function buildCommentStudentPayload(
   }
 }
 
+/** 生成学生身份约束提示，确保模型按 studentId 返回结果 */
 function buildStudentIdentityGuidance(): string {
   return `
 
@@ -147,6 +164,7 @@ function buildStudentIdentityGuidance(): string {
 3. 系统只按 studentId 写回结果，缺少 studentId 的结果将被忽略。`
 }
 
+/** 生成经典表达频率控制的提示 */
 function buildClassicExpressionUsageGuidance(options?: BatchCommentOptionsType): string {
   const usages = options?.classicExpressionUsages || []
   if (!usages.length) return ''
@@ -164,6 +182,13 @@ ${usageText}
 4. 每条结果必须额外返回 classicExpression 字段，填写本条评语实际使用的经典表达；若确实未使用，则填空字符串。classicExpression 不要包含解释、出处或额外修饰。`
 }
 
+/**
+ * 根据单张图片生成文本（视觉识别）
+ * @param config - AI 服务配置
+ * @param prompt - 提示词
+ * @param imageBase64 - 图片 base64 数据
+ * @returns 模型返回的文本
+ */
 async function generateVisionText(
   config: AIServiceConfig,
   prompt: string,
@@ -198,6 +223,13 @@ async function generateVisionText(
   return getContentFromOpenAIResponse(data, '{}')
 }
 
+/**
+ * 根据多张图片生成文本（视觉识别）
+ * @param config - AI 服务配置
+ * @param prompt - 提示词
+ * @param questionImages - 图片 base64 数据数组
+ * @returns 模型返回的文本
+ */
 async function generateVisionTextWithMultiImages(
   config: AIServiceConfig,
   prompt: string,
@@ -241,6 +273,8 @@ async function generateVisionTextWithMultiImages(
 
 /**
  * 测试 AI 连接是否可用
+ * @param config - AI 服务配置
+ * @returns 连接是否成功
  */
 export async function testAIConnection(config: AIServiceConfig): Promise<boolean> {
   try {
@@ -260,6 +294,8 @@ export async function testAIConnection(config: AIServiceConfig): Promise<boolean
 
 /**
  * 获取可用的 AI 模型列表
+ * @param config - AI 服务配置
+ * @returns 模型名称数组，失败时返回空数组
  */
 export async function fetchAvailableModels(config: AIServiceConfig): Promise<string[]> {
   try {
@@ -283,6 +319,10 @@ export async function fetchAvailableModels(config: AIServiceConfig): Promise<str
 
 /**
  * 为单个学生生成评语
+ * @param student - 学生数据
+ * @param prompt - 提示词模板
+ * @param config - AI 服务配置
+ * @returns 生成的评语
  */
 export async function generateSingleComment(
   student: StudentData,
@@ -299,7 +339,11 @@ export async function generateSingleComment(
 }
 
 /**
- * 基于已有评语进行单个润色。
+ * 基于已有评语进行单个润色
+ * @param student - 学生数据（含原始评语）
+ * @param prompt - 提示词模板
+ * @param config - AI 服务配置
+ * @returns 润色后的评语
  */
 export async function polishSingleComment(
   student: StudentData,
@@ -315,6 +359,12 @@ export async function polishSingleComment(
   return generateText(config, promptText)
 }
 
+/**
+ * 生成学生阶段学习报告正文
+ * @param student - 学生数据
+ * @param config - AI 服务配置
+ * @returns 生成的报告正文
+ */
 export async function generateStudentReportSummary(
   student: StudentData,
   config: AIServiceConfig
@@ -340,6 +390,11 @@ export async function generateStudentReportSummary(
 
 /**
  * 批量生成学生评语
+ * @param students - 学生数据列表
+ * @param prompt - 提示词模板
+ * @param config - AI 服务配置
+ * @param options - 附加选项（经典表达频率控制）
+ * @returns 每个学生的评语结果
  */
 export async function generateBatchComments(
   students: StudentData[],
@@ -372,6 +427,13 @@ export async function generateBatchComments(
   }))
 }
 
+/**
+ * 生成单个学生的成绩通知单评语
+ * @param student - 学生成绩摘要
+ * @param config - AI 服务配置
+ * @param prompt - 提示词（默认使用内置模板）
+ * @returns 生成的评语
+ */
 export async function generateScoreNoticeComment(
   student: ScoreNoticeCommentInputType,
   config: AIServiceConfig,
@@ -384,6 +446,13 @@ export async function generateScoreNoticeComment(
   return normalizeScoreNoticeComment(responseText)
 }
 
+/**
+ * 批量生成成绩通知单评语
+ * @param students - 学生成绩摘要列表
+ * @param config - AI 服务配置
+ * @param prompt - 提示词（默认使用内置模板）
+ * @returns 每个学生的评语结果
+ */
 export async function generateScoreNoticeComments(
   students: ScoreNoticeCommentInputType[],
   config: AIServiceConfig,
@@ -409,7 +478,12 @@ export async function generateScoreNoticeComments(
 }
 
 /**
- * 批量润色已有学生评语。
+ * 批量润色已有学生评语
+ * @param students - 学生数据列表（含原始评语）
+ * @param prompt - 提示词模板
+ * @param config - AI 服务配置
+ * @param options - 附加选项（经典表达频率控制）
+ * @returns 每个学生的润色结果
  */
 export async function polishBatchComments(
   students: StudentData[],
@@ -431,6 +505,10 @@ export async function polishBatchComments(
 
 /**
  * 从图片中识别学生成绩
+ * @param imageBase64 - 图片 base64 数据
+ * @param prompt - 提示词
+ * @param config - AI 服务配置
+ * @returns 识别出的学生成绩列表
  */
 export async function recognizeScoreFromImage(
   imageBase64: string,
@@ -448,6 +526,12 @@ export async function recognizeScoreFromImage(
 
 /**
  * AI 生成学生标签
+ * @param category - 标签分类
+ * @param count - 生成数量
+ * @param requirement - 附加要求
+ * @param prompt - 提示词模板
+ * @param config - AI 服务配置
+ * @returns 生成的标签数组
  */
 export async function generateTags(
   category: string,
@@ -468,6 +552,11 @@ export async function generateTags(
 
 /**
  * AI 生成学生标签分类
+ * @param count - 生成数量
+ * @param requirement - 附加要求
+ * @param prompt - 提示词模板
+ * @param config - AI 服务配置
+ * @returns 生成的分类数组
  */
 export async function generateTagCategories(
   count: number,
@@ -486,6 +575,10 @@ export async function generateTagCategories(
 
 /**
  * 生成班级学情分析
+ * @param dashboard - 学情面板数据
+ * @param prompt - 提示词模板
+ * @param config - AI 服务配置
+ * @returns 生成的分析文本
  */
 export async function generateLearningAnalysis(
   dashboard: Record<string, unknown>,
@@ -501,6 +594,9 @@ export async function generateLearningAnalysis(
 
 /**
  * 从图片中识别错题题目
+ * @param imageBase64 - 图片 base64 数据
+ * @param config - AI 服务配置
+ * @returns 识别出的题目信息
  */
 export async function recognizeQuestionFromImage(
   imageBase64: string,
@@ -547,6 +643,10 @@ export async function recognizeQuestionFromImage(
 
 /**
  * 从题目内容和图片生成答案和解析
+ * @param questionText - 题目内容
+ * @param questionImages - 题目图片 base64 数据数组
+ * @param config - AI 服务配置
+ * @returns 生成的答案与解析
  */
 export async function generateAnswerFromQuestion(
   questionText: string,

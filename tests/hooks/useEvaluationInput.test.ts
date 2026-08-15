@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useEvaluationInput } from '../../src/hooks/useEvaluationInput'
 import { useDataSourceStore } from '../../src/stores/data-source'
-import { NAME_PROP } from '../../src/types/Constants'
+import { NAME_PROP } from '../../src/constants'
 
 const routerPush = vi.fn()
 

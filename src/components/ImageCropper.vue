@@ -10,7 +10,7 @@ import {
   dataUrlToBase64,
   estimateCompressedImageSize,
   formatFileSize
-} from '@/utils/fileUntil'
+} from '@/utils/fileUtil'
 
 interface Props {
   visible: boolean

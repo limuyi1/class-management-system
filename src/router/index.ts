@@ -98,6 +98,12 @@ const router = createRouter({
   ]
 })
 
+/**
+ * 创建数据就绪路由守卫
+ * 等待学生数据加载完成后校验数据状态，数据为空时限制进入成绩等页面
+ * @param getStore - 获取数据源 store 的函数（默认使用 useDataSourceStore）
+ * @returns Vue Router 导航守卫
+ */
 export function createDataGuard(
   getStore: () => Pick<
     ReturnType<typeof useDataSourceStore>,

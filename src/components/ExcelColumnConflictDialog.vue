@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 
-import type { ConflictActionType } from '@/utils/scoreImportUntil'
+import type { ConflictActionType } from '@/utils/scoreImportUtil'
 
 interface Props {
   modelValue: boolean

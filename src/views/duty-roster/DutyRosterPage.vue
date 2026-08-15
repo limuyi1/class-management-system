@@ -11,7 +11,7 @@ import UnassignedStudentPanel from '@/views/seating-chart/components/UnassignedS
 import { useDataSourceStore } from '@/stores/data-source'
 import { useDutyRosterStore } from '@/stores/duty-roster'
 import { DutyRosterModeEnum } from '@/types/DutyRoster'
-import { findDutySectionByPosition } from '@/utils/dutyRosterUntil'
+import { findDutySectionByPosition } from '@/utils/dutyRosterUtil'
 import DutyNotesPanel from '@/views/duty-roster/components/DutyNotesPanel.vue'
 import DutyPositionContextMenu from '@/views/duty-roster/components/DutyPositionContextMenu.vue'
 import DutyRosterEmptyState from '@/views/duty-roster/components/DutyRosterEmptyState.vue'

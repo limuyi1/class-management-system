@@ -24,6 +24,9 @@ describe('CommentExcelImportDialog', () => {
           ElOption: true,
           ExcelFileDropzone: true,
           ExcelHeaderRowPicker: true
+        },
+        directives: {
+          loading: {}
         }
       }
     })

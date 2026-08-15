@@ -3,7 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/stores/setting'
 import type { BatchTagDrawerProps, BatchTagDrawerEmits } from '@/types/BatchTagDrawer'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 const props = defineProps<BatchTagDrawerProps>()
 

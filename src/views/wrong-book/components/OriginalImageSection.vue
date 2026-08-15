@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { ElFormItem, ElButton, ElImageViewer } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { fileToBase64 } from '@/utils/fileUntil'
+import { fileToBase64 } from '@/utils/fileUtil'
 import ImageCropper from '@/components/ImageCropper.vue'
 
 interface Props {

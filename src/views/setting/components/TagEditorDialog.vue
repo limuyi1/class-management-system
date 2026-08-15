@@ -7,7 +7,7 @@ import type {
   TagEditorDialogProps,
   TagEditorDialogEmits
 } from '@/types/TagEditorDialog'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 const props = defineProps<TagEditorDialogProps>()
 

@@ -10,11 +10,11 @@ import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 
 import { generateSingleComment, polishSingleComment } from '@/ai/aiService'
-import { extractStudentTags } from '@/utils/studentUntil'
+import { extractStudentTags } from '@/utils/studentUtil'
 
 import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 interface UseEvaluationInputOptions {
   /** 选中学生时的滚动回调 */
@@ -66,6 +66,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const tagCategoryList = options.tagCategoryList ?? systemTagCategories
   const allowTagEditing = options.allowTagEditing ?? true
 
+  /** 按学生 ID 在来源列表中查找学生 */
   const getStudentById = (studentId: string): StudentDataType | undefined =>
     originList.value.find((student) => student.studentId === studentId)
 
@@ -83,6 +84,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     comment: null
   })
 
+  /** 当前学生的标签映射（分类 prop -> 标签数组） */
   const currentStudentTags = computed<Record<string, string[]> | null>(() => {
     if (!formData.studentId) return null
     const item = getStudentById(formData.studentId)
@@ -100,15 +102,21 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     return false
   })
 
+  /** 聚焦姓名输入框 */
   const autoFocus = () => {
     nameInputRef.value?.focus()
   }
 
+  /** 获取学生显示名称，缺失时返回空字符串 */
   const getStudentName = (student: StudentDataType): string => {
     const name = student[NAME_PROP]
     return name === null || name === undefined ? '' : String(name)
   }
 
+  /**
+   * 远程搜索学生（支持姓名精确包含与拼音匹配）
+   * @param query - 搜索关键词
+   */
   const remoteMethod = (query: string) => {
     if (!query) {
       optionsList.value = []
@@ -121,6 +129,10 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     })
   }
 
+  /**
+   * 将指定学生数据填充到表单
+   * @param studentId - 学生 ID
+   */
   const fillStudentData = (studentId: string | null) => {
     if (!studentId) return
     const item = getStudentById(studentId)
@@ -138,11 +150,13 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     commentInputRef.value?.focus()
   }
 
+  /** 规范化评语文本（去除首尾空白） */
   const normalizeComment = (comment: string | null | undefined): string => {
     if (!comment) return ''
     return comment.trim()
   }
 
+  /** 判断当前表单评语是否有未保存的修改 */
   const hasUnsavedChanges = () => {
     if (!formData.studentId) return false
     const currentItem = getStudentById(formData.studentId)
@@ -151,6 +165,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     return normalizeComment(formData.comment) !== normalizeComment(currentItem.comment || '')
   }
 
+  /** 保存当前表单评语到学生数据，成功返回 true */
   const saveCurrentData = () => {
     if (!formData.studentId) return false
 
@@ -162,6 +177,10 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     return true
   }
 
+  /**
+   * 尝试切换学生，存在未保存修改时弹窗确认
+   * @param nextStudentId - 目标学生 ID
+   */
   const trySwitchStudent = async (nextStudentId: string) => {
     if (!getStudentById(nextStudentId)) return
     if (formData.studentId === nextStudentId) {
@@ -193,6 +212,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     }
   }
 
+  /** 下拉选择学生变化时的处理 */
   const selectChange = (studentId: string) => {
     trySwitchStudent(studentId)
   }
@@ -201,6 +221,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     fillStudentData(currentSelectedStudentId.value)
   })
 
+  /** 重置录入表单 */
   const resetForm = () => {
     formData.studentId = null
     formData.name = ''
@@ -210,6 +231,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     autoFocus()
   }
 
+  /** 提交当前评语，并根据配置跳转下一名学生或重置表单 */
   const onSubmit = () => {
     const saved = saveCurrentData()
     if (!saved || !formData.studentId) return
@@ -233,6 +255,10 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     resetForm()
   }
 
+  /**
+   * 外部定位到指定学生进行编辑
+   * @param data - 学生数据
+   */
   const editData = (data: StudentDataType) => {
     const name = getStudentName(data)
     remoteMethod(name)
@@ -240,6 +266,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     trySwitchStudent(data.studentId)
   }
 
+  /** 跳转到学生标签编辑页 */
   const goToEditTags = () => {
     if (!allowTagEditing || !formData.studentId) return
     router.push({
@@ -253,6 +280,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     })
   }
 
+  /** 调用 AI 为当前学生生成评语 */
   const handleGenerateComment = async () => {
     if (!formData.studentId) return
 
@@ -290,6 +318,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     }
   }
 
+  /** 调用 AI 润色当前评语 */
   const handlePolishComment = async () => {
     if (!formData.studentId) return
 

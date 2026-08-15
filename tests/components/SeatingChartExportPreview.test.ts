@@ -8,7 +8,7 @@ import {
   SeatingSpecialSeatPositionEnum,
   type SeatingChartType
 } from '@/types/SeatingChart'
-import { createSeats, createSpecialSeats } from '@/utils/seatingChartUntil'
+import { createSeats, createSpecialSeats } from '@/utils/seatingChartUtil'
 
 function createChart(): SeatingChartType {
   const seats = createSeats(2, 2)

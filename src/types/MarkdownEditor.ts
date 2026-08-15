@@ -22,9 +22,14 @@ export interface MarkdownEditorProps {
 
 /** Markdown 编辑器组件 Emits */
 export interface MarkdownEditorEmits {
+  /** 编辑器内容变化（v-model 更新） */
   (e: 'update:modelValue', value: string): void
+  /** 点击插入图片 */
   (e: 'insertImage'): void
+  /** 插入公式 */
   (e: 'insertFormula', formula: string): void
+  /** 点击预览 */
   (e: 'preview'): void
+  /** 点击全屏展开 */
   (e: 'expand'): void
 }

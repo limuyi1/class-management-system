@@ -33,3 +33,7 @@ coverage
 /.pnpm-store/
 
 /tmp/
+
+/output/
+
+/docs/

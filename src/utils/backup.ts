@@ -1,6 +1,6 @@
 import 'dexie-export-import'
 import { db, DB_ID } from '@/db'
-import { DatabaseTableEnum } from '@/db/constants'
+import { DatabaseTableEnum } from '@/constants'
 import { dayjs, ElMessage } from 'element-plus'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -13,9 +13,10 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 import { useSeatingChartStore } from '@/stores/seating-chart'
 import { useDutyRosterStore } from '@/stores/duty-roster'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
-import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
-import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
+import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
+import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUtil'
 
+/** 可选导出的工具类数据表，仅在选择包含工具数据时一并导出 */
 const TOOL_TABLES = new Set<string>([
   DatabaseTableEnum.Attachments,
   DatabaseTableEnum.PaperLayoutDrafts,
@@ -50,6 +51,10 @@ const resetRuntimeStores = () => {
   themeStore.resetTheme()
 }
 
+/**
+ * 导入后把 IndexedDB 中的持久化数据重新灌入各 Pinia 内存 Store。
+ * 迁移逻辑（如补齐 disabled 字段、studentId 校验）与首次加载保持一致。
+ */
 const hydrateRuntimeStores = async () => {
   const dataStore = useDataSourceStore()
   const settingStore = useSettingStore()
@@ -168,12 +173,18 @@ const hydrateRuntimeStores = async () => {
   }
 }
 
+/**
+ * 导出全部数据库为 .dexie 备份文件并触发下载。
+ * @param onProgress - 进度回调，传入 0-100 的百分比
+ * @param includePaperLayout - 是否包含工具类数据表，默认 true
+ */
 export async function exportDatabase(
   onProgress?: (percent: number) => void,
   includePaperLayout = true
 ) {
   try {
     const blob = await db.export({
+      // 不包含工具表时，过滤掉附件、试卷版式草稿等临时数据。
       filter: (table) => {
         if (includePaperLayout) return true
         return !TOOL_TABLES.has(table)
@@ -199,14 +210,22 @@ export async function exportDatabase(
   }
 }
 
+/**
+ * 导入 .dexie 备份文件，清空现有表后写入数据，并重新灌入内存 Store。
+ * @param file - 备份文件
+ * @param onProgress - 进度回调，传入 0-100 的百分比
+ * @param complete - 导入成功后的回调
+ */
 export async function importDatabase(
   file: File,
   onProgress?: (percent: number) => void,
   complete?: () => void
 ) {
   try {
+    // 复制为独立 Blob，避免文件对象被复用导致读取位置偏移。
     const blob = file.slice(0, file.size, 'application/octet-stream')
     setDatabaseImporting(true)
+    // 兼容不同版本与缺失表，导入前清空原有数据，避免新旧数据混合。
     await db.import(blob, {
       acceptVersionDiff: true,
       acceptMissingTables: true,
@@ -230,6 +249,11 @@ export async function importDatabase(
   }
 }
 
+/**
+ * 清空所有数据库表并重置运行时 Store 到默认状态。
+ * @param onProgress - 进度回调，传入 0-100 的百分比
+ * @param complete - 清空完成后的回调
+ */
 export async function clearDatabase(onProgress?: (percent: number) => void, complete?: () => void) {
   try {
     await db.studentDataset.clear()

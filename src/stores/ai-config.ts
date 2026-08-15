@@ -9,6 +9,7 @@ import {
   type AIPromptsType
 } from '@/types/AIConfig'
 
+/** AI 配置状态（含运行时可用模型列表） */
 interface AIConfigState extends AIConfigType {
   availableModels: string[]
 }
@@ -40,9 +41,17 @@ export const useAIConfigStore = defineStore('aiConfig', {
       this.model = AIModelDefaultModels[type]
       this.availableModels = []
     },
+    /**
+     * 设置当前使用的模型
+     * @param model - 模型名称
+     */
     setModel(model: string) {
       this.model = model
     },
+    /**
+     * 设置可选的模型列表
+     * @param models - 模型名称数组
+     */
     setAvailableModels(models: string[]) {
       this.availableModels = models
     },

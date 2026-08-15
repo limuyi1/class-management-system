@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { ScoreStudentType } from '@/hooks/useScoreStatistics'
 
 interface Props {

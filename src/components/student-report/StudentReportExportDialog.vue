@@ -15,7 +15,7 @@ import {
   buildStudentReportData,
   buildStudentReportTemplateText,
   exportStudentReportImage
-} from '@/utils/studentReportUntil'
+} from '@/utils/studentReportUtil'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'

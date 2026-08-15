@@ -1,8 +1,9 @@
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
 /** 批量标签抽屉中的学生类型（确保 name 字段可读） */
 export interface StudentData extends StudentDataType {
+  /** 学生姓名（可为 null） */
   [NAME_PROP]: string | null
 }
 
@@ -16,6 +17,7 @@ export interface BatchTagDrawerProps {
 
 /** 批量标签抽屉组件 Emits */
 export interface BatchTagDrawerEmits {
+  /** 抽屉可见性变化 */
   'update:visible': [value: boolean]
   /** 保存标签变更 */
   save: [updatedStudents: StudentData[]]

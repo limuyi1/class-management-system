@@ -83,6 +83,11 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
     }
   })
 
+  /**
+   * 调用 AI 生成学情分析并写入 store。
+   *
+   * @returns 是否成功生成
+   */
   const generateAnalysis = async () => {
     if (!aiConfigStore.isConfigured) {
       return false

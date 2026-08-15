@@ -8,7 +8,7 @@ import { pinyin } from 'pinyin-pro'
 
 import { useSettingStore } from '@/stores/setting'
 import type { SettingType } from '@/types/Setting'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 const store = useSettingStore()
 

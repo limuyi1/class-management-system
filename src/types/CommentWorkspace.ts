@@ -1,5 +1,5 @@
 import type { StudentDataType } from '@/types/StudentData'
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 
 /** 评语工作区数据来源：系统数据 或 外部 Excel */
 export type CommentWorkspaceSourceType = 'system' | 'excel'

@@ -1,4 +1,4 @@
-import { NAME_PROP, STUDENT_ID_PROP } from '@/types/Constants'
+import { NAME_PROP, STUDENT_ID_PROP } from '@/constants'
 
 /**
  * 学生数据行类型

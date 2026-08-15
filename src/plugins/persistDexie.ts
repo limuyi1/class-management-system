@@ -29,8 +29,8 @@ import { useScoreNoticeStore } from '@/stores/score-notice'
 import { useSeatingChartStore } from '@/stores/seating-chart'
 import { useDutyRosterStore } from '@/stores/duty-roster'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
-import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
-import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUntil'
+import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
+import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUtil'
 import { DefaultAIPrompts } from '@/types/AIConfig'
 
 type PersistableRecordType =
@@ -54,6 +54,7 @@ interface DataSourceLikeStoreType {
   $patch: (partialState: { students: StudentDataType[] }) => void
 }
 
+/** store ID 与 Dexie 表的映射，不在映射中的 store 不参与持久化 */
 const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   setting: db.scoreSettings,
   configuration: db.appPreferences,
@@ -70,8 +71,13 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
 
 const updatingStores = new Set<string>()
 
-const cloneState = <T>(state: T): T => structuredClone(state)
+const cloneState = <T>(state: T): T => JSON.parse(JSON.stringify(state)) as T
 
+/**
+ * 创建基于 Dexie 的 Pinia 持久化插件
+ * 将指定 store 的状态写入 IndexedDB，并通过 liveQuery 实现多来源数据同步
+ * @returns Pinia 插件函数
+ */
 export function createPersistedStateDexie() {
   return async ({ store }: PiniaPluginContext) => {
     const storeId = store.$id
@@ -149,9 +155,7 @@ export function createPersistedStateDexie() {
       }
       try {
         if (isDataSource) {
-          const clonableData = structuredClone(
-            dataSourceStore.$state.students
-          ) as StudentDataType[]
+          const clonableData = cloneState(dataSourceStore.$state.students) as StudentDataType[]
           await table.put({
             id: DB_ID,
             students: clonableData,
@@ -159,7 +163,7 @@ export function createPersistedStateDexie() {
           } as StudentDatasetRecord)
         } else {
           const rawState = store.$state
-          const clonableState = structuredClone(rawState)
+          const clonableState = cloneState(rawState)
           await table.put({
             id: DB_ID,
             ...clonableState,

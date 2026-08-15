@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 
-import { renderMarkdown } from '@/utils/katexUntil'
+import { renderMarkdown } from '@/utils/katexUtil'
 import type {
   DashboardEvaluationOverviewType,
   OverviewDashboardStageType

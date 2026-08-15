@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 
 interface Props {
   modelValue: number

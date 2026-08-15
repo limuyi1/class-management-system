@@ -2,7 +2,7 @@
 import * as XLSX from 'xlsx'
 import { storeToRefs } from 'pinia'
 
-import { exportExcel } from '@/utils/xlsxUntil'
+import { exportExcel } from '@/utils/xlsxUtil'
 import { passingScoreRanges } from '@/config/score'
 
 import { useDataSourceStore } from '@/stores/data-source'
@@ -10,7 +10,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { dayjs, ElMessage } from 'element-plus'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {

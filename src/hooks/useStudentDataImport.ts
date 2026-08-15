@@ -11,12 +11,12 @@ import { useSettingStore } from '@/stores/setting'
 import {
   buildIncrementalScoreImport,
   getConflictLabels
-} from '@/utils/scoreImportUntil'
-import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/commentImportUntil'
-import { buildInitialStudentImport } from '@/utils/initialStudentImportUntil'
-import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUntil'
+} from '@/utils/scoreImportUtil'
+import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/commentImportUtil'
+import { buildInitialStudentImport } from '@/utils/initialStudentImportUtil'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUtil'
 
-import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUntil'
+import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUtil'
 import type {
   CommentImportSelectionType,
   ExcelImportModeType,
@@ -58,6 +58,7 @@ export const useStudentDataImport = () => {
   const pendingScoreNameColumn = ref('')
   const conflictColumns = ref<string[]>([])
 
+  /** 重置 Excel 导入相关的所有临时状态 */
   const resetExcelImport = () => {
     initialDialogVisible.value = false
     scoreColumnSelectorVisible.value = false
@@ -71,6 +72,10 @@ export const useStudentDataImport = () => {
     conflictColumns.value = []
   }
 
+  /**
+   * 触发文件选择框，按指定模式导入
+   * @param mode - 导入模式（首次/成绩/评语）
+   */
   const triggerExcelImport = (mode: ExcelImportModeType) => {
     importMode.value = mode
     excelFileInputRef.value?.click()
@@ -95,6 +100,7 @@ export const useStudentDataImport = () => {
     }
   }
 
+  /** 根据当前导入模式打开对应的弹窗 */
   const openModeDialog = () => {
     if (importMode.value === 'initial') {
       initialDialogVisible.value = true
@@ -107,6 +113,10 @@ export const useStudentDataImport = () => {
     }
   }
 
+  /**
+   * 处理文件选择变化，解析成功后打开对应弹窗
+   * @param event - 文件输入事件
+   */
   const handleExcelFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement
     const file = input.files?.[0]
@@ -137,6 +147,10 @@ export const useStudentDataImport = () => {
     return true
   }
 
+  /**
+   * 确认首次导入，构建学生数据并写入 store
+   * @param selection - 首次导入的选择配置（含表头行）
+   */
   const handleInitialConfirm = async (
     selection: InitialImportSelectionType & { headerRowIndex?: number }
   ) => {
@@ -167,6 +181,10 @@ export const useStudentDataImport = () => {
     await navigateAfterImport('/overview')
   }
 
+  /**
+   * 执行成绩增量导入
+   * @param conflictActions - 各冲突列的冲突处理策略
+   */
   const applyScoreImport = async (conflictActions: Record<string, ConflictActionType>) => {
     const result = buildIncrementalScoreImport({
       rows: excelRows.value,
@@ -212,6 +230,10 @@ export const useStudentDataImport = () => {
     await navigateAfterImport('/math')
   }
 
+  /**
+   * 确认成绩列选择，检测冲突后执行成绩导入
+   * @param selection - 姓名列、成绩列及表头行选择
+   */
   const handleScoreColumnConfirm = async (selection: {
     nameColumn?: string
     scoreColumns: string[]
@@ -236,6 +258,10 @@ export const useStudentDataImport = () => {
     await applyScoreImport({})
   }
 
+  /**
+   * 确认评语导入，覆盖前二次确认后写入
+   * @param selection - 评语导入的选择配置（含表头行）
+   */
   const handleCommentConfirm = async (
     selection: CommentImportSelectionType & { headerRowIndex?: number }
   ) => {

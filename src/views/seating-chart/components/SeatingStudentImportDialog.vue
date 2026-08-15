@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import ExcelFileDropzone from '@/components/excel/ExcelFileDropzone.vue'
 import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
-import { buildExcelSeatingStudents } from '@/utils/seatingChartStudentUntil'
+import { buildExcelSeatingStudents } from '@/utils/seatingChartStudentUtil'
 
 import type { UploadFile } from 'element-plus'
 import type { ExcelStudentSourceType } from '@/types/StudentSource'

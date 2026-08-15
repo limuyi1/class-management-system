@@ -1,11 +1,14 @@
+/** 工具分类 ID 的取值 */
 export type ToolCategoryIdType = 'feedback' | 'class-management' | 'documents'
 
+/** 工具分类信息 */
 export interface ToolCategoryType {
   id: ToolCategoryIdType
   name: string
   description: string
 }
 
+/** 工具项信息，用于工具中心列表展示与路由跳转 */
 export interface ToolItemType {
   id: string
   name: string
@@ -16,6 +19,7 @@ export interface ToolItemType {
   openInNewTab?: boolean
 }
 
+/** 工具中心的分组配置 */
 export const toolCategories: ToolCategoryType[] = [
   {
     id: 'feedback',
@@ -34,6 +38,7 @@ export const toolCategories: ToolCategoryType[] = [
   }
 ]
 
+/** 工具中心的全部工具项 */
 export const toolItems: ToolItemType[] = [
   {
     id: 'comments',

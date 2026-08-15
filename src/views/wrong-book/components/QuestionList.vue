@@ -9,7 +9,7 @@ import {
   ElDialog,
   ElImageViewer
 } from 'element-plus'
-import { renderMarkdown } from '@/utils/katexUntil'
+import { renderMarkdown } from '@/utils/katexUtil'
 import type { WrongQuestion } from '@/types/WrongBook'
 
 interface Props {

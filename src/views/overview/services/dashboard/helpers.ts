@@ -1,4 +1,4 @@
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type {
   DashboardStudentTagType,
   DashboardTagKeyType,

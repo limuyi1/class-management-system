@@ -2,17 +2,27 @@ import { ref, type Ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
 
-import { exportEvaluationTextExcel } from '@/utils/evaluationTextExcelUntil'
-import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUntil'
-import { hasUnsupportedEvaluationHandwriteGlyphs } from '@/utils/evaluationHandwriteFontUntil'
+import { exportEvaluationTextExcel } from '@/utils/evaluationTextExcelUtil'
+import { exportEvaluationTextPDF } from '@/utils/evaluationTextPdfUtil'
+import { hasUnsupportedEvaluationHandwriteGlyphs } from '@/utils/evaluationHandwriteFontUtil'
 import type { ConfigurationType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 文字版评语导出组合式函数的入参 */
 interface UseEvaluationTextPdfExportOptions {
   enabledStudents: Ref<StudentDataType[]>
   configuration: ConfigurationType
 }
 
+/**
+ * 管理文字版评语的 PDF / Excel 导出流程。
+ *
+ * 导出 PDF 前会检查手写字体是否覆盖所需字符，缺字时弹出确认框；
+ * 同时维护导出中的加载状态并提示截断信息。
+ *
+ * @param options 启用的学生列表与全局配置
+ * @returns 导出方法与导出状态
+ */
 export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOptions) {
   const textPdfExporting = ref(false)
   const textExcelExporting = ref(false)
@@ -70,6 +80,7 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
       ElMessage.success('评语导出成功')
 
       if (result.truncatedStudents.length > 0) {
+        // 评语超长被截断时仅提示前几个姓名，避免提示文案过长
         const previewNames = result.truncatedStudents.slice(0, 5).join('、')
         const suffix = result.truncatedStudents.length > 5 ? ' 等' : ''
         ElMessage.warning(

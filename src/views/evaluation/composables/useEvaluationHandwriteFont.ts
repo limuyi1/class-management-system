@@ -8,26 +8,43 @@ import {
   registerEvaluationHandwriteFont,
   saveEvaluationHandwriteFont,
   waitForDefaultHandwriteFont
-} from '@/utils/evaluationHandwriteFontUntil'
+} from '@/utils/evaluationHandwriteFontUtil'
 import type { ConfigurationType } from '@/types/Configuration'
 
+/** 手写字体管理组合式函数的入参 */
 interface UseEvaluationHandwriteFontOptions {
   configuration: ConfigurationType
   fontFileInputRef: Ref<HTMLInputElement | null>
 }
 
+/**
+ * 截断过长的字体文件名，保留首尾与扩展名。
+ *
+ * @param name 原始字体文件名
+ * @returns 截断后的展示名（不超过 18 字符时不处理）
+ */
 export function formatHandwriteFontName(name: string): string {
   if (!name || name.length <= 18) return name
 
   const dotIndex = name.lastIndexOf('.')
   const extension = dotIndex > -1 ? name.slice(dotIndex) : ''
   const baseName = dotIndex > -1 ? name.slice(0, dotIndex) : name
+  // 保留主名首 5 个字符和末尾 3 个字符，中间用省略号连接
   const head = baseName.slice(0, 5)
   const tail = baseName.slice(Math.max(baseName.length - 3, 5))
 
   return `${head}...${tail}${extension}`
 }
 
+/**
+ * 管理评语手写字体的应用、恢复与切换。
+ *
+ * 已保存的字体在初始化时恢复；未保存时等待默认字体加载，
+ * 超时后提示用户，并支持选择/清空本地字体。
+ *
+ * @param options 全局配置与字体文件输入框引用
+ * @returns 字体名称与相关操作方法
+ */
 export function useEvaluationHandwriteFont(options: UseEvaluationHandwriteFontOptions) {
   const handwriteFontApplying = ref(false)
   const showDefaultFontSlowNotice = ref(false)

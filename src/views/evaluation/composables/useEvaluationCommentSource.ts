@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   EXCEL_COMMENT_TAG_PROP,
   exportExcelCommentWorkspace
-} from '@/utils/commentWorkspaceExcelUntil'
+} from '@/utils/commentWorkspaceExcelUtil'
 
 import type {
   CommentWorkspaceSourceType,
@@ -16,14 +16,25 @@ import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
 import type { Ref } from 'vue'
 
+/** 评语数据源组合式函数的入参 */
 interface UseEvaluationCommentSourceOptionsType {
   systemStudents: Ref<StudentDataType[]>
   systemTagCategories: Ref<TagCategoryType[]>
 }
 
+/** Excel 导入完成后返回的工作区数据 */
 type ExcelImportResultType = ExcelCommentImportSelectionType &
   Pick<ExcelCommentWorkspaceType, 'students' | 'skippedEmptyNameCount'>
 
+/**
+ * 管理期末评语的数据来源（系统学生 / Excel 临时数据）。
+ *
+ * Excel 数据只保存在内存中，切换来源或离开页面时会校验未导出的修改，
+ * 并拦截浏览器刷新/路由离开以提示用户。
+ *
+ * @param options 系统学生与标签分类的响应式引用
+ * @returns 数据源状态、学生列表及各类操作
+ */
 export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOptionsType) {
   const source = ref<CommentWorkspaceSourceType>('system')
   const importDialogVisible = ref(false)
@@ -87,6 +98,7 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
     }
 
     if (nextSource === 'excel' && !excelWorkspace.value) {
+      // 首次切换到 Excel 数据源时先打开导入弹窗，导入成功后再真正切换
       importDialogVisible.value = true
       return
     }

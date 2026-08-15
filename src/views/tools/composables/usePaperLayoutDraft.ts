@@ -14,6 +14,7 @@ import type {
   PaperLayoutSettingsType
 } from '@/types/Tools'
 
+/** 试卷排版草稿管理组合式函数的入参 */
 interface UsePaperLayoutDraftOptions {
   settings: PaperLayoutSettingsType
   canvasItems: Ref<PaperLayoutCanvasItemType[]>
@@ -24,6 +25,15 @@ interface UsePaperLayoutDraftOptions {
   clearSelection: () => void
 }
 
+/**
+ * 管理试卷排版草稿的保存与打开。
+ *
+ * 保存时把画布条目转换为可持久化的草稿条目，打开时重建画布条目
+ * 并恢复设置；同时维护草稿数量与当前草稿标识。
+ *
+ * @param options 排版设置、画布条目及相关操作方法
+ * @returns 草稿状态与保存/打开方法
+ */
 export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
   const draftCount = ref(0)
   const currentDraftId = ref('')
@@ -53,6 +63,7 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
         inputErrorMessage: '名称不能为空'
       })
 
+      // 草稿只持久化排版所需字段，dataUrl 在打开草稿时通过 blob 重新生成
       const savedDraft = await savePaperLayoutDraft({
         id: currentDraftId.value || undefined,
         name: result.value.trim(),
@@ -87,6 +98,7 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
   async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void> {
     Object.assign(options.settings, normalizePaperLayoutSettings(draft.settings))
 
+    // 按保存时的 order 排序，保证图层与顺序一致
     const sortedDraftItems = [...draft.items].sort(
       (first, second) => (first.order || 0) - (second.order || 0)
     )
@@ -110,6 +122,7 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
         pageIndex: draftItem.pageIndex ?? 0,
         x: draftItem.x ?? item.x,
         y: draftItem.y ?? item.y,
+        // 旧草稿可能只有 pageIndex/y，这里兼容计算出 documentY
         documentY:
           draftItem.documentY ??
           (draftItem.pageIndex ?? 0) * options.pageSize.value.height + (draftItem.y ?? item.y),

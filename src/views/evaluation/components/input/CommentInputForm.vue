@@ -6,7 +6,7 @@ import {
   COMMENT_MIN_LENGTH,
   countCommentLength,
   getCommentLengthError
-} from '@/utils/commentLengthUntil'
+} from '@/utils/commentLengthUtil'
 
 import type { TagCategoryType } from '@/types/Setting'
 

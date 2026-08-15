@@ -18,9 +18,11 @@ export const useEnterUp = (nameProperty: string, fn: EnterUpCallback, throttleMs
     const targetName = target?.name ?? null
 
     if (event.key === 'Enter' && targetName === nameProperty) {
+      // 防抖：上一次回调尚未完成时忽略新触发
       if (isExecuting.value) return
 
       const now = Date.now()
+      // 节流：距上次执行不足 throttleMs 时忽略本次回车
       if (throttleMs > 0 && now - lastExecTime < throttleMs) return
 
       isExecuting.value = true

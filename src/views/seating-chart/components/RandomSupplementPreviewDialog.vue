@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import type { SeatingChartPreviewType, SeatingChartType } from '@/types/SeatingChart'
-import { getSeatKey, getVisibleSeats } from '@/utils/seatingChartUntil'
+import { getSeatKey, getVisibleSeats } from '@/utils/seatingChartUtil'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
 const props = defineProps<{

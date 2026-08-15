@@ -13,6 +13,7 @@ export interface TagEditorDialogProps {
 
 /** 标签编辑弹窗组件 Emits */
 export interface TagEditorDialogEmits {
+  /** 弹窗可见性变化 */
   'update:visible': [value: boolean]
   /** 确认标签变更 */
   confirm: [tags: Record<string, string[]>]

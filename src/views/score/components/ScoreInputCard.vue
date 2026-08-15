@@ -6,7 +6,7 @@ import { dayjs, ElMessage } from 'element-plus'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 import type { RecentScoreEntryType } from '@/types/Configuration'
 

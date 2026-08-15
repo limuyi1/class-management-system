@@ -4,7 +4,7 @@ import type { EChartsOption, LineSeriesOption } from 'echarts'
 
 import AppEChart from '@/components/AppEChart.vue'
 import studentReportReferenceStamp from '@/assets/student-report/reference-stamp.png'
-import type { StudentReportDataType } from '@/utils/studentReportUntil'
+import type { StudentReportDataType } from '@/utils/studentReportUtil'
 
 interface Props {
   report: StudentReportDataType

@@ -16,8 +16,18 @@ import type {
 } from '@/types/Tools'
 import type { PaperLayoutPageSizeType } from '@/views/tools/utils/paperLayoutCanvas'
 
+/** 每毫米对应的 PDF 点（pt）数 */
 const pointPerMm = 72 / 25.4
 
+/**
+ * 获取并缓存图片的 PDF 嵌入对象。
+ * 同一张图片只嵌入一次，避免重复解码、减小体积。
+ *
+ * @param pdfDoc PDF 文档
+ * @param cache 已嵌入图片缓存
+ * @param item 画布条目
+ * @returns PDF 图片对象
+ */
 const getEmbeddedImage = async (
   pdfDoc: PDFDocument,
   cache: Map<string, PDFImage>,
@@ -36,6 +46,14 @@ const getEmbeddedImage = async (
   return embeddedImage
 }
 
+/**
+ * 将图片按 cover 模式（等比裁剪填充）绘制到指定页面区域。
+ *
+ * @param page 目标页面
+ * @param embeddedImage 已嵌入的图片
+ * @param item 渲染片段
+ * @param pdfHeight 页面高度（pt）
+ */
 const drawCoverImage = (
   page: PDFPage,
   embeddedImage: PDFImage,
@@ -49,6 +67,7 @@ const drawCoverImage = (
   const imageRatio = item.naturalWidth / item.naturalHeight
   const targetRatio = item.width / item.height
 
+  // 图片与目标区域宽高比不同时按 cover 放大居中，再由 clip 裁掉超出部分
   const drawWidth = imageRatio > targetRatio ? targetHeight * imageRatio : targetWidth
   const drawHeight = imageRatio > targetRatio ? targetHeight : targetWidth / imageRatio
   const drawX = targetX + (targetWidth - drawWidth) / 2
@@ -69,6 +88,13 @@ const drawCoverImage = (
   page.pushOperators(popGraphicsState())
 }
 
+/**
+ * 将分页的试卷排版数据导出为 PDF。
+ *
+ * @param pages 分页数据
+ * @param pageSize 页面尺寸（毫米）
+ * @returns PDF 文件 Blob
+ */
 export const exportPaperLayoutPdf = async (
   pages: PaperLayoutPageType[],
   pageSize: PaperLayoutPageSizeType

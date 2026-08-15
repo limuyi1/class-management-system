@@ -1,7 +1,7 @@
 import { computed, ref, watch } from 'vue'
 import type { ComputedRef } from 'vue'
 
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
 /** 分数段统计 */
@@ -45,6 +45,7 @@ interface UseScoreStatisticsOptions {
 export function useScoreStatistics(options: UseScoreStatisticsOptions) {
   const { students, scoreProp } = options
 
+  // 低分阈值默认 60 分，支持平均分或自定义两种模式
   const threshold = ref(60)
   const thresholdMode = ref<'average' | 'custom'>('average')
 
@@ -60,11 +61,13 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     return null
   }
 
+  /** 获取学生显示名称，缺失时返回「未命名」 */
   const getStudentName = (student: StudentDataType): string => {
     const name = student[NAME_PROP]
     return name === null || name === undefined ? '未命名' : String(name)
   }
 
+  /** 计算成绩统计结果（最高/最低/平均分及各分数段分布） */
   const scoreStats = computed<ScoreStatisticsType | null>(() => {
     if (!scoreProp.value) return null
 
@@ -78,6 +81,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     const minScore = Math.min(...allScores)
     const avgScore = allScores.reduce((a, b) => a + b, 0) / allScores.length
 
+    // 常规分数段（90-100、80-89、70-79、60-69）
     const ranges = [
       { min: 90, max: 100, color: '#22c55e' },
       { min: 80, max: 89, color: '#3b82f6' },
@@ -94,6 +98,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
       })
       .filter((range) => range.max >= range.min)
 
+    // 低分分数段（0-59 分，每 10 分一档）
     const lowScoreRanges = [
       { label: '50-59分', min: 50, max: 59, color: '#ef4444' },
       { label: '40-49分', min: 40, max: 49, color: '#dc2626' },
@@ -137,6 +142,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
       .filter((e) => getScore(e) === minScore)
       .map((e) => getStudentName(e))
 
+    // 低分学生（低于 60 分），按分数升序
     const allLowScoreStudents = students.value
       .filter((e) => {
         const score = getScore(e)
@@ -172,6 +178,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     return threshold.value
   })
 
+  /** 低于低分阈值的低分学生列表（按分数升序） */
   const belowThresholdStudents = computed(() => {
     if (!scoreProp.value) return []
     return students.value

@@ -12,7 +12,12 @@ describe('CommentSourceBar', () => {
       },
       global: {
         stubs: {
-          FontAwesomeIcon: true
+          FontAwesomeIcon: true,
+          ElDropdown: {
+            template: '<div><slot /><slot name="dropdown" /></div>'
+          },
+          ElDropdownMenu: true,
+          ElDropdownItem: true
         }
       }
     })
@@ -36,7 +41,12 @@ describe('CommentSourceBar', () => {
       },
       global: {
         stubs: {
-          FontAwesomeIcon: true
+          FontAwesomeIcon: true,
+          ElDropdown: {
+            template: '<div><slot /><slot name="dropdown" /></div>'
+          },
+          ElDropdownMenu: true,
+          ElDropdownItem: true
         }
       }
     })
@@ -61,7 +71,12 @@ describe('CommentSourceBar', () => {
       },
       global: {
         stubs: {
-          FontAwesomeIcon: true
+          FontAwesomeIcon: true,
+          ElDropdown: {
+            template: '<div><slot /><slot name="dropdown" /></div>'
+          },
+          ElDropdownMenu: true,
+          ElDropdownItem: true
         }
       }
     })

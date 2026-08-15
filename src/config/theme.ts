@@ -20,6 +20,7 @@ export interface ThemeConfig {
   tagColors: string[]
 }
 
+/** 所有可选主题的颜色配置表 */
 export const themes: Record<ThemeName, ThemeConfig> = {
   green: {
     name: 'green',
@@ -127,8 +128,10 @@ export const themes: Record<ThemeName, ThemeConfig> = {
   }
 }
 
+/** 默认主题名 */
 export const defaultTheme: ThemeName = 'bluepink'
 
+/** 主题选择器的选项列表 */
 export const themeOptions: Array<{ name: ThemeName; label: string; color: string }> = [
   { name: 'green', label: '清新绿', color: '#10B981' },
   { name: 'orange', label: '阳光橙', color: '#F59E0B' },

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'

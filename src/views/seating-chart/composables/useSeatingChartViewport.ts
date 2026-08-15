@@ -2,6 +2,7 @@ import { computed, nextTick, onBeforeUnmount, shallowRef, watch } from 'vue'
 
 import type { ComputedRef, Ref } from 'vue'
 
+/** 座位表视口缩放组合式函数的入参 */
 interface SeatingChartViewportOptionsType {
   viewportRef: Ref<HTMLElement | null>
   rows: ComputedRef<number>
@@ -10,15 +11,25 @@ interface SeatingChartViewportOptionsType {
   layoutKey: ComputedRef<string>
 }
 
+/** 单个座位（课桌）宽度 */
 const DESK_WIDTH = 96
+/** 单个座位高度 */
 const DESK_HEIGHT = 58
+/** 座位间距 */
 const DESK_GAP = 10
+/** 过道额外占用的宽度 */
 const AISLE_EXTRA_WIDTH = 42
+/** 行表头宽度 */
 const ROW_HEADER_WIDTH = 42
+/** 行表头与座位网格的间距 */
 const ROW_HEADER_GAP = 10
+/** 列表头高度 */
 const COLUMN_HEADER_HEIGHT = 42
+/** 列表头与座位网格的间距 */
 const COLUMN_HEADER_GAP = 12
+/** 视口内边距，避免内容贴边 */
 const VIEWPORT_PADDING = 40
+/** 最小缩放比例，低于该值交由滚动条承载 */
 const MIN_SCALE = 0.95
 
 /**
@@ -30,6 +41,7 @@ export function useSeatingChartViewport(options: SeatingChartViewportOptionsType
 
   const naturalWidth = computed(() => {
     if (options.columns.value === 0) return 0
+    // 网格宽 = 行表头 + 间距 + 座位列宽 + 列间距 + 过道额外宽度
     const gridWidth =
       ROW_HEADER_WIDTH +
       ROW_HEADER_GAP +
@@ -41,6 +53,7 @@ export function useSeatingChartViewport(options: SeatingChartViewportOptionsType
 
   const naturalHeight = computed(() => {
     if (options.rows.value === 0) return 0
+    // 网格高 = 座位行高 + 行间距 + 列表头 + 间距
     return (
       options.rows.value * DESK_HEIGHT +
       Math.max(0, options.rows.value - 1) * DESK_GAP +
@@ -67,6 +80,7 @@ export function useSeatingChartViewport(options: SeatingChartViewportOptionsType
       return
     }
 
+    // 按视口可用空间计算适配比例，但不低于可读性下限
     const availableWidth = Math.max(1, viewport.clientWidth - VIEWPORT_PADDING)
     const availableHeight = Math.max(1, viewport.clientHeight - VIEWPORT_PADDING)
     const fitScale = Math.min(

@@ -4,10 +4,10 @@ import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
-import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUtil'
 
-import type { ExcelRowType } from '@/utils/scoreImportUntil'
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+import type { ExcelRowType } from '@/utils/scoreImportUtil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 import type { InitialImportSelectionType } from '@/types/StudentImport'
 
 interface Props {

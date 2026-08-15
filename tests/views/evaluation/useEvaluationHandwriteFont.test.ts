@@ -23,7 +23,7 @@ const messageMocks = vi.hoisted(() => ({
   warning: vi.fn()
 }))
 
-vi.mock('@/utils/evaluationHandwriteFontUntil', () => fontUtilMocks)
+vi.mock('@/utils/evaluationHandwriteFontUtil', () => fontUtilMocks)
 
 vi.mock('element-plus', () => ({
   ElMessage: messageMocks

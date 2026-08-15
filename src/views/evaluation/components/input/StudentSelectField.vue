@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 
 import type { StudentDataType } from '@/types/StudentData'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 interface Props {
   modelValue: string | null

@@ -9,7 +9,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import NameListCompareResultCard from '@/views/tools/components/NameListCompareResultCard.vue'
 
-import { buildExcelDataFromHeaderRow, exportExcel } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow, exportExcel } from '@/utils/xlsxUtil'
 import {
   buildNameEntries,
   buildNameListCompareResult,
@@ -17,7 +17,7 @@ import {
   parsePastedRows
 } from '@/views/tools/utils/nameListCompare'
 import { useDataSourceStore } from '@/stores/data-source'
-import { NAME_LABEL, NAME_PROP } from '@/types/Constants'
+import { NAME_LABEL, NAME_PROP } from '@/constants'
 import type {
   NameListCompareGroupsType,
   NameListCompareImportedSourceType,
@@ -308,8 +308,8 @@ function formatTimestamp(): string {
     <div class="source-card">
       <div class="source-card__topbar">
         <el-radio-group :model-value="mode" size="default" @update:model-value="switchMode">
-          <el-radio-button label="system">与系统名单核对</el-radio-button>
-          <el-radio-button label="external">两个外部表格核对</el-radio-button>
+          <el-radio-button value="system">与系统名单核对</el-radio-button>
+          <el-radio-button value="external">两个外部表格核对</el-radio-button>
         </el-radio-group>
 
         <div class="source-card__actions">
@@ -334,8 +334,8 @@ function formatTimestamp(): string {
       <div v-if="mode === 'external'" class="baseline-choice">
         <span class="baseline-choice__label">基准表</span>
         <el-radio-group v-model="baselineKey" size="small">
-          <el-radio-button label="sourceA">以 A 为基准</el-radio-button>
-          <el-radio-button label="sourceB">以 B 为基准</el-radio-button>
+          <el-radio-button value="sourceA">以 A 为基准</el-radio-button>
+          <el-radio-button value="sourceB">以 B 为基准</el-radio-button>
         </el-radio-group>
       </div>
 

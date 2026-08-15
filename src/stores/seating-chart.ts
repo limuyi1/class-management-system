@@ -13,11 +13,12 @@ import {
   createSpecialSeats,
   normalizeChart,
   resizeSeats
-} from '@/utils/seatingChartUntil'
-import { resolveSeatingChartStudents } from '@/utils/seatingChartStudentUntil'
+} from '@/utils/seatingChartUtil'
+import { resolveSeatingChartStudents } from '@/utils/seatingChartStudentUtil'
 
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 
+/** 创建座位表的选项 */
 interface CreateSeatingChartOptionsType {
   name?: string
   rows?: number
@@ -27,9 +28,12 @@ interface CreateSeatingChartOptionsType {
   excelSource?: ExcelStudentSourceType
 }
 
+/** 获取当前 ISO 时间戳 */
 const now = (): string => new Date().toISOString()
+/** 生成全局唯一 ID */
 const createId = (): string => crypto.randomUUID()
 
+/** 清空座位表所有座位上的学生 */
 const clearChartAssignments = (chart: SeatingChartType): void => {
   chart.seats.forEach((seat) => {
     seat.studentId = null
@@ -39,6 +43,12 @@ const clearChartAssignments = (chart: SeatingChartType): void => {
   })
 }
 
+/**
+ * 根据系统学生数据解析座位表实际应使用的学生来源
+ * @param chart - 座位表
+ * @param hasSystemStudents - 系统是否存在启用学生
+ * @returns 解析后的学生来源
+ */
 const resolveStoredStudentSource = (
   chart: SeatingChartType,
   hasSystemStudents: boolean
@@ -61,21 +71,29 @@ export const useSeatingChartStore = defineStore('seatingChart', {
     isSidebarCollapsed: false
   }),
   getters: {
+    /**
+     * 当前正在编辑的座位表
+     * @returns 编辑中的座位表，未选中返回 null
+     */
     editingChart: (state): SeatingChartType | null =>
       state.charts.find((chart) => chart.id === state.editingChartId) || null,
+    /** 当前座位表可用的学生列表（按学生来源解析） */
     activeStudents(): ReturnType<typeof resolveSeatingChartStudents> {
       return resolveSeatingChartStudents(this.editingChart, useDataSourceStore().enabledData)
     },
+    /** 已被分配到座位的所有学生 ID */
     assignedStudentIds(): string[] {
       if (!this.editingChart) return []
       return [...this.editingChart.seats, ...this.editingChart.specialSeats].flatMap((seat) =>
         seat.studentId ? [seat.studentId] : []
       )
     },
+    /** 尚未分配的学生列表 */
     unassignedStudents(): ReturnType<typeof resolveSeatingChartStudents> {
       const assignedIds = new Set(this.assignedStudentIds)
       return this.activeStudents.filter((student) => !assignedIds.has(student.id))
     },
+    /** 座位总容量（普通座位 + 已启用的特殊座位） */
     seatCapacity(): number {
       if (!this.editingChart) return 0
       return (
@@ -83,14 +101,21 @@ export const useSeatingChartStore = defineStore('seatingChart', {
         this.editingChart.specialSeats.filter((seat) => seat.enabled).length
       )
     },
+    /** 已分配学生数量 */
     assignedCount(): number {
       return this.assignedStudentIds.length
     },
+    /** 座位表是否为空（无任何学生分配） */
     isEmptyChart(): boolean {
       return this.assignedCount === 0
     }
   },
   actions: {
+    /**
+     * 创建新的座位表
+     * @param options - 创建选项
+     * @returns 新建的座位表
+     */
     createChart(options: CreateSeatingChartOptionsType): SeatingChartType {
       const timestamp = now()
       const rows = options.rows ?? 6
@@ -119,6 +144,10 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       this.editingChartId = chart.id
       return chart
     },
+    /**
+     * 复制座位表
+     * @param chartId - 要复制的座位表 ID
+     */
     copyChart(chartId: string): void {
       const chart = this.charts.find((item) => item.id === chartId)
       if (!chart) return
@@ -141,27 +170,51 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       this.charts.push(copy)
       this.editingChartId = copy.id
     },
+    /**
+     * 重命名座位表
+     * @param chartId - 座位表 ID
+     * @param name - 新名称
+     */
     renameChart(chartId: string, name: string): void {
       const chart = this.charts.find((item) => item.id === chartId)
       if (!chart || !name.trim()) return
       chart.name = name.trim()
       chart.updatedAt = now()
     },
+    /**
+     * 删除座位表
+     * @param chartId - 要删除的座位表 ID
+     */
     deleteChart(chartId: string): void {
       const index = this.charts.findIndex((chart) => chart.id === chartId)
       if (index < 0) return
       this.charts.splice(index, 1)
       if (this.editingChartId === chartId) this.editingChartId = this.charts[0]?.id || null
     },
+    /**
+     * 切换到指定座位表进行编辑
+     * @param chartId - 座位表 ID
+     */
     setEditingChart(chartId: string): void {
       if (this.charts.some((chart) => chart.id === chartId)) this.editingChartId = chartId
     },
+    /** 进入新建座位表状态（清空当前编辑项） */
     startCreatingChart(): void {
       this.editingChartId = null
     },
+    /**
+     * 设置侧边栏折叠状态
+     * @param value - 是否折叠
+     */
     setSidebarCollapsed(value: boolean): void {
       this.isSidebarCollapsed = value
     },
+    /**
+     * 设置学生来源
+     * 更换来源后清空所有座位分配
+     * @param source - 学生来源
+     * @param excelSource - Excel 来源（可选）
+     */
     setStudentSource(source: StudentSourceType, excelSource?: ExcelStudentSourceType): void {
       const chart = this.editingChart
       if (!chart) return
@@ -175,11 +228,20 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       clearChartAssignments(chart)
       chart.updatedAt = now()
     },
+    /**
+     * 设置首列朝向
+     * @param side - 首列方向
+     */
     setFirstColumnSide(side: SeatingFirstColumnSideEnum): void {
       if (!this.editingChart) return
       this.editingChart.firstColumnSide = side
       this.editingChart.updatedAt = now()
     },
+    /**
+     * 调整座位表行列数
+     * @param rows - 行数
+     * @param columns - 列数
+     */
     resizeChart(rows: number, columns: number): void {
       if (!this.editingChart) return
       this.editingChart.seats = resizeSeats(this.editingChart, rows, columns)
@@ -190,6 +252,10 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       )
       this.editingChart.updatedAt = now()
     },
+    /**
+     * 设置过道位置（去重并按列序号升序保存）
+     * @param aisles - 过道所在的列序号列表
+     */
     setAisles(aisles: number[]): void {
       if (!this.editingChart) return
       this.editingChart.aisleAfterColumns = [...new Set(aisles)]
@@ -197,6 +263,11 @@ export const useSeatingChartStore = defineStore('seatingChart', {
         .sort((a, b) => a - b)
       this.editingChart.updatedAt = now()
     },
+    /**
+     * 启用或禁用特殊座位，禁用时清空该座位上的学生
+     * @param position - 特殊座位位置
+     * @param enabled - 是否启用
+     */
     setSpecialSeatEnabled(
       position: SeatingChartType['specialSeats'][number]['position'],
       enabled: boolean
@@ -208,6 +279,12 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       if (!enabled) seat.studentId = null
       chart.updatedAt = now()
     },
+    /**
+     * 将学生分配到指定座位，若学生已占用其他座位则交换
+     * @param studentId - 学生 ID
+     * @param row - 目标行
+     * @param column - 目标列
+     */
     assignStudent(studentId: string, row: number, column: number): void {
       const chart = this.editingChart
       if (!chart) return
@@ -216,10 +293,16 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       const source = [...chart.seats, ...chart.specialSeats].find(
         (seat) => seat.studentId === studentId
       )
+      // 学生已占用其他座位时，交换两个座位上的学生
       if (source) source.studentId = target.studentId
       target.studentId = studentId
       chart.updatedAt = now()
     },
+    /**
+     * 将学生分配到已启用的特殊座位
+     * @param studentId - 学生 ID
+     * @param position - 特殊座位位置
+     */
     assignStudentToSpecial(
       studentId: string,
       position: SeatingChartType['specialSeats'][number]['position']
@@ -235,6 +318,10 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       target.studentId = studentId
       chart.updatedAt = now()
     },
+    /**
+     * 取消学生的座位分配
+     * @param studentId - 学生 ID
+     */
     unassignStudent(studentId: string): void {
       const chart = this.editingChart
       const seat = chart
@@ -244,6 +331,10 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       seat.studentId = null
       chart.updatedAt = now()
     },
+    /**
+     * 随机分配所有未排座学生
+     * @returns 因座位不足而未能排座的学生数量
+     */
     randomizeAll(): number {
       const chart = this.editingChart
       if (!chart) return 0
@@ -255,11 +346,19 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       chart.updatedAt = now()
       return result.unassignedCount
     },
+    /**
+     * 应用补位预览结果
+     * @param seats - 预览生成的座位数组
+     */
     applySupplementPreview(seats: SeatPositionType[]): void {
       if (!this.editingChart) return
       this.editingChart.seats = seats.map((seat) => ({ ...seat }))
       this.editingChart.updatedAt = now()
     },
+    /**
+     * 根据系统学生数据清洗/同步所有座位表的学生分配
+     * 移除已不存在或已禁用的学生
+     */
     reconcileStudents(): void {
       const systemStudents = useDataSourceStore().enabledData
       this.charts = this.charts.map((chart) => {

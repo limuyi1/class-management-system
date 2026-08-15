@@ -1,10 +1,10 @@
 import { computed, shallowRef } from 'vue'
 import { ElMessage } from 'element-plus'
 
-import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUtil'
 
 import type { UploadFile } from 'element-plus'
-import type { ExcelPreviewResultType } from '@/utils/xlsxUntil'
+import type { ExcelPreviewResultType } from '@/utils/xlsxUtil'
 
 interface UseExcelPreviewImportOptionsType {
   /** 控制台错误上下文，便于区分是哪个业务入口读取失败。 */
@@ -29,11 +29,13 @@ export function useExcelPreviewImport(options: UseExcelPreviewImportOptionsType 
   const loading = shallowRef(false)
   const headerRowIndex = shallowRef(0)
 
+  /** 根据当前表头行索引解析出的表头与数据行 */
   const parsedData = computed(() => {
     if (!preview.value) return { header: [], data: [] }
     return buildExcelDataFromHeaderRow(preview.value.rows, headerRowIndex.value)
   })
 
+  /** 重置解析状态 */
   const reset = (): void => {
     preview.value = null
     sourceFile.value = null
@@ -42,6 +44,7 @@ export function useExcelPreviewImport(options: UseExcelPreviewImportOptionsType 
     headerRowIndex.value = 0
   }
 
+  /** 解析 Excel 文件，失败时弹窗提示并返回 null */
   const parseSourceFile = async (
     uploadFile: UploadFile,
     rawFile: File,
@@ -69,6 +72,11 @@ export function useExcelPreviewImport(options: UseExcelPreviewImportOptionsType 
     }
   }
 
+  /**
+   * el-upload 文件解析入口
+   * @param file - Element Plus 上传文件对象
+   * @returns 是否解析成功
+   */
   const parseFile = async (file: UploadFile): Promise<boolean> => {
     if (!file.raw) return false
     return Boolean(await parseSourceFile(file, file.raw, file.name))

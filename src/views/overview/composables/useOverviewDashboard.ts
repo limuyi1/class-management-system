@@ -8,6 +8,7 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 
+/** 返回学生选项列表中的首个学生 ID，空列表返回 null */
 const getInitialStudentId = (students: Array<{ value: string }>): string | null => {
   return students.length ? students[0].value : null
 }

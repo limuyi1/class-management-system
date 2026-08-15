@@ -7,14 +7,21 @@ import { themes, type ThemeName, type ThemeConfig, defaultTheme } from '@/config
  * 管理当前主题切换，并将主题颜色写入 documentElement CSS 变量
  */
 export const useThemeStore = defineStore('theme', () => {
+  /** 当前主题名 */
   const currentTheme = ref<ThemeName>(defaultTheme)
 
+  /** 当前主题对应的颜色配置 */
   const themeConfig = computed<ThemeConfig>(() => themes[currentTheme.value])
 
+  /**
+   * 切换主题
+   * @param theme - 目标主题名
+   */
   const setTheme = (theme: ThemeName) => {
     currentTheme.value = theme
   }
 
+  /** 重置为默认主题并立即应用 */
   const resetTheme = () => {
     currentTheme.value = defaultTheme
     applyTheme()
@@ -49,8 +56,9 @@ export const useThemeStore = defineStore('theme', () => {
     { immediate: true }
   )
 
+  /** 初始化主题（主题颜色已由 watcher 自动应用，无需手动处理） */
   const initTheme = () => {
-    // Theme is now applied automatically via watcher
+    // 主题已通过 watcher 自动应用
   }
 
   return {

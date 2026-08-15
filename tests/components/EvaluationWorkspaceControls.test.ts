@@ -7,7 +7,7 @@ import { nextTick } from 'vue'
 import ConfigurationCard from '../../src/views/evaluation/components/ConfigurationCard.vue'
 import EvaluationInputCard from '../../src/views/evaluation/components/EvaluationInputCard.vue'
 import CommentWorkspaceToolbar from '../../src/views/evaluation/components/CommentWorkspaceToolbar.vue'
-import { NAME_PROP } from '../../src/types/Constants'
+import { NAME_PROP } from '../../src/constants'
 
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() })

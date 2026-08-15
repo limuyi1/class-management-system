@@ -3,7 +3,7 @@ import { startLoading, stopLoading } from '@/hooks/useLoading'
 import domtoimage from 'dom-to-image'
 import type { ComputedRef, Ref } from 'vue'
 
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { ScoreStatisticsType, ScoreStudentType } from '@/hooks/useScoreStatistics'
 
 interface UseScoreDistributionActionsOptions {

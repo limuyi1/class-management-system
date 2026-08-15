@@ -1,11 +1,13 @@
 import { db } from '@/db'
-import { base64ToBlob, blobToDataUrl, fileToBlob } from '@/utils/fileUntil'
+import { base64ToBlob, blobToDataUrl, fileToBlob } from '@/utils/fileUtil'
 import type { AttachmentRecordType } from '@/types/Tools'
 
+/** 生成带前缀的唯一 ID（时间戳 + 随机数） */
 const createId = (prefix: string): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+/** 生成 yyyyMMdd_HHmmss 形式的时间戳后缀，用于文件重命名 */
 const getTimestampSuffix = (): string => {
   const now = new Date()
   const year = now.getFullYear()
@@ -17,6 +19,7 @@ const getTimestampSuffix = (): string => {
   return `${year}${month}${day}_${hour}${minute}${second}`
 }
 
+/** 在文件名主名与扩展名之间插入时间戳后缀，避免重名覆盖 */
 const appendTimestampToFileName = (fileName: string): string => {
   const dotIndex = fileName.lastIndexOf('.')
   if (dotIndex <= 0) {
@@ -26,6 +29,7 @@ const appendTimestampToFileName = (fileName: string): string => {
   return `${fileName.slice(0, dotIndex)}_${getTimestampSuffix()}${fileName.slice(dotIndex)}`
 }
 
+/** 通过创建 Image 读取图片的原始宽高 */
 const getImageSize = (source: string): Promise<{ width: number; height: number }> => {
   return new Promise((resolve, reject) => {
     const image = new Image()
@@ -40,6 +44,7 @@ const getImageSize = (source: string): Promise<{ width: number; height: number }
   })
 }
 
+/** 读取 Blob 图片的原始宽高（内部用 object URL 承载，读完即释放） */
 const getBlobImageSize = async (blob: Blob): Promise<{ width: number; height: number }> => {
   const url = URL.createObjectURL(blob)
   try {
@@ -49,6 +54,10 @@ const getBlobImageSize = async (blob: Blob): Promise<{ width: number; height: nu
   }
 }
 
+/**
+ * 将任意图片文件统一转成可嵌入的 JPEG/PNG Blob。
+ * 非 PNG/JPEG 的图片先绘制到白色画布上再导出，避免透明背景影响排版。
+ */
 const normalizeImageBlob = async (file: File): Promise<Blob> => {
   const blob = await fileToBlob(file)
   if (file.type === 'image/png' || file.type === 'image/jpeg') {
@@ -76,6 +85,12 @@ const normalizeImageBlob = async (file: File): Promise<Blob> => {
   })
 }
 
+/**
+ * 读取全部素材记录。
+ * 先按 sortOrder 升序，缺失 sortOrder 时回退到创建时间倒序。
+ *
+ * @returns 排序后的素材记录列表
+ */
 export const getAttachments = async (): Promise<AttachmentRecordType[]> => {
   const records = await db.attachments.toArray()
   return records.sort((first, second) => {
@@ -87,6 +102,13 @@ export const getAttachments = async (): Promise<AttachmentRecordType[]> => {
   })
 }
 
+/**
+ * 将图片文件转换为素材记录（不写入数据库）。
+ *
+ * @param files 待处理的文件列表
+ * @param options idPrefix ID 前缀；startSortOrder 起始排序值；existingNames 已存在的文件名（用于重名处理）
+ * @returns 生成的素材记录列表
+ */
 export const createAttachmentRecordsFromFiles = async (
   files: File[],
   options: {
@@ -105,6 +127,7 @@ export const createAttachmentRecordsFromFiles = async (
       const blob = await normalizeImageBlob(file)
       const size = await getBlobImageSize(blob)
       const now = new Date().toISOString()
+      // 与已有文件或本次批量内的其他文件重名时，追加时间戳避免覆盖
       const duplicateName = existingNames.has(file.name) || nextNames.has(file.name)
       const name = duplicateName ? appendTimestampToFileName(file.name) : file.name
       nextNames.add(name)
@@ -125,12 +148,19 @@ export const createAttachmentRecordsFromFiles = async (
   )
 }
 
+/**
+ * 将图片文件写入素材库，自动处理重名并续接排序值。
+ *
+ * @param files 待添加的文件列表
+ * @returns 新增的素材记录列表
+ */
 export const addFilesToAttachments = async (files: File[]): Promise<AttachmentRecordType[]> => {
   const existingAttachments = await getAttachments()
   const existingNames = new Set(existingAttachments.map((attachment) => attachment.name))
   const hasSortOrder = existingAttachments.some(
     (attachment) => typeof attachment.sortOrder === 'number'
   )
+  // 老数据可能没有 sortOrder，此时回退用现有数量续接，避免新旧排序错乱
   const nextSortOrder = hasSortOrder
     ? existingAttachments.reduce(
         (maxOrder, attachment) => Math.max(maxOrder, attachment.sortOrder ?? -1),
@@ -149,6 +179,7 @@ export const addFilesToAttachments = async (files: File[]): Promise<AttachmentRe
   return records
 }
 
+/** 重命名素材并更新修改时间 */
 export const renameAttachment = async (id: string, name: string): Promise<void> => {
   await db.attachments.update(id, {
     name,
@@ -156,10 +187,12 @@ export const renameAttachment = async (id: string, name: string): Promise<void> 
   })
 }
 
+/** 按 ID 删除素材 */
 export const deleteAttachment = async (id: string): Promise<void> => {
   await db.attachments.delete(id)
 }
 
+/** 替换素材的图片数据并重新计算尺寸与类型 */
 export const updateAttachmentBlob = async (
   attachment: AttachmentRecordType,
   blob: Blob
@@ -179,6 +212,7 @@ export const updateAttachmentBlob = async (
   return nextAttachment
 }
 
+/** 按传入的 ID 顺序重写素材的 sortOrder */
 export const updateAttachmentOrder = async (attachmentIds: string[]): Promise<void> => {
   const records = await Promise.all(attachmentIds.map((id) => db.attachments.get(id)))
   const nextRecords = records
@@ -194,6 +228,7 @@ export const updateAttachmentOrder = async (attachmentIds: string[]): Promise<vo
   await db.attachments.bulkPut(nextRecords)
 }
 
+/** 用裁剪后的 Base64 图片覆盖素材（保留 PNG 透明或转 JPEG） */
 export const updateAttachmentFromCroppedBase64 = async (
   attachment: AttachmentRecordType,
   base64: string
@@ -203,6 +238,7 @@ export const updateAttachmentFromCroppedBase64 = async (
   return updateAttachmentBlob(attachment, blob)
 }
 
+/** 旋转素材图片 90°（left/right），并写回数据库 */
 export const rotateAttachment = async (
   attachment: AttachmentRecordType,
   direction: 'left' | 'right'
@@ -212,6 +248,7 @@ export const rotateAttachment = async (
   image.src = dataUrl
   await image.decode()
 
+  // 旋转后宽高互换，画布先铺白底再绕中心旋转绘制
   const canvas = document.createElement('canvas')
   canvas.width = image.naturalHeight
   canvas.height = image.naturalWidth
@@ -231,6 +268,7 @@ export const rotateAttachment = async (
   return updateAttachmentBlob(attachment, rotatedBlob)
 }
 
+/** 为素材 Blob 创建临时 object URL，供画布/预览使用 */
 export const attachmentToObjectUrl = (attachment: AttachmentRecordType): string => {
   return URL.createObjectURL(attachment.blob)
 }

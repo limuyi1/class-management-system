@@ -29,9 +29,9 @@ const messageMocks = vi.hoisted(() => ({
   warning: vi.fn()
 }))
 
-vi.mock('@/utils/evaluationHandwriteFontUntil', () => fontUtilMocks)
-vi.mock('@/utils/evaluationTextExcelUntil', () => exportMocks)
-vi.mock('@/utils/evaluationTextPdfUntil', () => exportMocks)
+vi.mock('@/utils/evaluationHandwriteFontUtil', () => fontUtilMocks)
+vi.mock('@/utils/evaluationTextExcelUtil', () => exportMocks)
+vi.mock('@/utils/evaluationTextPdfUtil', () => exportMocks)
 
 vi.mock('element-plus', () => ({
   ElLoading: {

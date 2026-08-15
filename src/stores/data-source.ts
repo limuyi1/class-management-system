@@ -118,6 +118,8 @@ export const useDataSourceStore = defineStore('dataSource', {
   actions: {
     /**
      * 按系统内部主键获取学生。
+     * @param studentId - 学生唯一标识
+     * @returns 匹配的学生数据，未找到返回 undefined
      */
     getStudentById(studentId: string): StudentDataType | undefined {
       return this.students.find((student) => student.studentId === studentId)
@@ -125,6 +127,8 @@ export const useDataSourceStore = defineStore('dataSource', {
 
     /**
      * 获取指定学生的当前录入分数
+     * @param item - 学生数据
+     * @returns 当前录入分数；未配置成绩列或分数非有限数字时返回 null
      */
     getItemScore(item: StudentDataType): number | null {
       const configuration = useConfigurationStore()
@@ -136,6 +140,7 @@ export const useDataSourceStore = defineStore('dataSource', {
 
     /**
      * 等待数据准备就绪
+     * @returns 数据加载完成后 resolve 为 true
      */
     async waitForInitReady(): Promise<boolean> {
       if (!this.isInitialLoading) {

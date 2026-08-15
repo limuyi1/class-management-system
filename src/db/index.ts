@@ -4,7 +4,7 @@
  */
 import Dexie, { type Table } from 'dexie'
 
-import { DATABASE_MAIN_RECORD_ID, DATABASE_NAME, DatabaseTableEnum } from '@/db/constants'
+import { DATABASE_MAIN_RECORD_ID, DATABASE_NAME, DatabaseTableEnum } from '@/constants'
 
 import type {
   AISettingsRecord,
@@ -22,6 +22,7 @@ import type {
   WrongBookStorageRecord
 } from '@/types/Database'
 
+/** 应用 IndexedDB 数据库类，封装各业务表的 schema 定义与迁移 */
 export class SCSDatabase extends Dexie {
   studentDataset!: Table<StudentDatasetRecord>
   scoreSettings!: Table<ScoreSettingsRecord>
@@ -113,8 +114,10 @@ export class SCSDatabase extends Dexie {
   }
 }
 
+/** 全局数据库实例 */
 export const db = new SCSDatabase()
 
+/** 所有 Store 持久化记录使用的统一主键 */
 export const DB_ID = DATABASE_MAIN_RECORD_ID
 
 export type {

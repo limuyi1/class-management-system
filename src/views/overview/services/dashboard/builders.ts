@@ -535,6 +535,7 @@ export const buildDashboardKpi = (
 ): DashboardKpiType => {
   const allScores = metrics.flatMap((metric) => metric.points.map((point) => point.score))
   const averageScore = averageOf(allScores)
+  // 及格人数 = 分数段下限不低于及格线的分段人数之和
   const passRates = unitMetrics.map((unit) => {
     const passedCount = unit.scoreBands
       .filter((band) => band.min >= config.tagRules.passLine)
@@ -604,6 +605,7 @@ export const buildOverviewDashboardData = (
   const kpi = buildDashboardKpi(unitMetrics, metrics, config, unitHeaders.length)
   const focusGroups = buildFocusGroups(metrics, config)
   const keyStudentLists = buildKeyStudentLists(metrics, config)
+  // 用 Map 按 studentId 去重，合并各分组与名单中的学生
   const quickStudentMap = new Map(
     [
       ...focusGroups.flatMap((group) => group.sections.flatMap((section) => section.items)),

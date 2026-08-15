@@ -1,7 +1,7 @@
 import { computed, nextTick, ref, type Ref } from 'vue'
 
 import { attachmentToObjectUrl } from '@/views/tools/services/attachmentService'
-import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
+import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUtil'
 import {
   arrangePaperItems,
   buildPaperLayoutPages,
@@ -19,10 +19,21 @@ import type {
   PaperLayoutSettingsType
 } from '@/types/Tools'
 
+/** 图片至少保留的可见区域（毫米），避免被完全拖出画布 */
 const minVisibleMm = 8
+/** 缩放时图片的最小宽度（毫米） */
 const minItemWidthMm = 18
+/** 屏幕每毫米对应的像素数（96 DPI） */
 const screenPixelsPerMillimeter = 96 / 25.4
 
+/**
+ * 将指针位移换算为毫米单位的画布位移。
+ *
+ * @param event 指针事件
+ * @param state 拖拽起始状态
+ * @param previewScale 当前预览缩放比例
+ * @returns 换算后的毫米位移
+ */
 export function getPaperLayoutPointerDelta(
   event: Pick<PointerEvent, 'clientX' | 'clientY'>,
   state: Pick<PaperLayoutDragStateType, 'startClientX' | 'startClientY'>,
@@ -34,11 +45,21 @@ export function getPaperLayoutPointerDelta(
   }
 }
 
+/** 试卷排版画布组合式函数的入参 */
 interface UsePaperLayoutCanvasOptions {
   settings: PaperLayoutSettingsType
   previewPanelRef: Ref<HTMLElement | null>
 }
 
+/**
+ * 管理试卷排版画布的条目、选中、拖拽缩放与分页。
+ *
+ * 负责把素材转换为画布条目、按版式自动排布、处理拖拽/缩放/删除，
+ * 并提供预览缩放、翻页与滚动定位等能力。
+ *
+ * @param options 排版设置与预览面板引用
+ * @returns 画布状态与各类操作方法
+ */
 export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
   const canvasItems = ref<PaperLayoutCanvasItemType[]>([])
   const selectedItemId = ref('')
@@ -61,6 +82,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
   )
   const columnWidth = computed(() => {
     const columns = layoutSettings.value.columns
+    // 列宽 =（内容宽 - 各列间距之和）/ 列数，至少保留 1mm
     return Math.max((contentWidth.value - layoutSettings.value.gap * (columns - 1)) / columns, 1)
   })
 
@@ -91,6 +113,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     return canvasItems.value.find((item) => item.id === selectedItemId.value)
   })
 
+  // 优先定位到选中项所在页，否则使用手动页码
   const activePageIndex = computed(
     () => selectedItem.value?.pageIndex ?? activePageNumber.value - 1
   )
@@ -166,6 +189,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
 
   function bringItemToFront(item: PaperLayoutCanvasItemType): void {
     const nextZIndex = getNextPaperLayoutZIndex(canvasItems.value)
+    // 仅当不在最顶层时才提升层级，避免无意义的层级变化
     if (item.zIndex < nextZIndex - 1) {
       item.zIndex = nextZIndex
     }
@@ -261,6 +285,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
       return
     }
 
+    // 缩放时保持原始宽高比，并限制最小宽度
     const ratio = state.startHeight / state.startWidth
     const width = Math.max(minItemWidthMm, state.startWidth + deltaX)
     item.width = width
@@ -318,6 +343,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
   }
 
   function getResizeHandleStyle(item: PaperLayoutCanvasItemType): Record<string, string> {
+    // 缩放手柄始终贴在图片可见区域的右下角
     const visibleRight = Math.min(item.width, pageSize.value.width - item.x)
     const visibleBottom = Math.min(item.height, pageSize.value.height - item.y)
 
@@ -341,6 +367,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     const pageElements = Array.from(document.querySelectorAll<HTMLElement>('[data-paper-page]'))
     if (pageElements.length === 0) return
 
+    // 取离顶部参考线最近的页面作为当前页
     const nearestPage = pageElements.reduce(
       (nearest, element) => {
         const distance = Math.abs(element.getBoundingClientRect().top - 160)

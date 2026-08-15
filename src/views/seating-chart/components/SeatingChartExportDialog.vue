@@ -12,15 +12,15 @@ import {
   renderSeatingChartPngBlob,
   sanitizeSeatingChartFileName,
   type SeatingChartExportFormatType
-} from '@/utils/seatingChartExportUntil'
+} from '@/utils/seatingChartExportUtil'
 import {
   buildSeatingChartPageLayout,
   resolveSeatingChartPageOrientation
-} from '@/utils/seatingChartPageLayoutUntil'
+} from '@/utils/seatingChartPageLayoutUtil'
 import SeatingChartExportPreview from '@/views/seating-chart/components/SeatingChartExportPreview.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
-import type { SeatingChartPageOrientationType } from '@/utils/seatingChartPageLayoutUntil'
+import type { SeatingChartPageOrientationType } from '@/utils/seatingChartPageLayoutUtil'
 
 const PDF_IMAGE_SCALE = 3
 

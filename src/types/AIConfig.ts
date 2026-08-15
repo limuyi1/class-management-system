@@ -1,9 +1,14 @@
 /** AI 模型提供商枚举 */
 export enum AIModelTypeEnum {
+  /** OpenAI */
   OPENAI = 'openai',
+  /** Google Gemini */
   GEMINI = 'gemini',
+  /** 月之暗面 Kimi */
   KIMI = 'kimi',
+  /** 字节跳动豆包 */
   DOUBAO = 'doubao',
+  /** DeepSeek */
   DEEPSEEK = 'deepseek'
 }
 
@@ -74,6 +79,7 @@ export interface AIPromptsType {
   scoreNoticeBatchComment: string
 }
 
+/** 各业务场景的默认 AI Prompt 配置 */
 export const DefaultAIPrompts: AIPromptsType = {
   singleComment: `请根据以下学生信息生成一段小学期末评语：
 学生姓名：{{name}}

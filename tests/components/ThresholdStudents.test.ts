@@ -18,7 +18,19 @@ const defaultProps = {
 describe('ThresholdStudents', () => {
   it('should always display the current student count', async () => {
     const wrapper = mount(ThresholdStudents, {
-      props: defaultProps
+      props: defaultProps,
+      global: {
+        stubs: {
+          ElSegmented: true,
+          ElInputNumber: true,
+          ElButton: true,
+          ElDropdown: true,
+          ElDropdownMenu: true,
+          ElDropdownItem: true,
+          ElTag: true,
+          ElPopover: true
+        }
+      }
     })
 
     expect(wrapper.find('.student-count').text()).toBe('2 人')

@@ -9,7 +9,7 @@ import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { generateTagCategories, generateTags } from '@/ai/aiService'
 import { createDefaultTagCategories, createDefaultTags } from '@/config/defaultTags'
-import { createUniqueTagCategories, createUniqueTagCategory } from '@/utils/tagCategoryUntil'
+import { createUniqueTagCategories, createUniqueTagCategory } from '@/utils/tagCategoryUtil'
 
 import type { TagCategoryType } from '@/types/Setting'
 

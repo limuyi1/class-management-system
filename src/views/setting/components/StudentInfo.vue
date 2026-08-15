@@ -10,16 +10,16 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
-import { createStudentId } from '@/utils/studentUntil'
+import { createStudentId } from '@/utils/studentUtil'
 import {
   buildStudentInfoTagSummaryMap,
   getStudentInfoTagSummary
-} from '@/views/student-info/utils/studentInfoTableUntil'
+} from '@/views/student-info/utils/studentInfoTableUtil'
 import TagEditorDialog from './TagEditorDialog.vue'
 import BatchTagDrawer from './BatchTagDrawer.vue'
 
 import type { VxeTableEvents, VxeTablePropTypes } from 'vxe-table'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
 type EditableStudentType = StudentDataType & {
@@ -50,7 +50,8 @@ const { scoreColumns: headers, enabledScoreColumns: enabledHeaders } = storeToRe
 const { tagCategories: categories } = storeToRefs(settingStore)
 
 const tableRef = ref()
-const rowConfig = { keyField: 'studentId', height: 48 }
+const rowConfig = { keyField: 'studentId' }
+const cellConfig = { height: 48 }
 const virtualYConfig = { enabled: true, gt: 40, oSize: 5 }
 
 const getStudentName = (student: EditableStudentType): string => {
@@ -331,6 +332,7 @@ defineExpose({
         :edit-config="editConfig"
         :menu-config="menuConfig"
         :row-config="rowConfig"
+        :cell-config="cellConfig"
         :virtual-y-config="virtualYConfig"
         :data="tableData"
         @menu-click="menuClickEvent"

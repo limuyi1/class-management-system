@@ -7,14 +7,14 @@ import {
   getFooterBlockHeightPx,
   MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
   layoutAdaptiveCommentText
-} from '@/utils/evaluationTextLayoutUntil'
-import type { AdaptiveEvaluationCommentLayoutResultType } from '@/utils/evaluationTextLayoutUntil'
+} from '@/utils/evaluationTextLayoutUtil'
+import type { AdaptiveEvaluationCommentLayoutResultType } from '@/utils/evaluationTextLayoutUtil'
 import type {
   EvaluationPreviewCardEmitsType,
   EvaluationPreviewCardPropsType
 } from '@/types/Evaluation'
 import type { StudentDataType } from '@/types/StudentData'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 const store = useConfigurationStore()
 const layoutConstantsPx = getEvaluationTextLayoutConstantsPx()

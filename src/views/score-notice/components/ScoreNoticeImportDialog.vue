@@ -7,13 +7,13 @@ import ExcelFileDropzone from '@/components/excel/ExcelFileDropzone.vue'
 import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
 import { ScoreNoticeModeEnum } from '@/types/ScoreNotice'
-import { buildScoreNoticeImport, recalculateNoticeGrades } from '@/utils/scoreNoticeImportUntil'
+import { buildScoreNoticeImport, recalculateNoticeGrades } from '@/utils/scoreNoticeImportUtil'
 import {
   DEFAULT_100_SCORE_RULE,
   DEFAULT_50_SCORE_RULE,
   detectScoreNoticeMode,
   getDefaultGradeRule
-} from '@/utils/scoreNoticeGradeUntil'
+} from '@/utils/scoreNoticeGradeUtil'
 
 import type { UploadFile } from 'element-plus'
 import type { ScoreNoticeGradeRuleType, ScoreNoticeImportResultType } from '@/types/ScoreNotice'

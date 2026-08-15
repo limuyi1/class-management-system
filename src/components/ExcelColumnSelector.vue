@@ -4,9 +4,9 @@ import { computed, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
-import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUtil'
 
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 
 type ExcelRowType = Record<string, string | number | boolean | null | undefined>
 

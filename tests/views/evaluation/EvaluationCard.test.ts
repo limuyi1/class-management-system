@@ -5,7 +5,7 @@ import { defineComponent, h } from 'vue'
 
 import EvaluationCard from '../../../src/views/evaluation/components/EvaluationCard.vue'
 import { useConfigurationStore } from '../../../src/stores/configuration'
-import { NAME_PROP } from '../../../src/types/Constants'
+import { NAME_PROP } from '../../../src/constants'
 
 const createCanvasContextMock = () => {
   let currentFontSize = 16
