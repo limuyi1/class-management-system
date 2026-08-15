@@ -12,7 +12,7 @@ import {
   getVisibleSeats,
   normalizeChart,
   resizeSeats
-} from '@/utils/seatingChartUtil'
+} from '@/utils/seating-chart/seatingChartUtil'
 
 const chart = (rows = 2, columns = 2): SeatingChartType => ({
   id: 'chart',

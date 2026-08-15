@@ -7,8 +7,8 @@ import {
   getFooterBlockHeightPx,
   MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
   layoutAdaptiveCommentText
-} from '@/utils/evaluationTextLayoutUtil'
-import type { AdaptiveEvaluationCommentLayoutResultType } from '@/utils/evaluationTextLayoutUtil'
+} from '@/utils/evaluation/evaluationTextLayoutUtil'
+import type { AdaptiveEvaluationCommentLayoutResultType } from '@/utils/evaluation/evaluationTextLayoutUtil'
 import type {
   EvaluationPreviewCardEmitsType,
   EvaluationPreviewCardPropsType

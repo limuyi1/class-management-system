@@ -4,9 +4,9 @@ import {
   buildExcelSeatingStudents,
   buildSystemSeatingStudents,
   resolveSeatingChartStudents
-} from '@/utils/seatingChartStudentUtil'
+} from '@/utils/seating-chart/seatingChartStudentUtil'
 import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
-import { createSeats, createSpecialSeats } from '@/utils/seatingChartUtil'
+import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
 const createChart = (): SeatingChartType => ({
   id: 'chart',

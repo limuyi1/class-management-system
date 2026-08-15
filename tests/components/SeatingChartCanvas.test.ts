@@ -7,7 +7,7 @@ import {
   SeatingSpecialSeatPositionEnum,
   type SeatingChartType
 } from '@/types/SeatingChart'
-import { createSeats, createSpecialSeats } from '@/utils/seatingChartUtil'
+import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
 class ResizeObserverMock {
   observe = vi.fn()

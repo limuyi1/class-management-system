@@ -1,4 +1,7 @@
-/** 左侧导航菜单配置 */
+/**
+ * 左侧导航菜单配置
+ * disabled 仅为默认值，实际是否可用由 LeftMenu 根据是否已有学生数据重算。
+ */
 import { featureFlags } from '@/config/features'
 
 const menu = [
@@ -11,14 +14,14 @@ const menu = [
   {
     name: '成绩',
     icon: 'graduation-cap',
-    path: '/math',
-    disabled: true
+    path: '/score',
+    disabled: false
   },
   {
     name: '学生',
     icon: 'user',
     path: '/student-info',
-    disabled: true
+    disabled: false
   },
   {
     name: '错题本',

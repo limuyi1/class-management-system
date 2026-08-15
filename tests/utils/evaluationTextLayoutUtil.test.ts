@@ -39,7 +39,7 @@ describe('evaluationTextLayoutUtil', () => {
   })
 
   it('keeps default font size and disables tooltip when the comment fits', async () => {
-    const { layoutAdaptiveCommentText } = await import('../../src/utils/evaluationTextLayoutUtil')
+    const { layoutAdaptiveCommentText } = await import('../../src/utils/evaluation/evaluationTextLayoutUtil')
 
     const layout = layoutAdaptiveCommentText('表现好', 18, 12, 160, 60)
 
@@ -50,7 +50,7 @@ describe('evaluationTextLayoutUtil', () => {
   })
 
   it('shrinks font and disables tooltip when a small overflow can be fully displayed', async () => {
-    const { layoutAdaptiveCommentText } = await import('../../src/utils/evaluationTextLayoutUtil')
+    const { layoutAdaptiveCommentText } = await import('../../src/utils/evaluation/evaluationTextLayoutUtil')
 
     const layout = layoutAdaptiveCommentText('一二三四五六七八九十', 18, 12, 120, 48)
 
@@ -61,7 +61,7 @@ describe('evaluationTextLayoutUtil', () => {
   })
 
   it('falls back to default font size and enables tooltip when min font still overflows', async () => {
-    const { layoutAdaptiveCommentText } = await import('../../src/utils/evaluationTextLayoutUtil')
+    const { layoutAdaptiveCommentText } = await import('../../src/utils/evaluation/evaluationTextLayoutUtil')
 
     const layout = layoutAdaptiveCommentText('一二三四五六七八九十一二三四五六七八九十一二三四五六七八九十', 18, 12, 120, 48)
 

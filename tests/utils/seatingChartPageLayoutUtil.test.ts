@@ -5,8 +5,8 @@ import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/Seati
 import {
   buildSeatingChartPageLayout,
   resolveSeatingChartPageOrientation
-} from '@/utils/seatingChartPageLayoutUtil'
-import { createSeats, createSpecialSeats } from '@/utils/seatingChartUtil'
+} from '@/utils/seating-chart/seatingChartPageLayoutUtil'
+import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
 function createChart(rows: number, columns: number): SeatingChartType {
   return {

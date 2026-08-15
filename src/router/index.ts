@@ -29,14 +29,9 @@ const router = createRouter({
           component: () => import('@/views/overview/OverviewPage.vue')
         },
         {
-          path: '/math',
-          name: 'Math',
+          path: '/score',
+          name: 'Score',
           component: () => import('@/views/score/ScorePage.vue')
-        },
-        {
-          path: '/comment',
-          name: 'Comment',
-          redirect: '/tools/comments'
         },
         {
           path: '/student-info',

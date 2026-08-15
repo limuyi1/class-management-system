@@ -4,7 +4,7 @@ import { ElMessage } from 'element-plus'
 
 import ExcelFileDropzone from '@/components/excel/ExcelFileDropzone.vue'
 import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
-import { buildExcelDutyStudents } from '@/utils/dutyRosterStudentUtil'
+import { buildExcelDutyStudents } from '@/utils/duty-roster/dutyRosterStudentUtil'
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
 
 import type { UploadFile } from 'element-plus'

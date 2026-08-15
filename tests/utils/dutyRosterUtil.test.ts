@@ -5,7 +5,7 @@ import {
   createDefaultDutySections,
   getDutyPeriods,
   normalizeDutyRoster
-} from '@/utils/dutyRosterUtil'
+} from '@/utils/duty-roster/dutyRosterUtil'
 
 function createRoster(): DutyRosterType {
   return {

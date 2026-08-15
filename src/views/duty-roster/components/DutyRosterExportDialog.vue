@@ -12,8 +12,8 @@ import {
   renderDutyRosterPngBlob,
   sanitizeDutyRosterFileName,
   type DutyRosterExportFormatType
-} from '@/utils/dutyRosterExportUtil'
-import { buildDutyRosterPageLayout } from '@/utils/dutyRosterPageLayoutUtil'
+} from '@/utils/duty-roster/dutyRosterExportUtil'
+import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLayoutUtil'
 import DutyRosterExportPreview from '@/views/duty-roster/components/DutyRosterExportPreview.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 

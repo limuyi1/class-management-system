@@ -20,7 +20,7 @@ import reportPaperUrl from '@/assets/score-notice/report-paper-background.png'
 import subjectCardCornerUrl from '@/assets/score-notice/subject-card-corner-2x.png'
 import teacherCommentBadgeUrl from '@/assets/score-notice/teacher-comment-badge-2x.png'
 import { ScoreNoticeModeEnum } from '@/types/ScoreNotice'
-import { formatScoreValue } from '@/utils/scoreNoticeGradeUtil'
+import { formatScoreValue } from '@/utils/score-notice/scoreNoticeGradeUtil'
 
 import type { ScoreNoticeStudentType, ScoreNoticeSubjectType } from '@/types/ScoreNotice'
 

@@ -75,7 +75,7 @@ const goToUnitSetting = () => {
 }
 
 const goToScoreInput = () => {
-  router.push('/math')
+  router.push('/score')
 }
 
 const goToEvaluationFromTrend = async () => {

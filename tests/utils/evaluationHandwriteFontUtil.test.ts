@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isEvaluationRenderableTextChar } from '../../src/utils/evaluationHandwriteFontUtil'
+import { isEvaluationRenderableTextChar } from '../../src/utils/evaluation/evaluationHandwriteFontUtil'
 
 describe('isEvaluationRenderableTextChar', () => {
   it('should ignore whitespace and invisible format characters', () => {

@@ -13,8 +13,8 @@ import {
   createSpecialSeats,
   normalizeChart,
   resizeSeats
-} from '@/utils/seatingChartUtil'
-import { resolveSeatingChartStudents } from '@/utils/seatingChartStudentUtil'
+} from '@/utils/seating-chart/seatingChartUtil'
+import { resolveSeatingChartStudents } from '@/utils/seating-chart/seatingChartStudentUtil'
 
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 

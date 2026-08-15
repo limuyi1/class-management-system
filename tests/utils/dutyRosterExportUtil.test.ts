@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatDutyRosterExportDate,
   sanitizeDutyRosterFileName
-} from '@/utils/dutyRosterExportUtil'
+} from '@/utils/duty-roster/dutyRosterExportUtil'
 
 describe('dutyRosterExportUtil', () => {
   it('sanitizes file names and formats export dates', () => {

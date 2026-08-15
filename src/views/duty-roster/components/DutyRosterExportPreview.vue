@@ -3,8 +3,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 
 import { PagesEnum } from '@/types/Common'
 import { DutyPeriodEnum, DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
-import { buildDutyRosterPageLayout } from '@/utils/dutyRosterPageLayoutUtil'
-import { DUTY_PERIOD_LABELS, getDutyAssignment, getDutyPeriods } from '@/utils/dutyRosterUtil'
+import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLayoutUtil'
+import { DUTY_PERIOD_LABELS, getDutyAssignment, getDutyPeriods } from '@/utils/duty-roster/dutyRosterUtil'
 
 import type { CSSProperties } from 'vue'
 

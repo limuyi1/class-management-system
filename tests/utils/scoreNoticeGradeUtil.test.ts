@@ -8,7 +8,7 @@ import {
   detectScoreNoticeMode,
   getDefaultGradeRule,
   normalizeGradeValue
-} from '../../src/utils/scoreNoticeGradeUtil'
+} from '../../src/utils/score-notice/scoreNoticeGradeUtil'
 
 describe('scoreNoticeGradeUtil', () => {
   it('normalizes common grade values', () => {

@@ -4,8 +4,8 @@ import { startLoading, stopLoading, updateLoadingText } from '@/hooks/useLoading
 
 import { generateBatchComments, polishBatchComments } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUtil'
-import { applyPolishedComments, buildCommentPolishTargets } from '@/utils/commentPolishUtil'
-import { COMMENT_MIN_LENGTH, countCommentLength } from '@/utils/commentLengthUtil'
+import { applyPolishedComments, buildCommentPolishTargets } from '@/utils/evaluation/commentPolishUtil'
+import { COMMENT_MIN_LENGTH, countCommentLength } from '@/utils/evaluation/commentLengthUtil'
 import { NAME_PROP } from '@/constants'
 import type { AIConfigType } from '@/types/AIConfig'
 import type { StudentDataType } from '@/types/StudentData'

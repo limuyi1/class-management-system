@@ -1,5 +1,5 @@
 import type { ConfigurationType } from '@/types/Configuration'
-import { getEvaluationHandwriteMeasureFontFamily } from '@/utils/evaluationHandwriteFontUtil'
+import { getEvaluationHandwriteMeasureFontFamily } from '@/utils/evaluation/evaluationHandwriteFontUtil'
 
 /** 像素转毫米系数（按 96 DPI） */
 const PX_TO_MM = 25.4 / 96

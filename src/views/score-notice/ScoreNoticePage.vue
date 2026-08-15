@@ -22,13 +22,13 @@ import {
   buildTemplateScoreNoticeComment,
   getScoreNoticeCommentValidationReasons,
   normalizeScoreNoticeComment
-} from '@/utils/scoreNoticeCommentUtil'
+} from '@/utils/score-notice/scoreNoticeCommentUtil'
 import {
   copyPngBlob,
   downloadBlob,
   renderScoreNoticeBlob,
   sanitizeFileName
-} from '@/utils/scoreNoticeImageUtil'
+} from '@/utils/score-notice/scoreNoticeImageUtil'
 import { createStoredZip } from '@/utils/zipUtil'
 import { useEvaluationHandwriteFont } from '@/views/evaluation/composables/useEvaluationHandwriteFont'
 

@@ -8,11 +8,11 @@ import {
   type SeatPositionType,
   type SeatingChartType
 } from '@/types/SeatingChart'
-import { buildSeatingChartPageLayout } from '@/utils/seatingChartPageLayoutUtil'
-import { getSeatKey, getVisibleSeats } from '@/utils/seatingChartUtil'
+import { buildSeatingChartPageLayout } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
+import { getSeatKey, getVisibleSeats } from '@/utils/seating-chart/seatingChartUtil'
 
 import type { CSSProperties } from 'vue'
-import type { SeatingChartPageOrientationType } from '@/utils/seatingChartPageLayoutUtil'
+import type { SeatingChartPageOrientationType } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
 
 const props = withDefaults(
   defineProps<{

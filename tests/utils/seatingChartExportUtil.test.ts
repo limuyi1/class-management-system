@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   formatSeatingChartExportDate,
   sanitizeSeatingChartFileName
-} from '@/utils/seatingChartExportUtil'
+} from '@/utils/seating-chart/seatingChartExportUtil'
 
 describe('seatingChartExportUtil', () => {
   it('sanitizes file names and keeps a stable fallback', () => {

@@ -3,14 +3,6 @@ import { describe, expect, it, vi } from 'vitest'
 import router, { createDataGuard } from '../../src/router'
 
 describe('router guard', () => {
-  it('keeps the legacy comment URL and redirects it to the tool workspace', () => {
-    const legacyRoute = router.getRoutes().find((route) => route.path === '/comment')
-    const toolRoute = router.getRoutes().find((route) => route.path === '/tools/comments')
-
-    expect(legacyRoute?.redirect).toBe('/tools/comments')
-    expect(toolRoute).toBeDefined()
-  })
-
   it('should allow tools route without data check', async () => {
     const store = {
       waitForInitReady: vi.fn().mockResolvedValue(true),

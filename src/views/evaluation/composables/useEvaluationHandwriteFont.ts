@@ -8,7 +8,7 @@ import {
   registerEvaluationHandwriteFont,
   saveEvaluationHandwriteFont,
   waitForDefaultHandwriteFont
-} from '@/utils/evaluationHandwriteFontUtil'
+} from '@/utils/evaluation/evaluationHandwriteFontUtil'
 import type { ConfigurationType } from '@/types/Configuration'
 
 /** 手写字体管理组合式函数的入参 */

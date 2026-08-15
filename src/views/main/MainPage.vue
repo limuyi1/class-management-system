@@ -10,6 +10,9 @@ import logo from '@/assets/main/logo.png'
 
 const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
 const author = ref(import.meta.env.VITE_APP_AUTHOR || '班务管理系统')
+
+// 仅缓存核心工作页，避免工具页切换后残留旧状态、占用内存。
+const cachedPages = ['OverviewPage', 'ScorePage', 'EvaluationPage']
 </script>
 
 <template>
@@ -29,7 +32,7 @@ const author = ref(import.meta.env.VITE_APP_AUTHOR || '班务管理系统')
       </el-aside>
       <el-main class="main-content">
         <router-view v-slot="{ Component }">
-          <keep-alive>
+          <keep-alive :include="cachedPages">
             <component :is="Component" />
           </keep-alive>
         </router-view>

@@ -3,7 +3,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import ElementPlus from 'element-plus'
 
 import { DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
-import { createDefaultDutySections } from '@/utils/dutyRosterUtil'
+import { createDefaultDutySections } from '@/utils/duty-roster/dutyRosterUtil'
 import DutyRosterExportDialog from '@/views/duty-roster/components/DutyRosterExportDialog.vue'
 
 function createRoster(): DutyRosterType {

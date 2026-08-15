@@ -5,7 +5,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   EXCEL_COMMENT_TAG_PROP,
   exportExcelCommentWorkspace
-} from '@/utils/commentWorkspaceExcelUtil'
+} from '@/utils/evaluation/commentWorkspaceExcelUtil'
 
 import type {
   CommentWorkspaceSourceType,

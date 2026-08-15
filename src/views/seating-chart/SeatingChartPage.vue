@@ -31,7 +31,7 @@ import {
   getVisibleSeats,
   SEATING_CHART_MAX_SIZE,
   SEATING_CHART_MIN_SIZE
-} from '@/utils/seatingChartUtil'
+} from '@/utils/seating-chart/seatingChartUtil'
 
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 

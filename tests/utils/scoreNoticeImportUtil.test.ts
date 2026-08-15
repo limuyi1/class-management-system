@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ScoreNoticeCommentStatusEnum, ScoreNoticeModeEnum } from '../../src/types/ScoreNotice'
-import { buildScoreNoticeImport } from '../../src/utils/scoreNoticeImportUtil'
+import { buildScoreNoticeImport } from '../../src/utils/score-notice/scoreNoticeImportUtil'
 
 describe('scoreNoticeImportUtil', () => {
   it('imports existing grades without conversion', () => {

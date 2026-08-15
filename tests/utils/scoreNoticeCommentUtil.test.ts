@@ -4,7 +4,7 @@ import {
   buildTemplateScoreNoticeComment,
   getScoreNoticeCommentValidationReasons,
   normalizeScoreNoticeComment
-} from '../../src/utils/scoreNoticeCommentUtil'
+} from '../../src/utils/score-notice/scoreNoticeCommentUtil'
 import { ScoreNoticeCommentStatusEnum } from '../../src/types/ScoreNotice'
 
 describe('scoreNoticeCommentUtil', () => {

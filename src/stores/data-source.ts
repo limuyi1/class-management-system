@@ -2,6 +2,14 @@ import { defineStore } from 'pinia'
 import { watch } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
+import {
+  computeAverage,
+  computeComprehensiveRatingRate,
+  computeExcellentRate,
+  computeLowScoreRate,
+  computeOptimumRate,
+  computePassRate
+} from '@/utils/scoreStatisticsUtil'
 import type { StudentDataType } from '@/types/StudentData'
 
 /**
@@ -13,7 +21,8 @@ export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
       students: [] as StudentDataType[],
-      isInitialLoading: false
+      isDataReady: false,
+      initError: null as string | null
     }
   },
   getters: {
@@ -46,67 +55,39 @@ export const useDataSourceStore = defineStore('dataSource', {
     },
     /**
      * 平均分
-     * 计算所有有效成绩的平均值
      */
     average(): number {
-      const scores = this.validScores
-      if (scores.length === 0) return 0
-      const sum = scores.reduce((acc: number, cur: number) => acc + cur, 0)
-      return sum / scores.length
+      return computeAverage(this.validScores)
     },
     /**
      * 及格率
-     * 分数 >= 60 分的学生占比
      */
     passRate(): number {
-      const scores = this.validScores
-      if (scores.length === 0) return 0
-      const passCount = scores.filter((s: number) => s >= 60).length
-      return (passCount / scores.length) * 100
+      return computePassRate(this.validScores)
     },
     /**
      * 优秀率
-     * 分数 >= 80 分的学生占比
      */
     excellentRate(): number {
-      const scores = this.validScores
-      if (scores.length === 0) return 0
-      const excellentCount = scores.filter((s: number) => s >= 80).length
-      return (excellentCount / scores.length) * 100
+      return computeExcellentRate(this.validScores)
     },
     /**
      * 最高分率
-     * 分数 >= 95 分的学生占比（用于综合评分加分项）
      */
     optimumRate(): number {
-      const scores = this.validScores
-      if (scores.length === 0) return 0
-      const optimumCount = scores.filter((s: number) => s >= 95).length
-      return (optimumCount / scores.length) * 100
+      return computeOptimumRate(this.validScores)
     },
     /**
      * 低分率
-     * 分数 <= 40 分的学生占比（用于综合评分减分项）
      */
     lowScoreRate(): number {
-      const scores = this.validScores
-      if (scores.length === 0) return 0
-      const lowCount = scores.filter((s: number) => s <= 40).length
-      return (lowCount / scores.length) * 100
+      return computeLowScoreRate(this.validScores)
     },
     /**
      * 综合评分
-     * 综合评分 = 平均分×0.4 + 及格率×0.3 + 优秀率×0.3 + 最高分率×0.05 - 低分率×0.05
      */
     comprehensiveRatingRate(): number {
-      if (this.validCount === 0) return 0
-      return (
-        this.average * 0.4 +
-        this.passRate * 0.3 +
-        this.excellentRate * 0.3 +
-        this.optimumRate * 0.05 -
-        this.lowScoreRate * 0.05
-      )
+      return computeComprehensiveRatingRate(this.validScores)
     },
     /**
      * 是否存在任何成绩数据
@@ -143,12 +124,12 @@ export const useDataSourceStore = defineStore('dataSource', {
      * @returns 数据加载完成后 resolve 为 true
      */
     async waitForInitReady(): Promise<boolean> {
-      if (!this.isInitialLoading) {
+      if (!this.isDataReady) {
         return new Promise((resolve) => {
           const unwatch = watch(
-            () => this.isInitialLoading,
-            (loaded) => {
-              if (loaded) {
+            () => this.isDataReady,
+            (ready) => {
+              if (ready) {
                 unwatch()
                 resolve(true)
               }
@@ -158,14 +139,6 @@ export const useDataSourceStore = defineStore('dataSource', {
         })
       }
       return true
-    },
-
-    /**
-     * 兼容旧调用
-     * @deprecated 请使用 waitForInitReady
-     */
-    async waitForDataReady(): Promise<boolean> {
-      return this.waitForInitReady()
     }
   }
 })

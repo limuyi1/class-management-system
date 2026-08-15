@@ -221,26 +221,20 @@ describe('useDataSourceStore', () => {
 
   it('should resolve waitForInitReady immediately when already initialized', async () => {
     const store = useDataSourceStore()
-    store.isInitialLoading = true
+    store.isDataReady = true
 
     await expect(store.waitForInitReady()).resolves.toBe(true)
   })
 
   it('should wait for initialization state change in waitForInitReady', async () => {
     const store = useDataSourceStore()
-    store.isInitialLoading = false
+    store.isDataReady = false
 
     const pending = store.waitForInitReady()
-    store.isInitialLoading = true
+    store.isDataReady = true
     await nextTick()
 
     await expect(pending).resolves.toBe(true)
   })
 
-  it('should keep compatibility for waitForDataReady alias', async () => {
-    const store = useDataSourceStore()
-    store.isInitialLoading = true
-
-    await expect(store.waitForDataReady()).resolves.toBe(true)
-  })
 })

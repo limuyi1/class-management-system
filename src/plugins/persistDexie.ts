@@ -47,7 +47,8 @@ type PersistableRecordType =
   | DutyRosterStorageRecord
 
 interface DataSourceLikeStoreType {
-  isInitialLoading: boolean
+  isDataReady: boolean
+  initError: string | null
   $state: {
     students: StudentDataType[]
   }
@@ -138,15 +139,18 @@ export function createPersistedStateDexie() {
         }
       } catch (error) {
         console.error(`[PersistDexie] Failed to load ${storeId} from IndexedDB:`, error)
+        if (isDataSource) {
+          dataSourceStore.initError = error instanceof Error ? error.message : '数据加载失败'
+        }
       }
     }
 
     if (isDataSource) {
-      dataSourceStore.isInitialLoading = false
+      dataSourceStore.isDataReady = false
     }
     await loadFromDB()
-    if (isDataSource) {
-      dataSourceStore.isInitialLoading = true
+    if (isDataSource && !dataSourceStore.initError) {
+      dataSourceStore.isDataReady = true
     }
 
     const saveToDB = async () => {

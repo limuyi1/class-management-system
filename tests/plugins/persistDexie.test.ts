@@ -97,7 +97,7 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'dataSource',
       $state: { students: [] as Array<Record<string, unknown>> },
-      isInitialLoading: false,
+      isDataReady: false,
       $patch: (state: { students: Array<Record<string, unknown>> }) => {
         store.$state.students = state.students
       },
@@ -114,7 +114,7 @@ describe('createPersistedStateDexie', () => {
     expect(store.$state.students).toEqual([
       { studentId: 'student-1', name: '张三', yu3_wen2: 88 }
     ])
-    expect(store.isInitialLoading).toBe(true)
+    expect(store.isDataReady).toBe(true)
 
     store.$state.students = [{ studentId: 'student-2', name: '李四', yu3_wen2: 95 }]
     await subscribers[0]()
@@ -254,7 +254,7 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'dataSource',
       $state: { students: [{ name: '张三', yu3_wen2: 88 }] as Array<Record<string, unknown>> },
-      isInitialLoading: false,
+      isDataReady: false,
       $patch: vi.fn(),
       $subscribe: (callback: () => Promise<void>) => {
         subscribers.push(callback)
@@ -323,7 +323,7 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'dataSource',
       $state: { students: [] as Array<Record<string, unknown>> },
-      isInitialLoading: false,
+      isDataReady: false,
       $patch: (state: { students: Array<Record<string, unknown>> }) => {
         store.$state.students = state.students
       },
@@ -356,7 +356,7 @@ describe('createPersistedStateDexie', () => {
     const store = {
       $id: 'dataSource',
       $state: { students: [] as Array<Record<string, unknown>> },
-      isInitialLoading: false,
+      isDataReady: false,
       $patch: (state: { students: Array<Record<string, unknown>> }) => {
         store.$state.students = state.students
       },

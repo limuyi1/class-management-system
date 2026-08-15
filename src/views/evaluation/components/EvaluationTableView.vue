@@ -8,7 +8,7 @@ import EvaluationPreviewCard from '@/views/evaluation/components/EvaluationCard.
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUtil'
-import { buildEvaluationPdfLayout } from '@/utils/evaluationPdfLayoutUtil'
+import { buildEvaluationPdfLayout } from '@/utils/evaluation/evaluationPdfLayoutUtil'
 import { groupArray } from '@/utils/commonUtil'
 import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'

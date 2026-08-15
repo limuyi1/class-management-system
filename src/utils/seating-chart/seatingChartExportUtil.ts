@@ -2,9 +2,9 @@ import domtoimage from 'dom-to-image'
 import { PDFDocument } from 'pdf-lib'
 
 import { PagesEnum } from '@/types/Common'
-import { getSeatingChartPageSize } from '@/utils/seatingChartPageLayoutUtil'
+import { getSeatingChartPageSize } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
 
-import type { SeatingChartPageOrientationType } from '@/utils/seatingChartPageLayoutUtil'
+import type { SeatingChartPageOrientationType } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
 
 /** 座位表导出格式：PNG 或 PDF */
 export type SeatingChartExportFormatType = 'png' | 'pdf'

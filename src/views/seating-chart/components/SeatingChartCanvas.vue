@@ -9,7 +9,7 @@ import {
   type SeatingChartType,
   type SeatingSpecialSeatType
 } from '@/types/SeatingChart'
-import { getSeatKey } from '@/utils/seatingChartUtil'
+import { getSeatKey } from '@/utils/seating-chart/seatingChartUtil'
 
 const props = defineProps<{
   chart: SeatingChartType

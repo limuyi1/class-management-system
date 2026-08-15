@@ -5,7 +5,7 @@ const errorMock = vi.fn()
 const setDatabaseImportingMock = vi.fn()
 
 const stores = {
-  dataSource: { students: [], isInitialLoading: false },
+  dataSource: { students: [], isDataReady: false },
   setting: { $patch: vi.fn(), $reset: vi.fn() },
   configuration: { $patch: vi.fn(), $reset: vi.fn() },
   theme: { $patch: vi.fn(), applyTheme: vi.fn(), resetTheme: vi.fn() },
@@ -110,7 +110,7 @@ describe('importDatabase', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     stores.dataSource.students = []
-    stores.dataSource.isInitialLoading = false
+    stores.dataSource.isDataReady = false
   })
 
   it('should accept version differences when importing old backups', async () => {

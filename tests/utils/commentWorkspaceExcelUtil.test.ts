@@ -6,7 +6,7 @@ import {
   buildExcelCommentCellUpdates,
   buildExcelCommentWorkspace,
   parseTemporaryCommentTags
-} from '../../src/utils/commentWorkspaceExcelUtil'
+} from '../../src/utils/evaluation/commentWorkspaceExcelUtil'
 import { NAME_PROP } from '../../src/constants'
 
 describe('commentWorkspaceExcelUtil', () => {

@@ -32,7 +32,7 @@ describe('image-based seating chart PDF export', () => {
   })
 
   it('embeds the rendered PNG across the selected paper page', async () => {
-    const { createSeatingChartPdf } = await import('@/utils/seatingChartExportUtil')
+    const { createSeatingChartPdf } = await import('@/utils/seating-chart/seatingChartExportUtil')
     const imageBlob = new Blob([new Uint8Array([1, 2, 3])], { type: 'image/png' })
     const blob = await createSeatingChartPdf({
       imageBlob,

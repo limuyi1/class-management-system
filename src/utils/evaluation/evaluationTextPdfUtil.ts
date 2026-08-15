@@ -5,15 +5,15 @@ import type { Font as FontkitFontType } from '@pdf-lib/fontkit'
 import {
   buildEvaluationPdfLayout,
   paginateEvaluationStudents
-} from '@/utils/evaluationPdfLayoutUtil'
+} from '@/utils/evaluation/evaluationPdfLayoutUtil'
 import {
   getEvaluationTextLayoutConstantsPx,
   getFooterBlockHeightPx,
   MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
   layoutAdaptiveCommentText,
   measureBrowserTextAdvanceWidth
-} from '@/utils/evaluationTextLayoutUtil'
-import { getEvaluationHandwriteFontBytes } from '@/utils/evaluationHandwriteFontUtil'
+} from '@/utils/evaluation/evaluationTextLayoutUtil'
+import { getEvaluationHandwriteFontBytes } from '@/utils/evaluation/evaluationHandwriteFontUtil'
 import type {
   EvaluationPdfCellType,
   EvaluationPdfPageType,

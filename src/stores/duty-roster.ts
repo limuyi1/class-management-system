@@ -20,8 +20,8 @@ import {
   getDutyStudentIds,
   normalizeDutyRoster,
   removeDutyStudent
-} from '@/utils/dutyRosterUtil'
-import { resolveDutyRosterStudents } from '@/utils/dutyRosterStudentUtil'
+} from '@/utils/duty-roster/dutyRosterUtil'
+import { resolveDutyRosterStudents } from '@/utils/duty-roster/dutyRosterStudentUtil'
 
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 

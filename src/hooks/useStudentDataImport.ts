@@ -12,7 +12,7 @@ import {
   buildIncrementalScoreImport,
   getConflictLabels
 } from '@/utils/scoreImportUtil'
-import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/commentImportUtil'
+import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/evaluation/commentImportUtil'
 import { buildInitialStudentImport } from '@/utils/initialStudentImportUtil'
 import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUtil'
 
@@ -84,7 +84,7 @@ export const useStudentDataImport = () => {
   /**
    * 导入完成后统一等待数据状态稳定，并校验目标路由是否真正生效。
    */
-  const navigateAfterImport = async (targetPath: '/overview' | '/math' | '/comment') => {
+  const navigateAfterImport = async (targetPath: '/overview' | '/score' | '/tools/comments') => {
     await nextTick()
     await dataSourceStore.waitForInitReady()
 
@@ -227,7 +227,7 @@ export const useStudentDataImport = () => {
 
     ElMessage.success(`Excel 成绩导入完成：${messages.join('，')}`)
     resetExcelImport()
-    await navigateAfterImport('/math')
+    await navigateAfterImport('/score')
   }
 
   /**
@@ -315,7 +315,7 @@ export const useStudentDataImport = () => {
 
     ElMessage.success(`评语导入完成：${messages.join('，')}`)
     resetExcelImport()
-    await navigateAfterImport('/comment')
+    await navigateAfterImport('/tools/comments')
   }
 
   return {

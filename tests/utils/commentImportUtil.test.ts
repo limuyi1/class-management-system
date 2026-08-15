@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildIncrementalCommentImport,
   countOverwrittenComments
-} from '../../src/utils/commentImportUtil'
+} from '../../src/utils/evaluation/commentImportUtil'
 import { NAME_PROP } from '../../src/constants'
 
 const students = [

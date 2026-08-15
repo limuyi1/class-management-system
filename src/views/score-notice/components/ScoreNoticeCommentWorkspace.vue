@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 
 import { useScoreNoticeStore } from '@/stores/score-notice'
 import { ScoreNoticeCommentStatusEnum } from '@/types/ScoreNotice'
-import { getScoreNoticeCommentValidationReasons } from '@/utils/scoreNoticeCommentUtil'
+import { getScoreNoticeCommentValidationReasons } from '@/utils/score-notice/scoreNoticeCommentUtil'
 
 import type { InputInstance } from 'element-plus'
 import type { ScoreNoticeStudentType } from '@/types/ScoreNotice'

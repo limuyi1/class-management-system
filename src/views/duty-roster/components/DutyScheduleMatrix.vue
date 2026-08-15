@@ -9,7 +9,7 @@ import {
   type DutyRosterType,
   type DutySectionType
 } from '@/types/DutyRoster'
-import { DUTY_PERIOD_LABELS, getDutyAssignment, getDutyPeriods } from '@/utils/dutyRosterUtil'
+import { DUTY_PERIOD_LABELS, getDutyAssignment, getDutyPeriods } from '@/utils/duty-roster/dutyRosterUtil'
 
 interface DutyMatrixRowType {
   key: string

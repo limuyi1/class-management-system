@@ -1,5 +1,5 @@
 import { AIModelTypeEnum, DefaultAIPrompts } from '@/types/AIConfig'
-import { normalizeScoreNoticeComment } from '@/utils/scoreNoticeCommentUtil'
+import { normalizeScoreNoticeComment } from '@/utils/score-notice/scoreNoticeCommentUtil'
 
 import type { AIServiceConfig } from '@/ai/types'
 import {

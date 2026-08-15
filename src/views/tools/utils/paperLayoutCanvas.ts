@@ -1,4 +1,4 @@
-import { getPdfPageSize } from '@/utils/evaluationPdfLayoutUtil'
+import { getPdfPageSize } from '@/utils/evaluation/evaluationPdfLayoutUtil'
 
 import type {
   AttachmentRecordType,

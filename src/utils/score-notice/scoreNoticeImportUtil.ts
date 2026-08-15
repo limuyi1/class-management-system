@@ -11,7 +11,7 @@ import {
   detectScoreNoticeMode,
   getDefaultGradeRule,
   normalizeGradeValue
-} from '@/utils/scoreNoticeGradeUtil'
+} from '@/utils/score-notice/scoreNoticeGradeUtil'
 
 import type { ExcelRowType } from '@/utils/xlsxUtil'
 import type { StudentDataType } from '@/types/StudentData'

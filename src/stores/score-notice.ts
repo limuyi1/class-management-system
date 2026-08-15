@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 
 import { ScoreNoticeCommentStatusEnum, ScoreNoticeModeEnum } from '@/types/ScoreNotice'
-import { recalculateNoticeGrades } from '@/utils/scoreNoticeImportUtil'
-import { getScoreNoticeCommentValidationReasons } from '@/utils/scoreNoticeCommentUtil'
+import { recalculateNoticeGrades } from '@/utils/score-notice/scoreNoticeImportUtil'
+import { getScoreNoticeCommentValidationReasons } from '@/utils/score-notice/scoreNoticeCommentUtil'
 
 import type {
   ScoreNoticeGradeRuleType,

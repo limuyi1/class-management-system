@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   applyPolishedComments,
   buildCommentPolishTargets
-} from '../../src/utils/commentPolishUtil'
+} from '../../src/utils/evaluation/commentPolishUtil'
 import { NAME_PROP } from '../../src/constants'
 
 describe('commentPolishUtil', () => {

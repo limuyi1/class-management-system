@@ -1,6 +1,6 @@
 import domtoimage from 'dom-to-image'
 
-import { getEvaluationHandwriteFontDataUrl } from '@/utils/evaluationHandwriteFontUtil'
+import { getEvaluationHandwriteFontDataUrl } from '@/utils/evaluation/evaluationHandwriteFontUtil'
 
 /** 清理文件名中的非法字符，空名称回退为"成绩通知" */
 export const sanitizeFileName = (value: string): string => {

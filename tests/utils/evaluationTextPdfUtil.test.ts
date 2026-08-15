@@ -50,7 +50,7 @@ vi.mock('@pdf-lib/fontkit', () => ({
   default: fontkitMocks
 }))
 
-vi.mock('../../src/utils/evaluationHandwriteFontUtil', () => handwriteFontMocks)
+vi.mock('../../src/utils/evaluation/evaluationHandwriteFontUtil', () => handwriteFontMocks)
 
 const createCanvasContextMock = () => {
   let currentFontSize = 16
@@ -139,7 +139,7 @@ describe('exportEvaluationTextPDF', () => {
   })
 
   it('uses the same adaptive comment font size as preview when exporting PDF', async () => {
-    const { exportEvaluationTextPDF } = await import('../../src/utils/evaluationTextPdfUtil')
+    const { exportEvaluationTextPDF } = await import('../../src/utils/evaluation/evaluationTextPdfUtil')
 
     const result = await exportEvaluationTextPDF({
       students: [{ [NAME_PROP]: '张三', comment: '一二三四五六七八九十' }],

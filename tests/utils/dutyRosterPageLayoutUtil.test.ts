@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { PagesEnum } from '@/types/Common'
 import { DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
-import { buildDutyRosterPageLayout } from '@/utils/dutyRosterPageLayoutUtil'
-import { createDefaultDutySections } from '@/utils/dutyRosterUtil'
+import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLayoutUtil'
+import { createDefaultDutySections } from '@/utils/duty-roster/dutyRosterUtil'
 
 function createRoster(): DutyRosterType {
   return {

@@ -39,7 +39,8 @@ const resetRuntimeStores = () => {
   const dutyRosterStore = useDutyRosterStore()
 
   dataStore.students = []
-  dataStore.isInitialLoading = true
+  dataStore.isDataReady = true
+  dataStore.initError = null
   settingStore.$reset()
   configurationStore.$reset()
   aiConfigStore.$reset()
@@ -92,7 +93,8 @@ const hydrateRuntimeStores = async () => {
   ])
 
   dataStore.students = normalizeStoredStudents(dataSource?.students)
-  dataStore.isInitialLoading = true
+  dataStore.isDataReady = true
+  dataStore.initError = null
 
   if (setting) {
     const { id, updatedAt, ...state } = setting

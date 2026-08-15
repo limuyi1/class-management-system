@@ -5,7 +5,7 @@ import { ElMessage } from 'element-plus'
 import ExcelFileDropzone from '@/components/excel/ExcelFileDropzone.vue'
 import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
-import { buildExcelCommentWorkspace } from '@/utils/commentWorkspaceExcelUtil'
+import { buildExcelCommentWorkspace } from '@/utils/evaluation/commentWorkspaceExcelUtil'
 
 import type { UploadFile } from 'element-plus'
 import type { ExcelCommentImportSelectionType } from '@/types/CommentWorkspace'

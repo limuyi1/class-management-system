@@ -71,6 +71,7 @@ const handleMenuClick = (item: MenuItemType) => {
         active: activePath === item.path,
         disabled: item.disabled
       }"
+      :title="isCollapse ? item.name : undefined"
       @click="handleMenuClick(item)"
     >
       <div class="menu-icon">
