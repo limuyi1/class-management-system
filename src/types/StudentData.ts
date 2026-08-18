@@ -1,3 +1,4 @@
+/** 学生数据核心类型定义 */
 import { NAME_PROP, STUDENT_ID_PROP } from '@/constants'
 
 /**

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 未安排学生面板 — 搜索、展示未安排学生并处理拖拽/选中交互 */
 import { computed, shallowRef } from 'vue'
 
 import type { StudentSourceStudentType } from '@/types/StudentSource'
@@ -11,6 +12,7 @@ interface UnassignedStudentPanelPropsType {
   completeDescription?: string
 }
 
+/** 空状态类型：搜索无结果 / 全部安排完成 / 无可安排学生 */
 type EmptyStateType = 'search' | 'complete' | 'no-students'
 
 const props = withDefaults(defineProps<UnassignedStudentPanelPropsType>(), {
@@ -31,13 +33,16 @@ const emit = defineEmits<{
 }>()
 
 const search = shallowRef('')
+/** 去掉首尾空格的搜索关键词 */
 const normalizedSearch = computed(() => search.value.trim())
+/** 按姓名过滤未安排学生 */
 const filteredStudents = computed(() =>
   normalizedSearch.value
     ? props.students.filter((student) => student.name.includes(normalizedSearch.value))
     : props.students
 )
 
+/** 根据列表与搜索状态推导当前空状态 */
 const emptyState = computed<EmptyStateType | null>(() => {
   if (filteredStudents.value.length) return null
   if (normalizedSearch.value) return 'search'
@@ -45,24 +50,31 @@ const emptyState = computed<EmptyStateType | null>(() => {
   return 'complete'
 })
 
+/** 空状态标题文案 */
 const emptyTitle = computed(() => {
   if (emptyState.value === 'search') return `没有找到“${normalizedSearch.value}”`
   if (emptyState.value === 'no-students') return '暂无可安排学生'
   return '全部安排完成'
 })
 
+/** 空状态说明文案 */
 const emptyDescription = computed(() => {
   if (emptyState.value === 'search') return '换个关键词，或清除当前搜索'
   if (emptyState.value === 'no-students') return '导入名单后，学生将在这里显示'
   return props.completeDescription
 })
 
+/** 空状态图标 */
 const emptyIcon = computed(() => {
   if (emptyState.value === 'search') return 'magnifying-glass'
   if (emptyState.value === 'no-students') return 'user-group'
   return 'check'
 })
 
+/**
+ * 获取学生姓名的首字，作为头像占位。
+ * @param name - 学生姓名
+ */
 function getStudentInitial(name: string): string {
   return name.trim().slice(0, 1) || '生'
 }

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语预览卡片
+ * 按与导出 PDF 同源的排版规则渲染单页表格，支持激活高亮与行点击。
+ */
 import { computed } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
@@ -35,6 +39,12 @@ const props = withDefaults(defineProps<EvaluationPreviewCardPropsType>(), {
   })
 })
 
+/**
+ * 判断学生是否为当前激活项。
+ *
+ * @param student 单元格对应的学生数据
+ * @returns 是否高亮
+ */
 const isActiveStudent = (student: Record<string, unknown> | undefined) => {
   if (!student || props.suppressActiveState || !props.activeStudentId) return false
   return student.studentId === props.activeStudentId
@@ -91,10 +101,17 @@ const tableStyle = computed(() => ({
   marginLeft: `${props.pageInfo.tableOffsetX}px`
 }))
 
+/** 生成正文区域样式，字体大小取自适应排版结果 */
 const getCommentBodyStyle = (layout: AdaptiveEvaluationCommentLayoutResultType) => ({
   fontSize: `${layout.fontSizePx}px`
 })
 
+/**
+ * 生成单行正文样式，段首缩进行会额外设置左内边距。
+ *
+ * @param layout 自适应排版结果
+ * @param indent 是否为段首缩进行
+ */
 const getAdaptiveCommentLineStyle = (
   layout: AdaptiveEvaluationCommentLayoutResultType,
   indent: boolean

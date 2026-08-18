@@ -15,12 +15,15 @@ import {
 } from '@/views/overview/services/dashboard/helpers'
 import type { StudentMetricType } from '@/views/overview/services/dashboard/types'
 
+/** 统计低于及格线的成绩次数 */
 const scoresToHitCount = (scores: number[], passLine: number): number =>
   scores.filter((score) => score < passLine).length
 
+/** 判断走势方向是否为下行（含波动下行） */
 const isDownwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
   direction === 'down' || direction === 'volatileDown'
 
+/** 判断走势方向是否为上行（含波动上行） */
 const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
   direction === 'up' || direction === 'volatileUp'
 

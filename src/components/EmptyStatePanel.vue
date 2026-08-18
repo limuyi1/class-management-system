@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+/**
+ * 空状态面板组件。
+ *
+ * 当列表或区域暂无数据时，用于展示图标、标题、说明文案与可选的主操作按钮。
+ */
 interface Props {
   /** FontAwesome solid 图标名 */
   icon: string

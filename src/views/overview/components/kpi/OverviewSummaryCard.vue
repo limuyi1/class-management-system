@@ -12,6 +12,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 是否处于“待分析”占位状态 */
 const isPendingAnalysis = computed(() => props.card.value === '待分析')
 </script>
 

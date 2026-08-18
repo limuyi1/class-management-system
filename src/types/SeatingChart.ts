@@ -1,3 +1,4 @@
+/** 座位表模块的类型定义 */
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 
 /** 座位表第一列朝向：左侧靠墙 / 右侧靠墙 */

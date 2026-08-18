@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 座位表弹窗通用头部 — 展示图标、标题与说明，并支持主题色调 */
 withDefaults(defineProps<{
   icon: string
   title: string

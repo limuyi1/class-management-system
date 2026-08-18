@@ -1,3 +1,5 @@
+/** Excel 学生、成绩与评语导入相关的类型定义 */
+
 /** Excel 导入模式 */
 export type ExcelImportModeType = 'initial' | 'score' | 'comment'
 

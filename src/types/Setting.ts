@@ -1,3 +1,5 @@
+/** 表格列、标签分类与标签数据等设置相关类型定义 */
+
 /** 表格列配置项，用于成绩表头、评语表头等动态列的元信息 */
 export interface SettingType {
   /** 列的数据字段名（prop），对应 StudentDataType 中的动态键 */

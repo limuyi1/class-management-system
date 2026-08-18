@@ -1,3 +1,4 @@
+/** 评语 PDF 导出相关的类型定义 */
 import type { EvaluationTableAlignType, ConfigurationType } from '@/types/Configuration'
 import type { PagesEnum } from '@/types/Common'
 import type { StudentDataType } from '@/types/StudentData'

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 题目原始图片区 — 上传、裁剪、预览与移除单张原始图片 */
 import { ref } from 'vue'
 import { ElFormItem, ElButton, ElImageViewer } from 'element-plus'
 import { ElMessage } from 'element-plus'
@@ -21,6 +22,7 @@ const cropperImageSrc = ref('')
 const imagePreviewVisible = ref(false)
 const imagePreviewUrl = ref('')
 
+/** 选择图片文件并打开裁剪器，仅允许上传一张原始图片 */
 const handleAddImage = () => {
   if (props.images.length >= 1) {
     ElMessage.warning('题目图片只能上传一张')
@@ -56,16 +58,25 @@ const handleCropConfirm = (croppedBase64: string) => {
   emit('update:images', [...props.images, croppedBase64])
 }
 
+/** 取消裁剪 */
 const handleCropCancel = () => {
   cropperVisible.value = false
 }
 
+/**
+ * 移除指定位置的图片
+ * @param index - 图片下标
+ */
 const handleRemoveImage = (index: number) => {
   const newImages = [...props.images]
   newImages.splice(index, 1)
   emit('update:images', newImages)
 }
 
+/**
+ * 点击图片打开大图预览
+ * @param index - 图片下标
+ */
 const handleImageClick = (index: number) => {
   const img = props.images[index]
   imagePreviewUrl.value = `data:image/jpeg;base64,${img}`

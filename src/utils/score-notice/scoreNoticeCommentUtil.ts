@@ -8,6 +8,8 @@ export const normalizeScoreNoticeComment = (comment: string): string =>
  * 返回不能直接发送给家长的评语原因。
  *
  * 成绩通知只展示等级，因此禁止出现具体分数、百分比和排名；同时限制长度，避免版面溢出。
+ * @param comment - 评语内容
+ * @returns 校验不通过的原因列表，空数组表示可通过
  */
 export const getScoreNoticeCommentValidationReasons = (comment: string): string[] => {
   const reasons: string[] = []

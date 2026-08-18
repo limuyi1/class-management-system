@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩通知单预览
+ * 按科目数量自适应布局，渲染等级/分数展示与教师评语。
+ */
 import { computed, ref } from 'vue'
 
 import commentBoxCornerUrl from '@/assets/score-notice/comment-box-corner-2x.png'
@@ -35,23 +39,28 @@ interface Props {
 const props = defineProps<Props>()
 const reportElement = ref<HTMLElement | null>(null)
 
+/** 依据科目数量计算每行列数 */
 const columnCount = computed(() => {
   if (props.subjects.length <= 5) return Math.max(props.subjects.length, 1)
   if (props.subjects.length <= 10) return 5
   return 6
 })
+/** 依据科目数量选择标准/紧凑/密集布局 */
 const subjectLayout = computed(() => {
   if (props.subjects.length <= 5) return 'standard'
   if (props.subjects.length <= 10) return 'compact'
   return 'dense'
 })
+/** 计算科目卡片宽度并注入 CSS 变量 */
 const subjectGridStyle = computed(() => {
   const columns = columnCount.value
   const gap = subjectLayout.value === 'standard' ? 22 : subjectLayout.value === 'compact' ? 14 : 10
   const cardWidth = `calc((100% - ${(columns - 1) * gap}px) / ${columns})`
   return { '--subject-card-width': cardWidth }
 })
+/** 评语去掉空白后的字符数，用于判断是否启用长文样式 */
 const commentLength = computed(() => (props.student?.comment || '').replace(/\s/g, '').length)
+/** 依据标题长度返回字体缩放类名 */
 const titleLengthClass = computed(() => {
   const length = (props.title || '考试成绩通知').replace(/\s/g, '').length
   if (length > 16) return 'score-report__title--long'
@@ -69,6 +78,11 @@ const gradeRibbonUrls = [
   gradeRibbonOliveUrl
 ]
 
+/**
+ * 获取科目展示值：分数模式取原始分数，等级模式取等级。
+ * @param subject 科目
+ * @returns 展示字符串
+ */
 const getDisplayValue = (subject: ScoreNoticeSubjectType): string => {
   if (!props.student) return '--'
   if (props.mode === ScoreNoticeModeEnum.Score) {
@@ -77,6 +91,7 @@ const getDisplayValue = (subject: ScoreNoticeSubjectType): string => {
   return props.student.gradeValues[subject.id] || '--'
 }
 
+/** 依据分数位数返回字号缩放类名 */
 const getScoreLengthClass = (subject: ScoreNoticeSubjectType): string => {
   if (props.mode !== ScoreNoticeModeEnum.Score) return ''
   const length = getDisplayValue(subject).length
@@ -85,8 +100,10 @@ const getScoreLengthClass = (subject: ScoreNoticeSubjectType): string => {
   return ''
 }
 
+/** 依据索引循环取用彩带图片 */
 const getGradeRibbonUrl = (index: number): string => gradeRibbonUrls[index % gradeRibbonUrls.length]
 
+/** 将等级转换为中文评语描述 */
 const getGradeCaption = (subject: ScoreNoticeSubjectType): string => {
   const grade = props.student?.gradeValues[subject.id]
   if (grade === 'A') return '表现优秀'
@@ -95,6 +112,7 @@ const getGradeCaption = (subject: ScoreNoticeSubjectType): string => {
   return '暂无数据'
 }
 
+/** 依据科目名称匹配对应的图标 */
 const getSubjectIcon = (label: string): string => {
   if (label.includes('语文')) return 'book-open'
   if (label.includes('数学')) return 'calculator'

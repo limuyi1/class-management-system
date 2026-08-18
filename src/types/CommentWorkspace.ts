@@ -1,3 +1,4 @@
+/** 评语工作区相关的类型定义 */
 import type { StudentDataType } from '@/types/StudentData'
 import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 

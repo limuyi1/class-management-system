@@ -73,11 +73,18 @@ const totalCount = computed(() => students.value.length)
 const hasWorkspaceData = computed(() => totalCount.value > 0)
 const completedCount = computed(() => Math.max(0, totalCount.value - notCompletedCount.value))
 const activeStudentId = ref('')
+/**
+ * 归一化预览缩放模式，非法值统一回退为 100%。
+ *
+ * @param value 配置中的预览模式
+ * @returns 归一化后的模式
+ */
 const normalizePreviewMode = (value: string): PreviewModeType => {
   if (value === 'fit' || value === '50' || value === '75' || value === '100' || value === '125') {
     return value
   }
 
+  // 实际尺寸(actual)暂不支持，统一回退为 100%
   return value === 'actual' ? '100' : '100'
 }
 
@@ -124,6 +131,7 @@ const autoFocus = () => {
   toolPanelViewRef.value?.autoFocus()
 }
 
+/** 分发导出命令：PDF 或 Excel（Excel 源走临时数据导出，系统源走文字版导出） */
 const handleExportAction = (command: string | number | object) => {
   if (command === 'pdf') {
     void handleExportTextPDF()
@@ -179,10 +187,12 @@ const handleCardClick = (row: StudentDataType) => {
   toolPanelViewRef.value?.fillStudentData(row)
 }
 
+/** 记录当前激活学生 ID，用于预览卡片高亮 */
 const handleActiveStudentChange = (row: StudentDataType | null) => {
   activeStudentId.value = row?.studentId || ''
 }
 
+/** 弹窗确认后清空当前数据源下的所有评语 */
 const handleResetComments = async () => {
   const existingCount = students.value.filter((item) => item.comment && item.comment.trim()).length
 
@@ -222,6 +232,7 @@ const resumeEditingStudent = async (studentId: string) => {
   return true
 }
 
+// 支持从外部通过 ?resume-edit=1&student-id=xx 直接恢复编辑
 watch(
   () => [route.query['resume-edit'], route.query['student-id'], !!toolPanelViewRef.value] as const,
   async ([resumeEdit, studentId, ready]) => {
@@ -235,6 +246,7 @@ watch(
   { immediate: true }
 )
 
+// 数据源切换后清空激活学生并重置表单
 watch(source, async () => {
   activeStudentId.value = ''
   await nextTick()

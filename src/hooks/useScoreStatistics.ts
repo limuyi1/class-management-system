@@ -34,7 +34,9 @@ export interface ScoreStatisticsType {
 export type ScoreStudentType = StudentDataType
 
 interface UseScoreStatisticsOptions {
+  /** 学生列表 */
   students: ComputedRef<StudentDataType[]>
+  /** 当前选中的成绩列 prop */
   scoreProp: ComputedRef<string | null>
 }
 
@@ -47,6 +49,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
 
   // 低分阈值默认 60 分，支持平均分或自定义两种模式
   const threshold = ref(60)
+  /** 低分阈值模式：平均分 / 自定义 */
   const thresholdMode = ref<'average' | 'custom'>('average')
 
   /** 从学生数据中提取数值型分数 */
@@ -108,6 +111,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
       { label: '0-9分', min: 0, max: 9, color: '#450a0a' }
     ]
 
+    /** 统计指定分数区间内的人数和学生名单（按分数降序） */
     const getRangeData = (range: { min: number; max: number }) => {
       const count = allScores.filter((s) => s >= range.min && s <= range.max).length
       const studentList = students.value
@@ -170,6 +174,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     }
   })
 
+  /** 当前生效的低分阈值（平均分模式取平均分，自定义模式取设定值） */
   const effectiveThreshold = computed(() => {
     // 低分阈值支持两种模式：平均分 / 自定义固定值
     if (thresholdMode.value === 'average') {

@@ -272,7 +272,11 @@ export const getEvaluationTextLayoutConstantsPx = () => ({
   pxToMm: PX_TO_MM
 })
 
-/** 计算页脚块的高度（像素），取落款、班主任、署名三者字号的最大行高 */
+/**
+ * 计算页脚块的高度（像素），取落款、班主任、署名三者字号的最大行高。
+ * @param configuration - 应用配置
+ * @returns 页脚块高度（像素）
+ */
 export const getFooterBlockHeightPx = (configuration: ConfigurationType) => {
   return Math.max(
     configuration.sealFontSize * FOOTER_LINE_HEIGHT_RATIO,

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 题目列表 — 展示当前文件夹题目并支持多选、编辑、删除、收藏与详情预览 */
 import { ref, computed, watch } from 'vue'
 import {
   ElCheckbox,
@@ -27,8 +28,10 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+/** 本地维护的已选题目 id 列表，与父组件保持同步 */
 const localSelectedIds = ref<string[]>([])
 
+// 父组件选中列表变化时同步到本地
 watch(
   () => props.selectedIds,
   (newIds) => {
@@ -43,8 +46,13 @@ const isAllSelected = computed(() => {
   return props.questions.length > 0 && localSelectedIds.value.length === props.questions.length
 })
 
+/** 判断复选框变更值是否为勾选态 */
 const isCheckedValue = (value: string | number | boolean) => value === true || value === 1
 
+/**
+ * 全选或取消全选
+ * @param checked - 复选框勾选状态
+ */
 const handleSelectAll = (checked: string | number | boolean) => {
   if (isCheckedValue(checked)) {
     localSelectedIds.value = props.questions.map((q) => q.id)
@@ -54,6 +62,11 @@ const handleSelectAll = (checked: string | number | boolean) => {
   emit('selection-change', localSelectedIds.value)
 }
 
+/**
+ * 切换单道题目的选中状态
+ * @param id - 题目 id
+ * @param checked - 复选框勾选状态
+ */
 const toggleSelect = (id: string, checked: string | number | boolean) => {
   if (isCheckedValue(checked)) {
     if (!localSelectedIds.value.includes(id)) {
@@ -65,10 +78,18 @@ const toggleSelect = (id: string, checked: string | number | boolean) => {
   emit('selection-change', localSelectedIds.value)
 }
 
+/**
+ * 触发编辑题目事件
+ * @param question - 待编辑的题目
+ */
 const handleEdit = (question: WrongQuestion) => {
   emit('edit', question)
 }
 
+/**
+ * 删除题目（二次确认后触发删除事件）
+ * @param question - 待删除的题目
+ */
 const handleDelete = async (question: WrongQuestion) => {
   try {
     await ElMessageBox.confirm(`确定要删除这道错题吗？`, '提示', {
@@ -82,19 +103,37 @@ const handleDelete = async (question: WrongQuestion) => {
   }
 }
 
+/**
+ * 触发收藏/取消收藏事件
+ * @param id - 题目 id
+ */
 const handleToggleFavorite = (id: string) => {
   emit('toggle-favorite', id)
 }
 
+/**
+ * 打开题目详情弹窗
+ * @param question - 待预览的题目
+ */
 const handlePreview = (question: WrongQuestion) => {
   showDetail(question)
 }
 
+/**
+ * 将难度等级转换为星级字符串
+ * @param difficulty - 难度等级（1-5）
+ * @returns 星级字符串
+ */
 const getDifficultyStars = (difficulty?: number) => {
   const level = difficulty || 3
   return '★'.repeat(level) + '☆'.repeat(5 - level)
 }
 
+/**
+ * 将难度等级映射为 Element Tag 的类型
+ * @param difficulty - 难度等级（1-5）
+ * @returns Tag 类型
+ */
 const getDifficultyType = (difficulty?: number) => {
   const level = difficulty || 3
   if (level <= 2) return 'success'
@@ -102,12 +141,21 @@ const getDifficultyType = (difficulty?: number) => {
   return 'danger'
 }
 
+/**
+ * 格式化日期为中文日期
+ * @param dateStr - 日期字符串
+ * @returns 格式化后的日期，空值返回空串
+ */
 const formatDate = (dateStr: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
   return date.toLocaleDateString('zh-CN')
 }
 
+/** 将 Markdown/公式内容渲染为 HTML
+ * @param content - 原始内容
+ * @returns 渲染后的 HTML
+ */
 const renderContent = (content: string) => {
   if (!content) return ''
   return renderMarkdown(content)
@@ -116,11 +164,16 @@ const renderContent = (content: string) => {
 const detailVisible = ref(false)
 const currentQuestion = ref<WrongQuestion | null>(null)
 
+/**
+ * 打开题目详情弹窗
+ * @param question - 待展示的题目
+ */
 const showDetail = (question: WrongQuestion) => {
   currentQuestion.value = question
   detailVisible.value = true
 }
 
+/** 关闭详情弹窗并清空当前题目 */
 const closeDetail = () => {
   detailVisible.value = false
   currentQuestion.value = null
@@ -129,6 +182,10 @@ const closeDetail = () => {
 const imagePreviewVisible = ref(false)
 const imagePreviewUrl = ref('')
 
+/**
+ * 打开题目图片大图预览
+ * @param img - base64 图片数据
+ */
 const handleImagePreview = (img: string) => {
   imagePreviewUrl.value = `data:image/png;base64,${img}`
   imagePreviewVisible.value = true

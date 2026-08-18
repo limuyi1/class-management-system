@@ -18,6 +18,11 @@ const emit = defineEmits<{
   change: [file: UploadFile]
 }>()
 
+/**
+ * 透传 upload 的 change 事件
+ * @param file - 被选择的文件
+ * @param files - 当前文件列表（本组件不处理，仅透传单个文件）
+ */
 const handleChange = (file: UploadFile, files: UploadFiles): void => {
   void files
   emit('change', file)

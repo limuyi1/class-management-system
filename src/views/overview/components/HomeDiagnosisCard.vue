@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** AI 学情诊断卡片 — 展示诊断文本与生成状态，并支持弹窗查看完整分析 */
 import { computed, ref } from 'vue'
 
 import { renderMarkdown } from '@/utils/katexUtil'
@@ -107,6 +108,7 @@ const diagnosisPrimaryActionLabel = computed(() => {
   return hasAnalysisText.value ? '重新生成' : '生成分析'
 })
 
+/** 打开完整分析弹窗 */
 const openAnalysisDialog = () => {
   analysisDialogVisible.value = true
 }

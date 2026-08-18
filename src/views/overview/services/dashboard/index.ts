@@ -5,6 +5,10 @@ import type { BuildOverviewDashboardDataOptions } from '@/views/overview/service
 /**
  * 班级总览数据构建总入口。
  * 页面和测试只依赖这个入口，内部拆分可继续演进而不影响调用方。
+ * 先分别计算单元与学生的统计画像，再统一组装为最终展示数据。
+ *
+ * @param options 构建入参
+ * @returns 组装后的总览数据
  */
 export const buildDashboardData = (options: BuildOverviewDashboardDataOptions) => {
   const unitMetrics = buildUnitMetrics(options.students, options.unitHeaders, options.config)

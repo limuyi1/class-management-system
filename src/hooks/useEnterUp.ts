@@ -18,6 +18,9 @@ export const useEnterUp = (nameProperty: string, fn: EnterUpCallback, throttleMs
     const targetName = target?.name ?? null
 
     if (event.key === 'Enter' && targetName === nameProperty) {
+      // 输入法组合中（如拼音选词）的回车不应触发
+      if (event.isComposing) return
+
       // 防抖：上一次回调尚未完成时忽略新触发
       if (isExecuting.value) return
 

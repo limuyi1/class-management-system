@@ -1,3 +1,5 @@
+/** AI 配置模块的类型定义 */
+
 /** AI 模型提供商枚举 */
 export enum AIModelTypeEnum {
   /** OpenAI */

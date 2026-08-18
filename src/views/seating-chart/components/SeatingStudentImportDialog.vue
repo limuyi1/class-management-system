@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 座位表 Excel 名单导入弹窗 — 解析文件、确认表头行与姓名列并生成名单快照 */
 import { shallowRef, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
@@ -21,24 +22,32 @@ const { fileName, headerRowIndex, loading, parsedData, preview, parseFile, reset
   useExcelPreviewImport({ errorLogLabel: '读取座位表 Excel' })
 const nameColumn = shallowRef('')
 
+/** 从表头中猜测姓名列，匹配常用姓名列名 */
 const findSuggestedNameColumn = (): string =>
   parsedData.value.header.find((header) =>
     ['姓名', '学生姓名', '学生', '名字'].some((pattern) => header.includes(pattern))
   ) || ''
 
+/** 根据当前表头重置姓名列选择 */
 const resetSelection = (): void => {
   nameColumn.value = findSuggestedNameColumn()
 }
 
+/** 清空文件与姓名列，恢复弹窗初始状态 */
 const resetDialog = (): void => {
   reset()
   nameColumn.value = ''
 }
 
+/**
+ * 处理文件选择，解析成功后自动选中姓名列。
+ * @param file - 上传的文件对象
+ */
 const handleFileChange = async (file: UploadFile): Promise<void> => {
   if (await parseFile(file)) resetSelection()
 }
 
+/** 校验并确认导入，生成 Excel 学生来源并关闭弹窗 */
 const handleConfirm = (): void => {
   if (!preview.value || !fileName.value) {
     ElMessage.warning('请先选择 Excel 文件')
@@ -59,10 +68,12 @@ const handleConfirm = (): void => {
   visible.value = false
 }
 
+// 表头行变化时重新猜测姓名列
 watch(headerRowIndex, () => {
   if (preview.value) resetSelection()
 })
 
+// 打开弹窗时重置到初始状态
 watch(visible, (value) => {
   if (value) resetDialog()
 })

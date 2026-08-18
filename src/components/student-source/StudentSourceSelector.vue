@@ -24,6 +24,10 @@ const emit = defineEmits<{
   upload: []
 }>()
 
+/**
+ * 处理下拉菜单命令，仅在具备对应数据时才切换来源
+ * @param command - 菜单命令值（system / excel / upload）
+ */
 const handleCommand = (command: string | number | object): void => {
   if (command === 'system') {
     if (props.systemStudentCount > 0) emit('change', 'system')

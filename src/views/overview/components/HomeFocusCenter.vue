@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学生观察站 — 以分组标签页展示四类关注学生，并处理空态与展开状态 */
 import { computed, reactive, watchEffect } from 'vue'
 
 import OverviewFocusGroupPanel from '@/views/overview/components/focus/OverviewFocusGroupPanel.vue'
@@ -45,18 +46,27 @@ const emptyDescription = computed(() =>
         : '暂无符合条件的学生'
 )
 
+/** 当前激活分组是否处于展开状态，展开时撑满剩余高度 */
 const shouldFillRemainingSpace = computed(() =>
   Boolean(state.expandedByGroup[state.activeGroupKey])
 )
 
+/** 当前激活分组对应的语义色调，用于给卡片边框和标题着色 */
 const activeGroupTone = computed(() => {
   return props.focusGroups.find((group) => group.key === state.activeGroupKey)?.tone || 'info'
 })
 
+/**
+ * 记录某个分组的展开状态，供父级判断是否需要撑满剩余空间。
+ *
+ * @param groupKey 分组 key
+ * @param expanded 是否展开
+ */
 const handleExpandChange = (groupKey: string, expanded: boolean) => {
   state.expandedByGroup[groupKey] = expanded
 }
 
+// 同步分组数据变化：重置失效的激活分组与展开状态，避免残留脏状态
 watchEffect(() => {
   const visibleGroup = props.focusGroups.find((group) => group.sections.length > 0)
 

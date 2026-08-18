@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 关键学生列表 — 展示立即关注、值得鼓励、波动观察三类推荐学生 */
 import OverviewStudentRow from '@/views/overview/components/OverviewStudentRow.vue'
 
 import type { DashboardFocusGroupKeyType, DashboardKeyStudentListType } from '@/types/HomeDashboard'
@@ -29,6 +30,7 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
   volatilityWatch: 'warning'
 }
 
+/** 各分组空态下的引导文案 */
 const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
   attention: '录入成绩后，系统会自动筛选临界、持续低分、明显下滑的学生。',
   encouragement: '录入多次成绩后，系统会识别进步、低位回升和高分稳定学生。',

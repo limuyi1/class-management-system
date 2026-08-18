@@ -15,6 +15,7 @@ import { StudentReportExportDialog } from '@/components/student-report'
 import ScoreTableView from '@/views/score/components/ScoreTableView.vue'
 import InputDataView from '@/views/score/components/InputDataView.vue'
 import ScoreAnalysisView from '@/views/score/components/ScoreAnalysisView.vue'
+import ScoreRecognitionPreviewDialog from '@/views/score/components/ScoreRecognitionPreviewDialog.vue'
 import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendPanel.vue'
 import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 import { useDataSourceStore } from '@/stores/data-source'
@@ -24,9 +25,10 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUtil'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
-import { NAME_PROP } from '@/constants'
+import { buildScoreRecognitionPreview } from '@/utils/scoreRecognitionUtil'
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
+import type { ScoreRecognitionPreviewRowType } from '@/utils/scoreRecognitionUtil'
 
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
@@ -53,11 +55,14 @@ const scoreStage = computed<ScorePageStageType>(() => {
 
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
+const recognitionPreviewVisible = ref(false)
+const recognitionPreviewRows = ref<ScoreRecognitionPreviewRowType[]>([])
 const trendDrawerVisible = ref(false)
 const reportDialogVisible = ref(false)
 const currentStudent = ref<StudentDataType | null>(null)
 const router = useRouter()
 
+/** 确保当前录入科目始终指向一个有效单元 */
 const ensureDefaultScoreTab = () => {
   const hasCurrentScoreTab = scoreColumns.value.some((item) => item.prop === configuration.inputScoreTab)
   if (!hasCurrentScoreTab && scoreColumns.value.length) {
@@ -76,6 +81,7 @@ const autoFocus = () => {
   inputDataRef.value?.autoFocus()
 }
 
+/** 跳转到单元配置页 */
 const goToUnitSetting = () => {
   router.push({
     path: '/setting',
@@ -85,6 +91,7 @@ const goToUnitSetting = () => {
   })
 }
 
+/** 清空当前科目的所有成绩（需二次确认） */
 const resetScore = () => {
   if (!configuration.inputScoreTab) {
     ElMessage.warning('请先选择当前录入科目')
@@ -103,6 +110,7 @@ const resetScore = () => {
   })
 }
 
+/** 选择本地图片并打开裁剪器，进入 AI 识图流程 */
 const handleUploadClick = () => {
   // AI 识图必须先有写入目标单元，再检查 AI 配置。
   if (!hasUnits.value) {
@@ -144,6 +152,10 @@ const handleUploadClick = () => {
   input.click()
 }
 
+/**
+ * 处理裁剪确认：调用 AI 识图并构建预览结果。
+ * @param croppedBase64 裁剪后的图片 base64
+ */
 const handleCropConfirm = async (croppedBase64: string) => {
   cropperVisible.value = false
 
@@ -169,29 +181,13 @@ const handleCropConfirm = async (croppedBase64: string) => {
       return
     }
 
-    let matchedCount = 0
-    let notMatched: string[] = []
-
-    for (const result of results) {
-      const matchedStudents = originList.value.filter(
-        (item: StudentDataType) => String(item[NAME_PROP] || '') === result.name
-      )
-      const matchedStudentId = matchedStudents.length === 1 ? matchedStudents[0].studentId : null
-      const student = matchedStudentId ? dataStore.getStudentById(matchedStudentId) : undefined
-
-      if (student && result.score !== null) {
-        student[scoreTab] = result.score
-        matchedCount++
-      } else if (result.name) {
-        notMatched.push(result.name)
-      }
-    }
-
-    if (notMatched.length > 0) {
-      ElMessage.warning(`已匹配 ${matchedCount} 人，未找到：${notMatched.join('、')}`)
-    } else {
-      ElMessage.success(`成功识别并填充 ${matchedCount} 个成绩`)
-    }
+    recognitionPreviewRows.value = buildScoreRecognitionPreview(
+      results,
+      originList.value,
+      scoreTab,
+      configuration.scoreFullMark
+    )
+    recognitionPreviewVisible.value = true
   } catch (error) {
     console.error('识别成绩失败:', error)
     ElMessage.error('识别失败：' + (error as Error).message)
@@ -200,16 +196,52 @@ const handleCropConfirm = async (croppedBase64: string) => {
   }
 }
 
+/** 用户确认预览后，写入勾选且有效的成绩 */
+const handleRecognitionConfirm = (rows: ScoreRecognitionPreviewRowType[]) => {
+  const scoreTab = configuration.inputScoreTab
+  if (!scoreTab) return
+
+  let writtenCount = 0
+  for (const row of rows) {
+    if (!row.matched || !row.valid || row.score === null || !row.studentId) continue
+    const student = dataStore.getStudentById(row.studentId)
+    if (student) {
+      student[scoreTab] = row.score
+      writtenCount++
+    }
+  }
+
+  const notMatched = recognitionPreviewRows.value
+    .filter((row) => !row.matched)
+    .map((row) => row.name)
+  const invalid = recognitionPreviewRows.value
+    .filter((row) => row.matched && !row.valid)
+    .map((row) => row.name)
+
+  const warnings: string[] = []
+  if (notMatched.length > 0) warnings.push(`未匹配：${notMatched.join('、')}`)
+  if (invalid.length > 0) warnings.push(`分数无效：${invalid.join('、')}`)
+
+  if (warnings.length > 0) {
+    ElMessage.warning(`已写入 ${writtenCount} 个成绩；${warnings.join('；')}`)
+  } else {
+    ElMessage.success(`成功写入 ${writtenCount} 个成绩`)
+  }
+}
+
+/** 取消裁剪 */
 const handleCropCancel = () => {
   cropperVisible.value = false
 }
 
+/** 查看学生趋势分析抽屉 */
 const handleInspectStudent = (student: StudentDataType) => {
   currentStudent.value = student
   focusStudent(student.studentId)
   trendDrawerVisible.value = true
 }
 
+/** 从趋势面板发起学生报告导出 */
 const handleExportReportFromTrend = (studentId: string) => {
   const student = dataStore.getStudentById(studentId)
   if (!student) return
@@ -287,6 +319,12 @@ defineExpose({ autoFocus })
       v-model:visible="reportDialogVisible"
       :student="currentStudent"
       :score-columns="scoreColumns"
+    />
+
+    <score-recognition-preview-dialog
+      v-model:visible="recognitionPreviewVisible"
+      :rows="recognitionPreviewRows"
+      @confirm="handleRecognitionConfirm"
     />
   </div>
 </template>

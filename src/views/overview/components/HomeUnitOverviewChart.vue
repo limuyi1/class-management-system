@@ -29,6 +29,7 @@ const emit = defineEmits<{
 
 const averageScoreColor = '#7c3aed'
 
+/** 根据页面阶段生成空态面板的图标、文案与跳转动作 */
 const emptyState = computed(() => {
   if (props.stage === 'noUnits') {
     return {

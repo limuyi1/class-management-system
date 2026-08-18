@@ -1,3 +1,7 @@
+/**
+ * 座位表导出工具
+ * 负责将座位表预览渲染为高清 PNG 并导出为 PNG/PDF 文件
+ */
 import domtoimage from 'dom-to-image'
 import { PDFDocument } from 'pdf-lib'
 
@@ -31,6 +35,9 @@ export function formatSeatingChartExportDate(date: Date = new Date()): string {
 
 /**
  * 按纸张节点的自然尺寸生成高清 PNG，避免受到屏幕预览缩放状态影响。
+ * @param element - 要渲染的纸张预览节点
+ * @param scale - 导出倍率
+ * @returns 生成的 PNG Blob
  */
 export async function renderSeatingChartPngBlob(element: HTMLElement, scale = 2): Promise<Blob> {
   await document.fonts?.ready
@@ -55,6 +62,8 @@ export async function renderSeatingChartPngBlob(element: HTMLElement, scale = 2)
 
 /**
  * 将已经按纸张渲染的 PNG 铺满嵌入 PDF，确保图片与 PDF 的版式完全一致。
+ * @param options - PDF 导出参数
+ * @returns 生成的 PDF Blob
  */
 export async function createSeatingChartPdf(options: SeatingChartPdfOptionsType): Promise<Blob> {
   const pdfDoc = await PDFDocument.create()

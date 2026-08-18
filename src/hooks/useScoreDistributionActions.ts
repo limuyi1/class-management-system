@@ -69,7 +69,10 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       })
   }
 
-  /** 将低分学生列表导出为图片 */
+  /**
+   * 将低分学生列表导出为图片
+   * @param mode - 导出模式（含分数 / 仅姓名）
+   */
   const downloadImage = async (mode: 'withScore' | 'nameOnly') => {
     const students = [...belowThresholdStudents.value].sort(
       (a, b) => (getScore(b) || 0) - (getScore(a) || 0)

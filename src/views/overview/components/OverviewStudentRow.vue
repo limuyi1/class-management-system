@@ -42,6 +42,7 @@ const getAvatarText = (name: string) => {
   return trimmedName.slice(0, 1).toUpperCase()
 }
 
+/** 走势方向对应的中文标签 */
 const directionLabelMap = {
   up: '上行',
   down: '下行',
@@ -49,6 +50,7 @@ const directionLabelMap = {
   volatileDown: '波动下行'
 } as const
 
+/** 走势方向对应的图标名 */
 const directionIconNameMap = {
   up: 'arrow-trend-up',
   down: 'arrow-trend-down',

@@ -1,15 +1,20 @@
 <script setup lang="ts">
+/**
+ * 数据导入导出页：提供 .dexie 全量备份导出/恢复、Excel 学生初始化/增量成绩导入，
+ * 以及清空全部数据的能力，并展示最近备份状态。
+ */
 import { computed, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, dayjs } from 'element-plus'
 
 import router from '@/router'
 import { useDataSourceStore } from '@/stores/data-source'
+import { useConfigurationStore } from '@/stores/configuration'
 import { useStudentDataImport } from '@/hooks/useStudentDataImport'
 import ExcelColumnConflictDialog from '@/components/ExcelColumnConflictDialog.vue'
 import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
-import { clearDatabase, exportDatabase, importDatabase } from '@/utils/backup'
+import { clearDatabase, exportDatabase, getDaysSinceBackup, importDatabase } from '@/utils/backup'
 import ImportActionMenu from '@/views/setting/components/import/ImportActionMenu.vue'
 import InitialImportDialog from '@/views/setting/components/import/InitialImportDialog.vue'
 import ImportProgress from './ImportProgress.vue'
@@ -22,7 +27,22 @@ const progressPercent = ref(0)
 
 const dataSourceStore = useDataSourceStore()
 const { students } = storeToRefs(dataSourceStore)
+/** 是否已有学生数据，决定导入按钮走初始化还是增量成绩 */
 const hasStudentData = computed(() => students.value.length > 0)
+
+const configurationStore = useConfigurationStore()
+const { lastBackupAt } = storeToRefs(configurationStore)
+/** 距离上次备份的天数 */
+const daysSinceBackup = computed(() => getDaysSinceBackup(lastBackupAt.value))
+/** 从未备份或超过 7 天未备份时视为逾期 */
+const backupOverdue = computed(
+  () => lastBackupAt.value === null || (daysSinceBackup.value ?? 0) >= 7
+)
+/** 上次备份时间的展示文本 */
+const backupTimeText = computed(() => {
+  if (!lastBackupAt.value) return '从未备份'
+  return dayjs(lastBackupAt.value).format('YYYY-MM-DD HH:mm')
+})
 
 const {
   excelFileInputRef,
@@ -44,10 +64,15 @@ const {
   resetExcelImport
 } = useStudentDataImport()
 
+/**
+ * 更新进度条百分比。
+ * @param percent - 进度值（0-100）
+ */
 const updateProgress = (percent: number) => {
   progressPercent.value = percent
 }
 
+/** 导出 .dexie 备份：先询问是否包含试卷排版数据，再执行导出 */
 const handleExport = async () => {
   let includePaperLayout = true
 
@@ -63,6 +88,7 @@ const handleExport = async () => {
       }
     )
   } catch (action) {
+    // 取消导出时不包含排版数据，关闭弹窗则直接中止
     if (action === 'cancel') {
       includePaperLayout = false
     } else {
@@ -79,6 +105,7 @@ const handleExport = async () => {
     await exportDatabase(updateProgress, includePaperLayout)
     progressPercent.value = 100
   } finally {
+    // 延迟 500ms 再关闭弹窗，便于用户看到 100% 的完成态
     window.setTimeout(() => {
       progressVisible.value = false
     }, 500)
@@ -86,6 +113,7 @@ const handleExport = async () => {
   }
 }
 
+/** 导入 .dexie 备份：确认覆盖后执行全量恢复，完成后跳转总览页 */
 const handleBackupImport = async (file: File) => {
   try {
     await ElMessageBox.confirm('导入将覆盖当前所有数据，确定要继续吗？', '确认导入', {
@@ -128,6 +156,7 @@ const handleImportFileChange = async (event: Event) => {
   await handleExcelFileChange(event)
 }
 
+/** 清空全部数据：二次确认后执行，完成后跳转工具页 */
 const handleClear = async () => {
   try {
     await ElMessageBox.confirm('确定要清空所有数据吗？此操作不可恢复！', '确认清空', {
@@ -165,6 +194,14 @@ const handleClear = async () => {
             <div class="action-label">导出数据</div>
             <div class="action-desc">
               将学生、配置、标签、错题本等数据导出为 .dexie 备份，可选试卷排版
+            </div>
+            <div class="backup-status" :class="{ 'is-overdue': backupOverdue }">
+              <font-awesome-icon
+                :icon="['solid', backupOverdue ? 'triangle-exclamation' : 'circle-check']"
+              />
+              <span v-if="lastBackupAt === null">从未备份，建议尽快备份</span>
+              <span v-else-if="backupOverdue">上次备份 {{ daysSinceBackup }} 天前，建议尽快备份</span>
+              <span v-else>上次备份：{{ backupTimeText }}</span>
             </div>
           </div>
           <el-button type="primary" size="large" :loading="exporting" @click="handleExport">

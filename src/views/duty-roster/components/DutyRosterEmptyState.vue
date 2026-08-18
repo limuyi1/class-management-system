@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 值日表空状态 — 选择安排方式与名单来源后创建值日表 */
 import { DutyRosterModeEnum } from '@/types/DutyRoster'
 
 import type { StudentSourceType } from '@/types/StudentSource'

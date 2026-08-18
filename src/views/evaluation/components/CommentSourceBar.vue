@@ -1,8 +1,13 @@
 <script setup lang="ts">
+/**
+ * 评语数据源选择栏
+ * 包装学生来源选择器，向上转发切换与上传事件。
+ */
 import StudentSourceSelector from '@/components/student-source/StudentSourceSelector.vue'
 
 import type { CommentWorkspaceSourceType } from '@/types/CommentWorkspace'
 
+/** 数据源选择栏的 Props */
 interface Props {
   source: CommentWorkspaceSourceType
   systemStudentCount: number
@@ -17,6 +22,11 @@ const emit = defineEmits<{
   upload: []
 }>()
 
+/**
+ * 处理来源切换命令；系统源无学生时不切换。
+ *
+ * @param command 来源命令
+ */
 const handleSourceCommand = (command: string): void => {
   if (command === 'system') {
     if (props.systemStudentCount > 0) emit('change', 'system')

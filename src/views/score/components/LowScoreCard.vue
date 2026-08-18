@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 低分学生预警卡片
+ * 展示低于阈值的学生名单，并支持下载名单图片。
+ */
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 

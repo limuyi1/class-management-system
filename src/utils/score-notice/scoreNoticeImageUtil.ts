@@ -1,8 +1,16 @@
+/**
+ * 成绩通知图片导出工具
+ * 负责将成绩通知预览渲染为 PNG，并支持下载与复制到剪贴板
+ */
 import domtoimage from 'dom-to-image'
 
 import { getEvaluationHandwriteFontDataUrl } from '@/utils/evaluation/evaluationHandwriteFontUtil'
 
-/** 清理文件名中的非法字符，空名称回退为"成绩通知" */
+/**
+ * 清理文件名中的非法字符，空名称回退为"成绩通知"。
+ * @param value - 原始文件名
+ * @returns 清理后的文件名
+ */
 export const sanitizeFileName = (value: string): string => {
   return value.replace(/[\\/:*?"<>|]/g, '_').trim() || '成绩通知'
 }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 随机排座模式弹窗 — 在“全部重排”与“补充空座位”之间选择 */
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
 defineProps<{

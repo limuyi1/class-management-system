@@ -47,12 +47,14 @@ const syncEditTagsQuery = async () => {
 watch(
   hasStudentData,
   async (hasData) => {
+    // 无学生数据时跳回工具页
     if (hasData) return
     await router.replace('/tools')
   },
   { immediate: true }
 )
 
+// 路由查询参数变化时触发标签编辑
 watch(
   () => route.query,
   () => {
@@ -61,6 +63,7 @@ watch(
   { immediate: true }
 )
 
+// 组件实例就绪后，补开此前暂存的标签编辑器
 watch(studentInfoRef, async (instance) => {
   if (!instance || !pendingTagEditorStudentId.value) return
 

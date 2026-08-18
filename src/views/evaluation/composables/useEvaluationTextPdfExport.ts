@@ -27,6 +27,11 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
   const textPdfExporting = ref(false)
   const textExcelExporting = ref(false)
 
+  /**
+   * 检查手写字体是否覆盖全部学生评语字符；缺字时弹窗确认是否继续导出。
+   *
+   * @returns 允许继续导出返回 true；用户取消或检查失败返回 false
+   */
   async function confirmUnsupportedGlyphs(): Promise<boolean> {
     try {
       const hasUnsupportedGlyphs = await hasUnsupportedEvaluationHandwriteGlyphs(
@@ -54,6 +59,9 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
     }
   }
 
+  /**
+   * 导出文字版 PDF：先校验学生与手写字体，成功后提示截断信息。
+   */
   async function handleExportTextPDF(): Promise<void> {
     if (!options.enabledStudents.value.length) {
       ElMessage.warning('没有可导出的学生期末评语')
@@ -93,6 +101,9 @@ export function useEvaluationTextPdfExport(options: UseEvaluationTextPdfExportOp
     }
   }
 
+  /**
+   * 导出文字版 Excel，成功后提示结果。
+   */
   async function handleExportTextExcel(): Promise<void> {
     if (!options.enabledStudents.value.length) {
       ElMessage.warning('没有可导出的学生期末评语')

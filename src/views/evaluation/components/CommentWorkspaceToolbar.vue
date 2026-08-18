@@ -1,8 +1,13 @@
 <script setup lang="ts">
+/**
+ * 评语工作区工具栏
+ * 展示完成进度，并提供批量处理、导出与字体切换、重置评语等操作入口。
+ */
 import CommentSourceBar from '@/views/evaluation/components/CommentSourceBar.vue'
 
 import type { CommentWorkspaceSourceType } from '@/types/CommentWorkspace'
 
+/** 评语工作区工具栏的 Props */
 interface Props {
   source: CommentWorkspaceSourceType
   systemStudentCount: number
@@ -31,6 +36,7 @@ const emit = defineEmits<{
   clearFont: []
 }>()
 
+/** 分发“更多”菜单命令 */
 const handleMoreAction = (command: string | number | object): void => {
   if (command === 'reset-comments') emit('reset')
 }

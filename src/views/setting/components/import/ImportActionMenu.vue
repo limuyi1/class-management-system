@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 导入动作按钮：根据是否已有学生数据切换为“添加成绩”或“导入”，
+ * 并向上抛出 initial/score 事件交由父组件触发对应导入流程。
+ */
 interface Props {
   hasStudentData: boolean
   loading: boolean

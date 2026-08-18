@@ -92,6 +92,7 @@ const findSourceStudent = (student: ScoreNoticeStudentType): StudentDataType | u
   )
 }
 
+/** 依据历史成绩变化归纳出趋势描述 */
 const resolveTrendSummary = (student: ScoreNoticeStudentType): string => {
   const sourceStudent = findSourceStudent(student)
   if (!sourceStudent) return '暂无可靠的历史变化信息'
@@ -106,12 +107,14 @@ const resolveTrendSummary = (student: ScoreNoticeStudentType): string => {
   return range >= 12 ? '近期表现存在一定波动' : '近期表现较为稳定'
 }
 
+/** 汇总学生的日常表现标签文本 */
 const resolveTagSummary = (student: ScoreNoticeStudentType): string => {
   const sourceStudent = findSourceStudent(student)
   if (!sourceStudent?.tags) return '暂无日常表现标签'
   return Object.values(sourceStudent.tags).flat().filter(Boolean).join('、') || '暂无日常表现标签'
 }
 
+/** 组装 AI 评语所需的输入数据 */
 const buildAIInput = (student: ScoreNoticeStudentType): ScoreNoticeCommentInputType => ({
   studentId: student.id,
   name: student.name,
@@ -120,6 +123,7 @@ const buildAIInput = (student: ScoreNoticeStudentType): ScoreNoticeCommentInputT
   tags: resolveTagSummary(student)
 })
 
+/** 获取当前 AI 服务配置 */
 const getAIServiceConfig = (): AIServiceConfig => ({
   modelType: aiConfigStore.modelType,
   model: aiConfigStore.model,
@@ -127,6 +131,11 @@ const getAIServiceConfig = (): AIServiceConfig => ({
   baseUrl: aiConfigStore.baseUrl
 })
 
+/**
+ * 为一批学生生成评语并写入 store。
+ * 未配置 AI 时回退为模板评语。
+ * @param students 待生成评语的学生列表
+ */
 const generateForStudents = async (students: ScoreNoticeStudentType[]): Promise<void> => {
   if (!aiConfigStore.isConfigured) {
     students.forEach((student) => {
@@ -163,6 +172,7 @@ const generateForStudents = async (students: ScoreNoticeStudentType[]): Promise<
   })
 }
 
+/** 生成单条评语草稿（未配置 AI 时返回模板评语） */
 const generateSingleDraft = async (student: ScoreNoticeStudentType): Promise<string> => {
   if (!aiConfigStore.isConfigured) {
     return normalizeScoreNoticeComment(buildTemplateScoreNoticeComment(student, store.subjects))
@@ -175,6 +185,7 @@ const generateSingleDraft = async (student: ScoreNoticeStudentType): Promise<str
   )
 }
 
+/** 生成当前选中学生的评语草稿并填充到编辑框 */
 const handleGenerateSingle = async (): Promise<void> => {
   const student = selectedStudent.value
   if (!student || student.commentStatus === ScoreNoticeCommentStatusEnum.Missing) return
@@ -192,6 +203,10 @@ const handleGenerateSingle = async (): Promise<void> => {
   }
 }
 
+/**
+ * 批量生成评语，分批执行以避免一次性请求过多。
+ * @param mode overwrite 覆盖全部，skip 仅处理空评语
+ */
 const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> => {
   const candidates = store.students.filter(
     (student) =>
@@ -230,6 +245,7 @@ const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> =
   batchProcessed.value = 0
   batchTotal.value = targets.length
   const originalStatuses = new Map(targets.map((student) => [student.id, student.commentStatus]))
+  // 每批最多生成 5 名学生评语，控制单次请求规模
   const batchSize = 5
   try {
     for (let index = 0; index < targets.length; index += batchSize) {
@@ -274,10 +290,12 @@ const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> =
   }
 }
 
+/** 请求停止批量生成 */
 const handleStopBatch = (): void => {
   stopBatchRequested.value = true
 }
 
+/** 处理导入确认，写入 store 并汇总提示信息 */
 const handleImportConfirm = (result: ScoreNoticeImportResultType, fileName: string): void => {
   store.applyImport(result, fileName)
   const messages = [`已导入 ${result.students.length} 名学生、${result.subjects.length} 个科目`]
@@ -286,6 +304,7 @@ const handleImportConfirm = (result: ScoreNoticeImportResultType, fileName: stri
   ElMessage.success(messages.join('，'))
 }
 
+/** 复制当前预览为 PNG 图片，复制失败时回退为下载 */
 const handleCopyImage = async (): Promise<void> => {
   const element = previewRef.value?.getElement()
   if (!element || !selectedStudent.value) return
@@ -310,6 +329,7 @@ const handleCopyImage = async (): Promise<void> => {
   }
 }
 
+/** 等待下一帧渲染完成，确保截图前 DOM 已更新 */
 const waitForRender = async (): Promise<void> => {
   await nextTick()
   await new Promise<void>((resolve) =>
@@ -317,6 +337,7 @@ const waitForRender = async (): Promise<void> => {
   )
 }
 
+/** 逐个渲染学生报告并打包为 ZIP 下载 */
 const handleExportZip = async (): Promise<void> => {
   const exportableStudents = store.students.filter((student) =>
     Object.values(student.gradeValues).some(Boolean)
@@ -325,6 +346,7 @@ const handleExportZip = async (): Promise<void> => {
     ElMessage.warning('没有可导出的学生成绩')
     return
   }
+  // 分别统计空评语与需修改评语，导出前给出二次确认提示
   const blankStudents = exportableStudents.filter((student) => !student.comment.trim())
   const reviewStudents = exportableStudents.filter(
     (student) =>
@@ -390,6 +412,7 @@ const handleExportZip = async (): Promise<void> => {
   }
 }
 
+/** 依据预览容器尺寸计算报告缩放比例 */
 const updatePreviewScale = (): void => {
   const viewport = previewViewportRef.value
   if (!viewport) return

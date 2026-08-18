@@ -1,3 +1,7 @@
+/**
+ * 期末评语文字版 PDF 导出工具
+ * 负责字体加载、逐格绘制评语并触发 PDF 下载
+ */
 import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
 import type { Font as FontkitFontType } from '@pdf-lib/fontkit'
@@ -36,6 +40,7 @@ const BORDER_WIDTH = 0.6
 const TARGET_DASH_PT = 3.4
 /** 虚线目标间隔长度（点） */
 const TARGET_GAP_PT = 2.8
+// 将像素排版常量统一换算为毫米，供 PDF 绘制使用。
 const layoutConstantsPx = getEvaluationTextLayoutConstantsPx()
 const INNER_PADDING_X = layoutConstantsPx.innerPaddingX * layoutConstantsPx.pxToMm
 const INNER_PADDING_Y = layoutConstantsPx.innerPaddingY * layoutConstantsPx.pxToMm
@@ -96,6 +101,7 @@ const fetchFontBytes = async (url: string, fontName: string, minFontSizeBytes: n
   }
 }
 
+/** 加载并缓存标签宋体字体字节，失败时清空缓存以便下次重试 */
 const loadLabelSerifFontBytes = async () => {
   if (!cachedLabelSerifFontPromise) {
     cachedLabelSerifFontPromise = fetchFontBytes(

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 题型管理 — 支持题型的增删改与拖拽排序 */
 import { ref } from 'vue'
 import draggable from 'vuedraggable'
 import { ElMessageBox } from 'element-plus'
@@ -13,6 +14,7 @@ const { questionTypes: list } = storeToRefs(wrongBookStore)
 const text = ref('')
 const editing = ref(false)
 
+/** 新增题型，校验重名后追加到列表 */
 const add = () => {
   if (list.value.some((t) => t.value === text.value)) {
     ElMessageBox.alert('该题型已存在', '提示')
@@ -26,6 +28,10 @@ const add = () => {
   editing.value = false
 }
 
+/**
+ * 弹窗修改题型名称，校验重名后更新
+ * @param item - 待编辑的题型
+ */
 const edit = (item: { value: string; label: string }) => {
   ElMessageBox.prompt('', '请输入新的题型名称', {
     confirmButtonText: '确定',
@@ -43,6 +49,10 @@ const edit = (item: { value: string; label: string }) => {
     .catch(() => {})
 }
 
+/**
+ * 从列表中删除指定题型
+ * @param item - 待删除的题型
+ */
 const remove = (item: { value: string; label: string }) => {
   list.value.splice(list.value.indexOf(item), 1)
 }

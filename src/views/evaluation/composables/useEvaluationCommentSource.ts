@@ -42,17 +42,21 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
   const excelExporting = ref(false)
   const exportedComments = ref<Record<string, string>>({})
 
+  /** 当前数据源下的学生列表（Excel 源未载入时回退为空数组） */
   const students = computed(() =>
     source.value === 'excel' ? (excelWorkspace.value?.students ?? []) : options.systemStudents.value
   )
+  /** 当前数据源下的标签分类（Excel 源只有固定的临时标签） */
   const tagCategories = computed(() =>
     source.value === 'excel'
       ? [{ prop: EXCEL_COMMENT_TAG_PROP, label: '临时标签' }]
       : options.systemTagCategories.value
   )
+  /** 是否允许编辑标签：仅系统数据源允许 */
   const allowTagEditing = computed(() => source.value === 'system')
   const excelFileName = computed(() => excelWorkspace.value?.fileName || '')
   const excelStudentCount = computed(() => excelWorkspace.value?.students.length || 0)
+  /** 是否存在尚未导出到 Excel 文件的评语修改 */
   const hasUnexportedExcelChanges = computed(() => {
     if (!excelWorkspace.value) return false
     return excelWorkspace.value.students.some(
@@ -61,6 +65,9 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
     )
   })
 
+  /**
+   * 快照当前 Excel 工作区中各学生的评语，作为“未导出修改”的比对基准。
+   */
   const captureExportedComments = (): void => {
     exportedComments.value = Object.fromEntries(
       (excelWorkspace.value?.students ?? []).map((student) => [
@@ -70,6 +77,11 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
     )
   }
 
+  /**
+   * 校验是否存在未导出的 Excel 评语修改，存在时弹窗确认是否继续。
+   *
+   * @returns 可继续离开返回 true；用户取消返回 false
+   */
   const confirmDiscardExcelChanges = async (): Promise<boolean> => {
     if (!hasUnexportedExcelChanges.value) return true
     try {
@@ -88,6 +100,11 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
     }
   }
 
+  /**
+   * 切换数据源；离开 Excel 源前校验未导出修改，首次进入 Excel 源时先弹导入框。
+   *
+   * @param nextSource 目标数据源
+   */
   const handleSourceChange = async (nextSource: CommentWorkspaceSourceType): Promise<void> => {
     if (nextSource === source.value) return
     if (source.value === 'excel' && !(await confirmDiscardExcelChanges())) return
@@ -105,6 +122,9 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
     source.value = nextSource
   }
 
+  /**
+   * 打开 Excel 导入弹窗；当前已在 Excel 数据源时先校验未导出的修改。
+   */
   const handleUploadRequest = async (): Promise<void> => {
     if (source.value === 'excel' && !(await confirmDiscardExcelChanges())) return
     importDialogVisible.value = true
@@ -124,6 +144,9 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
     ElMessage.success(`已载入 ${value.students.length} 条临时学生数据`)
   }
 
+  /**
+   * 导出当前 Excel 临时工作区，成功后同步“已导出”快照。
+   */
   const handleExcelExport = async (): Promise<void> => {
     if (!excelWorkspace.value) {
       ElMessage.warning('请先上传 Excel 文件')
@@ -143,6 +166,11 @@ export function useEvaluationCommentSource(options: UseEvaluationCommentSourceOp
     }
   }
 
+  /**
+   * 拦截浏览器刷新/关闭：存在未导出修改时阻止默认行为并触发系统确认。
+   *
+   * @param event 浏览器 beforeunload 事件
+   */
   const handleBeforeUnload = (event: BeforeUnloadEvent): void => {
     if (!hasUnexportedExcelChanges.value) return
     event.preventDefault()

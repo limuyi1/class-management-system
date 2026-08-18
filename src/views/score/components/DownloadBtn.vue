@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩导出按钮
+ * 支持导出当前科目总表（含统计）与所有科目成绩汇总。
+ */
 import * as XLSX from 'xlsx'
 import { storeToRefs } from 'pinia'
 
@@ -31,6 +35,11 @@ const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max: 59 }]
 type CellValueType = string | number | null
 
+/**
+ * 统一执行 Excel 导出并处理加载状态与错误提示。
+ * @param fileName 导出文件名
+ * @param workbook 工作簿
+ */
 const exportWorkbook = (fileName: string, workbook: XLSX.WorkBook) => {
   startLoading('正在导出Excel...')
 
@@ -52,6 +61,7 @@ const getScore = (item: StudentDataType): number | null => {
   return typeof score === 'number' && Number.isFinite(score) ? score : null
 }
 
+/** 按分数区间筛选学生并按分数降序排列 */
 const filterByRange = (range: { min: number; max: number }) => {
   return originList.value
     .filter((e) => {
@@ -122,6 +132,7 @@ const exportExcelFun = () => {
   exportWorkbook(filename, workbook)
 }
 
+/** 导出所有科目的成绩汇总 */
 const exportAllExcelFun = () => {
   const unitHeaders = scoreColumns.value
   const scoreLabels = unitHeaders.map((h) => h.label)

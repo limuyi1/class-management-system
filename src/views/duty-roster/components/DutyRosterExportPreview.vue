@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 值日表导出预览 — 按纸张比例渲染完整值日表，供导出前预览并暴露导出元素 */
 import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 
 import { PagesEnum } from '@/types/Common'
@@ -34,13 +35,16 @@ const naturalWidth = shallowRef(860)
 const naturalHeight = shallowRef(500)
 let resizeObserver: ResizeObserver | null = null
 
+/** 当前纸张的页面布局尺寸 */
 const pageLayout = computed(() =>
   buildDutyRosterPageLayout(props.roster, props.pageType, 1, props.showTitle, props.showNotes)
 )
+/** 纸张原始像素尺寸 */
 const paperStyle = computed<CSSProperties>(() => ({
   width: `${pageLayout.value.pageWidth}px`,
   height: `${pageLayout.value.pageHeight}px`
 }))
+/** 预览纸张相对预览容器的缩放比例，保证整张纸可见 */
 const previewPaperScale = computed(() => {
   if (!previewWidth.value || !previewHeight.value) return 1
   return Math.min(
@@ -49,16 +53,20 @@ const previewPaperScale = computed(() => {
     1
   )
 })
+/** 预览舞台尺寸（缩放后的纸张尺寸） */
 const previewStageStyle = computed<CSSProperties>(() => ({
   width: `${pageLayout.value.pageWidth * previewPaperScale.value}px`,
   height: `${pageLayout.value.pageHeight * previewPaperScale.value}px`
 }))
+/** 预览纸张的缩放变换 */
 const previewPaperStyle = computed<CSSProperties>(() => ({
   transform: `scale(${previewPaperScale.value})`
 }))
+/** 纸张内边距占位，避开页边距区域 */
 const contentViewportStyle = computed<CSSProperties>(() => ({
   inset: `${pageLayout.value.margin}px`
 }))
+/** 内容缩放：先适配可用区域，再乘以用户设置的版面缩放比例 */
 const contentScale = computed(() => {
   const availableWidth = pageLayout.value.pageWidth - pageLayout.value.margin * 2
   const availableHeight = pageLayout.value.pageHeight - pageLayout.value.margin * 2
@@ -68,9 +76,11 @@ const contentScale = computed(() => {
   )
   return fitScale * (props.layoutScalePercent / 100)
 })
+/** 内容的缩放变换，以内容中心为原点 */
 const contentStyle = computed<CSSProperties>(() => ({
   transform: `translate(-50%, -50%) scale(${contentScale.value})`
 }))
+/** 按排序整理后的区域与岗位列表 */
 const sections = computed(() =>
   [...props.roster.sections]
     .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -79,7 +89,9 @@ const sections = computed(() =>
       positions: [...section.positions].sort((left, right) => left.sortOrder - right.sortOrder)
     }))
 )
+/** 是否为“每组一天”模式 */
 const isDaily = computed(() => props.roster.mode === DutyRosterModeEnum.Daily)
+/** 矩阵数据行：每日模式按时段，周模式按自定义行 */
 const rows = computed(() => {
   if (isDaily.value) {
     return getDutyPeriods(props.roster.mode).map((period) => ({
@@ -92,22 +104,36 @@ const rows = computed(() => {
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((row) => ({ key: row.id, period: DutyPeriodEnum.Weekly, rowId: row.id }))
 })
+/** 岗位总数 */
 const positionCount = computed(() =>
   sections.value.reduce((count, section) => count + section.positions.length, 0)
 )
+/** 打印表格宽度，保证每列有足够空间展示姓名 */
 const tableStyle = computed<CSSProperties>(() => ({
   width: `${Math.max(520, positionCount.value * 94 + (isDaily.value ? 64 : 0))}px`
 }))
+/** 过滤掉空行的备注说明 */
 const noteLines = computed(() => props.roster.notes.split('\n').filter((line) => line.trim()))
 
+/**
+ * 获取指定岗位与时段下的学生 ID 列表。
+ * @param period - 时段
+ * @param positionId - 岗位 ID
+ * @param rowId - 周模式下的行 ID
+ */
 function getStudentIds(period: DutyPeriodEnum, positionId: string, rowId?: string): string[] {
   return getDutyAssignment(props.roster.assignments, period, positionId, rowId)?.studentIds || []
 }
 
+/**
+ * 判断学生是否为组长。
+ * @param studentId - 学生 ID
+ */
 function isLeader(studentId: string): boolean {
   return props.roster.leaders.some((leader) => leader.studentId === studentId)
 }
 
+/** 测量内容自然尺寸，作为缩放计算基准 */
 function measureContent(): void {
   if (!contentElementRef.value) return
   if (contentElementRef.value.offsetWidth > 0)
@@ -117,6 +143,7 @@ function measureContent(): void {
   }
 }
 
+/** 测量预览容器尺寸 */
 function measurePreviewHost(): void {
   if (!previewHostRef.value) return
   previewWidth.value = previewHostRef.value.clientWidth
@@ -138,6 +165,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => resizeObserver?.disconnect())
 
+/** 暴露导出元素，供导出弹窗调用进行截图 */
 function getElement(): HTMLElement | null {
   return exportElementRef.value
 }

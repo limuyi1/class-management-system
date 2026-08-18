@@ -1,3 +1,4 @@
+/** 超长文本 Tooltip 组件的 Props 类型定义 */
 import type { StyleValue } from 'vue'
 
 /** 超长文本 Tooltip 组件 Props */

@@ -11,6 +11,7 @@ import {
 } from '@/types/DutyRoster'
 import { DUTY_PERIOD_LABELS, getDutyAssignment, getDutyPeriods } from '@/utils/duty-roster/dutyRosterUtil'
 
+/** 矩阵行数据：每日模式按时段生成，周模式按自定义行生成 */
 interface DutyMatrixRowType {
   key: string
   period: DutyPeriodEnum
@@ -38,6 +39,7 @@ const matrixRef = shallowRef<HTMLElement | null>(null)
 const editingPositionId = shallowRef<string | null>(null)
 const positionDraft = shallowRef('')
 
+/** 按排序整理后的区域与岗位列表 */
 const sections = computed(() =>
   [...props.roster.sections]
     .sort((left, right) => left.sortOrder - right.sortOrder)
@@ -46,7 +48,9 @@ const sections = computed(() =>
       positions: [...section.positions].sort((left, right) => left.sortOrder - right.sortOrder)
     }))
 )
+/** 是否为“每组一天”模式 */
 const isDaily = computed(() => props.roster.mode === DutyRosterModeEnum.Daily)
+/** 矩阵数据行：每日模式按时段，周模式按自定义行 */
 const rows = computed<DutyMatrixRowType[]>(() => {
   if (isDaily.value) {
     return getDutyPeriods(props.roster.mode).map((period) => ({ key: period, period }))
@@ -55,10 +59,15 @@ const rows = computed<DutyMatrixRowType[]>(() => {
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((row) => ({ key: row.id, period: DutyPeriodEnum.Weekly, rowId: row.id }))
 })
+/** 表格总列数 = 所有岗位列 + 1（时段/行操作列） */
 const columnCount = computed(
   () => sections.value.reduce((count, section) => count + section.positions.length, 0) + 1
 )
 
+/**
+ * 获取指定分配目标下的学生 ID 列表。
+ * @param target - 值日分配目标
+ */
 function getStudentIds(target: DutyAssignmentTargetType): string[] {
   return (
     getDutyAssignment(props.roster.assignments, target.period, target.positionId, target.rowId)
@@ -66,16 +75,28 @@ function getStudentIds(target: DutyAssignmentTargetType): string[] {
   )
 }
 
+/**
+ * 判断学生是否为组长。
+ * @param studentId - 学生 ID
+ */
 function isLeader(studentId: string): boolean {
   return props.roster.leaders.some((leader) => leader.studentId === studentId)
 }
 
+/**
+ * 按 ID 查找岗位。
+ * @param positionId - 岗位 ID
+ */
 function findPosition(positionId: string): DutyPositionType | undefined {
   return sections.value
     .flatMap((section) => section.positions)
     .find((position) => position.id === positionId)
 }
 
+/**
+ * 进入岗位重命名状态，并自动选中输入框内容。
+ * @param positionId - 岗位 ID
+ */
 async function editPosition(positionId: string): Promise<void> {
   const position = findPosition(positionId)
   if (!position) return
@@ -88,34 +109,61 @@ async function editPosition(positionId: string): Promise<void> {
   input?.select()
 }
 
+/**
+ * 提交岗位重命名。
+ * @param positionId - 岗位 ID
+ */
 function commitPosition(positionId: string): void {
   const name = positionDraft.value.trim()
   if (name) emit('renamePosition', positionId, name)
   editingPositionId.value = null
 }
 
+/** 取消岗位重命名 */
 function cancelPositionEdit(): void {
   editingPositionId.value = null
 }
 
+/**
+ * 处理岗位表头右键，触发岗位菜单。
+ * @param event - 鼠标事件
+ * @param positionId - 岗位 ID
+ */
 function handlePositionContext(event: MouseEvent, positionId: string): void {
   event.preventDefault()
   emit('positionContext', positionId, event.clientX, event.clientY)
 }
 
+/**
+ * 处理学生右键，触发学生菜单并阻止冒泡。
+ * @param event - 鼠标事件
+ * @param studentId - 学生 ID
+ */
 function handleStudentContext(event: MouseEvent, studentId: string): void {
   event.preventDefault()
   event.stopPropagation()
   emit('studentContext', studentId, event.clientX, event.clientY)
 }
 
+/**
+ * 记录拖拽中的岗位 ID，用于岗位排序。
+ * @param event - 拖拽事件
+ * @param positionId - 岗位 ID
+ */
 function handlePositionDragStart(event: DragEvent, positionId: string): void {
   event.dataTransfer?.setData('application/x-duty-position', positionId)
   if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move'
 }
 
+/**
+ * 处理岗位拖放，完成区域内岗位重排。
+ * @param event - 拖放事件
+ * @param section - 目标区域
+ * @param targetId - 目标岗位 ID
+ */
 function handlePositionDrop(event: DragEvent, section: DutySectionType, targetId: string): void {
   const sourceId = event.dataTransfer?.getData('application/x-duty-position') || ''
+  // 仅在源岗位属于当前区域时触发重排
   if (sourceId && section.positions.some((position) => position.id === sourceId)) {
     emit('reorderPosition', section.id, sourceId, targetId)
   }

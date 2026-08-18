@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 分数段分布列表
+ * 展示各分数段人数与占比，悬停可查看该段学生名单。
+ */
 import type { ScoreStatisticsType } from '@/hooks/useScoreStatistics'
 
 interface Props {

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 试卷排版工具 — 上传/选择试卷图片，按纸张与版式自动排布，
+ * 支持拖拽缩放、草稿存取并导出 PDF。
+ */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -42,6 +46,7 @@ const draftDialogVisible = ref(false)
 const router = useRouter()
 const toolsStore = useToolsStore()
 const settings = toolsStore.paperLayout
+// 旧数据可能缺少版式字段，这里补全为默认设置
 if (!settings.layoutMode || !settings.fitMode) {
   Object.assign(settings, createDefaultPaperLayoutSettings())
 }
@@ -93,6 +98,7 @@ const { draftCount, handleOpenDraft, handleSaveDraft, refreshDraftCount, resetCu
     clearSelection
   })
 
+// 全局监听窗口尺寸与指针事件，卸载时一并移除并释放图片 URL
 onMounted(() => {
   window.addEventListener('resize', fitPreviewWidth)
   window.addEventListener('pointermove', handlePointerMove)
@@ -108,6 +114,7 @@ onBeforeUnmount(() => {
   revokeItemUrls()
 })
 
+// 纸张尺寸变化后重算坐标并适配预览缩放
 watch(
   () => [pageSize.value.width, pageSize.value.height],
   () => {
@@ -116,6 +123,7 @@ watch(
   }
 )
 
+// 切换排版模式时应用对应预设，并对已有图片重新排版
 watch(
   () => settings.layoutMode,
   (layoutMode) => {
@@ -126,6 +134,7 @@ watch(
   }
 )
 
+/** 返回排版模式对应的中文标签 */
 function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
   const labelMap: Record<PaperLayoutModeType, string> = {
     single: '一页一张',
@@ -135,6 +144,7 @@ function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
   return labelMap[layoutMode]
 }
 
+/** 切换纸张方向并同步默认排版模式：纵向单栏、横向双栏 */
 function handleOrientationChange(orientation: PaperLayoutOrientationType): void {
   settings.orientation = orientation
   settings.layoutMode = orientation === 'portrait' ? 'single' : 'double'
@@ -155,6 +165,7 @@ async function handleTemporaryFileChange(event: Event): Promise<void> {
   await uploadTemporaryFiles(files)
 }
 
+/** 将临时图片转为画布条目并追加到当前排版 */
 async function uploadTemporaryFiles(files: File[]): Promise<void> {
   if (files.length === 0) return
 
@@ -182,6 +193,7 @@ async function openAttachmentSelector(): Promise<void> {
   selectorVisible.value = true
 }
 
+/** 分发“添加图片”下拉命令：上传或从素材库选择 */
 async function handleAddImageCommand(command: string | number | object): Promise<void> {
   if (command === 'upload') {
     openTemporaryUploader()
@@ -193,6 +205,7 @@ async function handleAddImageCommand(command: string | number | object): Promise
   }
 }
 
+/** 向画布追加素材；从空画布首次添加时视为新建排版，重置草稿标识 */
 function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
   if (attachments.length > 0 && canvasItems.value.length === 0) {
     resetCurrentDraft()
@@ -201,6 +214,7 @@ function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
   addSelectedAttachments(attachments)
 }
 
+/** 清空当前试卷图片（不删除素材库中的素材） */
 async function clearItems(): Promise<void> {
   if (canvasItems.value.length === 0) return
 
@@ -218,6 +232,7 @@ async function clearItems(): Promise<void> {
   }
 }
 
+/** 将当前分页排版导出为 PDF 并触发下载 */
 async function exportPdf(): Promise<void> {
   if (canvasItems.value.length === 0) {
     ElMessage.warning('请先上传或选择试卷图片')

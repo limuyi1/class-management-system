@@ -11,6 +11,7 @@ import {
   type ToolItemType
 } from '@/views/tools/constants/tools'
 
+/** 工具分类及其下工具项的展示分组 */
 interface ToolGroupType {
   category: ToolCategoryType
   tools: ToolItemType[]
@@ -18,11 +19,13 @@ interface ToolGroupType {
 
 const router = useRouter()
 
+/** 按分类聚合后的工具分组列表 */
 const toolGroups: ToolGroupType[] = toolCategories.map((category) => ({
   category,
   tools: toolItems.filter((tool) => tool.category === category.id)
 }))
 
+/** 打开工具：需要新页签时用 window.open，否则路由内跳转 */
 function openTool(tool: ToolItemType): void {
   if (tool.openInNewTab) {
     const targetUrl = router.resolve(tool.path).href
@@ -33,6 +36,7 @@ function openTool(tool: ToolItemType): void {
   router.push(tool.path)
 }
 
+/** 解析工具路由的完整 hash 地址，供新页签链接使用 */
 function resolveToolHref(tool: ToolItemType): string {
   return router.resolve(tool.path).href
 }

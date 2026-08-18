@@ -6,6 +6,12 @@ import AppEChart from '@/components/AppEChart.vue'
 import studentReportReferenceStamp from '@/assets/student-report/reference-stamp.png'
 import type { StudentReportDataType } from '@/utils/studentReportUtil'
 
+/**
+ * 学习报告预览卡片。
+ *
+ * 以纸质报告样式展示学生阶段成绩、成绩趋势图表、综合评语与优势/关注点，
+ * 图表配置（含班级均分与个人均分参考线）在此组件内组装。
+ */
 interface Props {
   report: StudentReportDataType
   content: string
@@ -13,6 +19,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+// 正文按空行拆分为段落，去掉空白段落
 const articleParagraphs = computed(() => {
   return props.content
     .split('\n\n')
@@ -20,8 +27,21 @@ const articleParagraphs = computed(() => {
     .filter(Boolean)
 })
 
+/**
+ * 生成均分参考线的图例名称（附带分值）
+ * @param label - 图例标签
+ * @param value - 均分分值
+ * @returns 图例展示名称
+ */
 const formatAverageLegendName = (label: string, value: number): string => `${label}（${value.toFixed(1)}分）`
 
+/**
+ * 计算学生个人均分在图上的展示分数。
+ * 当个人均分与班级均分过近时，做 ±0.25 的微小偏移，避免两条参考线重叠。
+ * @param classAverageScore - 班级均分
+ * @param studentAverageScore - 学生个人均分
+ * @returns 用于绘图的学生均分展示值
+ */
 const getStudentAverageDisplayScore = (classAverageScore: number, studentAverageScore: number): number => {
   if (Math.abs(classAverageScore - studentAverageScore) >= 1) return studentAverageScore
   if (studentAverageScore >= classAverageScore) {
@@ -31,12 +51,22 @@ const getStudentAverageDisplayScore = (classAverageScore: number, studentAverage
   return studentAverageScore >= 0.25 ? studentAverageScore - 0.25 : studentAverageScore + 0.25
 }
 
+/**
+ * 从图例名称中提取均分分值作为 tooltip 展示文本
+ * @param seriesName - 系列名称
+ * @param value - 系列值
+ * @returns tooltip 分值文案
+ */
 const getTooltipScoreText = (seriesName: string, value: unknown): string => {
   const averageScoreText = seriesName.match(/（([^）]+分)）$/)?.[1]
   if (averageScoreText) return averageScoreText
   return typeof value === 'number' ? `${value} 分` : '--'
 }
 
+/**
+ * 组装成绩趋势图的 ECharts 配置，包含成绩折线、班级均分与个人均分参考线
+ * @returns ECharts 配置对象
+ */
 const chartOption = computed<EChartsOption>(() => {
   const items = props.report.scoreItems
   const validItems = items.filter(
@@ -47,6 +77,7 @@ const chartOption = computed<EChartsOption>(() => {
     return {}
   }
 
+  // 结合成绩与两条参考线动态计算纵轴范围，并按 10 分档对齐
   const referenceScores = [props.report.classAverageScore, props.report.summary.averageScore]
   const scoreRangeValues = [...validItems.map((item) => item.score), ...referenceScores]
   const maxScore = Math.max(...scoreRangeValues, 100)
@@ -60,6 +91,7 @@ const chartOption = computed<EChartsOption>(() => {
     props.report.classAverageScore,
     props.report.summary.averageScore
   )
+  // 班级均分（虚线）与个人均分（实线）两条水平参考线
   const referenceSeries: LineSeriesOption[] = [
     {
       name: formatAverageLegendName('班级整体均分', props.report.classAverageScore),
@@ -152,6 +184,7 @@ const chartOption = computed<EChartsOption>(() => {
         const content = rows
           .map((item) => {
             const seriesName = item.seriesName || ''
+            // 图例名带分值后缀，tooltip 中去掉后缀以免重复展示
             const tooltipName = seriesName.replace(/（[^）]+分）$/, '')
             const scoreText = getTooltipScoreText(seriesName, item.value)
 
@@ -187,6 +220,7 @@ const chartOption = computed<EChartsOption>(() => {
       type: 'value',
       min: start,
       max: end,
+      // 纵轴约分 4 段，刻度按 10 分取整并保底 10
       interval: Math.max(Math.round((end - start) / 4 / 10) * 10, 10),
       axisLine: {
         show: false

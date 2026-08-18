@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 座位表导出预览 — 按纸张比例渲染完整座位表，供导出前预览并暴露导出元素 */
 import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 
 import { PagesEnum } from '@/types/Common'
@@ -41,13 +42,16 @@ const naturalWidth = shallowRef(760)
 const naturalHeight = shallowRef(540)
 let contentResizeObserver: ResizeObserver | null = null
 
+/** 当前纸张的页面布局尺寸 */
 const pageLayout = computed(() =>
   buildSeatingChartPageLayout(props.chart, props.pageType, props.orientation, 1, props.showTitle)
 )
+/** 纸张原始像素尺寸 */
 const paperStyle = computed<CSSProperties>(() => ({
   width: `${pageLayout.value.pageWidth}px`,
   height: `${pageLayout.value.pageHeight}px`
 }))
+/** 预览纸张相对预览容器的缩放比例，保证整张纸可见 */
 const previewPaperScale = computed(() => {
   if (!previewWidth.value || !previewHeight.value) return 1
   return Math.min(
@@ -56,16 +60,20 @@ const previewPaperScale = computed(() => {
     1
   )
 })
+/** 预览舞台尺寸（缩放后的纸张尺寸） */
 const previewStageStyle = computed<CSSProperties>(() => ({
   width: `${pageLayout.value.pageWidth * previewPaperScale.value}px`,
   height: `${pageLayout.value.pageHeight * previewPaperScale.value}px`
 }))
+/** 预览纸张的缩放变换 */
 const previewPaperStyle = computed<CSSProperties>(() => ({
   transform: `scale(${previewPaperScale.value})`
 }))
+/** 纸张内边距占位，避开页边距区域 */
 const contentViewportStyle = computed<CSSProperties>(() => ({
   inset: `${pageLayout.value.margin}px`
 }))
+/** 座位内容缩放：先适配可用区域，再乘以用户设置的版面缩放比例 */
 const contentScale = computed(() => {
   const availableWidth = pageLayout.value.pageWidth - pageLayout.value.margin * 2
   const availableHeight = pageLayout.value.pageHeight - pageLayout.value.margin * 2
@@ -75,12 +83,15 @@ const contentScale = computed(() => {
   )
   return fitScale * (props.layoutScalePercent / 100)
 })
+/** 座位内容的缩放变换，以内容中心为原点 */
 const contentStyle = computed<CSSProperties>(() => ({
   transform: `translate(-50%, -50%) scale(${contentScale.value})`
 }))
+/** 第一列是否位于右侧 */
 const firstColumnOnRight = computed(
   () => props.chart.firstColumnSide === SeatingFirstColumnSideEnum.Right
 )
+/** 将可见座位按行分组渲染 */
 const visibleSeatRows = computed(() => {
   const rows: SeatPositionType[][] = []
   getVisibleSeats(props.chart).forEach((seat) => {
@@ -90,9 +101,12 @@ const visibleSeatRows = computed(() => {
   })
   return rows
 })
+/** 第一行的可见座位，用于渲染列头 */
 const visibleColumnSeats = computed(() => visibleSeatRows.value[0] || [])
+/** 当前启用的雅座 */
 const enabledSpecialSeats = computed(() => props.chart.specialSeats.filter((seat) => seat.enabled))
 
+/** 测量座位内容的自然尺寸，作为缩放计算基准 */
 function measureContent(): void {
   if (!contentElementRef.value) return
   if (contentElementRef.value.offsetWidth > 0)
@@ -102,6 +116,7 @@ function measureContent(): void {
   }
 }
 
+/** 测量预览容器尺寸 */
 function measurePreviewHost(): void {
   if (!previewHostRef.value) return
   previewWidth.value = previewHostRef.value.clientWidth
@@ -123,20 +138,34 @@ onMounted(async () => {
 
 onBeforeUnmount(() => contentResizeObserver?.disconnect())
 
+/**
+ * 判断座位后是否需要渲染过道。
+ * @param seat - 座位位置
+ */
 function hasAisleAfterSeat(seat: SeatPositionType): boolean {
+  // 第一列在右侧时，过道列索引需要反向换算
   const aisleColumn = firstColumnOnRight.value ? seat.column - 1 : seat.column
   return props.chart.aisleAfterColumns.includes(aisleColumn)
 }
 
+/**
+ * 获取雅座上学生的姓名，空雅座返回空字符串。
+ * @param position - 雅座位置
+ */
 function getSpecialSeatName(position: SeatingSpecialSeatPositionEnum): string {
   const seat = props.chart.specialSeats.find((item) => item.position === position)
   return seat?.studentId ? props.studentNames[seat.studentId] || '未命名学生' : ''
 }
 
+/**
+ * 判断指定雅座是否启用。
+ * @param position - 雅座位置
+ */
 function isSpecialSeatEnabled(position: SeatingSpecialSeatPositionEnum): boolean {
   return Boolean(props.chart.specialSeats.find((seat) => seat.position === position)?.enabled)
 }
 
+/** 暴露导出元素，供导出弹窗调用进行截图 */
 function getElement(): HTMLElement | null {
   return exportElementRef.value
 }

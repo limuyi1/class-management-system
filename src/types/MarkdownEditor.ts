@@ -1,3 +1,5 @@
+/** Markdown 编辑器组件的 Props 与 Emits 类型定义 */
+
 /** Markdown 编辑器组件 Props */
 export interface MarkdownEditorProps {
   /** 编辑器绑定的 Markdown 文本（v-model） */

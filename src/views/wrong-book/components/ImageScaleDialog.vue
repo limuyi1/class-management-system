@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 图片尺寸与位置设置弹窗 — 调整插入图片的缩放比例与对齐方式 */
 import { ElDialog, ElSelect, ElOption, ElRadioGroup, ElRadioButton, ElButton } from 'element-plus'
 
 interface Props {
@@ -17,6 +18,7 @@ const emit = defineEmits<{
   confirm: [scale: number, align: 'left' | 'center' | 'right']
 }>()
 
+/** 可选的缩放比例档位 */
 const scaleOptions = [
   { label: '20%', value: 20 },
   { label: '40%', value: 40 },
@@ -26,6 +28,7 @@ const scaleOptions = [
   { label: '200%', value: 200 }
 ]
 
+/** 确认当前缩放与对齐设置并关闭弹窗 */
 const handleConfirm = () => {
   emit('confirm', props.imageScale, props.imageAlign)
   emit('update:visible', false)

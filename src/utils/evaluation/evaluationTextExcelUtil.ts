@@ -1,12 +1,18 @@
+/**
+ * 期末评语 Excel 导出工具
+ * 将学生评语导出为便于二次编辑或归档的表格
+ */
 import { exportExcel } from '@/utils/xlsxUtil'
 import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 期末评语 Excel 导出结果 */
 export interface EvaluationTextExcelResultType {
   success: boolean
   error?: Error
 }
 
+/** 期末评语 Excel 导出参数 */
 export interface EvaluationTextExcelOptionsType {
   students: StudentDataType[]
 }
@@ -22,6 +28,8 @@ const formatDateForFileName = (date: Date): string => {
 
 /**
  * 导出期末评语 Excel，便于教师二次编辑或归档。
+ * @param options - 导出参数（学生列表）
+ * @returns 导出结果
  */
 export const exportEvaluationTextExcel = (
   options: EvaluationTextExcelOptionsType

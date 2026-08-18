@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 首次导入（初始化学生名单）弹窗：让用户选择表头行、姓名列、成绩列与评语列，
+ * 支持带合并单元格的表头预览，并对列选择做互斥校验。
+ */
 import { computed, ref, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
@@ -30,7 +34,10 @@ const selectedHeaderRowIndex = ref(0)
 const selectedNameColumn = ref('')
 const selectedScoreColumns = ref<string[]>([])
 const selectedCommentColumn = ref('')
+
+/** 是否提供了表头预览数据，决定走预览解析还是直接使用传入表头 */
 const hasHeaderPreview = computed(() => Boolean(props.previewRows?.length))
+/** 根据是否有预览，得到实际使用的表头与数据 */
 const parsedImportData = computed(() => {
   if (!hasHeaderPreview.value) {
     return {
@@ -40,7 +47,9 @@ const parsedImportData = computed(() => {
   }
   return buildExcelDataFromHeaderRow(props.previewRows ?? [], selectedHeaderRowIndex.value)
 })
+/** 当前生效的表头列表 */
 const effectiveHeaders = computed(() => parsedImportData.value.header)
+/** 可作为成绩列的候选（排除序号、已选姓名列与评语列） */
 const availableScoreColumns = computed(() =>
   effectiveHeaders.value.filter(
     (header) =>
@@ -49,6 +58,7 @@ const availableScoreColumns = computed(() =>
       header !== selectedCommentColumn.value
   )
 )
+/** 可作为评语列的候选（排除序号、已选姓名列与已选成绩列） */
 const availableCommentColumns = computed(() =>
   effectiveHeaders.value.filter(
     (header) =>
@@ -63,6 +73,11 @@ const localVisible = computed({
   set: (value: boolean) => emit('update:modelValue', value)
 })
 
+/**
+ * 在表头中查找第一个包含任一关键词的列，用于默认列推荐。
+ * @param patterns - 关键词列表
+ * @returns 匹配到的表头名，未匹配返回空字符串
+ */
 const findSuggestedColumn = (patterns: string[]): string =>
   effectiveHeaders.value.find((header) => patterns.some((pattern) => header.includes(pattern))) ||
   ''
@@ -76,6 +91,7 @@ const resetSelections = () => {
   selectedCommentColumn.value = findSuggestedColumn(['期末评语', '评语'])
 }
 
+// 弹窗打开时按建议表头行初始化并重置列推荐
 watch(
   () => props.modelValue,
   (visible) => {
@@ -85,19 +101,23 @@ watch(
   }
 )
 
+// 表头行切换后重新推荐各列
 watch(selectedHeaderRowIndex, () => {
   resetSelections()
 })
 
+// 姓名列被选中后，从成绩列中剔除并清空同列的评语选择
 watch(selectedNameColumn, (column) => {
   selectedScoreColumns.value = selectedScoreColumns.value.filter((item) => item !== column)
   if (selectedCommentColumn.value === column) selectedCommentColumn.value = ''
 })
 
+// 评语列被选中后，从成绩列中剔除
 watch(selectedCommentColumn, (column) => {
   selectedScoreColumns.value = selectedScoreColumns.value.filter((item) => item !== column)
 })
 
+// 成绩列与评语列保持互斥：成绩列包含评语列时清空评语列
 watch(selectedScoreColumns, (columns) => {
   if (selectedCommentColumn.value && columns.includes(selectedCommentColumn.value)) {
     selectedCommentColumn.value = ''
@@ -111,6 +131,7 @@ const handleCommentColumnChange = (columns: Array<string | number>) => {
   selectedCommentColumn.value = columns.length ? String(columns[columns.length - 1]) : ''
 }
 
+/** 确认导入：校验姓名列必选后组装选择结果回传父组件 */
 const handleConfirm = () => {
   if (!selectedNameColumn.value) {
     ElMessage.warning('请选择姓名列')

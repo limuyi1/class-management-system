@@ -1,3 +1,4 @@
+/** 工具模块（版纸排版、附件库等）的类型定义 */
 import { PagesEnum } from '@/types/Common'
 
 /** 版纸方向：纵向 / 横向 */

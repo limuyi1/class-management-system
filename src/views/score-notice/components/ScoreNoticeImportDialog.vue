@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩通知导入对话框
+ * 选择 Excel 后自动识别姓名列、科目列与等级/分数模式，并支持配置换算规则。
+ */
 import { computed, nextTick, ref, shallowRef, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
@@ -44,12 +48,14 @@ const visible = computed({
   set: (value: boolean) => emit('update:modelValue', value)
 })
 
+/** 排除姓名列与系统占位列后的候选科目列 */
 const availableSubjects = computed(() =>
   parsedData.value.header.filter(
     (header) => header !== nameColumn.value && header !== '序号' && !header.startsWith('UNKNOWN')
   )
 )
 
+/** 分数模式下校验各科目的等级换算规则是否合法 */
 const hasInvalidScoreRule = computed(
   () =>
     sourceMode.value === ScoreNoticeModeEnum.Score &&
@@ -87,6 +93,7 @@ const resetSelections = (): void => {
   modeTouched.value = false
 }
 
+/** 重置导入对话框的所有状态 */
 const resetDialog = (): void => {
   reset()
   nameColumn.value = ''
@@ -96,6 +103,7 @@ const resetDialog = (): void => {
   modeTouched.value = false
 }
 
+/** 解析文件成功后自动识别列与规则 */
 const handleFileChange = async (file: UploadFile): Promise<void> => {
   if (await parseFile(file)) resetSelections()
 }
@@ -107,11 +115,17 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
   }
 }
 
+/**
+ * 应用分数换算模板到指定科目。
+ * @param column 科目列
+ * @param template 模板标识：100 / 50 / custom
+ */
 const applyRuleTemplate = (column: string, template: string): void => {
   if (template === '100') rules.value[column] = { ...DEFAULT_100_SCORE_RULE }
   if (template === '50') rules.value[column] = { ...DEFAULT_50_SCORE_RULE }
 }
 
+/** 根据规则匹配当前使用的模板，无法匹配时返回 custom */
 const getRuleTemplate = (column: string): string => {
   const rule = rules.value[column]
   if (!rule) return 'custom'
@@ -120,6 +134,7 @@ const getRuleTemplate = (column: string): string => {
   return 'custom'
 }
 
+/** 校验并构建导入结果，分数模式会应用规则并重算等级 */
 const handleConfirm = (): void => {
   if (!preview.value || !fileName.value) {
     ElMessage.warning('请先选择 Excel 文件')
@@ -168,6 +183,7 @@ watch(subjectColumns, (columns) => {
     if (!rules.value[column]) rules.value[column] = getDefaultGradeRule(column)
   })
   if (modeTouched.value) return
+  // 未手动修正时，按前 20 行数据自动判断等级/分数模式
   const values = columns.flatMap((column) =>
     parsedData.value.data.slice(0, 20).map((row) => row[column])
   )

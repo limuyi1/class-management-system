@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学生右键菜单 — 设置/取消组长或移出值日表 */
 defineProps<{
   x: number
   y: number

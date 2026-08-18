@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 低分阈值控制与学生名单展示
+ * 支持平均分/自定义阈值切换，超过 8 人时以浮层展开剩余名单。
+ */
 import { NAME_PROP } from '@/constants'
 import type { ScoreStudentType } from '@/hooks/useScoreStatistics'
 
@@ -68,6 +72,7 @@ const emit = defineEmits<Emits>()
   </div>
 
   <div class="student-tags" v-if="students.length">
+    <!-- 人数较少时平铺展示，超过 8 人则收起为浮层 -->
     <template v-if="students.length <= 8">
       <el-tag v-for="item in students" :key="item.studentId" type="warning" size="small">
         {{ item[NAME_PROP] }} {{ getScore(item) }}分

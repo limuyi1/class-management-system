@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 素材选择对话框 — 从素材库挑选图片加入试卷排版 */
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import { attachmentToObjectUrl, getAttachments } from '@/views/tools/services/attachmentService'
@@ -43,6 +44,7 @@ function revokeUrls(): void {
   })
 }
 
+/** 为素材记录补充预览 URL */
 function toViewRecord(record: AttachmentRecordType): AttachmentViewType {
   return {
     ...record,
@@ -61,6 +63,7 @@ async function loadAttachments(): Promise<void> {
   }
 }
 
+/** 切换某张素材的选中状态 */
 function toggleSelect(id: string): void {
   if (selectedIds.value.includes(id)) {
     selectedIds.value = selectedIds.value.filter((item) => item !== id)
@@ -69,11 +72,13 @@ function toggleSelect(id: string): void {
   selectedIds.value = [...selectedIds.value, id]
 }
 
+/** 关闭弹窗并清空选择 */
 function handleClose(): void {
   selectedIds.value = []
   visible.value = false
 }
 
+/** 确认加入排版：向外抛出选中的素材记录 */
 function handleConfirm(): void {
   emit('confirm', selectedAttachments.value)
   selectedIds.value = []

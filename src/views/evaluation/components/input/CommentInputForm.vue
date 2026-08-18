@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语输入表单
+ * 展示学生标签并提供期末评语输入框、字数统计与标签编辑入口。
+ */
 import { computed, ref } from 'vue'
 
 import {
@@ -10,6 +14,7 @@ import {
 
 import type { TagCategoryType } from '@/types/Setting'
 
+/** 评语输入表单的 Props */
 interface Props {
   modelValue: string | null
   disabled: boolean
@@ -19,6 +24,7 @@ interface Props {
   allowTagEditing?: boolean
 }
 
+/** 评语输入表单的 Emits */
 interface Emits {
   (event: 'update:modelValue', value: string | null): void
   (event: 'go-edit-tags'): void
@@ -29,15 +35,19 @@ const emit = defineEmits<Emits>()
 
 const commentInputRef = ref<{ focus: () => void } | null>(null)
 
+/** 当前评语字数 */
 const commentLength = computed(() => countCommentLength(props.modelValue))
+/** 当前评语长度校验错误文案，合法时为空 */
 const commentLengthError = computed(() => getCommentLengthError(props.modelValue))
 
+/** 当前学生有标签的分类列表，仅展示非空分类 */
 const activeCategories = computed(() => {
   const tags = props.currentStudentTags
   if (!tags) return []
   return props.tagCategoryList.filter((category) => tags[category.prop]?.length)
 })
 
+/** 聚焦评语输入框 */
 const focus = () => {
   commentInputRef.value?.focus()
 }

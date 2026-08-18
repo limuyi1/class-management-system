@@ -1,3 +1,7 @@
+/**
+ * 座位表核心工具
+ * 提供座位生成、尺寸调整、数据规范化、随机排座与展示顺序等底层操作
+ */
 import {
   SeatingSpecialSeatPositionEnum,
   SeatingFirstColumnSideEnum,

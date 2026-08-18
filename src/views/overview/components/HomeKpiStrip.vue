@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** KPI 汇总条 — 展示四类关注分组卡片与班级概况卡片，未就绪时渲染待分析占位 */
 import { computed } from 'vue'
 
 import OverviewSummaryCard from '@/views/overview/components/kpi/OverviewSummaryCard.vue'
@@ -25,6 +26,10 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/**
+ * 未就绪阶段的占位卡片数据。
+ * 当页面尚未进入 ready 阶段时，用统一的“待分析”卡片提示用户下一步动作。
+ */
 const pendingSummaryCards = computed<DashboardSummaryCardType[]>(() => {
   const hasUnits = props.stage !== 'noUnits'
   const scoreHint = hasUnits ? '录入成绩后开始分析' : '添加单元后开始分析'
@@ -103,6 +108,7 @@ const pendingSummaryCards = computed<DashboardSummaryCardType[]>(() => {
   ]
 })
 
+/** 根据阶段选择展示真实汇总卡片或待分析占位卡片 */
 const displayedSummaryCards = computed(() =>
   props.stage === 'ready' ? props.summaryCards : pendingSummaryCards.value
 )

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 试卷排版页面 — 承载排版工具，支持全屏模式与返回工具中心 */
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 
@@ -8,14 +9,17 @@ import PaperLayoutTool from '@/views/tools/components/PaperLayoutTool.vue'
 const router = useRouter()
 const fullscreen = ref(false)
 
+/** 返回工具中心 */
 function backToTools(): void {
   router.push('/tools')
 }
 
+/** 切换全屏模式 */
 function toggleFullscreen(): void {
   fullscreen.value = !fullscreen.value
 }
 
+/** 全屏时按 Esc 退出全屏 */
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     fullscreen.value = false

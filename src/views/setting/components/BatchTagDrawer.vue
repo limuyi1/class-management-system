@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 批量打标签抽屉：逐学生展示并编辑标签，支持上一个/下一个切换、
+ * 进度统计与保存，切换学生时自动保存当前编辑结果。
+ */
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/stores/setting'
@@ -15,6 +19,7 @@ const { tagCategories: categories, tags: tagOptions } = storeToRefs(settingStore
 const currentIndex = ref(0)
 const currentStudentTags = ref<Set<string>>(new Set())
 
+/** 标签分类对应的主题色变量，按分类索引循环取色 */
 const tagColorVars = [
   'var(--theme-tag-1)',
   'var(--theme-tag-2)',
@@ -26,11 +31,17 @@ const tagColorVars = [
   'var(--theme-tag-8)'
 ]
 
+/**
+ * 根据分类名获取对应主题色。
+ * @param category - 分类名
+ * @returns 主题色 CSS 变量
+ */
 const getTagColor = (category: string) => {
   const catIndex = categories.value.findIndex((c) => c.label === category)
   return tagColorVars[Math.max(catIndex, 0) % tagColorVars.length]
 }
 
+/** 所有分类下的标签总数，用于判断是否展示空态 */
 const totalTagCount = computed(() => {
   let count = 0
   for (const cat of categories.value) {
@@ -40,6 +51,7 @@ const totalTagCount = computed(() => {
   return count
 })
 
+/** 已打标签的学生数量 */
 const taggedStudentCount = computed(() => {
   return props.studentList.filter((student) => {
     if (!student.tags) return false
@@ -50,8 +62,10 @@ const taggedStudentCount = computed(() => {
   }).length
 })
 
+/** 获取当前下标对应的学生 */
 const getCurrentStudent = () => props.studentList[currentIndex.value]
 
+/** 加载当前学生的标签到编辑集合 */
 const loadCurrentStudentTags = () => {
   const student = getCurrentStudent()
   if (!student) return
@@ -66,6 +80,10 @@ const loadCurrentStudentTags = () => {
   currentStudentTags.value = tagSet
 }
 
+/**
+ * 切换单个标签的选中状态。
+ * @param tag - 标签名
+ */
 const toggleTag = (tag: string) => {
   if (currentStudentTags.value.has(tag)) {
     currentStudentTags.value.delete(tag)
@@ -74,8 +92,14 @@ const toggleTag = (tag: string) => {
   }
 }
 
+/**
+ * 判断标签是否已选中。
+ * @param tag - 标签名
+ * @returns 是否选中
+ */
 const isTagSelected = (tag: string) => currentStudentTags.value.has(tag)
 
+/** 将当前编辑集合写回学生，并按标签所属分类重组结构 */
 const saveCurrentTags = () => {
   const student = getCurrentStudent()
   if (!student) return
@@ -92,6 +116,7 @@ const saveCurrentTags = () => {
     }
   })
 
+  // 仅在标签实际变化时写回，避免无意义更新
   const prevTags = JSON.stringify(student.tags || {})
   const newTags = JSON.stringify(tags)
 
@@ -100,11 +125,13 @@ const saveCurrentTags = () => {
   }
 }
 
+/** 保存当前学生编辑结果并通知父组件 */
 const saveBatchProgress = () => {
   saveCurrentTags()
   emit('save', props.studentList)
 }
 
+/** 切换到上一个学生：先保存当前，再加载上一个学生的标签 */
 const goToPrevStudent = () => {
   saveBatchProgress()
   if (currentIndex.value > 0) {
@@ -113,6 +140,7 @@ const goToPrevStudent = () => {
   }
 }
 
+/** 切换到下一个学生：先保存当前，再加载下一个学生的标签 */
 const goToNextStudent = () => {
   saveBatchProgress()
   if (currentIndex.value < props.studentList.length - 1) {
@@ -121,21 +149,25 @@ const goToNextStudent = () => {
   }
 }
 
+/** 取消关闭抽屉 */
 const closeDrawer = () => {
   emit('update:visible', false)
 }
 
+/** 保存并关闭：写回当前学生后通知父组件确认 */
 const confirmAndClose = () => {
   saveCurrentTags()
   emit('confirm', props.studentList)
   emit('update:visible', false)
 }
 
+/** 双向绑定的抽屉显隐状态 */
 const drawerVisible = computed({
   get: () => props.visible,
   set: (val) => emit('update:visible', val)
 })
 
+// 抽屉打开时重置到第一个学生并加载其标签
 watch(
   () => props.visible,
   (newVal) => {

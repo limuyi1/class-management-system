@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 值日表 Excel 名单导入弹窗 — 解析文件、确认表头行与姓名列并生成名单快照 */
 import { shallowRef, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
@@ -20,6 +21,7 @@ const { fileName, headerRowIndex, loading, parsedData, preview, parseFile, reset
   useExcelPreviewImport({ errorLogLabel: '读取值日表 Excel' })
 const nameColumn = shallowRef('')
 
+/** 从表头中猜测姓名列，匹配常用姓名列名 */
 function findSuggestedNameColumn(): string {
   return (
     parsedData.value.header.find((header) =>
@@ -28,14 +30,20 @@ function findSuggestedNameColumn(): string {
   )
 }
 
+/** 根据当前表头重置姓名列选择 */
 function resetSelection(): void {
   nameColumn.value = findSuggestedNameColumn()
 }
 
+/**
+ * 处理文件选择，解析成功后自动选中姓名列。
+ * @param file - 上传的文件对象
+ */
 async function handleFileChange(file: UploadFile): Promise<void> {
   if (await parseFile(file)) resetSelection()
 }
 
+/** 校验并确认导入，生成 Excel 学生来源并关闭弹窗 */
 function handleConfirm(): void {
   if (!preview.value || !fileName.value || !nameColumn.value) {
     ElMessage.warning('请先选择 Excel 文件和姓名列')
@@ -50,10 +58,12 @@ function handleConfirm(): void {
   emit('update:modelValue', false)
 }
 
+// 表头行变化时重新猜测姓名列
 watch(headerRowIndex, () => {
   if (preview.value) resetSelection()
 })
 
+// 打开弹窗时重置到初始状态
 watch(
   () => props.modelValue,
   (visible) => {

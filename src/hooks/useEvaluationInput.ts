@@ -70,14 +70,21 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const getStudentById = (studentId: string): StudentDataType | undefined =>
     originList.value.find((student) => student.studentId === studentId)
 
+  /** AI 评语生成中状态 */
   const generating = ref(false)
+  /** AI 评语润色中状态 */
   const polishing = ref(false)
+  /** 搜索候选学生列表 */
   const optionsList = ref<StudentDataType[]>([])
+  /** 当前选中的学生 ID */
   const currentSelectedStudentId = ref<string | null>(null)
 
+  /** 姓名输入框 ref */
   const nameInputRef = ref<FocusableType | null>(null)
+  /** 评语输入框 ref */
   const commentInputRef = ref<FocusableType | null>(null)
 
+  /** 录入表单数据 */
   const formData = reactive<InputFormDataType>({
     studentId: null,
     name: '',
@@ -92,6 +99,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     return item.tags
   })
 
+  /** 当前学生是否拥有任意标签 */
   const hasAnyTags = computed(() => {
     const tags = currentStudentTags.value
     if (!tags || Object.keys(tags).length === 0) return false

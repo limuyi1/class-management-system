@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 导入临时评语 Excel 弹窗
+ * 负责选择文件、识别表头并映射姓名/评语/标签列，确认后构建临时工作区数据。
+ */
 import { computed, shallowRef, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 
@@ -23,27 +27,37 @@ const nameColumn = shallowRef('')
 const commentColumn = shallowRef('')
 const tagColumn = shallowRef('')
 
+/** 可选评语列：排除已选的姓名列与标签列，避免同一列被重复映射 */
 const availableCommentColumns = computed(() =>
   parsedData.value.header.filter(
     (header) => header !== nameColumn.value && header !== tagColumn.value
   )
 )
+/** 可选标签列：排除已选的姓名列与评语列，避免同一列被重复映射 */
 const availableTagColumns = computed(() =>
   parsedData.value.header.filter(
     (header) => header !== nameColumn.value && header !== commentColumn.value
   )
 )
 
+/**
+ * 按关键词匹配表头，返回最接近的列名作为默认选择。
+ *
+ * @param patterns 候选关键词
+ * @returns 命中的列名，未命中返回空字符串
+ */
 const findSuggestedColumn = (patterns: string[]): string =>
   parsedData.value.header.find((header) => patterns.some((pattern) => header.includes(pattern))) ||
   ''
 
+/** 根据表头关键词自动推断姓名、评语、标签列 */
 const resetSelections = (): void => {
   nameColumn.value = findSuggestedColumn(['姓名', '学生姓名', '学生', '名字'])
   commentColumn.value = findSuggestedColumn(['期末评语', '评语'])
   tagColumn.value = findSuggestedColumn(['标签', '特点', '关键词'])
 }
 
+/** 打开弹窗时清空上一次的选择与解析状态 */
 const resetDialog = (): void => {
   reset()
   nameColumn.value = ''
@@ -51,10 +65,16 @@ const resetDialog = (): void => {
   tagColumn.value = ''
 }
 
+/**
+ * 解析选择的 Excel 文件，成功后自动推断列映射。
+ *
+ * @param file 上传文件
+ */
 const handleFileChange = async (file: UploadFile): Promise<void> => {
   if (await parseFile(file)) resetSelections()
 }
 
+/** 校验并构建临时评语工作区，确认后关闭弹窗 */
 const handleConfirm = (): void => {
   if (!preview.value || !sourceFile.value) {
     ElMessage.warning('请先选择 Excel 文件')
@@ -91,19 +111,23 @@ const handleConfirm = (): void => {
   visible.value = false
 }
 
+// 表头行变化后重新推断列映射
 watch(headerRowIndex, () => {
   if (preview.value) resetSelections()
 })
 
+// 姓名列变化时清除与其重复的评语列/标签列
 watch(nameColumn, (column) => {
   if (commentColumn.value === column) commentColumn.value = ''
   if (tagColumn.value === column) tagColumn.value = ''
 })
 
+// 评语列变化时清除与其重复的标签列
 watch(commentColumn, (column) => {
   if (tagColumn.value === column) tagColumn.value = ''
 })
 
+// 弹窗打开时重置状态
 watch(visible, (value) => {
   if (value) resetDialog()
 })

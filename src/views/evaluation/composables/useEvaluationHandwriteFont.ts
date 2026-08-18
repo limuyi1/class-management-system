@@ -55,6 +55,9 @@ export function useEvaluationHandwriteFont(options: UseEvaluationHandwriteFontOp
     formatHandwriteFontName(savedHandwriteFontName.value)
   )
 
+  /**
+   * 等待默认手写字体加载，超时后提示用户可换用本地字体。
+   */
   async function startDefaultFontMonitor(): Promise<void> {
     if (hasSavedHandwriteFont()) return
 
@@ -74,6 +77,9 @@ export function useEvaluationHandwriteFont(options: UseEvaluationHandwriteFontOp
     }
   }
 
+  /**
+   * 初始化手写字体：优先恢复已保存的本地字体，否则等待默认字体加载。
+   */
   async function initializeHandwriteFont(): Promise<void> {
     if (hasSavedHandwriteFont()) {
       try {
@@ -93,13 +99,20 @@ export function useEvaluationHandwriteFont(options: UseEvaluationHandwriteFontOp
     await startDefaultFontMonitor()
   }
 
+  /** 触发隐藏的文件输入框，供用户选择本地字体文件 */
   function handleChooseHandwriteFont(): void {
     options.fontFileInputRef.value?.click()
   }
 
+  /**
+   * 保存并应用用户选择的本地手写字体，失败时提示错误。
+   *
+   * @param event 文件输入框 change 事件
+   */
   async function handleHandwriteFontChange(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement
     const file = input.files?.[0]
+    // 清空输入值，便于再次选择同一文件时仍能触发 change 事件
     input.value = ''
 
     if (!file) return
@@ -117,6 +130,7 @@ export function useEvaluationHandwriteFont(options: UseEvaluationHandwriteFontOp
     }
   }
 
+  /** 清除已保存的本地字体并恢复默认手写字体 */
   async function handleClearHandwriteFont(): Promise<void> {
     clearEvaluationHandwriteFont()
     ElMessage.success('已恢复默认手写字体')

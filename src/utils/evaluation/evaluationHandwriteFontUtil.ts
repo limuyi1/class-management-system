@@ -1,3 +1,7 @@
+/**
+ * 手写字体管理工具
+ * 负责默认/用户字体的加载、注册、保存与缺字检测
+ */
 import fontkit from '@pdf-lib/fontkit'
 
 import { useConfigurationStore } from '@/stores/configuration'
@@ -114,7 +118,10 @@ export const getEvaluationHandwriteFontBytes = async (): Promise<Uint8Array> => 
   return fetchDefaultHandwriteFontBytes()
 }
 
-/** 为 DOM 图片导出生成可嵌入 CSS 的字体数据地址。 */
+/**
+ * 为 DOM 图片导出生成可嵌入 CSS 的字体数据地址。
+ * @returns 字体 data URL
+ */
 export const getEvaluationHandwriteFontDataUrl = async (): Promise<string> => {
   const configuration = useConfigurationStore()
   const bytes = await getEvaluationHandwriteFontBytes()
@@ -190,7 +197,10 @@ export const registerEvaluationHandwriteFont = async (bytes?: Uint8Array) => {
   document.fonts.add(activeCustomFontFace)
 }
 
-/** 等待默认手写字体加载完成 */
+/**
+ * 等待默认手写字体加载完成。
+ * @returns 字体加载结果 Promise
+ */
 export const waitForDefaultHandwriteFont = () => {
   if (!document.fonts) {
     return Promise.resolve([])

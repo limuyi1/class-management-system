@@ -1,3 +1,7 @@
+/**
+ * 成绩通知导入工具
+ * 将 Excel 行转换为成绩通知数据，并支持按科目规则重算等级
+ */
 import { pinyin } from 'pinyin-pro'
 
 import {
@@ -29,6 +33,8 @@ const normalizeName = (value: unknown): string => String(value ?? '').trim()
  * 将 Excel 行转换为成绩通知的独立数据结构。
  *
  * 重名学生会被跳过，避免无法可靠关联历史表现或覆盖导入后的评语。
+ * @param options - 导入参数（行数据、姓名列、科目列、模式与系统学生）
+ * @returns 成绩通知导入结果
  */
 export const buildScoreNoticeImport = (options: {
   rows: ExcelRowType[]

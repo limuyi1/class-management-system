@@ -17,6 +17,7 @@ interface UseTabQuerySyncOptions<T extends string> {
 export function useTabQuerySync<T extends string>(options: UseTabQuerySyncOptions<T>) {
   const { route, router, activeTab, validTabs } = options
 
+  // URL query 变化时同步激活 Tab（支持前进/后退和链接分享）
   watch(
     () => route.query,
     (query) => {
@@ -29,6 +30,7 @@ export function useTabQuerySync<T extends string>(options: UseTabQuerySyncOption
     { immediate: true }
   )
 
+  // 激活 Tab 变化时回写 URL query
   watch(activeTab, async (newTab) => {
     if (route.query.tab === newTab) return
 

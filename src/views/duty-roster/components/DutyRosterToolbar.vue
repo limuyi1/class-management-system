@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 值日表工具栏 — 展示名称、切换模式并编排岗位设置与导出 */
 import { nextTick, shallowRef } from 'vue'
 
 import { DutyRosterModeEnum } from '@/types/DutyRoster'
@@ -21,6 +22,7 @@ const editingName = shallowRef(false)
 const nameDraft = shallowRef('')
 const inputRef = shallowRef<HTMLInputElement | null>(null)
 
+/** 进入值日表名称重命名状态，并选中现有名称 */
 async function startRename(): Promise<void> {
   nameDraft.value = props.rosterName
   editingName.value = true
@@ -28,12 +30,17 @@ async function startRename(): Promise<void> {
   inputRef.value?.select()
 }
 
+/** 提交值日表名称修改，仅在名称有效且变化时触发 */
 function commitRename(): void {
   const name = nameDraft.value.trim()
   if (name && name !== props.rosterName) emit('rename', name)
   editingName.value = false
 }
 
+/**
+ * 处理模式切换，仅在有效模式值下触发。
+ * @param value - 切换后的模式值
+ */
 function handleModeChange(value: string | number | boolean | undefined): void {
   if (value === DutyRosterModeEnum.Daily || value === DutyRosterModeEnum.Weekly) {
     emit('changeMode', value)

@@ -20,6 +20,7 @@ const { students: originList } = storeToRefs(store)
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
 const scorePropRef = computed(() => configuration.inputScoreTab)
+/** 当前统计标题，无科目时回退为“成绩分布统计” */
 const scoreTitle = computed(() => {
   const scoreProp = configuration.inputScoreTab
   if (!scoreProp) return '成绩分布统计'
@@ -39,6 +40,7 @@ const { copyToClipboard } = useScoreDistributionActions({
   getScore
 })
 
+/** 触发复制分数分布文本 */
 const copyDistribution = () => {
   copyToClipboard()
 }

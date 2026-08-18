@@ -61,6 +61,7 @@ const getPadding = (el: HTMLElement) => {
   }
 }
 
+/** 文本容器样式：宽度、行数截断与自定义样式合并 */
 const getStyle = computed(() => {
   return Object.assign(
     {},

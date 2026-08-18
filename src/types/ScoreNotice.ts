@@ -1,3 +1,5 @@
+/** 成绩通知单模块的类型定义 */
+
 /** 成绩通知单模式：等级制 / 分数制 */
 export enum ScoreNoticeModeEnum {
   /** 等级制（按 A/B 等展示） */

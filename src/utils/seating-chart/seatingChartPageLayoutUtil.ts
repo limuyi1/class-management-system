@@ -1,3 +1,7 @@
+/**
+ * 座位表页面布局工具
+ * 计算座位表内容在不同纸张与方向下的适配比例，用于预览尺寸与方向推荐
+ */
 import { PagesEnum } from '@/types/Common'
 
 import type { SeatingChartType } from '@/types/SeatingChart'
@@ -64,6 +68,12 @@ export function getSeatingChartPageSize(
 
 /**
  * 计算座位表内容在纸张内的适配比例，仅用于预览尺寸和方向推荐。
+ * @param chart - 座位表数据
+ * @param pageType - 纸张类型
+ * @param orientation - 页面方向
+ * @param scaleRatio - 字体缩放比例
+ * @param showTitle - 是否显示标题
+ * @returns 页面布局计算结果
  */
 export function buildSeatingChartPageLayout(
   chart: SeatingChartType,

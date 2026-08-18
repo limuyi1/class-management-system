@@ -1,3 +1,7 @@
+/**
+ * 数据库备份工具
+ * 提供数据库导出、导入与清空，并在操作后同步各运行时 Store
+ */
 import 'dexie-export-import'
 import { db, DB_ID } from '@/db'
 import { DatabaseTableEnum } from '@/constants'
@@ -176,9 +180,22 @@ const hydrateRuntimeStores = async () => {
 }
 
 /**
+ * 计算距离上次备份的天数。
+ * @param lastBackupAt - 上次备份时间（ISO 格式），null 表示从未备份
+ * @returns 距今整数天数；null 表示从未备份或时间无效
+ */
+export function getDaysSinceBackup(lastBackupAt: string | null): number | null {
+  if (!lastBackupAt) return null
+  const lastTime = new Date(lastBackupAt).getTime()
+  if (Number.isNaN(lastTime)) return null
+  return Math.floor((Date.now() - lastTime) / (1000 * 60 * 60 * 24))
+}
+
+/**
  * 导出全部数据库为 .dexie 备份文件并触发下载。
  * @param onProgress - 进度回调，传入 0-100 的百分比
  * @param includePaperLayout - 是否包含工具类数据表，默认 true
+ * @returns Promise，成功时触发下载并提示，失败时弹出错误提示
  */
 export async function exportDatabase(
   onProgress?: (percent: number) => void,
@@ -205,6 +222,7 @@ export async function exportDatabase(
     a.download = `scs-backup-${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.dexie`
     a.click()
     URL.revokeObjectURL(url)
+    useConfigurationStore().lastBackupAt = new Date().toISOString()
     ElMessage.success('导出成功')
   } catch (error) {
     console.error('Export failed:', error)
@@ -217,6 +235,7 @@ export async function exportDatabase(
  * @param file - 备份文件
  * @param onProgress - 进度回调，传入 0-100 的百分比
  * @param complete - 导入成功后的回调
+ * @returns Promise，导入成功后重新灌入内存 Store 并回调 complete
  */
 export async function importDatabase(
   file: File,
@@ -255,6 +274,7 @@ export async function importDatabase(
  * 清空所有数据库表并重置运行时 Store 到默认状态。
  * @param onProgress - 进度回调，传入 0-100 的百分比
  * @param complete - 清空完成后的回调
+ * @returns Promise，清空数据库并重置运行时 Store
  */
 export async function clearDatabase(onProgress?: (percent: number) => void, complete?: () => void) {
   try {

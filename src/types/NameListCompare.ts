@@ -1,3 +1,5 @@
+/** 名单对比功能的类型定义 */
+
 /** 名单对比模式：与系统数据对比 / 与外部数据对比 */
 export type NameListCompareModeType = 'system' | 'external'
 

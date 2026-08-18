@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语生成与检查工作区
+ * 按状态筛选学生、批量/单条生成评语，并支持编辑、复制与保存。
+ */
 import { computed, ref, shallowRef, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
@@ -53,6 +57,7 @@ const progressPercentage = computed(() => {
   if (!store.students.length) return 0
   return Math.round(((store.generatedCount + store.reviewCount) / store.students.length) * 100)
 })
+/** 待生成评语的学生数量（不含缺少数据状态） */
 const pendingGenerateCount = computed(
   () =>
     store.students.filter(
@@ -71,6 +76,7 @@ const statusConfig = {
   [ScoreNoticeCommentStatusEnum.Missing]: { label: '缺少数据', type: 'danger' }
 } as const
 
+/** 状态筛选按钮配置，计数来自 store 统计 */
 const filters = computed<Array<{ key: StudentFilterType; label: string; count: number }>>(() => [
   { key: 'pending', label: '待处理', count: store.pendingCount },
   { key: 'review', label: '需修改', count: store.reviewCount },
@@ -79,6 +85,7 @@ const filters = computed<Array<{ key: StudentFilterType; label: string; count: n
   { key: 'all', label: '全部', count: store.students.length }
 ])
 
+/** 判断学生是否命中当前状态筛选 */
 const matchesFilter = (student: ScoreNoticeStudentType): boolean => {
   if (activeFilter.value === 'all') return true
   if (activeFilter.value === 'pending') {
@@ -99,6 +106,7 @@ const matchesFilter = (student: ScoreNoticeStudentType): boolean => {
   )
 }
 
+/** 依据当前筛选与学生名过滤学生列表 */
 const filteredStudents = computed(() => {
   const keyword = searchKeyword.value.trim()
   return store.students.filter(
@@ -106,6 +114,7 @@ const filteredStudents = computed(() => {
   )
 })
 
+/** 切换筛选并自动选中该状态下的第一名学生 */
 const handleFilterChange = (filter: StudentFilterType): void => {
   flushDraft()
   activeFilter.value = filter
@@ -113,6 +122,7 @@ const handleFilterChange = (filter: StudentFilterType): void => {
   if (firstMatch) store.selectStudent(firstMatch.id)
 }
 
+/** 批量生成按钮文案，随生成进度动态变化 */
 const batchButtonLabel = computed(() => {
   if (props.batchGenerating) return `停止生成 ${props.batchProcessed}/${props.batchTotal}`
   if (!pendingGenerateCount.value) return '待生成评语已完成'
@@ -121,26 +131,31 @@ const batchButtonLabel = computed(() => {
     : `生成模板评语（${pendingGenerateCount.value}）`
 })
 
+/** 读取学生的校验原因（优先使用预计算值） */
 const getValidationReason = (student: ScoreNoticeStudentType): string =>
   (student.validationReasons?.length
     ? student.validationReasons
     : getScoreNoticeCommentValidationReasons(student.comment)
   ).join('；')
 
+/** 获取学生评语状态对应的展示配置 */
 const getStatusConfig = (student: ScoreNoticeStudentType) => statusConfig[student.commentStatus]
 
+/** 将当前草稿写入 store，用于切换学生前保留编辑 */
 const flushDraft = (): void => {
   if (!selectedStudent.value || !hasUnsavedComment.value) return
   store.updateStudentComment(selectedStudent.value.id, commentDraft.value, true)
   savedComment.value = commentDraft.value
 }
 
+/** 保存草稿：有未保存修改时写回 store */
 const saveDraft = (): void => {
   if (!hasUnsavedComment.value) return
   flushDraft()
   ElMessage.success('评语修改已保存')
 }
 
+/** 选中学生并同步草稿，切换前先保存上一学生的修改 */
 const selectStudent = (studentId: string): void => {
   if (selectedStudent.value?.id === studentId) {
     commentInputRef.value?.focus()
@@ -150,10 +165,12 @@ const selectStudent = (studentId: string): void => {
   store.selectStudent(studentId)
 }
 
+/** 表格行点击选中学生 */
 const handleRowClick = (student: ScoreNoticeStudentType): void => {
   selectStudent(student.id)
 }
 
+/** 复制当前评语文字到剪贴板 */
 const copyComment = async (): Promise<void> => {
   if (!commentDraft.value.trim()) return
   try {
@@ -165,10 +182,12 @@ const copyComment = async (): Promise<void> => {
   }
 }
 
+/** 处理批量生成下拉命令并转发给父组件 */
 const handleBatchCommand = (command: BatchGenerateModeType): void => {
   emit('generateBatch', command)
 }
 
+/** 供父组件填充评语草稿 */
 const setCommentDraft = (comment: string): void => {
   commentDraft.value = comment
 }
@@ -177,6 +196,7 @@ defineExpose({ setCommentDraft })
 
 watch(
   () => selectedStudent.value?.id,
+  // 切换学生时同步草稿与已保存内容
   () => {
     const nextComment = selectedStudent.value?.comment || ''
     commentDraft.value = nextComment

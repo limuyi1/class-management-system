@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩通知制作流程面板
+ * 组合导入、设置、评语三大步骤与导出栏，并管理步骤展开状态。
+ */
 import { ref, shallowRef, watch } from 'vue'
 
 import ScoreNoticeCommentWorkspace from '@/views/score-notice/components/ScoreNoticeCommentWorkspace.vue'
@@ -37,17 +41,21 @@ const emit = defineEmits<{
 }>()
 
 const store = useScoreNoticeStore()
+// 已导入数据时默认展开设置步骤，否则只展开导入步骤
 const expandedSteps = ref<Array<StepType>>(store.students.length ? [2] : [1])
 const hasUnsavedComment = shallowRef(false)
 const commentWorkspaceRef = ref<InstanceType<typeof ScoreNoticeCommentWorkspace> | null>(null)
 
+/** 判断指定步骤是否处于展开状态 */
 const isStepExpanded = (step: StepType): boolean => expandedSteps.value.includes(step)
 
+/** 展开指定步骤（已展开时无操作） */
 const expandStep = (step: StepType): void => {
   if (isStepExpanded(step)) return
   expandedSteps.value = [...expandedSteps.value, step]
 }
 
+/** 切换步骤展开/收起（无学生数据时不允许进入后续步骤） */
 const toggleStep = (step: StepType): void => {
   if (step > 1 && !store.students.length) return
   expandedSteps.value = isStepExpanded(step)
@@ -55,6 +63,7 @@ const toggleStep = (step: StepType): void => {
     : [...expandedSteps.value, step]
 }
 
+/** 通过 ref 将评语草稿传递给子工作区 */
 const setCommentDraft = (comment: string): void => {
   commentWorkspaceRef.value?.setCommentDraft(comment)
 }
@@ -64,6 +73,7 @@ defineExpose({ setCommentDraft })
 watch(
   () => [store.sourceFileName, store.students.length] as const,
   ([sourceFileName, studentCount], [previousSourceFileName, previousStudentCount]) => {
+    // 无数据时回到导入步骤；首次导入或更换文件时自动展开设置步骤
     if (!studentCount) {
       expandedSteps.value = [1]
       return

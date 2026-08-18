@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 录入数据视图
+ * 展示录入进度与未录入学生名单，并承载分数录入卡片。
+ */
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 
@@ -37,6 +41,7 @@ const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
     configuration.inputScoreTab ? item[configuration.inputScoreTab] : null
 })
 
+/** 当前科目下分数为空或非法的学生列表 */
 const hasNullScoreList = computed(() => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return []
@@ -52,10 +57,20 @@ const hasNullScoreList = computed(() => {
   })
 })
 
+const unfinishedPopoverVisible = ref(false)
+
+/** 点击未录入学生标签时定位到对应学生 */
+const jumpToStudent = (studentId: string) => {
+  unfinishedPopoverVisible.value = false
+  emit('scroll', studentId)
+}
+
+/** 将焦点定位到录入卡片的姓名输入框 */
 const autoFocus = () => {
   scoreInputCardRef.value?.autoFocus()
 }
 
+/** 编辑指定学生数据 */
 const editData = (data: StudentDataType) => {
   scoreInputCardRef.value?.editData(data)
 }
@@ -84,6 +99,7 @@ defineExpose({
       </div>
       <el-progress :stroke-width="10" :show-text="false" :percentage="percentage" />
       <el-popover
+        v-model:visible="unfinishedPopoverVisible"
         placement="bottom"
         :width="320"
         trigger="hover"
@@ -105,6 +121,7 @@ defineExpose({
             :key="item.studentId"
             class="unfinished-tag"
             type="info"
+            @click="jumpToStudent(item.studentId)"
           >
             {{ item[NAME_PROP] }}
           </el-tag>
@@ -180,6 +197,11 @@ defineExpose({
 
   .unfinished-tag {
     margin: 3px;
+    cursor: pointer;
+  }
+
+  .unfinished-tag:hover :deep(.el-tag__content) {
+    color: var(--theme-primary);
   }
 
   .more-hint {

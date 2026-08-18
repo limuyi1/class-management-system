@@ -68,6 +68,7 @@ const emptyTrendState = computed(() => {
   }
 })
 
+/** 弹出超出最大对比人数的提示 */
 const showMaxCompareWarning = () => {
   ElMessage.warning(`最多只能对比 ${maxCompareCount} 名学生`)
 }
@@ -112,14 +113,17 @@ const addQuickStudent = (studentId: string) => {
   selectedValue.value = nextValue
 }
 
+/** 清空当前对比选择 */
 const clearSelected = () => {
   selectedValue.value = []
 }
 
+/** 跳转到评语页 */
 const goToEvaluation = () => {
   emit('go-evaluation')
 }
 
+/** 导出单人模式下当前学生的报告，非单人模式时忽略 */
 const exportReport = () => {
   const targetStudentId =
     props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.studentId : ''
@@ -137,6 +141,11 @@ const filteredStudentOptions = computed(() => {
   })
 })
 
+/**
+ * 接收下拉框的过滤关键字。
+ *
+ * @param query 搜索关键字
+ */
 const handleStudentFilter = (query: string) => {
   studentSearchKeyword.value = query
 }

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 错题编辑器 — 编辑错题基本信息、题目/答案/解析，支持图片与 AI 答题 */
 import { ref, watch, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElDialog, ElForm, ElButton, ElMessage, ElTooltip } from 'element-plus'
@@ -33,6 +34,7 @@ const wrongBookStore = useWrongBookStore()
 const aiConfigStore = useAIConfigStore()
 const { folders, questionTypes } = storeToRefs(wrongBookStore)
 
+/** 编辑器表单状态 */
 const form = ref({
   folderId: props.folderId,
   questionText: '',
@@ -45,6 +47,10 @@ const form = ref({
   source: ''
 })
 
+/**
+ * 重置表单到初始状态
+ * @param folderId - 可选，重置时使用的文件夹 id
+ */
 const resetForm = (folderId?: string) => {
   form.value = {
     folderId: folderId ?? props.folderId,
@@ -68,6 +74,7 @@ const imageScale = ref(100)
 const originalImageWidth = ref(0)
 const imageAlign = ref<'left' | 'center' | 'right'>('center')
 
+/** 在编辑器内插入图片：选择文件后进入裁剪流程 */
 const handleImageInEditor = () => {
   const input = document.createElement('input')
   input.type = 'file'
@@ -94,6 +101,10 @@ const handleImageInEditor = () => {
   input.click()
 }
 
+/**
+ * 编辑器裁剪确认后，读取图片宽度并打开缩放/对齐设置
+ * @param croppedBase64 - 裁剪后的图片 base64 数据
+ */
 const handleEditorCropConfirm = (croppedBase64: string) => {
   editorCropperVisible.value = false
   pendingImageBase64.value = croppedBase64
@@ -108,6 +119,11 @@ const handleEditorCropConfirm = (croppedBase64: string) => {
   img.src = `data:image/jpeg;base64,${croppedBase64}`
 }
 
+/**
+ * 依据缩放比例与对齐方式生成 img 标签并插入当前激活的编辑器
+ * @param scale - 缩放百分比
+ * @param align - 对齐方式
+ */
 const handleImageScaleConfirm = (scale: number, align: 'left' | 'center' | 'right') => {
   const base64 = pendingImageBase64.value
   const imageUrl = `data:image/jpeg;base64,${base64}`
@@ -115,6 +131,7 @@ const handleImageScaleConfirm = (scale: number, align: 'left' | 'center' | 'righ
   const actualWidth = Math.round(originalImageWidth.value * (scale / 100))
   const widthAttr = ` width="${actualWidth}"`
 
+  // 左/右对齐时设置块级与自动外边距，居中对齐则使用默认样式
   let styleAttr = ''
   if (align === 'left') {
     styleAttr = ' style="display:block;margin-right:auto;margin-left:0;"'
@@ -136,16 +153,22 @@ const handleImageScaleConfirm = (scale: number, align: 'left' | 'center' | 'righ
   pendingImageBase64.value = ''
 }
 
+/** 取消编辑器图片裁剪 */
 const handleEditorCropCancel = () => {
   editorCropperVisible.value = false
 }
 
+/**
+ * 记录当前激活的编辑器字段，供图片插入定位
+ * @param field - 编辑器所属字段
+ */
 const setActiveEditor = (field: 'question' | 'answer' | 'explanation') => {
   activeEditorRef.value = field
 }
 
 const aiAnswerLoading = ref(false)
 
+/** 调用 AI 服务生成答案与解析并回填表单 */
 const handleAIAnswer = async () => {
   if (!form.value.questionText && form.value.questionImages.length === 0) {
     ElMessage.warning('请先填写题目内容或上传题目图片')
@@ -192,6 +215,7 @@ const handleAIAnswer = async () => {
   }
 }
 
+// 传入题目变化时回填表单；无题目（新增场景）则重置
 watch(
   () => props.question,
   (newQuestion) => {
@@ -214,6 +238,7 @@ watch(
   { immediate: true }
 )
 
+// 新增场景下跟随外部文件夹变化更新表单
 watch(
   () => props.folderId,
   (newFolderId) => {
@@ -223,6 +248,7 @@ watch(
   }
 )
 
+// 每次打开弹窗且为新增场景时重置表单
 watch(
   () => props.visible,
   (isVisible) => {
@@ -237,10 +263,12 @@ watch(
 
 const dialogTitle = computed(() => (props.question?.id ? '编辑错题' : '添加错题'))
 
+/** 关闭弹窗 */
 const handleClose = () => {
   emit('update:visible', false)
 }
 
+/** 校验表单后触发保存事件 */
 const handleSave = () => {
   if (!form.value.questionText && form.value.questionImages.length === 0) {
     ElMessage.warning('请填写题目内容或上传题目图片')
@@ -249,12 +277,14 @@ const handleSave = () => {
   emit('save', { ...form.value })
 }
 
+/** 切换当前题目的收藏状态 */
 const toggleFavorite = () => {
   form.value.isFavorite = !form.value.isFavorite
 }
 
 const expandVisible = ref(false)
 
+/** 打开全屏展开编辑弹窗 */
 const showExpand = () => {
   expandVisible.value = true
 }

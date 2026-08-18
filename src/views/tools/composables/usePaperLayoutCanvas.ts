@@ -155,6 +155,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
   }
 
   function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
+    // 新图片摆放到当前停留页，层级从现有最大层级之后续接
     const targetPageIndex = Math.max(activePageNumber.value - 1, 0)
     const nextZIndex = getNextPaperLayoutZIndex(canvasItems.value)
     const pendingItems = attachments.map((attachment, index) =>
@@ -353,6 +354,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     }
   }
 
+  /** 更新当前页并平滑滚动到指定页面 */
   function scrollToPage(index: number): void {
     activePageNumber.value = index + 1
     void nextTick(() => {

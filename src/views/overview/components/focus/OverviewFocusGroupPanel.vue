@@ -97,11 +97,17 @@ const shouldShowToggle = computed(
   () => (activeSection.value?.items.length || 0) > DEFAULT_VISIBLE_COUNT
 )
 
+/** 切换“查看全部/收起”展开状态，并同步通知父级 */
 const toggleExpanded = () => {
   state.expanded = !state.expanded
   emit('expandChange', state.expanded)
 }
 
+/**
+ * 切换当前标签区块，切换时收起展开状态避免跨区块残留。
+ *
+ * @param sectionKey 区块 key
+ */
 const selectSection = (sectionKey: string) => {
   state.activeSectionKey = sectionKey
   if (state.expanded) {
@@ -110,6 +116,7 @@ const selectSection = (sectionKey: string) => {
   }
 }
 
+// 区块集合变化时校准当前区块与展开状态，防止失效状态残留
 watchEffect(() => {
   if (!sortedSections.value.length) {
     state.activeSectionKey = ''

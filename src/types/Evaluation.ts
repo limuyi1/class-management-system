@@ -1,3 +1,4 @@
+/** 评语页面相关的类型定义 */
 import type { StudentDataType } from '@/types/StudentData'
 
 /** 评语页面布局信息（每页卡片行列数、边距等） */

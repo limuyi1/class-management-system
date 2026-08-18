@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 岗位右键菜单 — 在当前位置新增或删除岗位列 */
 defineProps<{
   x: number
   y: number

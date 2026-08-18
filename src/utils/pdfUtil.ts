@@ -21,6 +21,7 @@ interface ExportPDFResultType {
  * @param pageType PDF 页面尺寸类型，默认 A4
  * @param scale 导出缩放比例，默认 4（提高清晰度）
  * @param fileName 导出文件名，默认为当前日期时间
+ * @returns 操作结果，success 标识是否成功，失败时携带 error
  */
 const exportPDF = async (
   refs: ArrayLike<Element>,

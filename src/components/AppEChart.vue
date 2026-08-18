@@ -14,6 +14,12 @@ import type { EChartsOption } from 'echarts'
 import { CanvasRenderer } from 'echarts/renderers'
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
+/**
+ * ECharts 通用封装组件。
+ *
+ * 按需注册图表与组件，接收 option 配置后渲染图表，
+ * 并在尺寸变化时自动 resize、组件卸载时释放实例。
+ */
 use([
   BarChart,
   LineChart,

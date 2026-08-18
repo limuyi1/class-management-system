@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 60分以下低分面板
+ * 无低分学生时静态展示，有低分学生时折叠展示各低分区间名单。
+ */
 import type { ScoreStatisticsType } from '@/hooks/useScoreStatistics'
 
 interface Props {

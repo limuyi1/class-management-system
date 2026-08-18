@@ -12,6 +12,12 @@ import {
   formatFileSize
 } from '@/utils/fileUtil'
 
+/**
+ * 图片裁剪弹窗组件。
+ *
+ * 基于 vue-cropper 提供缩放、旋转、翻转、重置等操作，支持全屏编辑与可选压缩，
+ * 确认后以 Base64 形式返回裁剪结果，并将压缩比例同步回父组件。
+ */
 interface Props {
   visible: boolean
   imageSrc: string
@@ -40,15 +46,19 @@ const autoCropHeight = ref(400)
 const cropDataBase64 = ref('')
 const estimating = ref(false)
 
+// 裁剪框相关常量：默认尺寸、宽高比、全屏边距与最小尺寸
 const DEFAULT_CROP_WIDTH = 640
 const DEFAULT_CROP_HEIGHT = 400
 const CROP_BOX_RATIO = DEFAULT_CROP_WIDTH / DEFAULT_CROP_HEIGHT
 const FULLSCREEN_CROP_BOX_PADDING = 40
 const MIN_CROP_WIDTH = 220
 const MIN_CROP_HEIGHT = 140
+// 尺寸变化小于该阈值时跳过刷新，避免无谓重绘
 const CROP_SIZE_CHANGE_THRESHOLD = 4
+// 压缩输出质量与尺寸估算防抖延迟
 const COMPRESS_QUALITY = 0.85
 const ESTIMATE_DEBOUNCE_DELAY = 350
+// 「原图」选项的哨兵值，实际压缩比例用 null 表示
 const ORIGINAL_COMPRESS_VALUE = 'original'
 
 type CompressOptionValueType = number | typeof ORIGINAL_COMPRESS_VALUE
@@ -90,11 +100,13 @@ interface CropperApiType {
   recycle: () => void
 }
 
+// 当前压缩比例：未指定时默认 0.6，并随选择回写父组件
 const currentCompressRatio = computed({
   get: () => (props.compressRatio === undefined ? 0.6 : props.compressRatio),
   set: (value: number | null) => emit('update:compressRatio', value)
 })
 
+// 下拉选项值：将「原图」映射为哨兵值，其余为压缩比例数值
 const selectedCompressOptionValue = computed<CompressOptionValueType>({
   get: () => currentCompressRatio.value ?? ORIGINAL_COMPRESS_VALUE,
   set: (value) => {
@@ -102,12 +114,22 @@ const selectedCompressOptionValue = computed<CompressOptionValueType>({
   }
 })
 
+/**
+ * 将下拉选项值转换为实际压缩比例
+ * @param value - 选项值
+ * @returns 压缩比例，「原图」返回 null
+ */
 const getCompressRatioValue = (value: CompressOptionValueType): number | null => {
   return value === ORIGINAL_COMPRESS_VALUE ? null : value
 }
 
+/**
+ * 根据当前模式计算裁剪框尺寸，仅在尺寸发生有效变化时更新并返回是否需要刷新
+ * @returns 是否发生了有意义的尺寸变化
+ */
 const updateCropBoxSize = (): boolean => {
   if (!fullscreen.value) {
+    // 非全屏模式统一恢复为默认尺寸
     const hasMeaningfulChange =
       Math.abs(DEFAULT_CROP_WIDTH - autoCropWidth.value) > CROP_SIZE_CHANGE_THRESHOLD ||
       Math.abs(DEFAULT_CROP_HEIGHT - autoCropHeight.value) > CROP_SIZE_CHANGE_THRESHOLD
@@ -123,12 +145,14 @@ const updateCropBoxSize = (): boolean => {
   const wrapper = cropperWrapperRef.value
   if (!wrapper) return false
   const padding = FULLSCREEN_CROP_BOX_PADDING
+  // 在容器内边距范围内计算可用宽高，并保底最小尺寸
   const maxWidth = Math.max(wrapper.clientWidth - padding * 2, MIN_CROP_WIDTH)
   const maxHeight = Math.max(wrapper.clientHeight - padding * 2, MIN_CROP_HEIGHT)
 
   let nextWidth = maxWidth
   let nextHeight = Math.round(nextWidth / CROP_BOX_RATIO)
 
+  // 高度超限时反向收缩宽度，保证裁剪框保持默认宽高比
   if (nextHeight > maxHeight) {
     nextHeight = maxHeight
     nextWidth = Math.round(nextHeight * CROP_BOX_RATIO)
@@ -148,6 +172,10 @@ const updateCropBoxSize = (): boolean => {
   return hasMeaningfulChange
 }
 
+/**
+ * 刷新裁剪器布局，尺寸有变化或强制刷新时调用底层 refresh
+ * @param forceRefresh - 是否强制刷新
+ */
 const refreshCropperLayout = (forceRefresh = false) => {
   const sizeChanged = updateCropBoxSize()
 
@@ -157,6 +185,7 @@ const refreshCropperLayout = (forceRefresh = false) => {
   }
 }
 
+/** 取消尚未执行的布局刷新任务 */
 const cancelScheduledRefresh = () => {
   if (refreshFrameId) {
     cancelAnimationFrame(refreshFrameId)
@@ -165,6 +194,7 @@ const cancelScheduledRefresh = () => {
   pendingForceRefresh = false
 }
 
+/** 取消尚未执行的压缩估算任务 */
 const cancelScheduledEstimate = () => {
   if (estimateTimer) {
     window.clearTimeout(estimateTimer)
@@ -172,6 +202,7 @@ const cancelScheduledEstimate = () => {
   }
 }
 
+/** 立即获取当前裁剪结果用于体积估算 */
 const updateCropEstimate = () => {
   if (!props.enableCompression) return
 
@@ -185,6 +216,7 @@ const updateCropEstimate = () => {
   })
 }
 
+/** 防抖调度压缩体积估算，避免裁剪过程中频繁计算 */
 const scheduleCropEstimate = () => {
   if (!props.enableCompression) return
 
@@ -195,6 +227,10 @@ const scheduleCropEstimate = () => {
   }, ESTIMATE_DEBOUNCE_DELAY)
 }
 
+/**
+ * 调度布局刷新；同一帧内多次请求会被合并，避免重复刷新
+ * @param forceRefresh - 是否强制刷新
+ */
 const scheduleRefreshCropperLayout = (forceRefresh = false) => {
   pendingForceRefresh = pendingForceRefresh || forceRefresh
   if (refreshFrameId) return
@@ -207,11 +243,13 @@ const scheduleRefreshCropperLayout = (forceRefresh = false) => {
   })
 }
 
+/** 停止并清理容器尺寸监听 */
 const stopResizeObserver = () => {
   resizeObserver?.disconnect()
   resizeObserver = null
 }
 
+/** 开始监听容器尺寸变化 */
 const startResizeObserver = () => {
   const wrapper = cropperWrapperRef.value
   if (!wrapper || typeof ResizeObserver === 'undefined') return
@@ -223,6 +261,7 @@ const startResizeObserver = () => {
   resizeObserver.observe(wrapper)
 }
 
+/** 初始化裁剪器：等待挂载后计算尺寸，再开启监听与估算 */
 const prepareCropper = async () => {
   await nextTick()
   updateCropBoxSize()
@@ -236,6 +275,7 @@ watch(
   () => props.imageSrc,
   () => {
     if (!props.visible) return
+    // 图片源变化时重建裁剪器
     cropperReady.value = false
     void prepareCropper()
   }
@@ -245,6 +285,7 @@ watch(
   () => props.visible,
   (visible) => {
     if (!visible) {
+      // 关闭时重置状态并清理定时器与监听，防止残留副作用
       cropperReady.value = false
       fullscreen.value = false
       cropDataBase64.value = ''
@@ -255,6 +296,11 @@ watch(
   }
 )
 
+/**
+ * 调用裁剪器的单个操作
+ * @param method - 操作方法名
+ * @param args - 操作参数（仅缩放操作会使用）
+ */
 const handleOperation = (method: CropperMethodNameType, ...args: number[]) => {
   const cropper = cropperRef.value as unknown as CropperApiType | null
   if (!cropper) return
@@ -275,12 +321,19 @@ const handleFlipHorizontal = () => handleOperation('flipX')
 const handleFlipVertical = () => handleOperation('flipY')
 const handleReset = () => handleOperation('recycle')
 
+// 裁剪实时变化时触发估算调度（内部有防抖）
 const handleRealtime = () => {
   scheduleCropEstimate()
 }
 
+/**
+ * 计算压缩选项展示文案，含估算中的提示与预估体积
+ * @param option - 压缩选项
+ * @returns 展示文案
+ */
 const getCompressOptionLabel = (option: CompressOptionType): string => {
   if (!cropDataBase64.value) return option.label
+  // 正在估算且恰好是当前选项时给出「估算中」提示
   if (estimating.value && option.value === selectedCompressOptionValue.value) {
     return `${option.label} · 估算中`
   }
@@ -289,6 +342,7 @@ const getCompressOptionLabel = (option: CompressOptionType): string => {
   return `${option.label} · 约${formatFileSize(size)}`
 }
 
+/** 切换全屏模式并重建裁剪器布局 */
 const toggleFullscreen = () => {
   cropperReady.value = false
   stopResizeObserver()
@@ -297,6 +351,9 @@ const toggleFullscreen = () => {
   void prepareCropper()
 }
 
+/**
+ * 确认裁剪：按需压缩后关闭弹窗并回传 Base64 结果
+ */
 const handleConfirm = async () => {
   if (!cropperRef.value) return
 
@@ -310,6 +367,7 @@ const handleConfirm = async () => {
         const croppedDataUrl = await new Promise<string>((resolve) => {
           cropper.getCropData((data: string) => resolve(data))
         })
+        // 开启压缩时按比例压缩，否则仅转换为 Base64
         if (props.enableCompression) {
           const compressed = await compressDataUrlByRatio(
             croppedDataUrl,
@@ -334,15 +392,18 @@ const handleConfirm = async () => {
   }
 }
 
+/** 取消裁剪并关闭弹窗 */
 const handleCancel = () => {
   emit('cancel')
   emit('update:visible', false)
 }
 
+/** 弹窗打开动画结束后初始化裁剪器 */
 const handleOpened = () => {
   void prepareCropper()
 }
 
+// 卸载前清理监听与定时任务，避免内存泄漏
 onBeforeUnmount(() => {
   stopResizeObserver()
   cancelScheduledRefresh()

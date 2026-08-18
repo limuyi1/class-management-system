@@ -3,6 +3,12 @@ import { computed } from 'vue'
 
 import type { SettingType } from '@/types/Setting'
 
+/**
+ * 学习报告导出侧边栏。
+ *
+ * 负责成绩范围勾选、正文内容编辑与导出设置（质量/分辨率），
+ * 所有状态通过 v-model 事件交由父组件管理，本组件仅做展示与交互转发。
+ */
 interface Props {
   scoreColumns: SettingType[]
   selectedProps: string[]
@@ -50,10 +56,12 @@ const scaleModel = computed({
 })
 
 const selectedCount = computed(() => props.selectedProps.length)
+// 是否已全选所有成绩列
 const allSelected = computed(() => {
   return props.scoreColumns.length > 0 && props.selectedProps.length === props.scoreColumns.length
 })
 
+/** 导出质量档位选项 */
 const qualityOptions = [
   {
     value: 'standard',
@@ -72,6 +80,7 @@ const qualityOptions = [
   }
 ]
 
+/** 导出分辨率倍率选项 */
 const scaleOptions = [
   {
     value: '1',
@@ -87,6 +96,9 @@ const scaleOptions = [
   }
 ]
 
+/**
+ * 全选 / 清空成绩列
+ */
 const toggleSelectAll = (): void => {
   if (allSelected.value) {
     selectedModel.value = []

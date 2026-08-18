@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 通知设置步骤
+ * 配置通知标题、日期、展示内容与学生姓名手写字体。
+ */
 import { computed } from 'vue'
 
 import { useScoreNoticeStore } from '@/stores/score-notice'
@@ -21,8 +25,10 @@ const emit = defineEmits<{
 }>()
 
 const store = useScoreNoticeStore()
+/** 只有分数导入模式才允许以分数形式展示 */
 const canUseScoreMode = computed(() => store.sourceMode === ScoreNoticeModeEnum.Score)
 
+/** 切换展示模式，分数模式需在源数据支持下才能生效 */
 const handleModeChange = (value: string | number | boolean | undefined): void => {
   if (value === ScoreNoticeModeEnum.Grade) store.mode = value
   if (value === ScoreNoticeModeEnum.Score && canUseScoreMode.value) store.mode = value

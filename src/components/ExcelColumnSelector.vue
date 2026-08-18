@@ -8,6 +8,12 @@ import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUtil'
 
 import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 
+/**
+ * Excel 导入列选择弹窗。
+ *
+ * 根据导入模式（初始化 / 增量 / 仅姓名）引导用户选择姓名列与成绩列，
+ * 支持先挑选表头行再确定列名，确认后以 payload 形式返回选择结果。
+ */
 type ExcelRowType = Record<string, string | number | boolean | null | undefined>
 
 type SelectorModeType = 'initial' | 'incremental' | 'name-only'
@@ -48,6 +54,7 @@ const selectedHeaderRowIndex = ref(0)
 const isInitialMode = computed(() => props.mode === 'initial')
 const isNameOnlyMode = computed(() => props.mode === 'name-only')
 const hasHeaderPreview = computed(() => Boolean(props.previewRows?.length))
+// 有预览行时按所选表头行解析，否则直接使用外部传入的表头与数据
 const parsedImportData = computed(() => {
   if (!hasHeaderPreview.value) {
     return {
@@ -58,18 +65,24 @@ const parsedImportData = computed(() => {
   return buildExcelDataFromHeaderRow(props.previewRows ?? [], selectedHeaderRowIndex.value)
 })
 const effectiveHeaders = computed(() => parsedImportData.value.header)
+// 成绩列候选：排除「序号」占位列以及已选为姓名的列
 const scoreHeaders = computed(() => {
   return effectiveHeaders.value.filter((header) => {
     if (header === '序号') return false
     return header !== selectedNameColumn.value
   })
 })
+// 仅姓名模式无需成绩列；其他模式必须有姓名列（初始模式允许不选成绩列）
 const canConfirm = computed(
   () =>
     Boolean(selectedNameColumn.value) &&
     (isNameOnlyMode.value || isInitialMode.value || selectedScoreColumns.value.length > 0)
 )
 
+/**
+ * 推断默认姓名列：优先使用外部指定值，其次匹配常见姓名表头关键词
+ * @returns 匹配到的列名，未命中时返回空字符串
+ */
 const findSuggestedNameColumn = (): string => {
   return (
     props.defaultNameColumn ||
@@ -102,11 +115,15 @@ watch(selectedHeaderRowIndex, () => {
 })
 
 watch(selectedNameColumn, () => {
+  // 姓名列变化后同步剔除成绩列中可能存在的同名项，保证两类列互斥
   selectedScoreColumns.value = selectedScoreColumns.value.filter(
     (column) => column !== selectedNameColumn.value
   )
 })
 
+/**
+ * 校验选择结果并派发确认事件
+ */
 const handleConfirm = () => {
   if (!selectedNameColumn.value) {
     ElMessage.warning('请选择姓名列')

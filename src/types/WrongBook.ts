@@ -24,6 +24,7 @@ export interface WrongFolder {
  * 用于渲染文件夹树形结构
  */
 export interface WrongFolderTree extends WrongFolder {
+  /** 子文件夹列表 */
   children: WrongFolderTree[]
 }
 

@@ -159,10 +159,17 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
   const batchGenerating = ref(false)
   const batchPolishing = ref(false)
 
+  /**
+   * 提取学生标签并格式化为顿号分隔的文本。
+   *
+   * @param student 学生数据
+   * @returns 拼接后的标签文本
+   */
   function getStudentTagsText(student: StudentDataType): string {
     return formatEvaluationBatchTags(extractStudentTags(student, options.tagCategoryList.value))
   }
 
+  /** 组装调用 AI 所需的模型、密钥与地址配置 */
   function getAIRequestOptions() {
     return {
       modelType: options.aiConfig.modelType,
@@ -172,6 +179,11 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
     }
   }
 
+  /**
+   * 按批次调用 AI 批量生成期末评语。
+   *
+   * @param requestedMode 指定覆盖模式；未指定时根据已有评语情况弹窗确认
+   */
   async function handleBatchGenerate(
     requestedMode?: EvaluationBatchGenerateModeType
   ): Promise<void> {
@@ -281,6 +293,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
     }
   }
 
+  /** 按批次调用 AI 润色已有评语，空白评语不会生成或覆盖 */
   async function handleBatchPolish(): Promise<void> {
     if (!options.aiConfig.isConfigured) {
       ElMessage.warning('请先在设置页面配置 AI')

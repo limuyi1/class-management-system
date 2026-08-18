@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 检查并导出栏
+ * 汇总可导出状态，提供复制当前图片与导出全部图片 ZIP 的操作。
+ */
 import { computed } from 'vue'
 
 import { useScoreNoticeStore } from '@/stores/score-notice'
@@ -19,7 +23,9 @@ const emit = defineEmits<{
 
 const store = useScoreNoticeStore()
 const selectedStudent = computed(() => store.selectedStudent)
+/** 待处理/需修改/缺数据的学生总数 */
 const issueCount = computed(() => store.pendingCount + store.reviewCount + store.missingCount)
+/** 当前可直接导出的学生数 */
 const readyCount = computed(() => Math.max(store.students.length - issueCount.value, 0))
 const isReady = computed(
   () =>
@@ -29,6 +35,7 @@ const isReady = computed(
     !props.hasUnsavedComment
 )
 
+/** 依据当前状态生成导出状态提示 */
 const readinessText = computed(() => {
   if (!store.students.length) return '完成前面步骤后即可导出'
   if (props.processing) return '正在生成评语，请稍候'

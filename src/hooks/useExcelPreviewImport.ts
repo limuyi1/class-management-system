@@ -82,7 +82,11 @@ export function useExcelPreviewImport(options: UseExcelPreviewImportOptionsType 
     return Boolean(await parseSourceFile(file, file.raw, file.name))
   }
 
-  /** 让原生 File 入口复用与 el-upload 完全相同的解析和错误处理。 */
+  /**
+   * 让原生 File 入口复用与 el-upload 完全相同的解析和错误处理。
+   * @param file - 原始 File 对象
+   * @returns 解析结果，空文件或失败返回 null
+   */
   const parseRawFile = async (file: File): Promise<ExcelPreviewResultType | null> =>
     parseSourceFile({ raw: file, name: file.name } as UploadFile, file, file.name)
 

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 预览与导出配置卡片
+ * 提供缩放、页面、边距、卡片尺寸、字体等评语预览与导出参数的快捷设置。
+ */
 import { computed, ref } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
@@ -30,12 +34,18 @@ const summaryText = computed(() => {
   return `${cardSizeText} / ${marginText} / 表格${alignText} / ${pageNumberText}`
 })
 
+/**
+ * 整体字号变化时联动刷新相关字号。
+ *
+ * @param fontSize 新的整体字号
+ */
 const fontChange = (fontSize?: number) => {
   if (fontSize) {
     store.fontSizeChange(fontSize)
   }
 }
 
+/** 切换高级配置的展开/收起状态 */
 const toggleExpanded = () => {
   expanded.value = !expanded.value
 }

@@ -1,10 +1,15 @@
 <script setup lang="ts">
+/**
+ * 成绩表格视图
+ * 展示学生列表，支持切换当前录入科目、仅查看未录入学生、定位到指定行并闪烁提示。
+ */
 import { computed, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
+import { getScoreColor } from '@/config/score'
 import { delay } from '@/utils/commonUtil'
 import { NAME_PROP } from '@/constants'
 import type { ScorePageStageType } from '@/types/Score'
@@ -34,12 +39,18 @@ const tableRef = ref()
 const showOnlyUnentered = ref(false)
 const activeStudentId = ref<string | null>(null)
 
+/** 当前分数列的展示名称，无科目时回退为“当前分数” */
 const currentColumnLabel = computed(() => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return '当前分数'
   return props.scoreColumns.find((item) => item.prop === scoreTab)?.label || scoreTab
 })
 
+/**
+ * 读取指定学生在当前录入科目下的分数。
+ * @param row 学生行数据
+ * @returns 有效分数，未录入或非法时返回 null
+ */
 const getCurrentScore = (row: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
   const score = row[configuration.inputScoreTab]
@@ -51,24 +62,13 @@ const getCurrentScore = (row: StudentDataType): number | null => {
   return null
 }
 
+/** 按“仅未录入”开关过滤后的表格数据 */
 const displayData = computed(() => {
   if (!showOnlyUnentered.value) return tableData.value
   return tableData.value.filter((row) => getCurrentScore(row) === null)
 })
 
-const getScoreColor = (score: number) => {
-  if (score >= 90) return '#22c55e'
-  if (score >= 80) return '#3b82f6'
-  if (score >= 70) return '#eab308'
-  if (score >= 60) return '#f97316'
-  if (score >= 50) return '#ef4444'
-  if (score >= 40) return '#dc2626'
-  if (score >= 30) return '#b91c1c'
-  if (score >= 20) return '#991b1b'
-  if (score >= 10) return '#7f1d1d'
-  return '#450a0a'
-}
-
+/** 依据分数档位为行设置淡色背景，未录入或无色时不设置 */
 const getRowStyle = ({ row }: { row: StudentDataType }) => {
   const score = getCurrentScore(row)
   if (score === null) return {}
@@ -79,6 +79,12 @@ const getRowStyle = ({ row }: { row: StudentDataType }) => {
   }
 }
 
+/**
+ * 按当前科目分数排序，未录入的行始终排在最前。
+ * @param a 待比较学生
+ * @param b 待比较学生
+ * @returns 排序差值
+ */
 const sortByCurrentScore = (a: StudentDataType, b: StudentDataType) => {
   const scoreA = getCurrentScore(a)
   const scoreB = getCurrentScore(b)
@@ -88,10 +94,15 @@ const sortByCurrentScore = (a: StudentDataType, b: StudentDataType) => {
   return scoreA - scoreB
 }
 
+/** 为当前定位学生所在行添加高亮类名 */
 const rowClassName = ({ row }: { row: StudentDataType }) => {
   return row.studentId === activeStudentId.value ? 'score-table__active-row' : ''
 }
 
+/**
+ * 将指定学生滚动到可视区域并触发闪烁定位。
+ * @param studentId 学生 ID
+ */
 const scroll = (studentId: string) => {
   const rowData = tableData.value.find((student) => student.studentId === studentId)
   if (!rowData) return
@@ -101,10 +112,16 @@ const scroll = (studentId: string) => {
   if (rowIndex === -1) return
 
   tableRef.value?.setCurrentRow(rowData)
-  tableRef.value?.scrollTo(0, 50 * rowIndex)
+  const rowHeight = tableRef.value?.$el?.querySelector('.el-table__row')?.offsetHeight || 50
+  tableRef.value?.scrollTo(0, rowHeight * rowIndex)
   rowBlink(rowIndex + 1)
 }
 
+/**
+ * 让目标行闪烁数秒用于定位提示。
+ * 行已有背景类时在类名增删间切换，否则直接切换行内背景色。
+ * @param index 从 1 起始的行序号
+ */
 const rowBlink = async (index: number) => {
   const elems = tableRef.value?.$el.querySelectorAll('.el-table__row')
   if (!elems || !elems[index - 1]) return
@@ -117,6 +134,7 @@ const rowBlink = async (index: number) => {
   const scoreColor = score === null ? null : getScoreColor(score)
   const originalColor = scoreColor ? scoreColor + '16' : ''
 
+  // 有背景类时通过类名增删闪烁，无背景类时直接切换行内背景色
   if (classList.length > 1) {
     const backupClass = classList[1]
 
@@ -136,15 +154,18 @@ const rowBlink = async (index: number) => {
   }
 }
 
+/** 行点击进入编辑，同时记录当前学生用于高亮 */
 const handleEdit = (data: StudentDataType) => {
   activeStudentId.value = data.studentId
   emit('edit', data)
 }
 
+/** 触发查看学生趋势分析 */
 const handleInspectStudent = (row: StudentDataType) => {
   emit('inspectStudent', row)
 }
 
+/** 清除当前选中行与高亮 */
 const clearActiveSelection = () => {
   activeStudentId.value = null
   tableRef.value?.setCurrentRow()

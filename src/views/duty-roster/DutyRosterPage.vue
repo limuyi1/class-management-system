@@ -26,15 +26,18 @@ import DutyStudentImportDialog from '@/views/duty-roster/components/DutyStudentI
 import type { DutyAssignmentTargetType } from '@/types/DutyRoster'
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 
+/** 右键菜单坐标 */
 interface MenuPositionType {
   x: number
   y: number
 }
 
+/** 岗位右键菜单状态 */
 interface PositionMenuType extends MenuPositionType {
   positionId: string
 }
 
+/** 学生右键菜单状态 */
 interface StudentMenuType extends MenuPositionType {
   studentId: string
 }
@@ -61,26 +64,32 @@ const initialSource = shallowRef<StudentSourceType>(
 )
 const initialExcelSource = shallowRef<ExcelStudentSourceType | null>(null)
 
+/** 学生 ID 到姓名的映射，供矩阵与导出使用 */
 const studentNames = computed<Record<string, string>>(() =>
   Object.fromEntries(activeStudents.value.map((student) => [student.id, student.name]))
 )
+/** 右键菜单所指向岗位所属的清洁区域 */
 const currentPositionSection = computed(() => {
   if (!editingRoster.value || !positionMenu.value) return null
   return findDutySectionByPosition(editingRoster.value, positionMenu.value.positionId) || null
 })
+/** 仅当区域内有多个岗位时才允许删除当前列 */
 const canRemovePosition = computed(() =>
   Boolean(currentPositionSection.value && currentPositionSection.value.positions.length > 1)
 )
+/** 右键菜单指向的学生是否为组长 */
 const menuStudentIsLeader = computed(() =>
   Boolean(
     editingRoster.value?.leaders.some((leader) => leader.studentId === studentMenu.value?.studentId)
   )
 )
 
+// 学生数据源变化时重新校准名单，并同步“新建值日表”的默认来源
 watch(
   () => dataSourceStore.enabledData.map((student) => student.studentId).join(','),
   () => {
     dutyStore.reconcileStudents()
+    // 已有值日表或已上传 Excel 名单时，不覆盖用户当前选择
     if (!editingRoster.value && !initialExcelSource.value) {
       initialSource.value = dataSourceStore.enabledData.length ? 'system' : 'excel'
     }
@@ -98,20 +107,27 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
+/** 关闭所有右键菜单 */
 function closeContextMenus(): void {
   positionMenu.value = null
   studentMenu.value = null
 }
 
+/**
+ * 处理键盘快捷键：Esc 退出全屏并关闭右键菜单。
+ * @param event - 键盘事件
+ */
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && fullscreen.value) fullscreen.value = false
   if (event.key === 'Escape') closeContextMenus()
 }
 
+/** 返回工具页面 */
 function backToTools(): void {
   router.push('/tools')
 }
 
+/** 进入新建值日表流程，重置默认模式与名单来源 */
 function startCreatingRoster(): void {
   initialMode.value = DutyRosterModeEnum.Daily
   initialExcelSource.value = null
@@ -119,6 +135,7 @@ function startCreatingRoster(): void {
   dutyStore.startCreatingRoster()
 }
 
+/** 根据所选模式与名单来源创建值日表；Excel 未上传时先打开导入弹窗 */
 function createInitialRoster(): void {
   if (initialSource.value === 'excel' && !initialExcelSource.value) {
     importTarget.value = 'create'
@@ -132,11 +149,16 @@ function createInitialRoster(): void {
   })
 }
 
+/** 切换到指定值日表并关闭右键菜单 */
 function selectRoster(rosterId: string): void {
   dutyStore.setEditingRoster(rosterId)
   closeContextMenus()
 }
 
+/**
+ * 弹窗重命名指定值日表。
+ * @param rosterId - 值日表 ID
+ */
 async function renameRoster(rosterId: string): Promise<void> {
   const roster = dutyStore.rosters.find((item) => item.id === rosterId)
   if (!roster) return
@@ -148,6 +170,10 @@ async function renameRoster(rosterId: string): Promise<void> {
   dutyStore.renameRoster(rosterId, value)
 }
 
+/**
+ * 二次确认后删除指定值日表。
+ * @param rosterId - 值日表 ID
+ */
 async function removeRoster(rosterId: string): Promise<void> {
   await ElMessageBox.confirm('删除后无法恢复该值日表，是否继续？', '删除值日表', {
     type: 'warning'
@@ -155,7 +181,12 @@ async function removeRoster(rosterId: string): Promise<void> {
   dutyStore.deleteRoster(rosterId)
 }
 
+/**
+ * 切换安排方式（每天/每周），已有安排时先二次确认清空。
+ * @param mode - 目标安排方式
+ */
 async function changeMode(mode: DutyRosterModeEnum): Promise<void> {
+  // 未进入编辑或模式未变化时无需处理
   if (!editingRoster.value || editingRoster.value.mode === mode) return
   if (assignedCount.value) {
     try {
@@ -173,7 +204,12 @@ async function changeMode(mode: DutyRosterModeEnum): Promise<void> {
   dutyStore.setMode(mode)
 }
 
+/**
+ * 已有安排时二次确认是否清空值日安排。
+ * @returns 无已安排学生或用户确认时返回 true
+ */
 async function confirmClearAssignments(): Promise<boolean> {
+  // 没有已安排学生时无需确认
   if (!assignedCount.value) return true
   try {
     await ElMessageBox.confirm('更换学生来源后，当前值日安排将被清空。是否继续？', '更换名单来源', {
@@ -185,7 +221,12 @@ async function confirmClearAssignments(): Promise<boolean> {
   }
 }
 
+/**
+ * 切换当前值日表的学生来源；Excel 来源未上传文件时先打开导入弹窗。
+ * @param source - 目标学生来源
+ */
 async function changeStudentSource(source: StudentSourceType): Promise<void> {
+  // 未进入编辑或来源未变化时无需处理
   if (!editingRoster.value || editingRoster.value.studentSource === source) return
   if (!(await confirmClearAssignments())) return
   if (source === 'excel' && !editingRoster.value.excelSource) {
@@ -196,12 +237,17 @@ async function changeStudentSource(source: StudentSourceType): Promise<void> {
   dutyStore.setStudentSource(source, editingRoster.value.excelSource)
 }
 
+/** 打开 Excel 名单导入弹窗，已有值日表时先确认清空影响 */
 async function openStudentImport(): Promise<void> {
   if (editingRoster.value && !(await confirmClearAssignments())) return
   importTarget.value = editingRoster.value ? 'replace' : 'create'
   importVisible.value = true
 }
 
+/**
+ * 处理 Excel 名单导入结果：替换当前来源，或作为新建值日表的初始名单。
+ * @param source - 导入得到的 Excel 学生来源
+ */
 function handleStudentImport(source: ExcelStudentSourceType): void {
   if (importTarget.value === 'replace' && editingRoster.value) {
     dutyStore.setStudentSource('excel', source)
@@ -212,36 +258,56 @@ function handleStudentImport(source: ExcelStudentSourceType): void {
   ElMessage.success(`已导入 ${source.students.length} 名学生`)
 }
 
+/** 开始拖拽学生，并关闭右键菜单 */
 function dragStudent(studentId: string): void {
   draggedStudentId.value = studentId
   closeContextMenus()
 }
 
+/** 结束学生拖拽 */
 function endStudentDrag(): void {
   draggedStudentId.value = null
 }
 
+/**
+ * 将拖拽中的学生分配到指定岗位。
+ * @param target - 值日分配目标
+ */
 function dropStudent(target: DutyAssignmentTargetType): void {
   if (!draggedStudentId.value) return
   dutyStore.assignStudent(draggedStudentId.value, target)
   draggedStudentId.value = null
 }
 
+/** 将拖拽中的学生移回未安排区域 */
 function dropToUnassigned(): void {
   if (draggedStudentId.value) dutyStore.unassignStudent(draggedStudentId.value)
   draggedStudentId.value = null
 }
 
+/**
+ * 打开岗位右键菜单。
+ * @param positionId - 岗位 ID
+ * @param x - 菜单横坐标
+ * @param y - 菜单纵坐标
+ */
 function openPositionMenu(positionId: string, x: number, y: number): void {
   studentMenu.value = null
   positionMenu.value = { positionId, x, y }
 }
 
+/**
+ * 打开学生右键菜单。
+ * @param studentId - 学生 ID
+ * @param x - 菜单横坐标
+ * @param y - 菜单纵坐标
+ */
 function openStudentMenu(studentId: string, x: number, y: number): void {
   positionMenu.value = null
   studentMenu.value = { studentId, x, y }
 }
 
+/** 在右键菜单指向的岗位后新增一列，并进入重命名状态 */
 async function addPosition(): Promise<void> {
   const target = positionMenu.value
   const section = currentPositionSection.value
@@ -253,6 +319,7 @@ async function addPosition(): Promise<void> {
   await matrixRef.value?.editPosition(positionId)
 }
 
+/** 删除右键菜单指向的岗位，已有学生时先二次确认 */
 async function removePosition(): Promise<void> {
   const target = positionMenu.value
   if (!target || !canRemovePosition.value) return
@@ -272,10 +339,15 @@ async function removePosition(): Promise<void> {
   closeContextMenus()
 }
 
+/** 在周模式下新增一值日行 */
 function addWeeklyRow(): void {
   dutyStore.addWeeklyRow()
 }
 
+/**
+ * 删除指定值日行，已有学生时先二次确认。
+ * @param rowId - 值日行 ID
+ */
 async function removeWeeklyRow(rowId: string): Promise<void> {
   const count = dutyStore.getWeeklyRowStudentCount(rowId)
   if (count) {
@@ -292,16 +364,19 @@ async function removeWeeklyRow(rowId: string): Promise<void> {
   dutyStore.removeWeeklyRow(rowId)
 }
 
+/** 切换右键菜单学生的组长状态 */
 function toggleMenuStudentLeader(): void {
   if (studentMenu.value) dutyStore.toggleLeader(studentMenu.value.studentId)
   closeContextMenus()
 }
 
+/** 将右键菜单学生移出值日表 */
 function removeMenuStudent(): void {
   if (studentMenu.value) dutyStore.unassignStudent(studentMenu.value.studentId)
   closeContextMenus()
 }
 
+/** 弹窗新增清洁区域 */
 async function addSection(): Promise<void> {
   const { value } = await ElMessageBox.prompt('例如：室外、公共区域', '新增清洁区域', {
     inputValue: '清洁区域',
@@ -311,11 +386,13 @@ async function addSection(): Promise<void> {
   dutyStore.addSection(value)
 }
 
+/** 打开备注编辑弹窗并回填当前备注 */
 function editNotes(): void {
   notesDraft.value = editingRoster.value?.notes || ''
   notesVisible.value = true
 }
 
+/** 保存备注并关闭弹窗 */
 function saveNotes(): void {
   dutyStore.setNotes(notesDraft.value)
   notesVisible.value = false

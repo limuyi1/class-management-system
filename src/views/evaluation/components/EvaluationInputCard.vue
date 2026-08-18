@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语录入卡片
+ * 组合学生选择、标签展示与评语输入，提供 AI 生成/润色与提交能力。
+ */
 import { computed, toRef } from 'vue'
 
 import { useEvaluationInput } from '@/hooks/useEvaluationInput'
@@ -9,6 +13,7 @@ import CommentInputForm from '@/views/evaluation/components/input/CommentInputFo
 import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
 
+/** 评语录入卡片的 Props */
 interface Props {
   autoNextOnSubmit?: boolean
   promptUnsavedOnSwitch?: boolean
@@ -62,12 +67,18 @@ const {
   onScroll: (studentId) => emit('scroll', studentId)
 })
 
+/** 是否已选择学生，允许生成评语 */
 const canGenerateComment = computed(() => !!formData.studentId)
+/** 已选择学生且有评语内容时允许润色 */
 const canPolishComment = computed(() => !!formData.studentId && !!formData.comment?.trim())
+/** AI 按钮文案：有评语时显示“润色”，否则显示“生成” */
 const aiActionText = computed(() => (canPolishComment.value ? 'AI 润色' : 'AI 生成'))
+/** 是否正在执行 AI 生成或润色 */
 const aiProcessing = computed(() => generating.value || polishing.value)
+/** 提交按钮文案：开启自动下一个时显示“保存并下一个” */
 const submitText = computed(() => (props.autoNextOnSubmit ? '保存并下一个' : '提 交'))
 
+/** 分发 AI 下拉命令：生成或润色 */
 const handleAiAction = (command: string | number | object): void => {
   if (command === 'generate') {
     void handleGenerateComment()
@@ -76,6 +87,7 @@ const handleAiAction = (command: string | number | object): void => {
   if (command === 'polish') void handlePolishComment()
 }
 
+/** 供父组件填充学生数据到输入表单 */
 const handleEditData = (data: StudentDataType) => {
   editData(data)
 }

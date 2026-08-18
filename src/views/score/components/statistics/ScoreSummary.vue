@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 最高/最低/平均分摘要
+ * 最高最低分额外展示对应学生名单，超出两名时以浮层展开。
+ */
 import type { ScoreStatisticsType } from '@/hooks/useScoreStatistics'
 
 interface Props {

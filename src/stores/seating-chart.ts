@@ -66,8 +66,11 @@ const resolveStoredStudentSource = (
  */
 export const useSeatingChartStore = defineStore('seatingChart', {
   state: (): SeatingChartStateType => ({
+    /** 所有座位表 */
     charts: [],
+    /** 当前正在编辑的座位表 ID */
     editingChartId: null,
+    /** 侧边栏是否折叠 */
     isSidebarCollapsed: false
   }),
   getters: {

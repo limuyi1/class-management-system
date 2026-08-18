@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 雅座设置弹窗 — 展示讲台两侧雅座状态并允许开关 */
 import { SeatingSpecialSeatPositionEnum, type SeatingSpecialSeatType } from '@/types/SeatingChart'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
@@ -13,6 +14,10 @@ const emit = defineEmits<{
   toggle: [position: SeatingSpecialSeatPositionEnum, enabled: boolean]
 }>()
 
+/**
+ * 返回雅座位置的左右中文标签。
+ * @param position - 雅座位置
+ */
 function labelOf(position: SeatingSpecialSeatPositionEnum): string {
   return position === SeatingSpecialSeatPositionEnum.PlatformLeft ? '左' : '右'
 }

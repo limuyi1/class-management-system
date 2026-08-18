@@ -33,9 +33,11 @@ import type {
   UnitMetricType
 } from '@/views/overview/services/dashboard/types'
 
+/** 判断走势方向是否为下行（含波动下行） */
 const isDownwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
   direction === 'down' || direction === 'volatileDown'
 
+/** 判断走势方向是否为上行（含波动上行） */
 const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
   direction === 'up' || direction === 'volatileUp'
 
@@ -565,6 +567,7 @@ export const buildDashboardKpi = (
   }
 }
 
+/** 将单元统计精简为总览展示所需的字段 */
 const toDashboardUnitOverview = ({
   prop,
   label,

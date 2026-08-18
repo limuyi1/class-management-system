@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 导入成绩步骤
+ * 未导入时展示导入入口，已导入时展示文件摘要与重新导入入口。
+ */
 import { computed } from 'vue'
 
 import { useScoreNoticeStore } from '@/stores/score-notice'
@@ -15,6 +19,7 @@ const emit = defineEmits<{
 }>()
 
 const store = useScoreNoticeStore()
+/** 是否已导入学生数据 */
 const hasImportedData = computed(() => store.students.length > 0)
 </script>
 

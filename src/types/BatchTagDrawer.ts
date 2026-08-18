@@ -1,3 +1,4 @@
+/** 批量标签抽屉组件的 Props 与 Emits 类型定义 */
 import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 

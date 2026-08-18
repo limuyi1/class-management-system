@@ -24,6 +24,7 @@ const QuestionTypeMaintenance = defineAsyncComponent(
 
 const route = useRoute()
 const router = useRouter()
+/** 设置页支持的标签页标识 */
 type SettingTabType =
   | 'label-maintenance'
   | 'unit-config'
@@ -31,9 +32,11 @@ type SettingTabType =
   | 'system-backup'
   | 'question-type'
 
+/** 根据功能开关计算当前可用的标签页列表 */
 const validTabs = computed<SettingTabType[]>(() => {
   const tabs: SettingTabType[] = ['label-maintenance', 'unit-config', 'ai-config', 'system-backup']
 
+  // 题型管理受功能开关控制，仅在开启时加入
   if (featureFlags.questionTypeManagement) {
     tabs.push('question-type')
   }

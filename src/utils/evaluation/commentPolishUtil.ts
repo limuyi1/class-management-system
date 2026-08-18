@@ -27,7 +27,12 @@ const getStudentName = (student: StudentDataType): string => {
   return name === null || name === undefined ? '' : String(name)
 }
 
-/** 从学生数据中构造润色目标列表（跳过空评语） */
+/**
+ * 从学生数据中构造润色目标列表（跳过空评语）。
+ * @param students - 学生数据数组
+ * @param getTags - 可选，返回学生标签的回调
+ * @returns 润色目标列表
+ */
 export const buildCommentPolishTargets = (
   students: StudentDataType[],
   getTags?: (student: StudentDataType) => string | string[]

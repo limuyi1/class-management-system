@@ -19,13 +19,23 @@ const createCategoryPropBase = (label: string): string => {
   return prop || `category_${Date.now()}`
 }
 
-/** 判断标签分类名称是否已存在 */
+/**
+ * 判断标签分类名称是否已存在
+ * @param categories - 已存在的标签分类列表
+ * @param label - 待判断的分类名称
+ * @returns 名称是否已存在
+ */
 export const hasCategoryLabel = (categories: TagCategoryType[], label: string): boolean => {
   const normalizedLabel = normalizeCategoryLabel(label)
   return categories.some((item) => item.label === normalizedLabel)
 }
 
-/** 创建不重复的标签分类（prop 基于拼音，label 为原始输入） */
+/**
+ * 创建不重复的标签分类（prop 基于拼音，label 为原始输入）
+ * @param label - 分类名称
+ * @param categories - 已存在的标签分类列表
+ * @returns 新创建的标签分类；名称为空或已存在时返回 null
+ */
 export const createUniqueTagCategory = (
   label: string,
   categories: TagCategoryType[]

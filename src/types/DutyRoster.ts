@@ -1,3 +1,4 @@
+/** 值日表模块的类型定义 */
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
 
 /** 值日表模式：按天 / 按周 */

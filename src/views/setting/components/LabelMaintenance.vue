@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 标签维护组件：管理标签字典分类及其下的标签，
+ * 支持手动新增/删除、恢复预设、AI 生成分类与标签，并处理跨分类标签冲突。
+ */
 import { computed, nextTick, ref, watch } from 'vue'
 
 import { ElMessageBox, ElMessage, type InputInstance } from 'element-plus'
@@ -23,6 +27,7 @@ const inputVisible = ref(false)
 const isProcessingInput = ref(false)
 const activeCategory = ref(list.value[0]?.prop || '')
 
+// 列表变化后若当前选中分类已不存在，则回退到首个分类
 watch(
   () => list.value,
   (newList) => {
@@ -48,14 +53,20 @@ const selectedCategories = ref<string[]>([])
 
 const aiStore = useAIConfigStore()
 
+/** 当前选中分类下的标签列表 */
 const currentTags = computed(() => {
   return tags.value[activeCategory.value] || []
 })
 
+/**
+ * 切换当前选中的标签分类。
+ * @param item - 目标分类
+ */
 const selectCategory = (item: TagCategoryType) => {
   activeCategory.value = item.prop
 }
 
+/** 新增字典分类：命名去重后追加并切换到新分类 */
 const addCategory = () => {
   ElMessageBox.prompt('', '请输入新的字典分类', {
     confirmButtonText: '确定',
@@ -75,12 +86,17 @@ const addCategory = () => {
     .catch(() => {})
 }
 
+/**
+ * 删除字典分类并清空其下标签。
+ * @param item - 待删除分类
+ */
 const removeCategory = (item: TagCategoryType) => {
   list.value.splice(list.value.indexOf(item), 1)
   delete tags.value[item.prop]
   activeCategory.value = ''
 }
 
+/** 恢复预设分类：确认后清空现有分类与标签并写入系统默认内容 */
 const restoreDefaultCategories = async () => {
   try {
     await ElMessageBox.confirm(
@@ -111,6 +127,10 @@ const restoreDefaultCategories = async () => {
   ElMessage.success('已重置为预设分类')
 }
 
+/**
+ * 从当前分类移除指定标签。
+ * @param tag - 待移除标签名
+ */
 const handleClose = (tag: string) => {
   const categoryTags = tags.value[activeCategory.value]
   if (categoryTags) {
@@ -118,6 +138,7 @@ const handleClose = (tag: string) => {
   }
 }
 
+/** 显示标签输入框并自动聚焦 */
 const showInput = () => {
   inputVisible.value = true
   nextTick(() => {
@@ -125,6 +146,7 @@ const showInput = () => {
   })
 }
 
+/** 收集除当前分类外其他所有分类下的标签，用于跨分类重复判断 */
 const getAllOtherCategoryTags = () => {
   const allTags: string[] = []
   Object.entries(tags.value).forEach(([prop, tagList]) => {
@@ -135,7 +157,11 @@ const getAllOtherCategoryTags = () => {
   return allTags
 }
 
+/**
+ * 确认输入新标签：处理空值、本分类重复与跨分类重复（询问后移动）。
+ */
 const handleInputConfirm = async () => {
+  // 防止回车与失焦同时触发造成重复处理
   if (isProcessingInput.value) return
   isProcessingInput.value = true
 
@@ -164,6 +190,7 @@ const handleInputConfirm = async () => {
           cancelButtonText: '取消',
           type: 'warning'
         })
+        // 用户确认后，从其他分类中移除同名标签
         Object.entries(tags.value).forEach(([prop, tagList]) => {
           if (prop !== activeCategory.value) {
             const idx = tagList.indexOf(tag)
@@ -189,6 +216,7 @@ const handleInputConfirm = async () => {
   }
 }
 
+/** 打开 AI 生成标签弹窗，重置生成参数与结果 */
 const openAIGenerateDialog = () => {
   if (!activeCategory.value) {
     ElMessage.warning('请先选择一个标签分类')
@@ -201,6 +229,7 @@ const openAIGenerateDialog = () => {
   selectedTags.value = []
 }
 
+/** 打开 AI 生成字典分类弹窗，重置生成参数与结果 */
 const openAIGenerateCategoryDialog = () => {
   categoryAIDialogVisible.value = true
   categoryGenerateCount.value = 6
@@ -209,6 +238,7 @@ const openAIGenerateCategoryDialog = () => {
   selectedCategories.value = []
 }
 
+/** 调用 AI 生成分类，过滤空白项与已存在分类后展示 */
 const handleGenerateCategories = async () => {
   if (!aiStore.apiKey.trim()) {
     ElMessage.warning('请先在AI配置中设置API Key')
@@ -230,6 +260,7 @@ const handleGenerateCategories = async () => {
     )
 
     const existingLabels = new Set(list.value.map((item) => item.label))
+    // 去空白、去重，并排除已存在的分类名
     const uniqueCategories = Array.from(
       new Set(newCategories.map((item) => item.trim()).filter(Boolean))
     ).filter((item) => !existingLabels.has(item))
@@ -244,6 +275,7 @@ const handleGenerateCategories = async () => {
   }
 }
 
+/** 调用 AI 为当前分类生成标签，过滤已存在标签后展示 */
 const handleGenerateTags = async () => {
   if (!aiStore.apiKey.trim()) {
     ElMessage.warning('请先在AI配置中设置API Key')
@@ -283,6 +315,7 @@ const handleGenerateTags = async () => {
   }
 }
 
+/** 将选中的生成标签加入当前分类，过滤已存在项 */
 const handleAddSelectedTags = () => {
   if (selectedTags.value.length === 0) {
     ElMessage.warning('请先选择要添加的标签')
@@ -306,6 +339,7 @@ const handleAddSelectedTags = () => {
   ElMessage.success(`成功添加 ${newTags.length} 个标签`)
 }
 
+/** 将选中的生成分类加入列表，并切换到首个新分类 */
 const handleAddSelectedCategories = () => {
   if (selectedCategories.value.length === 0) {
     ElMessage.warning('请先选择要添加的分类')

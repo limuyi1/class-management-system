@@ -12,6 +12,8 @@ type LegacySettingType = Omit<SettingType, 'disabled'> & {
 /**
  * 将旧版成绩列结构补齐为当前结构。
  * 旧数据没有 disabled 字段时，一律按启用处理。
+ * @param scoreColumns - 旧版成绩列数组
+ * @returns 补齐 disabled 字段后的成绩列数组
  */
 export const normalizeScoreColumns = (scoreColumns: LegacySettingType[]): SettingType[] => {
   return scoreColumns.map((item) => ({

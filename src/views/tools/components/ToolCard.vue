@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 工具卡片 — 展示单个工具入口，支持按钮或新页签链接两种形态 */
 import { computed } from 'vue'
 
 import type { ToolItemType } from '@/views/tools/constants/tools'
@@ -15,8 +16,10 @@ interface EmitsType {
 const props = defineProps<PropsType>()
 const emit = defineEmits<EmitsType>()
 
+/** 新页签打开时渲染为链接，否则渲染为按钮 */
 const elementType = computed(() => (props.tool.openInNewTab ? 'a' : 'button'))
 
+/** 点击卡片时向外抛出打开动作 */
 function handleClick(): void {
   emit('open', props.tool)
 }

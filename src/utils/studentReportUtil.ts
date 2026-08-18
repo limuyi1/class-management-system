@@ -1,3 +1,7 @@
+/**
+ * 学生报告生成工具
+ * 负责将学生成绩整理为报告模型、模板文本并导出为图片
+ */
 import domtoimage from 'dom-to-image'
 
 import { NAME_PROP } from '@/constants'
@@ -280,6 +284,8 @@ const buildInsights = (strengths: string[], concerns: string[]): StudentReportIn
 /**
  * 将学生原始成绩数据整理为“学习报告”展示模型。
  * 这里集中处理均分、名次、趋势和洞察，页面层只负责渲染。
+ * @param options - 报告构建参数（学生、全班数据、成绩列、选中列、标签分类及班级名）
+ * @returns 学生报告展示模型
  */
 export function buildStudentReportData(options: {
   student: StudentDataType
@@ -299,6 +305,7 @@ export function buildStudentReportData(options: {
         .map((item) => toScoreValue(item[column.prop]))
         .filter((item): item is number => item !== null)
       const average = allScores.length ? calculateAverage(allScores) : null
+      // 名次按成绩降序取第一次出现的下标，未找到时回退为末尾名次。
       const rank =
         score !== null && allScores.length
           ? [...allScores].sort((a, b) => b - a).findIndex((item) => item === score) + 1 || allScores.length
@@ -322,6 +329,7 @@ export function buildStudentReportData(options: {
   const validScoreItems = getValidScoreItems(scoreItems)
   const scoreValues = validScoreItems.map((item) => item.score)
   const selectedScoreProps = new Set(scoreItems.map((item) => item.prop))
+  // 汇总全班在所选科目上的所有有效成绩，用于计算班级均分。
   const classScoreValues = students.flatMap((studentItem) =>
     selectedColumns
       .filter((column) => selectedScoreProps.has(column.prop))
@@ -415,6 +423,10 @@ export function buildStudentReportTemplateText(report: StudentReportDataType): s
 /**
  * 按当前预览节点直接导出 PNG。
  * 导出逻辑收敛在工具层，避免弹窗组件同时处理下载细节。
+ * @param element - 待导出的 DOM 元素
+ * @param fileName - 导出图片文件名
+ * @param options - 导出选项（缩放比例、背景色）
+ * @returns 操作结果，success 标识是否成功，失败时携带 error
  */
 export async function exportStudentReportImage(
   element: HTMLElement,

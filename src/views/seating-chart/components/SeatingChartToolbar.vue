@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 座位表工具栏 — 展示已安排状态并编排布局、随机排座与导出等操作 */
 interface SeatingChartToolbarPropsType {
   chartName: string
   assignedCount: number

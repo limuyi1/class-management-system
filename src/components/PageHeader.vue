@@ -1,7 +1,16 @@
 <script setup lang="ts">
+/**
+ * 页面标题栏组件。
+ *
+ * 左侧展示图标、标题与副标题，右侧通过插槽放置操作按钮，
+ * 供各业务页面统一页头样式。
+ */
 interface Props {
+  /** FontAwesome 图标名（数组形式，如 ['solid', 'user']） */
   icon: string[]
+  /** 页面标题 */
   title: string
+  /** 可选副标题 */
   subtitle?: string
 }
 defineProps<Props>()

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 单元配置组件：设置全局成绩满分，并维护可拖拽排序的成绩表头。
+ * 姓名列固定不可编辑、删除、禁用，其余表头可新增、编辑、删除与启停。
+ */
 import { shallowRef } from 'vue'
 import draggable from 'vuedraggable'
 import { ElMessageBox } from 'element-plus'
@@ -7,21 +11,31 @@ import { storeToRefs } from 'pinia'
 import { pinyin } from 'pinyin-pro'
 
 import { useSettingStore } from '@/stores/setting'
+import { useConfigurationStore } from '@/stores/configuration'
 import type { SettingType } from '@/types/Setting'
 import { NAME_PROP } from '@/constants'
 
 const store = useSettingStore()
+const configurationStore = useConfigurationStore()
 
 const { scoreColumns: list } = storeToRefs(store)
+const { scoreFullMark } = storeToRefs(configurationStore)
 
 const text = shallowRef('')
 const editing = shallowRef(false)
 
-// 姓名是固定的，不能编辑和删除
+/**
+ * 判断当前表头是否为固定的姓名列。
+ * @param item - 表头配置项
+ * @returns 是否为姓名列
+ */
 const isNameHeader = (item: SettingType) => {
   return item.prop === NAME_PROP
 }
 
+/**
+ * 新增表头：以输入名称的中文拼音生成 prop，并追加到表头列表末尾。
+ */
 const add = () => {
   const label = text.value.trim()
   if (!label) {
@@ -29,6 +43,7 @@ const add = () => {
   }
 
   list.value.push({
+    // 拼音数字声调形式拼接下划线，作为数据行的字段键
     prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
     label,
     disabled: false
@@ -37,6 +52,10 @@ const add = () => {
   editing.value = false
 }
 
+/**
+ * 编辑表头名称，姓名列不允许编辑。
+ * @param item - 待编辑的表头配置项
+ */
 const edit = (item: SettingType) => {
   if (isNameHeader(item)) {
     return
@@ -52,6 +71,10 @@ const edit = (item: SettingType) => {
     .catch(() => {})
 }
 
+/**
+ * 删除表头，姓名列不允许删除。
+ * @param item - 待删除的表头配置项
+ */
 const remove = (item: SettingType) => {
   if (isNameHeader(item)) {
     return
@@ -59,6 +82,11 @@ const remove = (item: SettingType) => {
   list.value.splice(list.value.indexOf(item), 1)
 }
 
+/**
+ * 切换表头的启用/禁用状态，姓名列始终强制为启用。
+ * @param item - 目标表头配置项
+ * @param disabled - 目标禁用状态
+ */
 const setDisabled = (item: SettingType, disabled: boolean) => {
   if (isNameHeader(item)) {
     item.disabled = false
@@ -67,6 +95,9 @@ const setDisabled = (item: SettingType, disabled: boolean) => {
   item.disabled = disabled
 }
 
+/**
+ * 取消新增，清空输入并退出编辑态。
+ */
 const cancelAdd = () => {
   text.value = ''
   editing.value = false
@@ -75,6 +106,21 @@ const cancelAdd = () => {
 
 <template>
   <div class="unit-configuration__wrapper">
+    <div class="fullmark-card">
+      <div class="fullmark-card__label">
+        <font-awesome-icon :icon="['solid', 'gauge-high']" />
+        <span>成绩满分（全局）</span>
+      </div>
+      <el-input-number
+        v-model="scoreFullMark"
+        :min="1"
+        :max="1000"
+        :precision="0"
+        :step="10"
+      />
+      <span class="fullmark-card__hint">用于成绩录入与 AI 识图的分数上限校验</span>
+    </div>
+
     <div class="unit-configuration-grid">
       <draggable
         class="unit-configuration-item__wrapper"
@@ -156,6 +202,35 @@ const cancelAdd = () => {
 .unit-configuration__wrapper {
   width: 100%;
   padding: 24px 28px;
+
+  .fullmark-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 16px 20px;
+    background: #f8fafc;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+
+    &__label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #334155;
+
+      svg {
+        color: var(--el-color-primary);
+      }
+    }
+
+    &__hint {
+      color: #94a3b8;
+      font-size: 12px;
+    }
+  }
 
   .unit-configuration-grid {
     display: grid;

@@ -69,6 +69,10 @@ export function useOverviewDashboard() {
     }
   )
 
+  /**
+   * 根据当前数据源、单元配置与选中学生构建完整的总览展示数据，
+   * 任意相关状态变化都会自动触发重新计算。
+   */
   const dashboardData = computed(() =>
     buildDashboardData({
       students: enabledData.value,

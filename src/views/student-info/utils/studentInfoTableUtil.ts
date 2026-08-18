@@ -26,6 +26,7 @@ export interface StudentInfoTagSummaryType {
   hiddenCount: number
 }
 
+/** 标签汇总查询未命中时的空结果 */
 const EMPTY_TAG_SUMMARY: StudentInfoTagSummaryType = {
   visibleTags: [],
   hiddenCount: 0
@@ -33,6 +34,11 @@ const EMPTY_TAG_SUMMARY: StudentInfoTagSummaryType = {
 
 /**
  * 为学生表格一次性生成标签展示数据，避免在每个单元格渲染期间重复遍历分类。
+ *
+ * @param students 学生数据列表
+ * @param categories 标签分类配置
+ * @param visibleLimit 直接展示的标签数量上限
+ * @returns 学生 ID 到标签汇总的映射
  */
 export function buildStudentInfoTagSummaryMap(
   students: StudentDataType[],

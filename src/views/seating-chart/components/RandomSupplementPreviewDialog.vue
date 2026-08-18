@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 补充空座位方案预览弹窗 — 展示随机补充结果，确认前不修改当前座位表 */
 import { computed } from 'vue'
 
 import type { SeatingChartPreviewType, SeatingChartType } from '@/types/SeatingChart'
@@ -18,7 +19,9 @@ const emit = defineEmits<{
   confirm: []
 }>()
 
+/** 使用预览方案座位替换当前座位后的可见座位 */
 const visibleSeats = computed(() => getVisibleSeats({ ...props.chart, seats: props.preview.seats }))
+/** 固定学生数 = 未被随机移动的普通座位学生 + 已启用的雅座学生 */
 const fixedCount = computed(() => {
   const fixedRegularCount = props.preview.seats.filter(
     (seat) => seat.studentId && !props.preview.randomizedStudentIds.includes(seat.studentId)

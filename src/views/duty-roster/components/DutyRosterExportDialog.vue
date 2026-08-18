@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 值日表导出弹窗 — 配置格式、纸张、缩放并生成 PNG/PDF 下载 */
 import { computed, nextTick, shallowRef, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
@@ -17,6 +18,7 @@ import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLay
 import DutyRosterExportPreview from '@/views/duty-roster/components/DutyRosterExportPreview.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
+/** PDF 导出的图片渲染倍数，保证打印清晰度 */
 const PDF_IMAGE_SCALE = 3
 
 const props = defineProps<{
@@ -36,10 +38,12 @@ const showTitle = shallowRef(true)
 const showNotes = shallowRef(true)
 const exporting = shallowRef(false)
 
+/** 双向绑定的弹窗显隐状态 */
 const visible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value)
 })
+/** 根据纸张与缩放比例计算当前页面布局 */
 const selectedLayout = computed(() =>
   buildDutyRosterPageLayout(
     props.roster,
@@ -49,6 +53,7 @@ const selectedLayout = computed(() =>
     showNotes.value
   )
 )
+/** 大值日表提示文案：比例超范围或字号过小时给出建议 */
 const denseRosterTip = computed(() => {
   if (layoutScalePercent.value > 100) {
     return '当前比例超过自动适配范围，部分内容可能进入页边距或被裁切。'
@@ -57,6 +62,7 @@ const denseRosterTip = computed(() => {
   return '当前岗位或值日行较多，已缩放到单页；如姓名偏小，建议选择 A3。'
 })
 
+// 打开弹窗时重置为默认缩放
 watch(
   () => props.modelValue,
   (dialogVisible) => {
@@ -66,10 +72,14 @@ watch(
   { immediate: true }
 )
 
+/** 恢复版面缩放为 100% */
 function resetLayoutScale(): void {
   layoutScalePercent.value = 100
 }
 
+/**
+ * 生成并下载值日表导出文件；PNG 直接渲染，PDF 先渲染图片再合成。
+ */
 async function exportRoster(): Promise<void> {
   if (exporting.value) return
   exporting.value = true
@@ -84,6 +94,7 @@ async function exportRoster(): Promise<void> {
       const imageBlob = await renderDutyRosterPngBlob(element, imageScale.value)
       downloadDutyRosterBlob(imageBlob, `${baseName}.png`)
     } else {
+      // PDF 使用固定高倍渲染，保证打印清晰度
       const imageBlob = await renderDutyRosterPngBlob(element, PDF_IMAGE_SCALE)
       const pdfBlob = await createDutyRosterPdf({ imageBlob, pageType: pageType.value })
       downloadDutyRosterBlob(pdfBlob, `${baseName}.pdf`)

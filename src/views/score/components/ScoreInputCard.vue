@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 分数录入卡片
+ * 支持姓名/拼音搜索定位、分数录入与连续录入，并记录最近录入供回填。
+ */
 import { nextTick, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { match } from 'pinyin-pro'
@@ -34,11 +38,21 @@ const recentEntries = ref<RecentScoreEntryType[]>([])
 const searchInputRef = ref<{ focus: () => void } | null>(null)
 const scoreInputRef = ref<{ focus: () => void; blur?: () => void } | null>(null)
 
+/**
+ * 获取学生姓名的安全字符串。
+ * @param student 学生数据
+ * @returns 姓名字符串
+ */
 const getStudentName = (student: StudentDataType): string => {
   const name = student[NAME_PROP]
   return name === null || name === undefined ? '' : String(name)
 }
 
+/**
+ * 获取学生在当前科目下的有效分数。
+ * @param student 学生数据
+ * @returns 有效分数，非法或未录入时返回 null
+ */
 const getStudentScore = (student: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
   const raw = student[configuration.inputScoreTab]
@@ -50,6 +64,11 @@ const getStudentScore = (student: StudentDataType): number | null => {
   return null
 }
 
+/**
+ * 按姓名或拼音模糊匹配学生，最多返回 20 条建议。
+ * @param query 搜索关键词
+ * @returns 匹配到的建议项
+ */
 const getMatchedStudents = (query: string): SuggestionItemType[] => {
   if (!query.trim()) return []
   return originList.value
@@ -66,10 +85,12 @@ const getMatchedStudents = (query: string): SuggestionItemType[] => {
     }))
 }
 
+/** 供 el-autocomplete 使用的建议查询回调 */
 const querySuggestions = (queryString: string, cb: (items: SuggestionItemType[]) => void) => {
   cb(getMatchedStudents(queryString))
 }
 
+/** 切换科目时同步该科目的最近录入记录 */
 const syncRecentEntriesByTab = () => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) {
@@ -79,24 +100,33 @@ const syncRecentEntriesByTab = () => {
   recentEntries.value = [...(configuration.recentScoreEntries[scoreTab] || [])]
 }
 
+/** 清除当前选中学生 */
 const clearSelectedStudent = () => {
   selectedStudentId.value = null
   scoreValue.value = null
   emit('clearSelection')
 }
 
+/** 聚焦姓名搜索输入框 */
 const focusSearchInput = () => {
   searchInputRef.value?.focus()
 }
 
+/** 聚焦分数输入框 */
 const focusScoreInput = () => {
   scoreInputRef.value?.focus()
 }
 
+/** 失焦分数输入框 */
 const blurScoreInput = () => {
   scoreInputRef.value?.blur?.()
 }
 
+/**
+ * 选择学生并回填姓名与分数，同时通知父级滚动到对应行。
+ * @param studentId 学生 ID
+ * @param shouldFocusScore 是否随后聚焦分数输入框
+ */
 const selectStudentById = (studentId: string, shouldFocusScore: boolean = true) => {
   const item = store.getStudentById(studentId)
   if (!item) return
@@ -111,10 +141,14 @@ const selectStudentById = (studentId: string, shouldFocusScore: boolean = true) 
   }
 }
 
+/** 选择搜索建议项并定位到对应学生 */
 const handleSuggestionSelect = (item: SuggestionItemType) => {
   selectStudentById(item.studentId)
 }
 
+/**
+ * 回车定位学生：优先精确匹配，其次取第一条建议。
+ */
 const handleSearchEnter = () => {
   if (!searchKeyword.value.trim()) {
     focusSearchInput()
@@ -134,6 +168,11 @@ const handleSearchEnter = () => {
   selectStudentById(target.studentId)
 }
 
+/**
+ * 追加一条最近录入记录，同一学生去重后最多保留 5 条。
+ * @param studentId 学生 ID
+ * @param score 已保存分数
+ */
 const addRecentEntry = (studentId: string, score: number) => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return
@@ -155,6 +194,7 @@ const addRecentEntry = (studentId: string, score: number) => {
   recentEntries.value = nextEntries
 }
 
+/** 清空录入表单并清除选中状态 */
 const resetEntryForm = () => {
   blurScoreInput()
   selectedStudentId.value = null
@@ -212,16 +252,19 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
   nextTick(() => focusSearchInput())
 }
 
+/** 将最近录入记录回填到录入表单 */
 const refillEntry = (entry: RecentScoreEntryType) => {
   selectStudentById(entry.studentId, false)
   scoreValue.value = entry.score
   nextTick(() => focusScoreInput())
 }
 
+/** 触发 AI 识图导入 */
 const handleAIMode = () => {
   emit('uploadImage')
 }
 
+/** 外部调用时聚焦姓名输入框 */
 const autoFocus = () => {
   focusSearchInput()
 }
@@ -250,6 +293,7 @@ const handleScoreKeyDownEnter = (event: KeyboardEvent) => {
 }
 
 watch(searchKeyword, (value) => {
+  // 关键词被清空时同步清除当前选中学生
   if (value.trim()) return
   if (!selectedStudentId.value) return
   clearSelectedStudent()
@@ -303,10 +347,10 @@ defineExpose({
         class="score-input"
         size="large"
         :min="0"
-        :max="100"
+        :max="configuration.scoreFullMark"
         :precision="1"
         :controls="false"
-        placeholder="0~100分"
+        :placeholder="`0~${configuration.scoreFullMark}分`"
         @keydown.enter="handleScoreKeyDownEnter"
       />
       <div class="score-actions">

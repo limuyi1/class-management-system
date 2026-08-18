@@ -1,3 +1,7 @@
+/**
+ * Excel 解析与导出工具
+ * 提供表格数据导出为 Excel/图片，以及上传 Excel 的预览与解析能力
+ */
 import * as XLSX from 'xlsx'
 import domtoimage from 'dom-to-image'
 import type { UploadFile } from 'element-plus'
@@ -38,6 +42,7 @@ const NAME_HEADER_PATTERNS = ['姓名', '学生姓名', '学生', '名字']
  * @param data - 二维数组，第一行为表头，后续为数据行
  * @param imageName - 导出图片的文件名，默认 image.png
  * @param scale - 缩放比例，默认 2（提高清晰度）
+ * @returns 操作结果，success 标识是否成功，失败时携带 error
  */
 const xlsxToImage = async (
   data: ExcelCellValueType[][],
@@ -87,6 +92,7 @@ const xlsxToImage = async (
  * @param bodyData - 数据二维数组
  * @param fileName - 文件名，默认当前日期时间
  * @param file - 预构建的工作簿对象，用于多 sheet 导出
+ * @returns 操作结果，success 标识是否成功，失败时携带 error
  */
 const exportExcel = (
   headerData?: string[],
@@ -133,6 +139,8 @@ const exportExcel = (
 /**
  * 使用 FileReader 读取上传的 Excel 文件内容。
  * 后续预览和正式解析共用同一个二进制读取入口，避免两套读取逻辑出现差异。
+ * @param file - 上传的 Excel 文件
+ * @returns 文件二进制内容字符串
  */
 const readExcelBinary = async (file: UploadFile): Promise<string> => {
   const rawFile = file.raw
@@ -225,6 +233,8 @@ const rowContainsNameHeader = (row: ExcelCellValueType[]): boolean => {
 /**
  * 猜测最可能的表头行：优先选择包含“姓名/学生姓名”等字段的行；
  * 若没有明显姓名字段，则选择前 8 行中非空单元格最多的行，用户仍可在预览弹窗中手动修正。
+ * @param rows - 二维单元格数组
+ * @returns 猜测出的表头行下标
  */
 const guessHeaderRowIndex = (rows: ExcelCellValueType[][]): number => {
   const previewRows = rows.slice(0, EXCEL_PREVIEW_ROW_COUNT)
@@ -243,6 +253,8 @@ const guessHeaderRowIndex = (rows: ExcelCellValueType[][]): number => {
 
 /**
  * 读取 Excel 预览数据。这里只保留原始行列结构，让用户确认哪一行才是真正表头。
+ * @param file - 上传的 Excel 文件
+ * @returns 预览结果（原始行列结构、合并区域和建议表头行）
  */
 const parseExcelPreview = async (file: UploadFile): Promise<ExcelPreviewResultType> => {
   const firstWorkSheet = await readFirstWorksheet(file)
@@ -261,6 +273,9 @@ const createFallbackHeader = (columnIndex: number): string => `UNKNOWN ${columnI
 /**
  * 根据用户确认的表头行生成业务导入需要的 header/data。
  * 本函数只使用被选中的单行作为字段名，不拼接上级表头；复杂或重复表头由用户整理 Excel 后再导入。
+ * @param rows - 二维单元格数组
+ * @param headerRowIndex - 用户确认的表头行下标
+ * @returns 表头数组与以表头为 key 的数据行数组
  */
 const buildExcelDataFromHeaderRow = (
   rows: ExcelCellValueType[][],
@@ -288,6 +303,8 @@ const buildExcelDataFromHeaderRow = (
 /**
  * 解析 Excel 文件。
  * 默认使用自动猜测出的表头行；需要用户确认表头行的导入流程应先调用 parseExcelPreview。
+ * @param file - 上传的 Excel 文件
+ * @returns 表头数组与以表头为 key 的数据行数组
  */
 const parseExcel = async (
   file: UploadFile

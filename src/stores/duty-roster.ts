@@ -64,8 +64,11 @@ const touch = (roster: DutyRosterType): void => {
  */
 export const useDutyRosterStore = defineStore('dutyRoster', {
   state: (): DutyRosterStateType => ({
+    /** 所有值日表 */
     rosters: [],
+    /** 当前正在编辑的值日表 ID */
     editingRosterId: null,
+    /** 侧边栏是否折叠 */
     isSidebarCollapsed: false
   }),
   getters: {
@@ -409,6 +412,11 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       touch(roster)
       return row.id
     },
+    /**
+     * 获取指定周行已分配的学生数
+     * @param rowId - 周行 ID
+     * @returns 学生数量
+     */
     getWeeklyRowStudentCount(rowId: string): number {
       const roster = this.editingRoster
       if (!roster) return 0

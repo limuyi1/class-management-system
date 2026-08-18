@@ -51,7 +51,11 @@ export const convertScoreToGrade = (
   return 'C'
 }
 
-/** 根据科目名称推断其等级规则（道法/科学等按五十分制） */
+/**
+ * 根据科目名称推断其等级规则（道法/科学等按五十分制）。
+ * @param subjectLabel - 科目名称
+ * @returns 对应的等级规则
+ */
 export const getDefaultGradeRule = (subjectLabel: string): ScoreNoticeGradeRuleType => {
   const isFiftyScore = FIFTY_SCORE_SUBJECTS.some((item) => subjectLabel.includes(item))
   return { ...(isFiftyScore ? DEFAULT_50_SCORE_RULE : DEFAULT_100_SCORE_RULE) }
@@ -69,7 +73,11 @@ export const detectScoreNoticeMode = (values: unknown[]): ScoreNoticeModeEnum =>
   return gradeCount / samples.length >= 0.7 ? ScoreNoticeModeEnum.Grade : ScoreNoticeModeEnum.Score
 }
 
-/** 将分数格式化为展示文本：整数不带小数，小数保留一位，无效值显示 "--" */
+/**
+ * 将分数格式化为展示文本：整数不带小数，小数保留一位，无效值显示 "--"。
+ * @param value - 原始分数
+ * @returns 格式化后的展示文本
+ */
 export const formatScoreValue = (value: string | number | null): string => {
   const score = parseNumericScore(value)
   if (score === null) return '--'

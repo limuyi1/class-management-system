@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 班级概况卡片 — 以特殊布局展示班均分、及格率与单元完成进度 */
 import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
 
 interface Props {

@@ -29,7 +29,10 @@ export const useConfigurationStore = defineStore('configuration', {
       inputScoreTab: null,
       recentScoreEntries: {},
       scoreImageCompressRatio: 0.6,
-      evaluationHandwriteFont: null
+      evaluationHandwriteFont: null,
+      lastBackupAt: null,
+      scoreFullMark: 100,
+      menuCollapsed: false
     }
   },
   actions: {

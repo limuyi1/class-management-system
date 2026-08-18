@@ -12,7 +12,10 @@ export const useOverviewAnalysisStore = defineStore('overviewAnalysis', {
     generatedAt: ''
   }),
   actions: {
-    /** 设置分析报告并记录生成时间 */
+    /**
+     * 设置分析报告并记录生成时间
+     * @param text - 分析报告内容
+     */
     setAnalysis(text: string) {
       this.analysisText = text
       this.generatedAt = new Date().toISOString()

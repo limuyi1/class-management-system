@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 内容编辑器组 — 承载题目、答案、解析三块 Markdown 编辑器 */
 import { ref } from 'vue'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 
@@ -22,10 +23,15 @@ const questionEditorRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 const answerEditorRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 const explanationEditorRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 
+/** 向上层请求插入图片 */
 const handleInsertImage = () => {
   emit('insert-image')
 }
 
+/**
+ * 记录当前获得焦点的编辑器
+ * @param field - 编辑器所属字段
+ */
 const handleSetActiveEditor = (field: 'question' | 'answer' | 'explanation') => {
   emit('set-active-editor', field)
 }

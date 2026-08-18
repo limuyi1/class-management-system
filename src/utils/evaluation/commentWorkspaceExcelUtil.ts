@@ -1,3 +1,7 @@
+/**
+ * 评语工作区 Excel 工具
+ * 将 Excel 行构建为临时学生，并将生成的评语回写到工作簿
+ */
 import * as XLSX from 'xlsx'
 
 import { NAME_PROP } from '@/constants'
@@ -36,6 +40,8 @@ const buildHeader = (row: ExcelCellValueType[]): string[] =>
 /**
  * Excel 标签只作为本次评语生成的临时上下文，绝不能写入学生 Store 或系统标签配置。
  * 保留包含空格的完整标签，仅按明确的中英文标点、换行、竖线和斜杠拆分。
+ * @param value - 标签单元格值
+ * @returns 去重后的标签数组
  */
 export function parseTemporaryCommentTags(value: ExcelCellValueType): string[] {
   const tags = normalizeCellText(value)
@@ -86,6 +92,8 @@ export function buildExcelCommentWorkspace(options: BuildExcelCommentWorkspaceOp
 /**
  * 生成最小单元格更新集：有评语列时覆盖该列，没有时在表尾新增“评语”列。
  * 调用方把这些更新写回原工作簿，以保留其他工作表、列顺序和未处理单元格。
+ * @param options - 更新构建参数
+ * @returns 单元格更新列表
  */
 export function buildExcelCommentCellUpdates(options: {
   rows: ExcelCellValueType[][]
@@ -111,6 +119,10 @@ export function buildExcelCommentCellUpdates(options: {
   return updates
 }
 
+/**
+ * 将生成的评语写回原 Excel 工作簿并下载结果文件，保留原工作表与其他单元格。
+ * @param options - 导出参数（原文件、行数据、表头行与临时学生）
+ */
 export async function exportExcelCommentWorkspace(options: {
   file: File
   fileName: string

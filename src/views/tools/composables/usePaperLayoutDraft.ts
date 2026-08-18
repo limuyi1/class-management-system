@@ -48,6 +48,7 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
     currentDraftName.value = ''
   }
 
+  /** 保存草稿：弹窗确认名称后持久化当前排版设置与画布条目 */
   async function handleSaveDraft(): Promise<void> {
     if (options.canvasItems.value.length === 0) {
       ElMessage.warning('请先加入图片')

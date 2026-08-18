@@ -1,3 +1,4 @@
+/** 仪表盘模块的类型定义 */
 import type { SettingType } from '@/types/Setting'
 
 /** 仪表盘关注分组标识 */

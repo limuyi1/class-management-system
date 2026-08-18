@@ -36,6 +36,7 @@ const { enabledData } = storeToRefs(dataStore)
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 const hasUnits = computed(() => scoreColumns.value.length > 0)
 const hasScores = computed(() => dashboardData.value.unitOverview.length > 0)
+/** 根据单元与成绩的完整程度推导页面阶段，用于驱动各卡片的空态展示 */
 const overviewStage = computed<OverviewDashboardStageType>(() => {
   if (!hasUnits.value) return 'noUnits'
   if (!hasScores.value) return 'noScores'
@@ -48,6 +49,7 @@ const {
   generateAnalysis
 } = useOverviewAnalysis(dashboardData)
 
+/** 打开学生趋势抽屉，可选地将焦点定位到指定学生 */
 const openStudentTrend = (studentId?: string) => {
   if (studentId) {
     focusStudent(studentId)
@@ -56,6 +58,7 @@ const openStudentTrend = (studentId?: string) => {
   trendDrawerVisible.value = true
 }
 
+/** 跳转到设置的 AI 配置标签页 */
 const goToAiSetting = () => {
   router.push({
     path: '/setting',
@@ -65,6 +68,7 @@ const goToAiSetting = () => {
   })
 }
 
+/** 跳转到设置的单元配置标签页 */
 const goToUnitSetting = () => {
   router.push({
     path: '/setting',
@@ -74,16 +78,26 @@ const goToUnitSetting = () => {
   })
 }
 
+/** 跳转到成绩录入页 */
 const goToScoreInput = () => {
   router.push('/score')
 }
 
+/**
+ * 从趋势抽屉跳转到评语页。
+ * 先关闭抽屉并等待 DOM 更新，避免路由切换后抽屉残留遮挡页面。
+ */
 const goToEvaluationFromTrend = async () => {
   trendDrawerVisible.value = false
   await nextTick()
   router.push('/tools/comments')
 }
 
+/**
+ * 打开指定学生的报告导出弹窗，学生不存在时静默忽略。
+ *
+ * @param studentId 学生 ID
+ */
 const handleExportReportFromTrend = (studentId: string) => {
   const student = dataStore.getStudentById(studentId)
   if (!student) return
@@ -91,6 +105,9 @@ const handleExportReportFromTrend = (studentId: string) => {
   reportDialogVisible.value = true
 }
 
+/**
+ * 触发 AI 学情分析生成，AI 未配置时改为跳转到配置页。
+ */
 const handleGenerateLearningAnalysis = async () => {
   if (!dashboardData.value.evaluationOverview.aiConfigured) {
     goToAiSetting()

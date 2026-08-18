@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩总览卡片
+ * 展示平均分、综合比率、及格率等指标，并通过过渡动画平滑更新。
+ */
 import { computed, ref, watch } from 'vue'
 import { useTransition } from '@vueuse/core'
 
@@ -19,6 +23,7 @@ const maxScore = computed(() => {
   if (!scores.length) return 0
   return Math.max(...scores)
 })
+/** 当前科目最低分，无数据时为 0 */
 const minScore = computed(() => {
   const scores = store.validScores
   if (!scores.length) return 0
@@ -51,6 +56,7 @@ const outputLowScoreRate = useTransition(lowScoreRate, {
   duration: 1500
 })
 
+/** 从 store 同步最新统计指标到本地响应式状态 */
 const exec = () => {
   average.value = store.average
   passRate.value = store.passRate
@@ -62,6 +68,7 @@ const exec = () => {
 
 watch(
   () => [tableData.value, configuration.inputScoreTab],
+  // 表格数据或当前科目变化时重新计算统计指标
   () => exec(),
   {
     immediate: true,

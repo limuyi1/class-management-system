@@ -9,8 +9,11 @@ import { createStudentId } from '@/utils/studentUtil'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** Excel 单元格值类型，允许空值以区分空单元格 */
 export type ExcelCellValueType = string | number | boolean | null | undefined
+/** 以表头字段为 key 的 Excel 数据行 */
 export type ExcelRowType = Record<string, ExcelCellValueType>
+/** 成绩列冲突处理策略：覆盖或跳过 */
 export type ConflictActionType = 'overwrite' | 'skip'
 
 /** 成绩值解析结果 */
@@ -37,6 +40,7 @@ export interface InitialScoreImportResultType {
   duplicateStudentCount: number
 }
 
+/** 增量成绩导入结果（含表头、学生数据及统计信息） */
 export interface IncrementalScoreImportResultType {
   headers: SettingType[]
   students: StudentDataType[]

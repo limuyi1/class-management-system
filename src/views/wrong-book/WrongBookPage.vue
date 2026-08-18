@@ -40,25 +40,39 @@ const handleAddQuestion = () => {
   editorVisible.value = true
 }
 
+/**
+ * 打开编辑器并载入待编辑题目
+ * @param question - 待编辑的题目
+ */
 const handleEditQuestion = (question: WrongQuestion) => {
   editingQuestion.value = { ...question }
   editorVisible.value = true
 }
 
+/**
+ * 删除题目并提示结果
+ * @param id - 题目 id
+ */
 const handleDeleteQuestion = (id: string) => {
   wrongBookStore.deleteQuestion(id)
   ElMessage.success('删除成功')
 }
 
+/**
+ * 切换题目收藏状态
+ * @param id - 题目 id
+ */
 const handleToggleFavorite = (id: string) => {
   wrongBookStore.toggleFavorite(id)
 }
 
+/** 选择本地图片并打开裁剪器，用于 AI 识别导入错题 */
 const handleUploadImage = () => {
   if (!aiConfigStore.isConfigured) {
     ElMessage.warning('请先在设置页面配置 AI')
     return
   }
+  // 动态创建文件选择框以触发图片选择
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -83,6 +97,10 @@ const handleUploadImage = () => {
   input.click()
 }
 
+/**
+ * 裁剪确认后调用 AI 识别题目并回填编辑器
+ * @param croppedBase64 - 裁剪后的图片 base64 数据
+ */
 const handleCropConfirm = async (croppedBase64: string) => {
   cropperVisible.value = false
   uploading.value = true
@@ -120,10 +138,15 @@ const handleCropConfirm = async (croppedBase64: string) => {
   }
 }
 
+/** 取消裁剪，关闭裁剪器 */
 const handleCropCancel = () => {
   cropperVisible.value = false
 }
 
+/**
+ * 保存题目：存在 id 时更新，否则新增
+ * @param question - 待保存的题目数据
+ */
 const handleSaveQuestion = (question: Omit<WrongQuestion, 'id' | 'createdAt' | 'updatedAt'>) => {
   if (editingQuestion.value?.id) {
     wrongBookStore.updateQuestion(editingQuestion.value.id, question)
@@ -135,10 +158,15 @@ const handleSaveQuestion = (question: Omit<WrongQuestion, 'id' | 'createdAt' | '
   editorVisible.value = false
 }
 
+/**
+ * 同步题目列表的选中结果
+ * @param ids - 已选题目 id 列表
+ */
 const handleSelectionChange = (ids: string[]) => {
   selectedQuestions.value = ids
 }
 
+/** 校验选中题目后打开试卷生成弹窗 */
 const handleGenerateExam = () => {
   if (selectedQuestions.value.length === 0) {
     ElMessage.warning('请先选择要导出的题目')
@@ -147,6 +175,7 @@ const handleGenerateExam = () => {
   examGeneratorVisible.value = true
 }
 
+/** 按选中 id 从全部题目中映射出的题目对象列表 */
 const selectedQuestionList = computed(() => {
   return selectedQuestions.value
     .map((id) => questions.value.find((q) => q.id === id))

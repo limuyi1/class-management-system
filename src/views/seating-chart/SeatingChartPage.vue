@@ -103,9 +103,11 @@ onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
 
+/** 返回工具页面 */
 function backToTools(): void {
   router.push('/tools')
 }
+/** 进入新建座位表流程，重置默认布局与名单来源 */
 function createChart(): void {
   initialLayout.value = {
     rows: 6,
@@ -205,6 +207,10 @@ async function renameChart(chartId: string): Promise<void> {
   })
   seatingStore.renameChart(chartId, value)
 }
+/**
+ * 二次确认后删除指定座位表。
+ * @param chartId - 座位表 ID
+ */
 async function deleteChart(chartId: string): Promise<void> {
   await ElMessageBox.confirm('删除后无法恢复该座位表，是否继续？', '删除座位表', {
     type: 'warning'
@@ -250,6 +256,10 @@ function dropOnSeat(seat: SeatPositionType): void {
   selectedStudentId.value = null
   draggedStudentId.value = null
 }
+/**
+ * 点击座位：已有选中学生时执行落座，否则选中该座位上的学生。
+ * @param seat - 被点击的座位
+ */
 function selectSeat(seat: SeatPositionType): void {
   if (selectedStudentId.value) {
     dropOnSeat(seat)
@@ -257,10 +267,12 @@ function selectSeat(seat: SeatPositionType): void {
   }
   if (seat.studentId) selectedStudentId.value = seat.studentId
 }
+/** 将拖拽中的学生移回未安排列表 */
 function dropToUnassigned(): void {
   if (draggedStudentId.value) seatingStore.unassignStudent(draggedStudentId.value)
   draggedStudentId.value = null
 }
+/** 随机排座入口：空座位表直接全部随机，否则弹出模式选择 */
 function randomize(): void {
   if (!editingChart.value) return
   if (seatingStore.isEmptyChart) {
@@ -270,11 +282,13 @@ function randomize(): void {
   }
   randomModeVisible.value = true
 }
+/** 清空并重新随机安排全部学生，座位不足时提示未安排数量 */
 function randomizeAll(): void {
   randomModeVisible.value = false
   const count = seatingStore.randomizeAll()
   if (count) ElMessage.warning(`座位不足，还有 ${count} 名学生未安排`)
 }
+/** 生成“补充空座位”的随机方案预览 */
 function generatePreview(): void {
   if (!editingChart.value) return
   preview.value = createRandomSeats(
@@ -283,11 +297,13 @@ function generatePreview(): void {
     true
   )
 }
+/** 关闭模式弹窗并打开补充方案预览 */
 function openSupplement(): void {
   randomModeVisible.value = false
   generatePreview()
   previewVisible.value = true
 }
+/** 应用补充方案预览，仍有未安排学生时给出提示 */
 function applyPreview(): void {
   if (!preview.value) return
   seatingStore.applySupplementPreview(preview.value.seats)
@@ -295,6 +311,11 @@ function applyPreview(): void {
   if (preview.value.unassignedCount)
     ElMessage.warning(`还有 ${preview.value.unassignedCount} 名学生未安排`)
 }
+/**
+ * 开关雅座；关闭已占用雅座前需二次确认，避免学生意外回到未安排。
+ * @param position - 雅座位置
+ * @param enabled - 是否启用
+ */
 async function toggleSpecialSeat(
   position: SeatingSpecialSeatPositionEnum,
   enabled: boolean
@@ -314,13 +335,22 @@ async function toggleSpecialSeat(
   }
   seatingStore.setSpecialSeatEnabled(position, enabled)
 }
+/**
+ * 将拖拽或选中的学生放入指定雅座。
+ * @param position - 雅座位置
+ */
 function dropOnSpecialSeat(position: SeatingSpecialSeatPositionEnum): void {
+  // 优先使用拖拽中的学生，其次使用点击选中的学生
   const studentId = draggedStudentId.value || selectedStudentId.value
   if (!studentId) return
   seatingStore.assignStudentToSpecial(studentId, position)
   selectedStudentId.value = null
   draggedStudentId.value = null
 }
+/**
+ * 点击雅座：已有选中学生时执行落座，否则选中该雅座上的学生。
+ * @param seat - 被点击的雅座
+ */
 function selectSpecialSeat(seat: SeatingSpecialSeatType): void {
   if (selectedStudentId.value) {
     dropOnSpecialSeat(seat.position)
@@ -328,9 +358,14 @@ function selectSpecialSeat(seat: SeatingSpecialSeatType): void {
   }
   if (seat.studentId) selectedStudentId.value = seat.studentId
 }
+/** 切换页面全屏显示 */
 function toggleFullscreen(): void {
   fullscreen.value = !fullscreen.value
 }
+/**
+ * 处理键盘快捷键，全屏时按 Esc 退出。
+ * @param event - 键盘事件
+ */
 function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && fullscreen.value) {
     fullscreen.value = false

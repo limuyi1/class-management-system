@@ -21,13 +21,21 @@ const formatToday = (): string => {
 
 /** 创建成绩通知单的默认初始状态 */
 const createDefaultState = (): ScoreNoticeStateType => ({
+  /** 通知单标题 */
   title: '期中考试等级通知',
+  /** 通知日期（YYYY-MM-DD） */
   noticeDate: formatToday(),
+  /** 当前展示模式（等级制/分数制） */
   mode: ScoreNoticeModeEnum.Grade,
+  /** 来源数据模式 */
   sourceMode: ScoreNoticeModeEnum.Grade,
+  /** 来源文件名 */
   sourceFileName: '',
+  /** 科目列表 */
   subjects: [],
+  /** 学生列表 */
   students: [],
+  /** 当前选中的学生 ID */
   selectedStudentId: ''
 })
 

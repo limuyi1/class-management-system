@@ -20,12 +20,19 @@ import { startLoading, stopLoading } from '@/hooks/useLoading'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
+/**
+ * 学习报告导出弹窗。
+ *
+ * 负责组织报告数据、管理正文内容状态与成绩范围选择，
+ * 提供模板正文 / AI 生成两种内容来源，并将预览导出为 PNG 图片。
+ */
 interface Props {
   visible: boolean
   student: StudentDataType | null
   scoreColumns: SettingType[]
 }
 
+/** 正文状态：idle 未选择 / ready 可用 / dirty 已手动编辑 / stale 已过期 */
 type ContentStatusType = 'idle' | 'ready' | 'dirty' | 'stale'
 type ExportQualityType = 'standard' | 'high' | 'ultra'
 
@@ -70,10 +77,12 @@ const report = computed(() => {
 
 const selectedCount = computed(() => selectedProps.value.length)
 const hasContent = computed(() => Boolean(content.value.trim()))
+// 导出需同时满足：已选成绩、有正文、且无进行中的生成/导出任务
 const canExport = computed(() => {
   return selectedCount.value > 0 && hasContent.value && !generating.value && !exporting.value
 })
 const generatorLabel = computed(() => (aiConfigStore.isConfigured ? '可选 AI 生成' : '模板内容'))
+// 预览优先展示手动/生成的正文，未填写时回退到模板文本
 const previewContent = computed(() => {
   if (content.value.trim()) return content.value
   if (!report.value) return ''
@@ -87,12 +96,16 @@ const syncDefaultSelection = (): void => {
   selectedProps.value = props.scoreColumns.map((item) => item.prop)
 }
 
+/** 将正文切换为当前报告数据的模板文本 */
 const applyTemplateContent = (): void => {
   if (!report.value) return
   content.value = buildStudentReportTemplateText(report.value)
   contentStatus.value = 'ready'
 }
 
+/**
+ * 生成正文：优先调用 AI，未配置 AI 或生成失败时回退到模板内容
+ */
 const generateContent = async (): Promise<void> => {
   if (!report.value || !selectedCount.value) return
 
@@ -131,6 +144,7 @@ const generateContent = async (): Promise<void> => {
   }
 }
 
+/** 打开弹窗时重置默认状态并生成模板正文 */
 const handleOpen = async (): Promise<void> => {
   syncDefaultSelection()
   fullscreen.value = false
@@ -154,33 +168,54 @@ const resolveExportScale = (): number => {
   return Number((baseScale * qualityMap[exportQuality.value]).toFixed(1))
 }
 
+/**
+ * 同步正文输入：有内容标记为手动编辑，清空则视为已过期
+ * @param value - 输入框最新内容
+ */
 const handleContentInput = (value: string): void => {
   content.value = value
   contentStatus.value = value.trim() ? 'dirty' : 'stale'
 }
 
+/**
+ * 同步成绩项选择
+ * @param value - 选中的成绩项 prop 列表
+ */
 const handleSelectedPropsUpdate = (value: string[]): void => {
   selectedProps.value = value
 }
 
+/**
+ * 同步导出质量档位（仅接受合法档位值）
+ * @param value - 质量档位
+ */
 const handleExportQualityUpdate = (value: string): void => {
   if (value === 'standard' || value === 'high' || value === 'ultra') {
     exportQuality.value = value
   }
 }
 
+/**
+ * 同步导出倍率
+ * @param value - 倍率字符串
+ */
 const handleExportScaleUpdate = (value: string): void => {
   exportScale.value = value
 }
 
+/** 切换弹窗全屏状态 */
 const toggleFullscreen = (): void => {
   fullscreen.value = !fullscreen.value
 }
 
+/** 关闭弹窗 */
 const closeDialog = (): void => {
   dialogVisible.value = false
 }
 
+/**
+ * 导出学习报告为 PNG 图片
+ */
 const handleExport = async (): Promise<void> => {
   if (!report.value) return
   if (!canExport.value) {

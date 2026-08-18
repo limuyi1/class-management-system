@@ -134,3 +134,21 @@ describe('importDatabase', () => {
     expect(setDatabaseImportingMock).toHaveBeenLastCalledWith(false)
   })
 })
+
+describe('getDaysSinceBackup', () => {
+  it('returns null when never backed up or the date is invalid', async () => {
+    const { getDaysSinceBackup } = await import('../../src/utils/backup')
+    expect(getDaysSinceBackup(null)).toBeNull()
+    expect(getDaysSinceBackup('not-a-date')).toBeNull()
+  })
+
+  it('returns the number of days since the last backup', async () => {
+    const { getDaysSinceBackup } = await import('../../src/utils/backup')
+    const now = Date.now()
+    const threeDaysAgo = new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()
+    const sevenDaysAgo = new Date(now - 7 * 24 * 60 * 60 * 1000).toISOString()
+
+    expect(getDaysSinceBackup(threeDaysAgo)).toBe(3)
+    expect(getDaysSinceBackup(sevenDaysAgo)).toBe(7)
+  })
+})

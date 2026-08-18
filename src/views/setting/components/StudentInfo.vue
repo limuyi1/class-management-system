@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 学生信息管理组件：以可编辑表格维护学生名单、成绩列与标签。
+ * 支持行内新增/删除、动态成绩列增删、单个/批量标签编辑，以及从评语页回跳后恢复编辑。
+ */
 import { computed, ref, h } from 'vue'
 
 import { storeToRefs } from 'pinia'
@@ -22,15 +26,18 @@ import type { VxeTableEvents, VxeTablePropTypes } from 'vxe-table'
 import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 学生数据在表格中的可编辑扩展类型，`isNew` 标记尚未确认的新增行 */
 type EditableStudentType = StudentDataType & {
   isNew?: boolean
 }
 
+/** 表格列的最小结构，用于判断固定列与字段名 */
 interface TableColumnType {
   fixed?: boolean | string
   field?: string
 }
 
+/** 组件入参：支持从评语页跳转回来后定位目标学生 */
 interface Props {
   returnTo?: string
   returnStudentId?: string
@@ -54,10 +61,19 @@ const rowConfig = { keyField: 'studentId' }
 const cellConfig = { height: 48 }
 const virtualYConfig = { enabled: true, gt: 40, oSize: 5 }
 
+/**
+ * 获取学生姓名，缺失时回退为空字符串。
+ * @param student - 学生数据
+ * @returns 姓名文本
+ */
 const getStudentName = (student: EditableStudentType): string => {
   return String(student[NAME_PROP] || '')
 }
 
+/**
+ * 按 studentId 删除指定学生行。
+ * @param row - 待删除的学生行
+ */
 const deleteStudent = (row: EditableStudentType) => {
   const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
   if (index > -1) {
@@ -65,6 +81,10 @@ const deleteStudent = (row: EditableStudentType) => {
   }
 }
 
+/**
+ * 在指定学生上方插入一条空白新增行。
+ * @param row - 参照的学生行
+ */
 const addStudentAbove = (row: EditableStudentType) => {
   const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
   if (index === -1) return
@@ -76,6 +96,10 @@ const addStudentAbove = (row: EditableStudentType) => {
   tableData.value.splice(index, 0, newStudent)
 }
 
+/**
+ * 在指定学生下方插入一条空白新增行。
+ * @param row - 参照的学生行
+ */
 const addStudentBelow = (row: EditableStudentType) => {
   const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
   if (index === -1) return
@@ -87,6 +111,10 @@ const addStudentBelow = (row: EditableStudentType) => {
   tableData.value.splice(index + 1, 0, newStudent)
 }
 
+/**
+ * 确认新增行：校验姓名非空后清除新增标记。
+ * @param row - 待确认的新增行
+ */
 const confirmNewStudent = (row: EditableStudentType) => {
   const name = getStudentName(row).trim()
   if (!name) {
@@ -97,6 +125,10 @@ const confirmNewStudent = (row: EditableStudentType) => {
   delete row.isNew
 }
 
+/**
+ * 取消新增行：直接从列表中移除该行。
+ * @param row - 待取消的新增行
+ */
 const cancelNewStudent = (row: EditableStudentType) => {
   const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
   if (index > -1) {
@@ -104,10 +136,15 @@ const cancelNewStudent = (row: EditableStudentType) => {
   }
 }
 
+/** 预构建“学生 -> 标签摘要”映射，供表格渲染复用，避免每行重复计算 */
 const rowTagSummaryMap = computed(() =>
   buildStudentInfoTagSummaryMap(tableData.value, categories.value)
 )
 
+/**
+ * 获取某学生行的标签摘要。
+ * @param row - 学生行
+ */
 const getRowTagSummary = (row: EditableStudentType) =>
   getStudentInfoTagSummary(rowTagSummaryMap.value, row.studentId)
 
@@ -116,16 +153,26 @@ const batchDrawerVisible = ref(false)
 const currentEditRow = ref<EditableStudentType | null>(null)
 const batchStudentList = ref<EditableStudentType[]>([])
 
+/**
+ * 打开单个学生的标签编辑弹窗。
+ * @param row - 目标学生行
+ */
 const openTagEditor = (row: EditableStudentType) => {
   currentEditRow.value = row
   dialogVisible.value = true
 }
 
+/** 关闭标签编辑弹窗并清空当前编辑行 */
 const closeTagEditor = () => {
   dialogVisible.value = false
   currentEditRow.value = null
 }
 
+/**
+ * 确认单个标签编辑：写入新标签并关闭弹窗，
+ * 若从评语页跳转而来则携带恢复标记返回。
+ * @param tags - 编辑后的标签结构
+ */
 const confirmTagEdit = (tags: Record<string, string[]>) => {
   if (!currentEditRow.value) return
   currentEditRow.value.tags = tags
@@ -142,6 +189,9 @@ const confirmTagEdit = (tags: Record<string, string[]>) => {
   }
 }
 
+/**
+ * 打开批量标签编辑抽屉，深拷贝每个学生的标签，避免直接污染原数据。
+ */
 const openBatchEditor = () => {
   batchStudentList.value = tableData.value.map((student) => ({
     ...student,
@@ -154,11 +204,16 @@ const openBatchEditor = () => {
   batchDrawerVisible.value = true
 }
 
+/** 关闭批量标签编辑抽屉并清空临时列表 */
 const closeBatchEditor = () => {
   batchDrawerVisible.value = false
   batchStudentList.value = []
 }
 
+/**
+ * 将批量编辑结果写回原学生数据（仅更新标签）。
+ * @param updatedStudents - 编辑后的学生列表
+ */
 const saveBatchEdit = (updatedStudents: EditableStudentType[]) => {
   updatedStudents.forEach((student) => {
     const originalStudent = tableData.value.find((item) => item.studentId === student.studentId)
@@ -168,20 +223,30 @@ const saveBatchEdit = (updatedStudents: EditableStudentType[]) => {
   })
 }
 
+/**
+ * 确认批量编辑：保存结果并关闭抽屉。
+ * @param updatedStudents - 编辑后的学生列表
+ */
 const confirmBatchEdit = (updatedStudents: EditableStudentType[]) => {
   saveBatchEdit(updatedStudents)
   closeBatchEditor()
 }
 
+/**
+ * 跳转到设置页指定标签页。
+ * @param tab - 目标标签页名称
+ */
 const goToTab = (tab: string) => {
   router.push({ path: '/setting', query: { tab } })
 }
 
+/** 表格单元格编辑配置：双击单元格进入编辑态 */
 const editConfig = ref<VxeTablePropTypes.EditConfig>({
   trigger: 'dblclick',
   mode: 'cell',
   showIcon: false
 })
+/** 表头右键菜单配置：固定列不展示列操作菜单 */
 const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
   header: {
     options: [
@@ -207,24 +272,43 @@ const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
   visibleMethod: ({ column }) => !isFixedColumn(column as TableColumnType)
 })
 
+/** 是否存在学生数据，用于切换空态与表格视图 */
 const isNotEmpty = computed(() => store.students?.length)
 
+/**
+ * 判断列是否为固定列。
+ * @param column - 表格列
+ * @returns 是否为固定列
+ */
 const isFixedColumn = (column: TableColumnType) => {
   // 通过 column.fixed 属性判断是否是固定列
   return !!column.fixed
 }
 
+/**
+ * 以中文列名生成拼音 prop，创建新表头配置。
+ * @param label - 列名
+ * @returns 新表头配置项
+ */
 const createHeader = (label: string) => ({
   prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
   label,
   disabled: false
 })
 
+/**
+ * 根据表格列字段定位表头配置下标。
+ * @param column - 表格列
+ * @returns 表头下标，未找到返回 -1
+ */
 const findHeaderIndexByColumn = (column: TableColumnType): number => {
   if (!column.field) return -1
   return headers.value.findIndex((item) => item.prop === column.field)
 }
 
+/**
+ * 表头右键菜单点击处理：在目标列左/右新增列或删除列。
+ */
 const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column }) => {
   const headerIndex = findHeaderIndexByColumn(column as TableColumnType)
   if (headerIndex === -1) {
@@ -261,6 +345,7 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column }) => {
         type: 'warning'
       }).then(() => {
         headers.value?.splice(headerIndex, 1)
+        // 同步删除所有学生数据中该列对应的字段
         tableData.value.forEach((e) => {
           if (column.field) {
             delete e[column.field]
@@ -271,6 +356,11 @@ const menuClickEvent: VxeTableEvents.MenuClick = ({ menu, column }) => {
   }
 }
 
+/**
+ * 按 studentId 打开标签编辑弹窗，供父组件通过 ref 调用。
+ * @param studentId - 学生 ID
+ * @returns 是否成功定位并打开
+ */
 const openTagEditorById = (studentId: string) => {
   const student = tableData.value.find((item) => item.studentId === studentId)
   if (!student) return false
@@ -279,17 +369,23 @@ const openTagEditorById = (studentId: string) => {
   return true
 }
 
-// 虚拟删除弹窗状态
+// 虚拟删除弹窗状态：仅在表格外渲染一次，通过 virtual-ref 定位到具体行
 const deletePopoverVisible = ref(false)
 const pendingDeleteRow = ref<EditableStudentType | null>(null)
 const deleteTriggerRef = ref<HTMLElement>()
 
+/**
+ * 打开删除确认弹窗，记录待删除行与触发元素。
+ * @param row - 待删除学生行
+ * @param event - 触发点击事件
+ */
 const openDeletePopover = (row: EditableStudentType, event: MouseEvent) => {
   pendingDeleteRow.value = row
   deleteTriggerRef.value = event.currentTarget as HTMLElement
   deletePopoverVisible.value = true
 }
 
+/** 确认删除当前待删除行并关闭弹窗 */
 const confirmDelete = () => {
   if (pendingDeleteRow.value) {
     deleteStudent(pendingDeleteRow.value)

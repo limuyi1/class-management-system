@@ -1,3 +1,4 @@
+/** 标签编辑弹窗组件的 Props 与 Emits 类型定义 */
 import type { StudentDataType } from '@/types/StudentData'
 
 /** 标签编辑弹窗中的学生类型（与 StudentDataType 一致） */

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 值日表侧边栏 — 展示方案列表并支持切换、复制、重命名与删除 */
 import type { DutyRosterType } from '@/types/DutyRoster'
 
 defineProps<{
@@ -16,6 +17,11 @@ const emit = defineEmits<{
   toggleCollapse: []
 }>()
 
+/**
+ * 将方案下拉菜单命令转换为对应的页面事件。
+ * @param command - 下拉菜单命令
+ * @param rosterId - 值日表 ID
+ */
 function handleCommand(command: string | number | object, rosterId: string): void {
   if (command === 'copy') emit('copy', rosterId)
   if (command === 'rename') emit('rename', rosterId)

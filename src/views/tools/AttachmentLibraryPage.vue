@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 素材管理页面 — 上传、拖拽排序、重命名、裁剪、删除与预览长期复用图片 */
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -33,11 +34,13 @@ const previewAttachment = ref<AttachmentViewType | null>(null)
 const previewVisible = ref(false)
 const selectedIds = ref<string[]>([])
 
+/** 素材数量提示文案 */
 const attachmentCountText = computed(() => {
   return attachments.value.length === 0 ? '暂无图片素材' : `共 ${attachments.value.length} 张图片`
 })
 
 const selectedCount = computed(() => selectedIds.value.length)
+/** 带选中数量的提示文案 */
 const attachmentHintText = computed(() => {
   return selectedCount.value > 0
     ? `${attachmentCountText.value} · 已选 ${selectedCount.value} 张`
@@ -46,10 +49,12 @@ const attachmentHintText = computed(() => {
 const attachmentPanelClass = computed(() => ({
   'has-selection': selectedCount.value > 0
 }))
+/** 裁剪输出类型：PNG 素材保留透明，其余转 JPEG */
 const cropperOutputType = computed<'jpeg' | 'png'>(() => {
   return editingAttachment.value?.mimeType === 'image/png' ? 'png' : 'jpeg'
 })
 
+// 进入页面即加载素材列表
 loadAttachments()
 
 onBeforeUnmount(() => {
@@ -60,12 +65,14 @@ function backToTools(): void {
   router.push('/tools')
 }
 
+/** 释放所有素材视图记录的 object URL */
 function revokeAttachmentUrls(): void {
   attachments.value.forEach((attachment) => {
     URL.revokeObjectURL(attachment.url)
   })
 }
 
+/** 为素材记录补充临时预览 URL，转换为视图记录 */
 function toViewRecord(record: AttachmentRecordType): AttachmentViewType {
   return {
     ...record,
@@ -100,6 +107,7 @@ function clearSelection(): void {
   selectedIds.value = []
 }
 
+/** 拖拽排序结束后持久化新顺序 */
 async function handleSortEnd(): Promise<void> {
   try {
     await updateAttachmentOrder(attachments.value.map((attachment) => attachment.id))
@@ -126,6 +134,7 @@ async function handleDrop(event: DragEvent): Promise<void> {
   await uploadFiles(files)
 }
 
+/** 上传文件到素材库并刷新列表 */
 async function uploadFiles(files: File[]): Promise<void> {
   if (files.length === 0) return
 
@@ -177,6 +186,7 @@ async function handleDelete(attachment: AttachmentViewType): Promise<void> {
   }
 }
 
+/** 批量删除选中素材 */
 async function handleBatchDelete(): Promise<void> {
   if (selectedIds.value.length === 0) return
 
@@ -208,10 +218,12 @@ function openPreview(attachment: AttachmentViewType): void {
   previewVisible.value = true
 }
 
+/** 根据宽高返回横向/纵向标签 */
 function getAttachmentOrientationLabel(attachment: AttachmentViewType): string {
   return attachment.width >= attachment.height ? '横向' : '纵向'
 }
 
+/** 保存裁剪结果并刷新列表 */
 async function handleCropConfirm(base64: string): Promise<void> {
   if (!editingAttachment.value) return
 

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * AI 配置组件：配置 AI 品牌、模型、API Key、Base URL，
+ * 支持拉取可用模型、测试连接，并维护各类提示词的默认值重置。
+ */
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -20,6 +24,7 @@ const fetchingModels = ref(false)
 const activePromptTab = ref<keyof AIPromptsType>('singleComment')
 const aiConfigFormRef = ref<FormInstance>()
 
+/** API Key 表单校验规则：必填且不能为空白 */
 const aiConfigFormRules: FormRules = {
   apiKey: [
     {
@@ -32,11 +37,13 @@ const aiConfigFormRules: FormRules = {
   ]
 }
 
+/** AI 品牌下拉选项，由枚举标签映射而来 */
 const modelOptions = Object.entries(AIModelTypeLabels).map(([value, label]) => ({
   value: value as AIModelTypeEnum,
   label
 }))
 
+/** 提示词标签页配置，包含标签名与默认占位内容 */
 const promptTabs: Array<{
   key: keyof AIPromptsType
   label: string
@@ -61,6 +68,7 @@ const promptTabs: Array<{
     placeholder: DefaultAIPrompts.tagCategoryGenerate
   },
   { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate },
+  // 错题本功能开启时追加 AI 答题提示词
   ...(featureFlags.wrongBook
     ? [
         {
@@ -83,6 +91,10 @@ const promptTabs: Array<{
   }
 ]
 
+/**
+ * AI 品牌切换处理：更新品牌并尝试重新拉取可用模型列表。
+ * @param val - 新品牌
+ */
 const handleModelChange = async (val: AIModelTypeEnum) => {
   store.setModelType(val)
 
@@ -106,6 +118,10 @@ const handleModelChange = async (val: AIModelTypeEnum) => {
   }
 }
 
+/**
+ * 校验 API Key 是否填写有效。
+ * @returns 是否校验通过
+ */
 const validateApiKey = async (): Promise<boolean> => {
   if (!aiConfigFormRef.value) {
     return apiKey.value.trim().length > 0
@@ -119,6 +135,7 @@ const validateApiKey = async (): Promise<boolean> => {
   }
 }
 
+/** 拉取可用模型：校验通过后请求并选中首个模型 */
 const handleFetchModels = async () => {
   if (!(await validateApiKey())) return
 
@@ -145,6 +162,7 @@ const handleFetchModels = async () => {
   }
 }
 
+/** 测试当前 AI 配置的连接是否可用 */
 const handleTestConnection = async () => {
   if (!(await validateApiKey())) return
 
@@ -168,11 +186,17 @@ const handleTestConnection = async () => {
   }
 }
 
+/**
+ * 重置单个提示词为默认值。
+ * @param promptKey - 提示词键
+ * @param label - 提示词展示名
+ */
 const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
   store.resetPrompt(promptKey)
   ElMessage.success(`${label}提示词已重置为默认值`)
 }
 
+/** 重置全部提示词为默认值（需二次确认） */
 const handleResetAllPrompts = async (): Promise<void> => {
   try {
     await ElMessageBox.confirm(

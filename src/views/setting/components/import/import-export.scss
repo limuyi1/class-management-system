@@ -1,3 +1,4 @@
+// 数据导入导出页样式：操作项、图标、备份状态提示与说明区
 .import-export__wrapper {
   max-width: 600px;
   margin: 0 auto;
@@ -67,6 +68,23 @@
   .action-desc {
     color: #999;
     font-size: 13px;
+  }
+
+  .backup-status {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    color: #52c41a;
+    font-size: 12px;
+
+    svg {
+      font-size: 12px;
+    }
+
+    &.is-overdue {
+      color: #f56c6c;
+    }
   }
 }
 

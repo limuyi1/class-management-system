@@ -1,3 +1,7 @@
+/**
+ * 评语 PDF 排版布局工具
+ * 计算纸张尺寸、评语卡行列布局与分页坐标
+ */
 import { groupArray } from '@/utils/commonUtil'
 import { NAME_PROP } from '@/constants'
 import type {

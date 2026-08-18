@@ -1,9 +1,11 @@
 <script setup lang="ts">
+/** 备注说明面板 — 按行展示值日表备注并触发编辑 */
 import { computed } from 'vue'
 
 const props = defineProps<{ notes: string }>()
 const emit = defineEmits<{ edit: [] }>()
 
+/** 过滤掉空行的备注说明 */
 const noteLines = computed(() => props.notes.split('\n').filter((line) => line.trim()))
 </script>
 

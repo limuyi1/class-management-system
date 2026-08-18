@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 清洁区域管理弹窗 — 重命名、拖拽排序与删除区域 */
 import { ref, watch } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import draggable from 'vuedraggable'
@@ -21,6 +22,7 @@ const emit = defineEmits<{
 const drafts = ref<Record<string, string>>({})
 const orderedSections = ref<DutySectionType[]>([])
 
+// 打开弹窗时回填名称草稿与排序后的区域列表
 watch(
   () => props.modelValue,
   (visible) => {
@@ -33,11 +35,19 @@ watch(
   }
 )
 
+/**
+ * 提交区域名称修改，仅在名称有效且变化时触发重命名。
+ * @param section - 区域
+ */
 function commitName(section: DutySectionType): void {
   const name = drafts.value[section.id]?.trim()
   if (name && name !== section.name) emit('rename', section.id, name)
 }
 
+/**
+ * 二次确认后删除区域。
+ * @param section - 区域
+ */
 async function removeSection(section: DutySectionType): Promise<void> {
   await ElMessageBox.confirm(
     `删除“${section.name}”后，其中已安排的学生将回到未安排区域。是否继续？`,
@@ -47,6 +57,7 @@ async function removeSection(section: DutySectionType): Promise<void> {
   emit('remove', section.id)
 }
 
+/** 提交区域排序结果 */
 function commitOrder(): void {
   emit(
     'reorder',

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 座位图画布 — 渲染讲台、雅座与座位网格，并处理座位拖拽/点击交互 */
 import { computed, shallowRef } from 'vue'
 
 import { useSeatingChartViewport } from '@/views/seating-chart/composables/useSeatingChartViewport'
@@ -31,6 +32,7 @@ const seatViewportRef = shallowRef<HTMLElement | null>(null)
 const rows = computed(() => props.chart.rows)
 const columns = computed(() => props.chart.columns)
 const aisleCount = computed(() => props.chart.aisleAfterColumns.length)
+// 布局键用于在行列或方向变化时触发视口重新缩放
 const layoutKey = computed(() => props.chart.firstColumnSide)
 const visibleColumnSeats = computed(() => props.visibleSeatRows[0] || [])
 const hasSpecialSeats = computed(() => props.chart.specialSeats.some((seat) => seat.enabled))
@@ -46,11 +48,20 @@ const { stageStyle, contentStyle } = useSeatingChartViewport({
   layoutKey
 })
 
+/**
+ * 判断座位后是否需要渲染过道。
+ * @param seat - 座位位置
+ */
 function hasAisleAfterSeat(seat: SeatPositionType): boolean {
+  // 第一列在右侧时，过道列索引需要反向换算
   const aisleColumn = firstColumnOnRight.value ? seat.column - 1 : seat.column
   return props.chart.aisleAfterColumns.includes(aisleColumn)
 }
 
+/**
+ * 返回雅座位置的左右中文标签。
+ * @param position - 雅座位置
+ */
 function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
   return position === SeatingSpecialSeatPositionEnum.PlatformLeft ? '左' : '右'
 }

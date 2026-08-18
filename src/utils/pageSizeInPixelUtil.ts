@@ -13,6 +13,7 @@ const PAGE_SIZE_POINTS: Record<PagesEnum, { width: number; height: number }> = {
  * 获取页面尺寸（点，PDF/layout 坐标系）
  * @param pageType - 纸张类型
  * @param orientation - 方向（portrait/landscape）
+ * @returns 宽高尺寸（单位：点 pt）
  */
 export function getPageSize(
   pageType: PagesEnum,

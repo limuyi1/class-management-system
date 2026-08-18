@@ -1,3 +1,7 @@
+/**
+ * 座位表学生数据工具
+ * 将系统学生或 Excel 原始数据转换为座位表所需的最小名单结构
+ */
 import { NAME_PROP, STUDENT_ID_PROP } from '@/constants'
 
 import type { SeatingChartType } from '@/types/SeatingChart'

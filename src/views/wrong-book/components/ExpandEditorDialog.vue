@@ -19,6 +19,7 @@ const emit = defineEmits<{
   'update:explanation': [value: string]
 }>()
 
+// 展开编辑时的本地草稿，保存时回写父组件
 const expandQuestion = ref('')
 const expandAnswer = ref('')
 const expandExplanation = ref('')
@@ -26,6 +27,7 @@ const expandQuestionRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 const expandAnswerRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 const expandExplanationRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 
+// 打开弹窗时用当前内容初始化各编辑器的草稿
 watch(
   () => props.visible,
   (isVisible) => {
@@ -37,6 +39,7 @@ watch(
   }
 )
 
+/** 将三个编辑器的内容保存回父组件并关闭弹窗 */
 const handleSave = () => {
   emit('update:questionText', expandQuestionRef.value?.getContent?.() || '')
   emit('update:answer', expandAnswerRef.value?.getContent?.() || '')

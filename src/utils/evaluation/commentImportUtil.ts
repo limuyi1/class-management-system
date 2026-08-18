@@ -8,6 +8,7 @@ import type { ExcelRowType } from '@/utils/scoreImportUtil'
 import type { CommentImportStrategyType } from '@/types/StudentImport'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 评语增量导入统计结果 */
 export interface CommentImportStatsType {
   matchedStudentCount: number
   filledCommentCount: number
@@ -17,6 +18,7 @@ export interface CommentImportStatsType {
   duplicateStudentCount: number
 }
 
+/** 评语增量导入参数 */
 interface CommentImportOptionsType {
   rows: ExcelRowType[]
   existingStudents: StudentDataType[]
@@ -42,6 +44,8 @@ const getDuplicateNames = (values: string[]): Set<string> => {
 /**
  * 预估覆盖模式会替换的已有评语数量，用于在真正写入前给出二次确认。
  * Excel 空白评语不会被计入，避免空数据覆盖教师已经填写的内容。
+ * @param options - 导入参数
+ * @returns 将被覆盖的评语数量
  */
 export const countOverwrittenComments = (options: CommentImportOptionsType): number => {
   const duplicateSystemNames = getDuplicateNames(
@@ -68,6 +72,8 @@ export const countOverwrittenComments = (options: CommentImportOptionsType): num
 /**
  * 按姓名精确匹配并导入期末评语。
  * 未匹配姓名直接忽略；无论采用何种策略，Excel 空白单元格都不会覆盖原评语。
+ * @param options - 导入参数
+ * @returns 更新后的学生列表与导入统计
  */
 export const buildIncrementalCommentImport = (
   options: CommentImportOptionsType

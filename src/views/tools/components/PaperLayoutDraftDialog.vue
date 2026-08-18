@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 试卷排版草稿对话框 — 打开或删除已保存的排版草稿 */
 import { ref, watch } from 'vue'
 
 import {
@@ -15,6 +16,7 @@ const emit = defineEmits<{
 const drafts = ref<PaperLayoutDraftRecordType[]>([])
 const loading = ref(false)
 
+// 弹窗打开时加载最新草稿列表
 watch(
   visible,
   async (nextVisible) => {
@@ -24,6 +26,7 @@ watch(
   { immediate: true }
 )
 
+/** 读取草稿列表 */
 async function loadDrafts(): Promise<void> {
   loading.value = true
   try {
@@ -33,16 +36,19 @@ async function loadDrafts(): Promise<void> {
   }
 }
 
+/** 打开草稿并关闭对话框 */
 function handleOpen(draft: PaperLayoutDraftRecordType): void {
   emit('open', draft)
   visible.value = false
 }
 
+/** 删除草稿后刷新列表 */
 async function handleDelete(draft: PaperLayoutDraftRecordType): Promise<void> {
   await deletePaperLayoutDraft(draft.id)
   await loadDrafts()
 }
 
+/** 返回排版模式对应的中文标签 */
 function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
   const labelMap: Record<PaperLayoutModeType, string> = {
     single: '一页一张',

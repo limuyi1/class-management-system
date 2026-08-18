@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语表格预览视图
+ * 复用 PDF 布局做像素换算与分页分组，负责缩放适配与按学生滚动定位。
+ */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElScrollbar, ElEmpty } from 'element-plus'
@@ -28,6 +32,7 @@ const emit = defineEmits<{
   cardClick: [row: StudentDataType]
 }>()
 
+/** 将卡片点击事件透传给父组件 */
 const handleCardClick = (row: StudentDataType) => {
   emit('cardClick', row)
 }

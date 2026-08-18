@@ -34,6 +34,7 @@ export const useStudentDataImport = () => {
   const { students } = storeToRefs(dataSourceStore)
   const { scoreColumns } = storeToRefs(settingStore)
 
+  /** 隐藏的 Excel 文件选择框 ref */
   const excelFileInputRef = ref<HTMLInputElement | null>(null)
   // 设置页保留 .dexie/Excel 共用的原生 input；Excel 解析状态统一交给公共 composable。
   const {
@@ -42,20 +43,33 @@ export const useStudentDataImport = () => {
     parseRawFile,
     reset: resetExcelPreview
   } = useExcelPreviewImport({ errorLogLabel: '解析 Excel', errorMessage: '导入失败！' })
+  /** 当前导入模式（首次/成绩/评语） */
   const importMode = ref<ExcelImportModeType>('initial')
+  /** 预览行数据 */
   const excelPreviewRows = computed(() => excelPreview.value?.rows ?? [])
+  /** 预览合并单元格信息 */
   const excelPreviewMerges = computed(() => excelPreview.value?.merges ?? [])
+  /** 推荐表头行索引 */
   const suggestedHeaderRowIndex = computed(
     () => excelPreview.value?.suggestedHeaderRowIndex ?? 0
   )
+  /** 解析后的表头 */
   const excelHeaders = ref<string[]>([])
+  /** 解析后的数据行 */
   const excelRows = ref<ExcelRowType[]>([])
+  /** 首次导入弹窗可见性 */
   const initialDialogVisible = ref(false)
+  /** 成绩列选择弹窗可见性 */
   const scoreColumnSelectorVisible = ref(false)
+  /** 评语导入弹窗可见性 */
   const commentDialogVisible = ref(false)
+  /** 冲突确认弹窗可见性 */
   const conflictDialogVisible = ref(false)
+  /** 待导入的成绩列 */
   const pendingScoreColumns = ref<string[]>([])
+  /** 待导入的姓名列 */
   const pendingScoreNameColumn = ref('')
+  /** 与现有成绩列冲突的列 */
   const conflictColumns = ref<string[]>([])
 
   /** 重置 Excel 导入相关的所有临时状态 */

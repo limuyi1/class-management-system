@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 公式工具栏 — 提供常用 LaTeX 公式与自定义公式的预览与插入 */
 import { ref } from 'vue'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
@@ -36,10 +37,15 @@ const commonFormulas = [
   { label: '向量', formula: '\\vec{a}' }
 ]
 
+/**
+ * 将常用公式以行内公式形式插入编辑器
+ * @param formula - LaTeX 公式源码
+ */
 const insertFormula = (formula: string) => {
   emit('insert', `$${formula}$`)
 }
 
+/** 校验并插入自定义公式，失败时展示错误提示 */
 const insertCustomFormula = () => {
   if (!formulaInput.value.trim()) return
 
@@ -53,6 +59,7 @@ const insertCustomFormula = () => {
   }
 }
 
+/** 实时渲染自定义公式预览，失败时展示错误提示 */
 const previewFormula = () => {
   if (!formulaInput.value.trim()) {
     formulaPreview.value = ''

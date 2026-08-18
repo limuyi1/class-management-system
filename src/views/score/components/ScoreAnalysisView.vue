@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩分析视图
+ * 根据页面阶段展示空状态或统计卡片组合。
+ */
 import { computed } from 'vue'
 
 import EmptyStatePanel from '@/components/EmptyStatePanel.vue'
@@ -17,6 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
   canExport: false
 })
 
+/** 依据阶段生成对应的空状态提示 */
 const emptyState = computed(() => {
   if (props.stage === 'noUnits') {
     return {

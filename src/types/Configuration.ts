@@ -1,3 +1,4 @@
+/** 应用配置与评语打印相关的类型定义 */
 import { PagesEnum } from '@/types/Common'
 
 /** 预览缩放模式，支持自适应和固定比例 */
@@ -69,4 +70,10 @@ export interface ConfigurationType {
   scoreImageCompressRatio: number | null
   /** 评语手写字体（null 表示未配置） */
   evaluationHandwriteFont: EvaluationHandwriteFontType | null
+  /** 上次数据备份时间（ISO 格式，null 表示从未备份） */
+  lastBackupAt: string | null
+  /** 成绩满分（用于录入边界校验，默认 100） */
+  scoreFullMark: number
+  /** 左侧导航菜单是否折叠 */
+  menuCollapsed: boolean
 }

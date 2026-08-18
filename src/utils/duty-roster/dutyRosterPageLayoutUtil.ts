@@ -1,3 +1,7 @@
+/**
+ * 值日表页面布局工具
+ * 估算值日表内容在纸张中的可读比例，供预览适配使用
+ */
 import { PagesEnum } from '@/types/Common'
 import { DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
 import { getPageSize } from '@/utils/pageSizeInPixelUtil'
@@ -26,6 +30,12 @@ const BASE_CONTENT_GAP = 20
 
 /**
  * 估算值日表在横向纸张中的可读比例，实际预览仍按 DOM 自然尺寸精确适配。
+ * @param roster - 值日表数据
+ * @param pageType - 纸张类型
+ * @param scaleRatio - 字体缩放比例
+ * @param showTitle - 是否显示标题
+ * @param showNotes - 是否显示备注
+ * @returns 页面布局计算结果
  */
 export function buildDutyRosterPageLayout(
   roster: DutyRosterType,

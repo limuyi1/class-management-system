@@ -3,6 +3,12 @@ import { reactive, watch } from 'vue'
 
 import type { ConflictActionType } from '@/utils/scoreImportUtil'
 
+/**
+ * 同名成绩列冲突处理弹窗。
+ *
+ * 导入时若存在与现有成绩同名的列，弹出本组件让用户对每列选择「覆盖」或「跳过」，
+ * 确认后回传列名到处理方式的映射。
+ */
 interface Props {
   modelValue: boolean
   columns: string[]
@@ -22,6 +28,7 @@ watch(
   () => props.modelValue,
   (visible) => {
     if (!visible) return
+    // 每次打开都清空旧选择，并为每个冲突列重置默认策略「跳过」
     Object.keys(actions).forEach((key) => {
       delete actions[key]
     })
@@ -31,11 +38,17 @@ watch(
   }
 )
 
+/**
+ * 关闭弹窗并通知取消导入
+ */
 const closeDialog = () => {
   emit('update:modelValue', false)
   emit('cancel')
 }
 
+/**
+ * 回传各冲突列选择的处理方式
+ */
 const handleConfirm = () => {
   emit('confirm', { ...actions })
 }
