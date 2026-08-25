@@ -1,8 +1,15 @@
+/**
+ * 测试 scoreNoticeImageUtil 模块。
+ * 覆盖：文件名清洗、Blob 下载与对象 URL 延迟释放、PNG 复制到剪贴板，
+ * 以及借助 mock dom-to-image 与手写字体把 DOM 元素渲染为 PNG Blob。
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+// 提前构造 dom-to-image 与手写字体工具的 mock，供 vi.mock 工厂使用
 const domtoimageMocks = vi.hoisted(() => ({ toSvg: vi.fn() }))
 const handwriteFontMocks = vi.hoisted(() => ({ getEvaluationHandwriteFontDataUrl: vi.fn() }))
 
+// 用 mock 替换 DOM 截图与手写字体加载，避免真实渲染
 vi.mock('dom-to-image', () => ({ default: { toSvg: domtoimageMocks.toSvg } }))
 vi.mock('@/utils/evaluation/evaluationHandwriteFontUtil', () => ({
   getEvaluationHandwriteFontDataUrl: handwriteFontMocks.getEvaluationHandwriteFontDataUrl
@@ -15,6 +22,7 @@ import {
   sanitizeFileName
 } from '@/utils/score-notice/scoreNoticeImageUtil'
 
+// 文件名清洗测试组：替换非法字符并在空白时回退默认名称
 describe('sanitizeFileName', () => {
   it('替换文件名中的非法字符', () => {
     expect(sanitizeFileName('一班/座位表:*?')).toBe('一班_座位表___')
@@ -26,10 +34,12 @@ describe('sanitizeFileName', () => {
   })
 })
 
+// Blob 下载测试组：触发下载并延迟释放对象 URL
 describe('downloadBlob', () => {
   let createObjectURL: ReturnType<typeof vi.fn>
   let revokeObjectURL: ReturnType<typeof vi.fn>
 
+  // 使用假定时器，并桩掉 URL 与 createElement 相关 API 模拟浏览器下载
   beforeEach(() => {
     vi.useFakeTimers()
     createObjectURL = vi.fn(() => 'blob:mock')
@@ -67,6 +77,7 @@ describe('downloadBlob', () => {
   })
 })
 
+// 复制 PNG 到剪贴板测试组：根据剪贴板 API 可用性返回结果
 describe('copyPngBlob', () => {
   afterEach(() => {
     vi.unstubAllGlobals()
@@ -94,7 +105,9 @@ describe('copyPngBlob', () => {
   })
 })
 
+// DOM 元素渲染为 PNG Blob 测试组
 describe('renderScoreNoticeBlob', () => {
+  // 桩掉 canvas 与 Image，模拟 SVG → canvas → PNG 的渲染链路
   beforeEach(() => {
     domtoimageMocks.toSvg.mockResolvedValue('data:image/svg+xml,<svg></svg>')
     handwriteFontMocks.getEvaluationHandwriteFontDataUrl.mockResolvedValue(

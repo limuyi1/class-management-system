@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 关注分组面板 — 以区块标签页展示分组学生，支持查看全部与展开收起 */
 import { computed, reactive, watchEffect } from 'vue'
 
 import OverviewStudentRow from '@/views/overview/components/OverviewStudentRow.vue'
@@ -16,6 +17,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对外事件：展开状态变化、点击学生 */
 const emit = defineEmits<{
   expandChange: [expanded: boolean]
   select: [studentId: string]
@@ -79,6 +81,7 @@ const sortedSections = computed(() => {
   })
 })
 
+/** 当前激活的区块，激活 key 失效时回退到第一个区块 */
 const activeSection = computed<DashboardFocusSectionType | null>(() => {
   if (!sortedSections.value.length) return null
 
@@ -88,11 +91,13 @@ const activeSection = computed<DashboardFocusSectionType | null>(() => {
   )
 })
 
+/** 当前区块可见的学生项，收起时只展示前 N 条 */
 const visibleItems = computed(() => {
   const items = activeSection.value?.items || []
   return state.expanded ? items : items.slice(0, DEFAULT_VISIBLE_COUNT)
 })
 
+/** 学生数超过默认展示数量时显示"查看全部"按钮 */
 const shouldShowToggle = computed(
   () => (activeSection.value?.items.length || 0) > DEFAULT_VISIBLE_COUNT
 )
@@ -139,6 +144,7 @@ watchEffect(() => {
 
 <template>
   <div class="focus-panel" :class="[`is-${group.tone}`, { 'is-expanded': state.expanded }]">
+    <!-- 区块切换标签页 -->
     <div class="focus-section-tabs">
       <button
         v-for="section in sortedSections"
@@ -153,10 +159,12 @@ watchEffect(() => {
       </button>
     </div>
 
+    <!-- 当前区块说明文字 -->
     <div v-if="activeSection" class="focus-section-meta">
       {{ activeSection.description }}
     </div>
 
+    <!-- 学生列表滚动区 -->
     <el-scrollbar class="focus-scrollbar">
       <div class="focus-list">
         <overview-student-row
@@ -170,6 +178,7 @@ watchEffect(() => {
       </div>
     </el-scrollbar>
 
+    <!-- 查看全部 / 收起全部 切换按钮 -->
     <button v-if="shouldShowToggle" class="focus-toggle" type="button" @click="toggleExpanded">
       <span v-if="state.expanded">收起全部</span>
       <span v-else>查看全部（{{ activeSection?.count || 0 }}人）</span>

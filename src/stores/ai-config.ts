@@ -11,6 +11,7 @@ import {
 
 /** AI 配置状态（含运行时可用模型列表） */
 interface AIConfigState extends AIConfigType {
+  /** 运行时可用模型列表 */
   availableModels: string[]
 }
 
@@ -20,11 +21,17 @@ interface AIConfigState extends AIConfigType {
  */
 export const useAIConfigStore = defineStore('aiConfig', {
   state: (): AIConfigState => ({
+    /** AI 提供商类型 */
     modelType: AIModelTypeEnum.OPENAI,
+    /** 当前使用的模型名称 */
     model: AIModelDefaultModels[AIModelTypeEnum.OPENAI],
+    /** API 密钥 */
     apiKey: '',
+    /** API 基础地址 */
     baseUrl: AIModelDefaultBaseUrls[AIModelTypeEnum.OPENAI],
+    /** Prompt 模板配置 */
     prompts: { ...DefaultAIPrompts },
+    /** 运行时可用模型列表 */
     availableModels: []
   }),
   getters: {

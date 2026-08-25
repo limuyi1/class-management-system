@@ -7,6 +7,13 @@ import EvaluationCard from '../../../src/views/evaluation/components/EvaluationC
 import { useConfigurationStore } from '../../../src/stores/configuration'
 import { NAME_PROP } from '../../../src/constants'
 
+/**
+ * EvaluationCard 组件测试
+ * 测试目标：评语卡片的自适应字号预览
+ * 覆盖功能：评语轻微溢出时缩小字号、缩到最小字号仍溢出时启用省略号与悬浮提示
+ */
+
+// 模拟 canvas 2D 上下文：仅实现字体属性与文字宽度测量，宽度按“字数 × 字号”估算
 const createCanvasContextMock = () => {
   let currentFontSize = 16
 
@@ -23,6 +30,7 @@ const createCanvasContextMock = () => {
   }
 }
 
+// ElCard 替身：仅渲染默认插槽，去除卡片自身的布局影响
 const ElCardStub = defineComponent({
   name: 'ElCard',
   setup(_, { slots }) {
@@ -30,6 +38,7 @@ const ElCardStub = defineComponent({
   }
 })
 
+// ElTooltip 替身：将 content 与 disabled 暴露为 DOM 属性，便于断言悬浮提示的显隐
 const ElTooltipStub = defineComponent({
   name: 'ElTooltip',
   props: {
@@ -56,6 +65,7 @@ const ElTooltipStub = defineComponent({
   }
 })
 
+// 统一挂载卡片：固定字号配置与页面尺寸，传入待展示的评语文本
 const mountCard = (comment: string) => {
   const configuration = useConfigurationStore()
   configuration.textFontSize = 18
@@ -88,11 +98,13 @@ const mountCard = (comment: string) => {
   })
 }
 
+// 验证评语卡片在溢出场景下的字号自适应与提示行为
 describe('EvaluationCard adaptive comment preview', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     const originalCreateElement = document.createElement.bind(document)
 
+    // 拦截 document.createElement，为 canvas 元素注入模拟的 getContext 上下文
     vi.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
       const element = originalCreateElement(tagName, options)
 
@@ -106,6 +118,7 @@ describe('EvaluationCard adaptive comment preview', () => {
     })
   })
 
+  // 用例结束后恢复被 mock 的 document.createElement
   afterEach(() => {
     vi.restoreAllMocks()
   })

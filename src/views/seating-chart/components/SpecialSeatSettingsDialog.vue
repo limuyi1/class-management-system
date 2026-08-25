@@ -4,11 +4,15 @@ import { SeatingSpecialSeatPositionEnum, type SeatingSpecialSeatType } from '@/t
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
 defineProps<{
+  /** 弹窗显隐状态（v-model 双向绑定） */
   modelValue: boolean
+  /** 讲台两侧雅座列表 */
   seats: SeatingSpecialSeatType[]
+  /** 学生 ID 到姓名的映射 */
   studentNames: Record<string, string>
 }>()
 
+/** 事件：更新显隐 / 切换雅座开关 */
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   toggle: [position: SeatingSpecialSeatPositionEnum, enabled: boolean]
@@ -37,6 +41,7 @@ function labelOf(position: SeatingSpecialSeatPositionEnum): string {
         description="讲台两侧特别关注座位，仅参与手动安排"
         tone="gold"
     /></template>
+    <!-- 左右雅座的开关列表 -->
     <div class="special-seat-settings">
       <div v-for="seat in seats" :key="seat.position" class="special-seat-setting">
         <div>

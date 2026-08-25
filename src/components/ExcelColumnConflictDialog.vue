@@ -10,20 +10,27 @@ import type { ConflictActionType } from '@/utils/scoreImportUtil'
  * 确认后回传列名到处理方式的映射。
  */
 interface Props {
+  /** 弹窗是否可见 */
   modelValue: boolean
+  /** 冲突的成绩列名列表 */
   columns: string[]
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 弹窗可见状态变化 */
   'update:modelValue': [value: boolean]
+  /** 确认处理，回传列名到处理方式的映射 */
   confirm: [value: Record<string, ConflictActionType>]
+  /** 取消导入 */
   cancel: []
 }>()
 
+/** 各冲突列选择的处理方式（覆盖 / 跳过） */
 const actions = reactive<Record<string, ConflictActionType>>({})
 
+// 弹窗打开时重置每列的默认选择策略
 watch(
   () => props.modelValue,
   (visible) => {
@@ -65,6 +72,7 @@ const handleConfirm = () => {
     <div class="conflict-dialog">
       <div class="conflict-dialog__tip">以下成绩列已存在，请选择覆盖已有成绩或跳过该列。</div>
 
+      <!-- 冲突列逐项选择处理方式 -->
       <div class="conflict-list">
         <div v-for="column in columns" :key="column" class="conflict-item">
           <div class="conflict-item__name">{{ column }}</div>

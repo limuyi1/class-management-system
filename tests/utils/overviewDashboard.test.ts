@@ -1,8 +1,15 @@
+/**
+ * overview dashboard 测试
+ * 覆盖总览看板数据构建（buildDashboardData）：单元统计概览、焦点分组、
+ * 关键学生推荐、趋势摘要、同名学生区分与难度调整后的标签归类等场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import { overviewDashboardConfig } from '../../src/views/overview/constants/dashboard'
 import { buildDashboardData as buildDashboardDataById } from '../../src/views/overview/services/dashboard'
 
+// 包装构建函数：按姓名生成 studentId，并将选中姓名转换为选中 ID，简化用例构造
 const buildDashboardData = (options: {
   students: Array<Record<string, unknown> & { name: string }>
   unitHeaders: Array<{ prop: string; label: string; disabled: boolean }>
@@ -21,7 +28,9 @@ const buildDashboardData = (options: {
   })
 }
 
+// 总览看板数据构建：验证统计概览、焦点分组、关键学生推荐与趋势摘要等场景
 describe('overview dashboard builder', () => {
+  // 三个单元的表头配置，供各用例复用
   const unitHeaders = [
     { prop: 'unit1', label: '第一单元', disabled: false },
     { prop: 'unit2', label: '第二单元', disabled: false },

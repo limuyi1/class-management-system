@@ -18,6 +18,7 @@ defineProps<Props>()
 
 <template>
   <div class="page-header">
+    <!-- 左侧：图标、标题与副标题（可经 left 插槽扩展） -->
     <div class="header-left">
       <slot name="left"></slot>
       <div class="header-icon">
@@ -28,6 +29,7 @@ defineProps<Props>()
         <p v-if="subtitle">{{ subtitle }}</p>
       </div>
     </div>
+    <!-- 右侧：操作按钮插槽 -->
     <div class="header-right">
       <slot name="right"></slot>
     </div>

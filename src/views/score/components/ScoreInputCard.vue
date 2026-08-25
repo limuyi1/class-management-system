@@ -14,27 +14,32 @@ import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 import type { RecentScoreEntryType } from '@/types/Configuration'
 
+// 搜索建议项：姓名、学生 ID 与在列表中的序号
 interface SuggestionItemType {
   value: string
   studentId: string
   index: number
 }
 
+/** 组件事件：定位学生、触发 AI 识图、清除选中状态 */
 const emit = defineEmits<{
   scroll: [studentId: string]
   uploadImage: []
   clearSelection: []
 }>()
 
+// 学生数据与应用配置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const { students: originList } = storeToRefs(store)
 
+// 搜索关键词、当前选中学生、待保存分数与最近录入记录
 const searchKeyword = ref('')
 const selectedStudentId = ref<string | null>(null)
 const scoreValue = ref<number | null>(null)
 const recentEntries = ref<RecentScoreEntryType[]>([])
 
+// 搜索框与分数框实例引用，用于手动聚焦/失焦
 const searchInputRef = ref<{ focus: () => void } | null>(null)
 const scoreInputRef = ref<{ focus: () => void; blur?: () => void } | null>(null)
 
@@ -269,6 +274,7 @@ const autoFocus = () => {
   focusSearchInput()
 }
 
+/** 外部编辑指定学生：选中并回填其数据 */
 const editData = (data: StudentDataType) => {
   selectStudentById(data.studentId)
 }
@@ -299,6 +305,7 @@ watch(searchKeyword, (value) => {
   clearSelectedStudent()
 })
 
+/** 切换录入科目时同步该科目的最近录入记录 */
 watch(
   () => configuration.inputScoreTab,
   () => {
@@ -315,6 +322,7 @@ defineExpose({
 
 <template>
   <div class="score-input-card">
+    <!-- 录入方式切换：手动录入 / AI 识图导入 -->
     <div class="mode-switch">
       <div class="manual-entry">
         <font-awesome-icon :icon="['solid', 'keyboard']" />
@@ -326,6 +334,7 @@ defineExpose({
       </el-button>
     </div>
 
+    <!-- 姓名/拼音搜索定位区 -->
     <div class="search-section">
       <el-autocomplete
         ref="searchInputRef"
@@ -340,6 +349,7 @@ defineExpose({
       />
     </div>
 
+    <!-- 分数录入与保存区 -->
     <div class="score-section">
       <el-input-number
         ref="scoreInputRef"
@@ -360,6 +370,7 @@ defineExpose({
       <div class="shortcut-hint">姓名回车 -> 分数框 | 分数回车 -> 保存并回到姓名框</div>
     </div>
 
+    <!-- 最近录入记录回填区 -->
     <div class="recent-section">
       <div class="recent-title">最近录入（{{ recentEntries.length }}）</div>
       <div v-if="recentEntries.length" class="recent-list">

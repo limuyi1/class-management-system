@@ -35,14 +35,19 @@ interface UsePaperLayoutDraftOptions {
  * @returns 草稿状态与保存/打开方法
  */
 export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
+  /** 草稿数量，用于控制“打开草稿”按钮的显示 */
   const draftCount = ref(0)
+  /** 当前草稿 ID；再次保存时更新同一草稿 */
   const currentDraftId = ref('')
+  /** 当前草稿名称，作为下次保存的默认名称 */
   const currentDraftName = ref('')
 
+  /** 刷新草稿数量 */
   async function refreshDraftCount(): Promise<void> {
     draftCount.value = (await getPaperLayoutDrafts()).length
   }
 
+  /** 重置当前草稿标识（新建排版时调用） */
   function resetCurrentDraft(): void {
     currentDraftId.value = ''
     currentDraftName.value = ''
@@ -96,6 +101,12 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
     }
   }
 
+  /**
+   * 打开草稿：恢复排版设置并重建画布条目。
+   * 条目按保存时的 order 排序，dataUrl 通过 blob 重新生成。
+   *
+   * @param draft 草稿记录
+   */
   async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void> {
     Object.assign(options.settings, normalizePaperLayoutSettings(draft.settings))
 

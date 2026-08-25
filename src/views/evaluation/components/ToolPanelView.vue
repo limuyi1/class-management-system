@@ -25,6 +25,7 @@ const emit = defineEmits<{
   'active-student-change': [student: StudentDataType | null]
 }>()
 
+/** 评语录入卡片的组件引用 */
 const evaluationInputCardRef = ref<InstanceType<typeof EvaluationInputCard>>()
 
 /** 聚焦到评语输入区域 */

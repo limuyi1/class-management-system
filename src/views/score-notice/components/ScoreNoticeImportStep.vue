@@ -48,6 +48,7 @@ const hasImportedData = computed(() => store.students.length > 0)
       />
     </button>
 
+    <!-- 步骤内容：未导入时显示导入入口卡片，已导入时显示文件摘要 -->
     <div v-show="expanded" class="notice-step__body">
       <button
         v-if="!hasImportedData"

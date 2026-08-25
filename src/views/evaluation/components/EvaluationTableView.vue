@@ -39,13 +39,19 @@ const handleCardClick = (row: StudentDataType) => {
 
 const store = useDataSourceStore()
 const { enabledData } = storeToRefs(store)
+/** 表格数据：优先使用传入的学生列表，否则回退为系统启用学生 */
 const tableData = computed(() => props.students ?? enabledData.value)
 
 const configurationStore = useConfigurationStore()
+/** 滚动容器组件引用 */
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
+/** 预览舞台容器引用 */
 const stageRef = ref<HTMLDivElement | null>(null)
+/** 按页分组后的学生数据 */
 const dataSource = ref<StudentDataType[][]>([])
+/** 当前预览缩放比例 */
 const previewScale = ref(1)
+/** 页面与单元格尺寸等布局信息（像素） */
 const pageInfo = reactive({
   pageWidth: 0,
   pageHeight: 0,
@@ -106,10 +112,14 @@ const init = () => {
   updatePreviewScale()
 }
 
+/** 缩放后的页面宽度 */
 const scaledPageWidth = computed(() => pageInfo.pageWidth * previewScale.value)
+/** 缩放后的页面高度 */
 const scaledPageHeight = computed(() => pageInfo.pageHeight * previewScale.value)
+/** 缩放后的单页占位高度（含页间距） */
 const scaledPageOuterHeight = computed(() => (pageInfo.pageHeight + 24) * previewScale.value)
 
+/** 容器尺寸监听器，用于在尺寸变化时重新计算缩放比例 */
 let resizeObserver: ResizeObserver | null = null
 
 // “适应宽度”模式只按容器宽度缩放预览，不改内部原始布局尺寸。

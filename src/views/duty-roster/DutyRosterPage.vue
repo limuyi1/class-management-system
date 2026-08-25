@@ -47,6 +47,7 @@ const dataSourceStore = useDataSourceStore()
 const dutyStore = useDutyRosterStore()
 const { activeStudents, assignedCount, editingRoster, unassignedStudents } = storeToRefs(dutyStore)
 
+// 页面 UI 状态：矩阵引用、全屏、拖拽、弹窗与右键菜单等
 const matrixRef = shallowRef<InstanceType<typeof DutyScheduleMatrix> | null>(null)
 const fullscreen = shallowRef(false)
 const draggedStudentId = shallowRef<string | null>(null)
@@ -58,6 +59,7 @@ const notesVisible = shallowRef(false)
 const notesDraft = shallowRef('')
 const positionMenu = shallowRef<PositionMenuType | null>(null)
 const studentMenu = shallowRef<StudentMenuType | null>(null)
+// 新建值日表的默认安排方式与名单来源
 const initialMode = shallowRef(DutyRosterModeEnum.Daily)
 const initialSource = shallowRef<StudentSourceType>(
   dataSourceStore.enabledData.length ? 'system' : 'excel'
@@ -421,6 +423,7 @@ function saveNotes(): void {
         'is-collapsed': dutyStore.isSidebarCollapsed
       }"
     >
+      <!-- 侧边栏：值日表方案列表 -->
       <DutyRosterSidebar
         :rosters="dutyStore.rosters"
         :editing-roster-id="dutyStore.editingRosterId"
@@ -433,6 +436,7 @@ function saveNotes(): void {
         @toggle-collapse="dutyStore.setSidebarCollapsed(!dutyStore.isSidebarCollapsed)"
       />
 
+      <!-- 主编辑区：工具栏、排班矩阵与备注 -->
       <main class="duty-editor">
         <template v-if="editingRoster">
           <DutyRosterToolbar
@@ -465,6 +469,7 @@ function saveNotes(): void {
           </div>
         </template>
 
+        <!-- 空状态：选择安排方式与名单来源创建值日表 -->
         <template v-else>
           <div class="duty-empty-source">
             <StudentSourceSelector
@@ -486,6 +491,7 @@ function saveNotes(): void {
         </template>
       </main>
 
+      <!-- 未安排学生面板：拖拽学生到值日岗位 -->
       <UnassignedStudentPanel
         v-if="editingRoster"
         :students="unassignedStudents"
@@ -510,6 +516,7 @@ function saveNotes(): void {
       </UnassignedStudentPanel>
     </div>
 
+    <!-- 岗位/学生右键菜单与区域、导入、导出、备注弹窗 -->
     <DutyPositionContextMenu
       v-if="positionMenu"
       :x="positionMenu.x"

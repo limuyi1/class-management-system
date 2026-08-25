@@ -3,6 +3,11 @@ import { mount } from '@vue/test-utils'
 
 import CommentSourceBar from '../../src/views/evaluation/components/CommentSourceBar.vue'
 
+/**
+ * CommentSourceBar 组件测试
+ * 测试目标：评语来源切换栏（系统学生 / Excel 两种来源合并为一个触发入口）
+ * 覆盖功能：来源信息展示、Excel 来源状态、空系统来源时禁止切换
+ */
 describe('CommentSourceBar', () => {
   it('condenses source selection into one trigger', async () => {
     const wrapper = mount(CommentSourceBar, {
@@ -13,6 +18,7 @@ describe('CommentSourceBar', () => {
       global: {
         stubs: {
           FontAwesomeIcon: true,
+          // 替身 ElDropdown：同时渲染默认插槽与 dropdown 插槽，便于断言菜单内容
           ElDropdown: {
             template: '<div><slot /><slot name="dropdown" /></div>'
           },
@@ -25,6 +31,7 @@ describe('CommentSourceBar', () => {
     expect(wrapper.get('.source-trigger').text()).toContain('系统学生')
     expect(wrapper.get('.source-trigger').text()).toContain('30 人')
     expect(wrapper.findAll('.source-trigger')).toHaveLength(1)
+    // 直接调用组件实例方法模拟选择 Excel 来源，验证对外触发的 change 事件
     ;(
       wrapper.vm as unknown as { handleSourceCommand: (command: string) => void }
     ).handleSourceCommand('excel')
@@ -42,6 +49,7 @@ describe('CommentSourceBar', () => {
       global: {
         stubs: {
           FontAwesomeIcon: true,
+          // 替身 ElDropdown：同时渲染默认插槽与 dropdown 插槽，便于断言菜单内容
           ElDropdown: {
             template: '<div><slot /><slot name="dropdown" /></div>'
           },
@@ -55,6 +63,7 @@ describe('CommentSourceBar', () => {
     expect(wrapper.get('.source-trigger').text()).toContain('42 人')
     expect(wrapper.text()).not.toContain('不写入系统')
     expect(wrapper.find('.replace-file').exists()).toBe(false)
+    // 模拟再次点击上传入口，验证对外触发的 upload 事件
     ;(
       wrapper.vm as unknown as { handleSourceCommand: (command: string) => void }
     ).handleSourceCommand('upload')
@@ -72,6 +81,7 @@ describe('CommentSourceBar', () => {
       global: {
         stubs: {
           FontAwesomeIcon: true,
+          // 替身 ElDropdown：同时渲染默认插槽与 dropdown 插槽，便于断言菜单内容
           ElDropdown: {
             template: '<div><slot /><slot name="dropdown" /></div>'
           },
@@ -81,6 +91,7 @@ describe('CommentSourceBar', () => {
       }
     })
 
+    // 系统学生数为 0 时尝试切回系统来源，应被拦截且不触发 change 事件
     ;(
       wrapper.vm as unknown as { handleSourceCommand: (command: string) => void }
     ).handleSourceCommand('system')

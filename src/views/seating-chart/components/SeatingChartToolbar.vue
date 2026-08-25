@@ -1,12 +1,18 @@
 <script setup lang="ts">
 /** 座位表工具栏 — 展示已安排状态并编排布局、随机排座与导出等操作 */
+/** 座位表工具栏 props：图表名称、安排统计与全屏状态 */
 interface SeatingChartToolbarPropsType {
+  /** 座位表名称 */
   chartName: string
+  /** 已安排学生数 */
   assignedCount: number
+  /** 座位总容量 */
   seatCapacity: number
+  /** 是否全屏显示 */
   fullscreen: boolean
 }
 
+/** 布局下拉菜单的命令类型 */
 type LayoutCommandType = 'layout' | 'aisles' | 'special-seats'
 
 defineProps<SeatingChartToolbarPropsType>()
@@ -34,11 +40,13 @@ function handleLayoutCommand(command: LayoutCommandType): void {
 
 <template>
   <div class="seating-toolbar">
+    <!-- 左侧：座位表名称与安排进度 -->
     <div class="seating-toolbar__summary">
       <strong class="seating-toolbar__title">{{ chartName }}</strong>
       <span class="seating-toolbar__status">已安排 {{ assignedCount }} / {{ seatCapacity }}</span>
     </div>
 
+    <!-- 右侧：布局、随机排座、导出与全屏操作 -->
     <div class="seating-toolbar__actions">
       <el-dropdown trigger="click" @command="handleLayoutCommand">
         <el-button size="small">

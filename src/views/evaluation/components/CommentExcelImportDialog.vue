@@ -14,8 +14,10 @@ import { buildExcelCommentWorkspace } from '@/utils/evaluation/commentWorkspaceE
 import type { UploadFile } from 'element-plus'
 import type { ExcelCommentImportSelectionType } from '@/types/CommentWorkspace'
 
+/** 弹窗显隐状态（双向绑定） */
 const visible = defineModel<boolean>({ required: true })
 
+/** 确认导入事件：向上传递列映射与构建好的临时工作区数据 */
 const emit = defineEmits<{
   confirm: [value: ExcelCommentImportSelectionType & ReturnType<typeof buildExcelCommentWorkspace>]
 }>()
@@ -23,8 +25,11 @@ const emit = defineEmits<{
 // 公共层维护文件与表头预览；本弹窗只维护评语业务需要的姓名、评语和标签列。
 const { fileName, headerRowIndex, loading, parsedData, preview, sourceFile, parseFile, reset } =
   useExcelPreviewImport({ errorLogLabel: '读取临时评语 Excel' })
+/** 姓名列映射（必选） */
 const nameColumn = shallowRef('')
+/** 评语列映射（可选） */
 const commentColumn = shallowRef('')
+/** 标签列映射（可选） */
 const tagColumn = shallowRef('')
 
 /** 可选评语列：排除已选的姓名列与标签列，避免同一列被重复映射 */

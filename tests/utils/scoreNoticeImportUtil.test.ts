@@ -1,8 +1,13 @@
+/**
+ * 测试 scoreNoticeImportUtil 模块。
+ * 覆盖：等第/分数两种来源模式的导入构建、原始行顺序保持、重名跳过与非法值统计。
+ */
 import { describe, expect, it } from 'vitest'
 
 import { ScoreNoticeCommentStatusEnum, ScoreNoticeModeEnum } from '../../src/types/ScoreNotice'
 import { buildScoreNoticeImport } from '../../src/utils/score-notice/scoreNoticeImportUtil'
 
+// 成绩通知导入工具函数测试组
 describe('scoreNoticeImportUtil', () => {
   it('imports existing grades without conversion', () => {
     const result = buildScoreNoticeImport({

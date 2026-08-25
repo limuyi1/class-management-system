@@ -31,15 +31,22 @@ import type {
 } from '@/types/NameListCompare'
 
 const router = useRouter()
+/** 隐藏的文件选择输入框，由上传按钮间接触发 */
 const fileInputRef = ref<HTMLInputElement | null>(null)
+/** 粘贴导入弹窗的显示与文本内容 */
 const pasteDialogVisible = ref(false)
 const pasteText = ref('')
+/** 姓名列确认弹窗的显示状态与待处理来源槽位 */
 const columnSelectorVisible = ref(false)
 const pendingImportKey = ref<NameListCompareSourceKeyType>('comparison')
+/** 核对模式与外部模式下的基准槽位 */
 const mode = ref<NameListCompareModeType>('system')
 const baselineKey = ref<'sourceA' | 'sourceB'>('sourceA')
+/** 是否只展示差异行 */
 const onlyDifference = ref(false)
+/** 各来源槽位的导入数据 */
 const importedSources = ref<Partial<Record<NameListCompareSourceKeyType, NameListCompareImportedSourceType>>>({})
+/** 姓名列确认弹窗的表头、行数据与建议姓名列 */
 const columnSelectorHeaders = ref<string[]>([])
 const columnSelectorRows = ref<NameListCompareRowType[]>([])
 const suggestedNameColumn = ref('')
@@ -84,11 +91,13 @@ const activeSourceMap = computed(() => {
   }
 })
 
+/** 基准来源的展示标签 */
 const baselineDisplayLabel = computed(() => {
   if (mode.value === 'system') return '基准名单（系统）'
   return `基准名单（${activeSourceMap.value.baseline?.label || '未选择'}）`
 })
 
+/** 对照来源的展示标签 */
 const comparisonDisplayLabel = computed(() => {
   if (mode.value === 'system') {
     return `对照名单（${activeSourceMap.value.comparison?.label || '未导入'}）`
@@ -117,11 +126,13 @@ function backToTools(): void {
   router.push('/tools')
 }
 
+/** 切换核对模式并重置差异过滤 */
 function switchMode(value: NameListCompareModeType): void {
   mode.value = value
   onlyDifference.value = false
 }
 
+/** 打开姓名列确认弹窗，预填对应来源的表头、行数据与建议姓名列 */
 function openNameColumnDialog(key: NameListCompareSourceKeyType): void {
   pendingImportKey.value = key
   columnSelectorHeaders.value = importedSources.value[key]?.headers || []
@@ -130,11 +141,13 @@ function openNameColumnDialog(key: NameListCompareSourceKeyType): void {
   columnSelectorVisible.value = true
 }
 
+/** 为指定来源槽位触发文件选择 */
 function openUploadFor(key: NameListCompareSourceKeyType): void {
   pendingImportKey.value = key
   fileInputRef.value?.click()
 }
 
+/** 打开粘贴导入弹窗 */
 function openPasteDialog(key: NameListCompareSourceKeyType): void {
   pendingImportKey.value = key
   pasteText.value = ''
@@ -203,10 +216,12 @@ function confirmPasteImport(): void {
   openNameColumnDialog(pendingImportKey.value)
 }
 
+/** 清空指定来源槽位的导入数据 */
 function clearSource(key: NameListCompareSourceKeyType): void {
   delete importedSources.value[key]
 }
 
+/** 清空当前模式下的全部导入数据 */
 function clearCurrentImports(): void {
   if (mode.value === 'system') {
     clearSource('comparison')
@@ -217,12 +232,14 @@ function clearCurrentImports(): void {
   clearSource('sourceB')
 }
 
+/** 更新指定来源的姓名列 */
 function updateNameColumn(key: NameListCompareSourceKeyType, column: string): void {
   const source = importedSources.value[key]
   if (!source) return
   source.nameColumn = column
 }
 
+/** 确认姓名列后写入对应来源并关闭弹窗 */
 function handleNameColumnConfirm(payload: { nameColumn?: string }): void {
   const source = importedSources.value[pendingImportKey.value]
   if (!source || !payload.nameColumn) {
@@ -322,6 +339,7 @@ function formatTimestamp(): string {
     />
 
     <div class="source-card">
+      <!-- 模式切换与导入/清空操作 -->
       <div class="source-card__topbar">
         <el-radio-group :model-value="mode" size="default" @update:model-value="switchMode">
           <el-radio-button value="system">与系统名单核对</el-radio-button>
@@ -347,6 +365,7 @@ function formatTimestamp(): string {
         </div>
       </div>
 
+      <!-- 外部核对模式下的基准表选择 -->
       <div v-if="mode === 'external'" class="baseline-choice">
         <span class="baseline-choice__label">基准表</span>
         <el-radio-group v-model="baselineKey" size="small">
@@ -355,6 +374,7 @@ function formatTimestamp(): string {
         </el-radio-group>
       </div>
 
+      <!-- 来源概览：基准与对照的标签、行数与姓名列选择 -->
       <div class="source-overview">
         <div class="source-inline-info">
           <div class="source-inline-info__group">
@@ -442,6 +462,7 @@ function formatTimestamp(): string {
       </div>
     </div>
 
+    <!-- 对比结果卡片：汇总胶囊、差异导航与对照表格 -->
     <name-list-compare-result-card
       :baseline-label="baselineDisplayLabel"
       :comparison-label="comparisonDisplayLabel"
@@ -452,6 +473,7 @@ function formatTimestamp(): string {
       @action="handleResultAction"
     />
 
+    <!-- 粘贴导入弹窗 -->
     <el-dialog v-model="pasteDialogVisible" title="粘贴名单或表格" width="760px">
       <div class="paste-dialog">
         <div class="paste-dialog__hint">
@@ -472,6 +494,7 @@ function formatTimestamp(): string {
       </template>
     </el-dialog>
 
+    <!-- 姓名列确认弹窗 -->
     <ExcelColumnSelector
       v-model="columnSelectorVisible"
       mode="name-only"

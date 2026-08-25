@@ -66,6 +66,7 @@ const pendingGenerateCount = computed(
     ).length
 )
 
+/** 评语状态对应的标签文案与样式类型 */
 const statusConfig = {
   [ScoreNoticeCommentStatusEnum.Pending]: { label: '待生成', type: 'warning' },
   [ScoreNoticeCommentStatusEnum.Generating]: { label: '生成中', type: 'primary' },
@@ -245,6 +246,7 @@ watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: tru
     </button>
 
     <div v-show="expanded && !disabled" class="notice-step__body">
+      <!-- 按评语状态筛选学生 -->
       <div class="notice-comments__filters" aria-label="按评语状态筛选学生">
         <button
           v-for="filter in filters"
@@ -258,6 +260,7 @@ watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: tru
         </button>
       </div>
 
+      <!-- 搜索学生与更多批量操作 -->
       <div class="notice-comments__toolbar">
         <el-input v-model="searchKeyword" clearable placeholder="搜索学生姓名">
           <template #prefix><font-awesome-icon :icon="['solid', 'magnifying-glass']" /></template>
@@ -297,6 +300,7 @@ watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: tru
         :status="progressPercentage === 100 ? 'success' : undefined"
       />
 
+      <!-- 学生状态列表，点击行切换选中学生 -->
       <el-table
         class="notice-comments__student-table"
         :data="filteredStudents"
@@ -334,6 +338,7 @@ watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: tru
         </el-table-column>
       </el-table>
 
+      <!-- 选中学生的评语编辑区 -->
       <div v-if="selectedStudent" class="notice-comments__editor">
         <div class="notice-comments__editor-head">
           <div>

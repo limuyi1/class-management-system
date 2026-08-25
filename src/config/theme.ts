@@ -3,20 +3,35 @@ export type ThemeName = 'green' | 'orange' | 'purple' | 'bluepink'
 
 /** 主题配置项 */
 export interface ThemeConfig {
+  /** 主题标识名 */
   name: ThemeName
+  /** 主题中文显示名 */
   label: string
+  /** 主题渐变背景样式 */
   gradient: string
+  /** 主题主色 */
   primary: string
+  /** 主题浅色（辅助色） */
   primaryLight: string
+  /** 页脚背景色 */
   footerBg: string
+  /** 菜单选中项文字颜色 */
   menuActive: string
+  /** 菜单选中项背景色 */
   menuActiveBg: string
+  /** 空状态背景样式 */
   emptyBg: string
+  /** 空状态图标颜色 */
   emptyIcon: string
+  /** 按钮悬浮背景色 */
   buttonHoverBg: string
+  /** 按钮悬浮边框色 */
   buttonHoverBorder: string
+  /** 按钮按下背景色 */
   buttonActiveBg: string
+  /** 按钮按下边框色 */
   buttonActiveBorder: string
+  /** 标签配色列表 */
   tagColors: string[]
 }
 

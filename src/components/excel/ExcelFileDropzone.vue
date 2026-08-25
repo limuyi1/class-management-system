@@ -8,13 +8,16 @@ import type { UploadFile, UploadFiles } from 'element-plus'
  * 调用方应把 change 事件交给 useExcelPreviewImport，再处理各自的字段映射。
  */
 interface Props {
+  /** 已选择文件名 */
   fileName?: string
+  /** 拖拽区说明文案 */
   description?: string
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 文件选择变化 */
   change: [file: UploadFile]
 }>()
 
@@ -30,6 +33,7 @@ const handleChange = (file: UploadFile, files: UploadFiles): void => {
 </script>
 
 <template>
+  <!-- Excel 文件拖拽/选择区域 -->
   <el-upload
     class="excel-file-dropzone"
     drag

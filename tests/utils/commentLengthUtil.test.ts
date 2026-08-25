@@ -1,3 +1,9 @@
+/**
+ * commentLengthUtil 测试
+ * 覆盖评语字数统计（countCommentLength）与长度校验提示（getCommentLengthError），
+ * 包括空白字符处理、最小/最大字数边界与末尾空白等场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -8,6 +14,7 @@ import {
 } from '@/utils/evaluation/commentLengthUtil'
 
 describe('commentLengthUtil', () => {
+  // 字数统计：验证空值返回 0，以及统计时忽略所有空白字符
   describe('countCommentLength', () => {
     it('空值返回 0', () => {
       expect(countCommentLength(null)).toBe(0)
@@ -21,6 +28,7 @@ describe('commentLengthUtil', () => {
     })
   })
 
+  // 长度校验：验证空评语不报错、字数不足/超限报错与末尾空白不计入
   describe('getCommentLengthError', () => {
     it('空评语不报错', () => {
       expect(getCommentLengthError('')).toBe('')

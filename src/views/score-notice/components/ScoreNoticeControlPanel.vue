@@ -24,6 +24,7 @@ interface Props {
   exportProcessed: number
 }
 
+/** 制作流程步骤编号：1 导入、2 设置、3 评语 */
 type StepType = 1 | 2 | 3
 type BatchGenerateModeType = 'skip' | 'overwrite'
 
@@ -92,6 +93,7 @@ watch(
 
     <el-scrollbar class="notice-panel__scrollbar">
       <div class="notice-panel__scroll-content">
+        <!-- 三大制作步骤：导入成绩、通知设置、生成并检查评语 -->
         <score-notice-import-step
           :expanded="isStepExpanded(1)"
           @toggle="toggleStep(1)"
@@ -128,6 +130,7 @@ watch(
       </div>
     </el-scrollbar>
 
+    <!-- 底部导出栏：复制当前图片 / 导出全部 ZIP -->
     <score-notice-export-bar
       :exporting="exporting"
       :export-processed="exportProcessed"

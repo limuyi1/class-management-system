@@ -1,9 +1,14 @@
+/**
+ * 学生数据工具
+ * 提供学生 ID 创建、旧数据校验与迁移、学生查找和标签提取等功能
+ */
 import type { TagCategoryType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 import type { RecentScoreEntryType } from '@/types/Configuration'
 
 /**
  * 创建系统内部使用的学生唯一标识。
+ * @returns 生成的 UUID 字符串
  */
 export function createStudentId(): string {
   return crypto.randomUUID()
@@ -12,6 +17,8 @@ export function createStudentId(): string {
 /**
  * 校验完整学生名单是否都具有非空且不重复的 studentId。
  * 旧数据只要存在一条无效记录，整份名单就视为不可用。
+ * @param students - 待校验的学生数据
+ * @returns 是否为合法的学生数据数组（类型守卫）
  */
 export function hasValidStudentIds(students: unknown): students is StudentDataType[] {
   if (!Array.isArray(students)) return false
@@ -32,6 +39,8 @@ export function hasValidStudentIds(students: unknown): students is StudentDataTy
 
 /**
  * IndexedDB 中的旧名单不做隐式迁移；缺失或重复 studentId 时按无数据处理。
+ * @param students - 待规范化的学生数据
+ * @returns 校验通过的学生数组，否则返回空数组
  */
 export function normalizeStoredStudents(students: unknown): StudentDataType[] {
   return hasValidStudentIds(students) ? students : []
@@ -39,6 +48,8 @@ export function normalizeStoredStudents(students: unknown): StudentDataType[] {
 
 /**
  * 旧版最近成绩记录使用学生数组下标；新版只保留已经迁移为 studentId 的记录。
+ * @param value - 待规范化的最近成绩记录
+ * @returns 按成绩列 prop 分组、仅含合法 studentId 的记录映射
  */
 export function normalizeRecentScoreEntries(
   value: unknown

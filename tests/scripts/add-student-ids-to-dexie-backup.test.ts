@@ -1,7 +1,14 @@
+/**
+ * add-student-ids-to-dexie-backup 迁移脚本测试
+ * 覆盖：为缺少 studentId 的学生补充 ID 并保留已有 ID、
+ * 同步更新 app_preferences 中成绩记录引用的 studentId、重复 ID 时抛错。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import { addStudentIds } from '../../scripts/add-student-ids-to-dexie-backup.mjs'
 
+// 构造最小化的 Dexie 导出备份结构，便于针对 student_dataset 与 app_preferences 写入测试数据
 const createBackup = (students: Array<Record<string, unknown>>) => ({
   formatName: 'dexie',
   formatVersion: 1,
@@ -37,6 +44,7 @@ const createBackup = (students: Array<Record<string, unknown>>) => ({
   }
 })
 
+// 目标：验证迁移脚本补全 ID、保留已有 ID 以及对重复 ID 的校验行为
 describe('add-student-ids-to-dexie-backup', () => {
   it('adds missing IDs and preserves existing IDs', () => {
     const backup = createBackup([

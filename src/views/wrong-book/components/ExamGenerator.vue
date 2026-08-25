@@ -18,12 +18,14 @@ import { exportPDF } from '@/utils/pdfUtil'
 import { renderKatex } from '@/utils/katexUtil'
 import type { WrongQuestion } from '@/types/WrongBook'
 
+/** 弹窗可见性、已选题目 id 与可选题目列表 */
 interface Props {
   visible: boolean
   questionIds: string[]
   allQuestions?: WrongQuestion[]
 }
 
+/** 可见性更新事件 */
 interface Emits {
   (e: 'update:visible', value: boolean): void
 }
@@ -36,6 +38,7 @@ const { favoriteQuestions } = storeToRefs(wrongBookStore)
 
 /** 已选题目 id 列表 */
 const selectedQuestions = ref<string[]>([])
+/** 试卷标题、班级、是否包含答案与纸张尺寸 */
 const examTitle = ref('错题练习')
 const className = ref('')
 const includeAnswer = ref(true)
@@ -70,6 +73,7 @@ const selectedQuestionList = computed(() => {
     .filter((q): q is WrongQuestion => q !== undefined)
 })
 
+/** 关闭试卷生成弹窗 */
 const handleClose = () => {
   emit('update:visible', false)
 }
@@ -150,6 +154,7 @@ const renderContent = (content: string) => {
     @update:model-value="(val) => emit('update:visible', val)"
   >
     <div class="exam-generator">
+      <!-- 试卷设置：标题 / 班级 / 页面尺寸 / 答案开关 -->
       <div class="exam-settings">
         <el-form inline>
           <el-form-item label="试卷标题">
@@ -172,6 +177,7 @@ const renderContent = (content: string) => {
         </el-form>
       </div>
 
+      <!-- 题目勾选列表 -->
       <div class="exam-questions">
         <div class="questions-header">
           <span>选择题目（共 {{ favoriteQuestionsList.length }} 道收藏题）</span>
@@ -216,6 +222,7 @@ const renderContent = (content: string) => {
         </el-scrollbar>
       </div>
 
+      <!-- 试卷预览 -->
       <div class="exam-preview">
         <div class="preview-header">预览</div>
         <el-scrollbar max-height="400px">

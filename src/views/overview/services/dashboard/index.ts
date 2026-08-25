@@ -17,4 +17,5 @@ export const buildDashboardData = (options: BuildOverviewDashboardDataOptions) =
   return buildOverviewDashboardData(options, unitMetrics, studentMetrics)
 }
 
+/** 重新导出构建入参类型，便于调用方直接从入口文件导入 */
 export type { BuildOverviewDashboardDataOptions } from '@/views/overview/services/dashboard/types'

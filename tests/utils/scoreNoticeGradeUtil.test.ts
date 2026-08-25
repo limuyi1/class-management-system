@@ -1,3 +1,8 @@
+/**
+ * 测试 scoreNoticeGradeUtil 模块。
+ * 覆盖：等第值归一化（全角/带“等”字后缀）、百分制与五十分制的边界换算、
+ * 来源模式识别以及按科目推荐默认规则。
+ */
 import { describe, expect, it } from 'vitest'
 
 import { ScoreNoticeModeEnum } from '../../src/types/ScoreNotice'
@@ -10,6 +15,7 @@ import {
   normalizeGradeValue
 } from '../../src/utils/score-notice/scoreNoticeGradeUtil'
 
+// 成绩通知等第工具函数测试组
 describe('scoreNoticeGradeUtil', () => {
   it('normalizes common grade values', () => {
     expect(normalizeGradeValue(' A等 ')).toBe('A')

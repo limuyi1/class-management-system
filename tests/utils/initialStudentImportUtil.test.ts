@@ -1,8 +1,15 @@
+/**
+ * initialStudentImportUtil 测试
+ * 覆盖首次导入学生数据的构建（buildInitialStudentImport），
+ * 包括姓名/成绩/评语导入、空姓名行跳过与学生 ID 生成等场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import { buildInitialStudentImport } from '../../src/utils/initialStudentImportUtil'
 import { NAME_PROP } from '../../src/constants'
 
+// 首次学生导入：解析行数据、跳过空姓名并生成唯一学生 ID
 describe('initialStudentImportUtil', () => {
   it('imports names, selected scores and non-empty comments', () => {
     const result = buildInitialStudentImport({

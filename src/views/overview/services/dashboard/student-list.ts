@@ -41,6 +41,11 @@ const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection'])
  * - middleRising：按上升幅度倒序
  * - volatility：按标准差、极差、波动方向综合计算
  * - stableTop：按前列次数和最新成绩加权
+ *
+ * @param metric 学生画像
+ * @param tagKey 标签键
+ * @param config 总览页配置
+ * @returns 推荐排序分数，分数越高越优先
  */
 export const getTagSortScore = (
   metric: StudentMetricType,
@@ -108,6 +113,10 @@ export const getTagSortScore = (
  * - middleFalling/middleRising：描述中段变化趋势
  * - volatility：区分上行/下行波动
  * - stableTop：显示进入前五的次数
+ *
+ * @param metric 学生画像
+ * @param preferredTagKey 优先用于说明的标签键（可选）
+ * @returns 原因文案
  */
 export const buildReasonText = (
   metric: StudentMetricType,
@@ -155,6 +164,10 @@ export const buildReasonText = (
  * 若传入 preferredTagKey，则该标签优先作为主标签显示。
  * 次级标签显示在副标题位置。
  * 标签按优先级排序后决定主次关系。
+ *
+ * @param metric 学生画像
+ * @param preferredTagKey 优先展示的标签键（可选）
+ * @returns 列表展示项，未命中任何标签时返回 null
  */
 export const toStudentListItem = (
   metric: StudentMetricType,
@@ -195,6 +208,10 @@ export const toStudentListItem = (
  * - volatilityRising：波动上行
  * - volatilityFalling：波动下行
  * 其他标签不做细分。
+ *
+ * @param tagKey 标签键
+ * @param metric 学生画像（判断波动方向时使用）
+ * @returns 区块元数据
  */
 export const getSectionMeta = (
   tagKey: DashboardTagKeyType,
@@ -228,6 +245,9 @@ export const getSectionMeta = (
  *
  * 优先级：middleFalling > middleRising > volatility > 默认
  * 用于波动观察组内的细分排序。
+ *
+ * @param metric 学生画像
+ * @returns 中段变化显示 Key
  */
 export const getMiddleChangeDisplayKey = (metric: StudentMetricType): DashboardFocusSectionKeyType => {
   if (metric.matchedTags.some((tag) => tag.key === 'middleFalling')) {
@@ -248,6 +268,10 @@ export const getMiddleChangeDisplayKey = (metric: StudentMetricType): DashboardF
 /**
  * 计算"立即关注"组的推荐分数。
  * 综合考虑：异常下滑、低分次数、下滑幅度、临界状态、多标签叠加等因素。
+ *
+ * @param metric 学生画像
+ * @param config 总览页配置
+ * @returns 推荐分数，分数越高越优先
  */
 export const getAttentionRecommendScore = (
   metric: StudentMetricType,
@@ -280,6 +304,10 @@ export const getAttentionRecommendScore = (
 /**
  * 计算"值得鼓励"组的推荐分数。
  * 综合考虑：上升幅度、低位回升、明显进步、稳定前列等因素。
+ *
+ * @param metric 学生画像
+ * @param config 总览页配置
+ * @returns 推荐分数，分数越高越优先
  */
 export const getEncouragementRecommendScore = (
   metric: StudentMetricType,
@@ -310,6 +338,10 @@ export const getEncouragementRecommendScore = (
 /**
  * 计算"中段变化"组的推荐分数。
  * 综合考虑：中段下滑幅度、波动程度、中段上升等因素。
+ *
+ * @param metric 学生画像
+ * @param config 总览页配置
+ * @returns 推荐分数，分数越高越优先
  */
 export const getMiddleChangeRecommendScore = (
   metric: StudentMetricType,
@@ -340,6 +372,10 @@ export const getMiddleChangeRecommendScore = (
 /**
  * 计算"波动观察"组的推荐分数。
  * 主要考量波动程度和波动方向：下行波动权重更高。
+ *
+ * @param metric 学生画像
+ * @param config 总览页配置
+ * @returns 推荐分数，分数越高越优先
  */
 export const getVolatilityWatchRecommendScore = (
   metric: StudentMetricType,
@@ -359,6 +395,11 @@ export const getVolatilityWatchRecommendScore = (
 /**
  * 推荐分数计算入口。
  * 根据分组类型分发到对应的计算函数。
+ *
+ * @param metric 学生画像
+ * @param groupKey 标签分组键
+ * @param config 总览页配置
+ * @returns 推荐分数，分数越高越优先
  */
 export const getRecommendScore = (
   metric: StudentMetricType,

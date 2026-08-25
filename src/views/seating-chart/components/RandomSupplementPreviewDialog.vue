@@ -7,12 +7,17 @@ import { getSeatKey, getVisibleSeats } from '@/utils/seating-chart/seatingChartU
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
 const props = defineProps<{
+  /** 弹窗显隐状态（v-model 双向绑定） */
   modelValue: boolean
+  /** 当前座位表 */
   chart: SeatingChartType
+  /** 补充方案的预览数据 */
   preview: SeatingChartPreviewType
+  /** 学生 ID 到姓名的映射 */
   studentNames: Record<string, string>
 }>()
 
+/** 事件：更新显隐 / 换一批方案 / 确认应用 */
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   regenerate: []
@@ -49,6 +54,7 @@ const fixedCount = computed(() => {
         description="确认前不会修改当前座位表，可反复更换随机方案"
         tone="orange"
     /></template>
+    <!-- 本轮安排统计与图例 -->
     <div class="preview-header">
       <div>
         <strong>本轮安排</strong>
@@ -60,7 +66,9 @@ const fixedCount = computed(() => {
       </div>
     </div>
 
+    <!-- 左侧：教室预览；右侧：统计与操作 -->
     <div class="preview-body">
+      <!-- 讲台、雅座与座位网格预览 -->
       <div class="preview-classroom">
         <div
           class="preview-platform-row"
@@ -104,6 +112,7 @@ const fixedCount = computed(() => {
         </div>
       </div>
 
+      <!-- 固定/随机/未安排统计与操作按钮 -->
       <aside class="preview-summary">
         <div class="preview-summary__stats">
           <span

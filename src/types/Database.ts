@@ -123,7 +123,7 @@ export interface AIConfigRecord {
   modelType: string
   /** 模型名称 */
   model: string
-  /** API Key */
+  /** API 密钥 */
   apiKey: string
   /** API 基础 URL */
   baseUrl: string

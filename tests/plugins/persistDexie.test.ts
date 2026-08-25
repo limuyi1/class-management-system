@@ -1,3 +1,11 @@
+/**
+ * createPersistedStateDexie 持久化插件测试
+ * 覆盖：store 初始化时从 Dexie 加载数据、$subscribe 变更写回数据库、
+ * 普通 store 剥离 id 字段、旧版 aiConfig 记录合并默认提示词、
+ * 加载/保存失败时的错误日志、记录被删除时重置 store 状态、
+ * 以及无 studentId 的遗留数据源记录视为空数据的兼容处理。
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 type ObserverType<T> = {
@@ -11,6 +19,7 @@ interface MockTableType {
   put: ReturnType<typeof vi.fn>
 }
 
+// 构造内存版 Dexie 表 mock：get 返回当前内存记录，put 把值写入内存
 const createMockTable = (): MockTableType => {
   const table: MockTableType = {
     record: undefined,
@@ -22,6 +31,7 @@ const createMockTable = (): MockTableType => {
   return table
 }
 
+// 为插件访问的每张数据库表准备独立的 mock 实例，测试间可重置
 const mockTables = {
   studentDataset: createMockTable(),
   scoreSettings: createMockTable(),
@@ -33,8 +43,10 @@ const mockTables = {
   toolPreferences: createMockTable()
 }
 
+// 收集 liveQuery 订阅的观察者，便于测试中手动推送数据变更（模拟外部修改或删除记录）
 const observers: Array<ObserverType<Record<string, unknown> | undefined>> = []
 
+// mock dexie 的 liveQuery：订阅时注册观察者，并异步推送一次查询结果
 vi.mock('dexie', () => {
   return {
     liveQuery: vi.fn((querier: () => Promise<Record<string, unknown> | undefined>) => {
@@ -53,6 +65,7 @@ vi.mock('dexie', () => {
   }
 })
 
+// mock 项目数据库入口，把 db 的各表替换为上面的内存 mock 表
 vi.mock('../../src/db', () => {
   return {
     DB_ID: 'main',
@@ -69,6 +82,7 @@ vi.mock('../../src/db', () => {
   }
 })
 
+// mock 各 Pinia store，避免插件加载时触发真实 store 初始化
 vi.mock('../../src/stores/data-source', () => ({ useDataSourceStore: vi.fn() }))
 vi.mock('../../src/stores/setting', () => ({ useSettingStore: vi.fn() }))
 vi.mock('../../src/stores/configuration', () => ({ useConfigurationStore: vi.fn() }))
@@ -76,8 +90,10 @@ vi.mock('../../src/stores/theme', () => ({ useThemeStore: vi.fn() }))
 vi.mock('../../src/stores/ai-config', () => ({ useAIConfigStore: vi.fn() }))
 vi.mock('../../src/stores/wrong-book', () => ({ useWrongBookStore: vi.fn() }))
 
+// 目标：验证持久化插件对各类 store 的加载、保存、删除与错误处理流程
 describe('createPersistedStateDexie', () => {
   beforeEach(() => {
+    // 每个用例前清空观察者并重置所有 mock 表的状态
     observers.length = 0
     for (const table of Object.values(mockTables)) {
       table.record = undefined

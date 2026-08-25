@@ -6,17 +6,20 @@ import { ElMessage } from 'element-plus'
 import { fileToBase64 } from '@/utils/fileUtil'
 import ImageCropper from '@/components/ImageCropper.vue'
 
+/** 原始图片列表 */
 interface Props {
   images: string[]
 }
 
 const props = defineProps<Props>()
 
+/** 图片列表更新与插入图片事件 */
 const emit = defineEmits<{
   'update:images': [value: string[]]
   'insert-image': [base64: string]
 }>()
 
+/** 裁剪器与大图预览的可见性、相关图片源 */
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
 const imagePreviewVisible = ref(false)
@@ -53,6 +56,7 @@ const handleAddImage = () => {
   input.click()
 }
 
+/** 裁剪确认后将裁剪结果追加到图片列表 */
 const handleCropConfirm = (croppedBase64: string) => {
   cropperVisible.value = false
   emit('update:images', [...props.images, croppedBase64])
@@ -86,6 +90,7 @@ const handleImageClick = (index: number) => {
 
 <template>
   <el-form-item label="题目原始图片" class="original-image-form-item">
+    <!-- 原始图片展示区与添加按钮 -->
     <div class="original-image-section">
       <div v-if="images.length > 0" class="original-image-list">
         <div v-for="(img, index) in images" :key="index" class="original-image-item">

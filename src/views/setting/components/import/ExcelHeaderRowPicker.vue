@@ -137,6 +137,7 @@ const getCellClassName = ({
         点击预览中的一行作为字段名行，数据将从下一行开始读取。
       </div>
     </div>
+    <!-- 表头行预览：点击某行将其选中为字段名行 -->
     <el-table
       :data="tableRows"
       border

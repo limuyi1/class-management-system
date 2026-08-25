@@ -21,20 +21,25 @@ const wrongBookStore = useWrongBookStore()
 const { selectedFolderId, currentFolderQuestions, questions } = storeToRefs(wrongBookStore)
 const aiConfigStore = useAIConfigStore()
 
+// 组件挂载时初始化文件夹列表
 onMounted(() => {
   wrongBookStore.initFolders()
 })
 
+/** 弹窗可见性与编辑状态 */
 const editorVisible = ref(false)
 const examGeneratorVisible = ref(false)
 const editingQuestion = ref<WrongQuestion | null>(null)
 
+/** 图片裁剪器可见性、待裁剪图片源与上传中状态 */
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
 const uploading = ref(false)
 
+/** 列表中已选题目 id（用于出题） */
 const selectedQuestions = ref<string[]>([])
 
+/** 打开编辑器进入新增题目流程 */
 const handleAddQuestion = () => {
   editingQuestion.value = null
   editorVisible.value = true
@@ -214,6 +219,7 @@ const selectedQuestionList = computed(() => {
       </template>
     </page-header>
 
+    <!-- 左侧：文件夹树；右侧：当前文件夹题目列表 -->
     <el-row class="wrong-book-content" :gutter="10">
       <el-col class="h-full" :span="5">
         <folder-tree />
@@ -230,6 +236,7 @@ const selectedQuestionList = computed(() => {
       </el-col>
     </el-row>
 
+    <!-- 弹窗：图片裁剪、题目编辑、试卷生成 -->
     <image-cropper
       v-model:visible="cropperVisible"
       :image-src="cropperImageSrc"

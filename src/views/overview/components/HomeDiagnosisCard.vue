@@ -23,15 +23,18 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对外事件：触发生成分析、跳转 AI 配置 */
 const emit = defineEmits<{
   generateAnalysis: []
   goAiSetting: []
 }>()
 
+/** 完整分析弹窗的显示状态 */
 const analysisDialogVisible = ref(false)
 
 const diagnosisTitle = computed(() => 'AI 学情分析')
 
+/** 诊断状态标签文案：未配置 / 生成中 / 基础诊断 / 已生成 / 待生成 */
 const diagnosisStatusLabel = computed(() => {
   if (!props.evaluationOverview.aiConfigured) return '未配置'
   if (props.analysisLoading) return '生成中'
@@ -39,6 +42,7 @@ const diagnosisStatusLabel = computed(() => {
   return hasAnalysisText.value ? '已生成' : '待生成'
 })
 
+/** 诊断状态标签的类型，对应 Element Plus 标签语义色 */
 const diagnosisStatusType = computed(() => {
   if (!props.evaluationOverview.aiConfigured) return 'warning'
   if (props.analysisLoading) return 'primary'
@@ -77,16 +81,20 @@ const diagnosisPreviewText = computed(() => {
     .trim()
 })
 
+/** 是否显示卡片内的行内生成按钮（已配置 AI 且尚无分析文本） */
 const showInlineGenerateAction = computed(() => {
   return props.evaluationOverview.aiConfigured && !props.analysisText
 })
 
+/** 是否显示"正在生成分析"的加载遮罩 */
 const showDiagnosisLoadingMask = computed(() => {
   return props.evaluationOverview.aiConfigured && !props.analysisText && props.analysisLoading
 })
 
+/** 是否已有分析文本 */
 const hasAnalysisText = computed(() => Boolean(props.analysisText.trim()))
 
+/** 格式化后的生成时间（中文日期 + 时分），无生成时间时返回空串 */
 const formattedAnalysisTime = computed(() => {
   if (!props.analysisGeneratedAt) return ''
   const date = new Date(props.analysisGeneratedAt)
@@ -98,10 +106,12 @@ const formattedAnalysisTime = computed(() => {
   })}`
 })
 
+/** 渲染为 HTML 的诊断内容，支持 Markdown 与数学公式 */
 const renderedDiagnosisHtml = computed(() => {
   return renderMarkdown(diagnosisText.value)
 })
 
+/** 主操作按钮文案，随 AI 配置与生成状态切换 */
 const diagnosisPrimaryActionLabel = computed(() => {
   if (!props.evaluationOverview.aiConfigured) return '配置 AI'
   if (!hasAnalysisText.value && props.stage !== 'ready') return '生成基础诊断'
@@ -121,6 +131,7 @@ const openAnalysisDialog = () => {
     element-loading-text="AI 正在生成学情分析"
     element-loading-background="rgba(248, 250, 252, 0.82)"
   >
+    <!-- 卡片头部：图标、标题与状态标签 -->
     <div class="diagnosis-header">
       <div class="diagnosis-title-wrap">
         <div class="diagnosis-icon">
@@ -139,6 +150,7 @@ const openAnalysisDialog = () => {
           </el-tag>
         </div>
       </div>
+      <!-- 头部右侧操作区：生成按钮 + 展开按钮 -->
       <div class="diagnosis-actions">
         <el-button
           v-if="evaluationOverview.aiConfigured"
@@ -167,6 +179,7 @@ const openAnalysisDialog = () => {
       </div>
     </div>
 
+    <!-- 诊断文本预览区 -->
     <div
       class="diagnosis-text"
       :class="{ 'is-placeholder': showInlineGenerateAction || !evaluationOverview.aiConfigured }"
@@ -174,10 +187,12 @@ const openAnalysisDialog = () => {
       {{ diagnosisPreviewText }}
     </div>
 
+    <!-- 底部生成时间展示 -->
     <div class="diagnosis-footer">
       <span class="generated-time"> 生成时间：{{ formattedAnalysisTime || '--' }} </span>
     </div>
 
+    <!-- 完整分析查看弹窗 -->
     <el-dialog
       v-model="analysisDialogVisible"
       class="analysis-dialog"

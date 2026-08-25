@@ -9,10 +9,18 @@ import EvaluationInputCard from '../../src/views/evaluation/components/Evaluatio
 import CommentWorkspaceToolbar from '../../src/views/evaluation/components/CommentWorkspaceToolbar.vue'
 import { NAME_PROP } from '../../src/constants'
 
+/**
+ * 评语工作区控制组件测试
+ * 测试目标：ConfigurationCard、CommentWorkspaceToolbar、EvaluationInputCard
+ * 覆盖功能：预览设置的默认折叠、工作区操作按钮的固定集合、编辑器按钮随评语状态切换（生成/润色）
+ */
+
+// 模拟 vue-router，避免组件内使用路由时缺少真实路由实例
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: vi.fn() })
 }))
 
+// 三个组件共用的挂载配置：注册 Element Plus 插件并替身图标组件
 const mountOptions = {
   global: {
     plugins: [ElementPlus],
@@ -22,7 +30,9 @@ const mountOptions = {
   }
 }
 
+// 覆盖评语工作区的设置卡片、工具栏与输入卡片三组控件
 describe('evaluation workspace controls', () => {
+  // 每个用例前创建全新的 Pinia 实例，隔离组件内部 store 状态
   beforeEach(() => {
     setActivePinia(createPinia())
   })
@@ -75,6 +85,7 @@ describe('evaluation workspace controls', () => {
       }
     })
 
+    // 直接调用组件方法进入编辑模式，绕过列表点击交互
     wrapper.vm.editData(students[0])
     await nextTick()
 
@@ -94,6 +105,7 @@ describe('evaluation workspace controls', () => {
       }
     })
 
+    // 直接调用组件方法进入编辑模式，绕过列表点击交互
     wrapper.vm.editData(students[0])
     await nextTick()
 

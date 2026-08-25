@@ -20,11 +20,17 @@ import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentS
 
 /** 创建座位表的选项 */
 interface CreateSeatingChartOptionsType {
+  /** 座位表名称 */
   name?: string
+  /** 行数 */
   rows?: number
+  /** 列数 */
   columns?: number
+  /** 首列朝向 */
   firstColumnSide?: SeatingFirstColumnSideEnum
+  /** 学生来源 */
   studentSource: StudentSourceType
+  /** Excel 学生来源（学生来源为 excel 时使用） */
   excelSource?: ExcelStudentSourceType
 }
 

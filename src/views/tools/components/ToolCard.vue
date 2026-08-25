@@ -4,11 +4,13 @@ import { computed } from 'vue'
 
 import type { ToolItemType } from '@/views/tools/constants/tools'
 
+/** 组件属性：工具项与解析后的链接地址 */
 interface PropsType {
   tool: ToolItemType
   href: string
 }
 
+/** 组件事件：打开工具 */
 interface EmitsType {
   open: [tool: ToolItemType]
 }
@@ -26,6 +28,7 @@ function handleClick(): void {
 </script>
 
 <template>
+  <!-- 根据是否新页签打开，动态渲染为链接或按钮 -->
   <component
     :is="elementType"
     class="tool-card"

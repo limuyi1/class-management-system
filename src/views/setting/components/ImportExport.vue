@@ -19,11 +19,11 @@ import ImportActionMenu from '@/views/setting/components/import/ImportActionMenu
 import InitialImportDialog from '@/views/setting/components/import/InitialImportDialog.vue'
 import ImportProgress from './ImportProgress.vue'
 
-const exporting = ref(false)
-const importingBackup = ref(false)
-const progressVisible = ref(false)
-const progressTitle = ref('')
-const progressPercent = ref(0)
+const exporting = ref(false) // 导出进行中
+const importingBackup = ref(false) // 备份导入进行中
+const progressVisible = ref(false) // 进度弹窗显隐
+const progressTitle = ref('') // 进度弹窗标题
+const progressPercent = ref(0) // 进度百分比（0-100）
 
 const dataSourceStore = useDataSourceStore()
 const { students } = storeToRefs(dataSourceStore)
@@ -44,6 +44,7 @@ const backupTimeText = computed(() => {
   return dayjs(lastBackupAt.value).format('YYYY-MM-DD HH:mm')
 })
 
+// 从学生导入 hook 解构 Excel 导入流程相关的状态与方法
 const {
   excelFileInputRef,
   importingExcel,
@@ -186,6 +187,7 @@ const handleClear = async () => {
       </p>
 
       <div class="import-export-actions">
+        <!-- 导出数据：全量备份为 .dexie 文件 -->
         <div class="action-item">
           <div class="action-icon action-icon-export">
             <font-awesome-icon :icon="['solid', 'file-export']" />
@@ -212,6 +214,7 @@ const handleClear = async () => {
 
         <el-divider />
 
+        <!-- 导入数据：无学生数据走初始化，有数据则增量添加成绩 -->
         <div class="action-item">
           <div class="action-icon action-icon-import">
             <font-awesome-icon :icon="['solid', 'file-import']" />
@@ -243,6 +246,7 @@ const handleClear = async () => {
 
         <el-divider />
 
+        <!-- 清空全部数据（不可恢复） -->
         <div class="action-item">
           <div class="action-icon action-icon-clear">
             <font-awesome-icon :icon="['solid', 'trash']" />
@@ -264,6 +268,7 @@ const handleClear = async () => {
       </div>
     </el-card>
 
+    <!-- 进度弹窗、初始化导入弹窗与列选择/冲突处理弹窗 -->
     <import-progress
       v-model:visible="progressVisible"
       :title="progressTitle"

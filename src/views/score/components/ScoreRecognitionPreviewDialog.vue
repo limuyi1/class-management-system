@@ -15,11 +15,13 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对话框事件：控制显隐、提交勾选结果 */
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   confirm: [rows: ScoreRecognitionPreviewRowType[]]
 }>()
 
+// 表格实例引用，用于批量勾选控制
 const tableRef = ref<InstanceType<typeof ElTable>>()
 
 /** 为表格多选提供唯一 row-key */
@@ -88,6 +90,7 @@ const handleConfirm = () => {
         已按姓名匹配学生，请勾选需要写入的成绩。未匹配或分数无效的行默认不写入。
       </div>
 
+      <!-- 预览表格：勾选有效行后确认写入，空 selection-change 监听用于启用多选列 -->
       <el-table
         ref="tableRef"
         :data="tableData"
@@ -114,6 +117,7 @@ const handleConfirm = () => {
       </el-table>
     </div>
 
+    <!-- 底部操作：取消 / 确认写入 -->
     <template #footer>
       <el-button @click="closeDialog">取消</el-button>
       <el-button type="primary" @click="handleConfirm">确认写入</el-button>

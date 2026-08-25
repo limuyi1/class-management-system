@@ -1,3 +1,9 @@
+/**
+ * evaluationPdfLayoutUtil 测试
+ * 覆盖评语 PDF 布局计算：纸张毫米尺寸（getPdfPageSize）、
+ * 页面行列与表格布局（buildEvaluationPdfLayout）及学生分页（paginateEvaluationStudents）。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import { PagesEnum } from '@/types/Common'
@@ -10,6 +16,7 @@ import {
   paginateEvaluationStudents
 } from '@/utils/evaluation/evaluationPdfLayoutUtil'
 
+// 纸张尺寸：返回各纸张类型对应的毫米宽高
 describe('getPdfPageSize', () => {
   it('返回指定纸张的毫米尺寸', () => {
     expect(getPdfPageSize(PagesEnum.A4)).toEqual({ width: 210, height: 297 })
@@ -17,7 +24,9 @@ describe('getPdfPageSize', () => {
   })
 })
 
+// PDF 布局：计算每页行列数与容量，以及不同对齐方式下的表格偏移
 describe('buildEvaluationPdfLayout', () => {
+  // 公共布局入参：A4 纸张、评语卡片 90×69mm、无页边距
   const baseInput = {
     pageType: PagesEnum.A4,
     evaluationCardWidth: 90,
@@ -52,7 +61,9 @@ describe('buildEvaluationPdfLayout', () => {
   })
 })
 
+// 学生分页：按页面容量切分学生并计算每个评语格的坐标
 describe('paginateEvaluationStudents', () => {
+  // 固定布局配置：每页 2 列 4 行、容量 8 人
   const layout: EvaluationPdfLayoutType = {
     pageWidth: 210,
     pageHeight: 297,
@@ -67,6 +78,7 @@ describe('paginateEvaluationStudents', () => {
     pageCapacity: 8
   }
 
+  // 构造 10 名学生以覆盖跨页分页场景
   const students: StudentDataType[] = Array.from({ length: 10 }, (_, index) => ({
     studentId: `s${index}`,
     name: `学生${index}`,

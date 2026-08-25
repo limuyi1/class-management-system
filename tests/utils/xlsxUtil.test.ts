@@ -1,7 +1,12 @@
+/**
+ * 测试 xlsxUtil 的 buildExcelDataFromHeaderRow。
+ * 覆盖：按用户选定的表头行构建导入数据（跳过标题行），以及空表头单元格的回退命名。
+ */
 import { describe, expect, it } from 'vitest'
 
 import { buildExcelDataFromHeaderRow } from '../../src/utils/xlsxUtil'
 
+// Excel 工具函数测试组
 describe('xlsxUtil', () => {
   it('builds import data from the user selected header row', () => {
     const result = buildExcelDataFromHeaderRow(

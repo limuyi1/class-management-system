@@ -4,7 +4,15 @@ import { createPinia, setActivePinia } from 'pinia'
 import { useAIConfigStore } from '../../src/stores/ai-config'
 import { DefaultAIPrompts } from '../../src/types/AIConfig'
 
+/**
+ * useAIConfigStore store 测试
+ * 测试目标：AI 配置 store 的提示词重置逻辑
+ * 覆盖功能：重置单个提示词、重置全部提示词（结果应为默认值的副本而非同一引用）
+ */
+
+// 验证提示词重置动作只影响目标提示词并返回默认值
 describe('useAIConfigStore prompt reset', () => {
+  // 每个用例前创建全新的 Pinia 实例，避免 store 状态互相污染
   beforeEach(() => {
     setActivePinia(createPinia())
   })

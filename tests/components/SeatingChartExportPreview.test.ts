@@ -10,6 +10,13 @@ import {
 } from '@/types/SeatingChart'
 import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
+/**
+ * SeatingChartExportPreview 组件测试
+ * 测试目标：座位表导出预览（打印稿）
+ * 覆盖功能：标题/讲台/过道/特殊座位的静态渲染、空座位标签显隐、纸张方向与内容缩放、标题显隐
+ */
+
+/** 构造 2 排 × 2 列的座位表：普通座一名学生、讲台左侧特殊座一名学生 */
 function createChart(): SeatingChartType {
   const seats = createSeats(2, 2)
   seats[0].studentId = 'student-1'
@@ -35,6 +42,7 @@ function createChart(): SeatingChartType {
   }
 }
 
+// 验证导出打印稿的静态渲染与缩放/显隐配置
 describe('SeatingChartExportPreview', () => {
   it('renders the full static plan with title, platform, aisle and special seat', () => {
     const wrapper = mount(SeatingChartExportPreview, {

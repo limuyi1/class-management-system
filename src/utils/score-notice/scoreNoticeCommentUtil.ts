@@ -1,3 +1,7 @@
+/**
+ * 成绩通知评语工具
+ * 提供评语规范化、发送前校验、等级摘要与模板评语生成
+ */
 import type { ScoreNoticeStudentType, ScoreNoticeSubjectType } from '@/types/ScoreNotice'
 
 /** 保留自然分段，但压缩连续空行，避免成绩通知版面被多余空白撑高。 */

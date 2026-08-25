@@ -212,17 +212,29 @@ const buildStudentSignals = ({
   minImprovingDelta,
   passLine
 }: {
+  /** 难度修正后的最新成绩 */
   normalizedLatestScore: number | null
+  /** 难度修正后的上一次成绩 */
   previousScore: number | null
+  /** 难度修正后的最近 3 次成绩 */
   normalizedLatestRecent3: number[]
+  /** 最近 3 次归一化成绩的均分 */
   latestRecent3Average: number
+  /** 走势方向（基于修正后序列） */
   volatilityDirection: StudentMetricType['volatilityDirection']
+  /** 前期历史成绩是否出现过持续低分 */
   hadEarlierLowPattern: boolean
+  /** 当前是否仍属于中段画像 */
   recentMiddleProfile: boolean
+  /** 下滑关注标签：相对近期均值的显著下降阈值 */
   minDecliningDelta: number
+  /** 下滑关注标签：连续下滑累计跌幅阈值 */
   minDecliningCumulativeDrop: number
+  /** 下滑关注标签：单次下滑幅度阈值 */
   minDecliningSingleDrop: number
+  /** 进步明显标签：显著进步的最小提升幅度 */
   minImprovingDelta: number
+  /** 及格线 */
   passLine: number
 }): StudentSignalSnapshotType => {
   const isUpwardDirection = volatilityDirection === 'up' || volatilityDirection === 'volatileUp'
@@ -295,6 +307,11 @@ const buildStudentSignals = ({
  * 输出：UnitMetricType[]，每个单元的汇总统计数据
  *
  * 注意：只返回有有效成绩的单元（validCount > 0）
+ *
+ * @param students 学生数据列表
+ * @param unitHeaders 单元表头配置
+ * @param config 总览页配置
+ * @returns 单元维度统计列表
  */
 export const buildUnitMetrics = (
   students: StudentDataType[],
@@ -350,6 +367,12 @@ export const buildUnitMetrics = (
  * - middleRising（中段上升）：处于中段但持续进步
  * - volatility（波动生）：标准差较大，成绩不稳定
  * - stableTop（高分稳定）：长期处于班级前列
+ *
+ * @param students 学生数据列表
+ * @param unitHeaders 单元表头配置
+ * @param unitMetrics 单元维度统计列表（用于难度修正）
+ * @param config 总览页配置
+ * @returns 学生画像列表（仅包含有有效成绩的学生）
  */
 export const buildStudentMetrics = (
   students: StudentDataType[],
@@ -443,6 +466,7 @@ export const buildStudentMetrics = (
         (rank) => rank <= (config.tagRules.tags.stableTop.topRankLimit || 5)
       ).length
 
+      // 命中的标签，允许多重命中，最终在归一化层统一收口语义冲突
       const matchedTags = []
       const normalizedLatestRecent3 = normalizedRecentThreeScores
       const normalizedLatestRecent4 = normalizedRecentFourScores

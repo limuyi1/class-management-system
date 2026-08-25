@@ -1,3 +1,8 @@
+/**
+ * 测试 scoreRecognitionUtil 模块。
+ * 覆盖：成绩是否落在 0~满分区间内的校验、按姓名匹配学生构建识别预览行，
+ * 以及重名、未知姓名、超范围分数与空分数等边界场景。
+ */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -7,6 +12,7 @@ import {
 import { NAME_PROP } from '../../src/constants'
 import type { StudentDataType } from '../../src/types/StudentData'
 
+// 成绩识别工具函数测试组
 describe('scoreRecognitionUtil', () => {
   it('validates scores within 0 ~ fullMark', () => {
     expect(isValidScore(95, 100)).toBe(true)

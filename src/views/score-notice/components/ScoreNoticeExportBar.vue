@@ -27,6 +27,7 @@ const selectedStudent = computed(() => store.selectedStudent)
 const issueCount = computed(() => store.pendingCount + store.reviewCount + store.missingCount)
 /** 当前可直接导出的学生数 */
 const readyCount = computed(() => Math.max(store.students.length - issueCount.value, 0))
+/** 是否已满足全部导出条件（有数据、无待处理项、无进行中任务、无未保存修改） */
 const isReady = computed(
   () =>
     store.students.length > 0 &&
@@ -46,6 +47,7 @@ const readinessText = computed(() => {
 </script>
 
 <template>
+  <!-- 导出状态提示与操作按钮 -->
   <section class="notice-export" :class="{ 'is-ready': isReady }">
     <div class="notice-export__head">
       <span class="notice-export__index">

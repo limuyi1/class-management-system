@@ -4,11 +4,17 @@ import { computed, shallowRef } from 'vue'
 
 import type { StudentSourceStudentType } from '@/types/StudentSource'
 
+/** 未安排学生面板 props */
 interface UnassignedStudentPanelPropsType {
+  /** 未安排学生列表 */
   students: StudentSourceStudentType[]
+  /** 学生总数（含已安排） */
   totalStudentCount: number
+  /** 当前选中的学生 ID */
   selectedStudentId?: string | null
+  /** 拖拽/点击交互提示文案 */
   interactionTip?: string
+  /** 全部安排完成时的说明文案 */
   completeDescription?: string
 }
 
@@ -32,6 +38,7 @@ const emit = defineEmits<{
   dropToUnassigned: []
 }>()
 
+/** 搜索关键词 */
 const search = shallowRef('')
 /** 去掉首尾空格的搜索关键词 */
 const normalizedSearch = computed(() => search.value.trim())
@@ -87,6 +94,7 @@ function getStudentInitial(name: string): string {
     @dragover.prevent
     @drop="emit('dropToUnassigned')"
   >
+    <!-- 面板标题与学生计数 -->
     <div class="unassigned-panel__heading">
       <div>
         <strong>未安排学生</strong>
@@ -101,6 +109,7 @@ function getStudentInitial(name: string): string {
       <slot name="source" />
     </div>
 
+    <!-- 搜索框与交互提示 -->
     <template v-if="students.length || normalizedSearch">
       <el-input
         v-model="search"
@@ -118,6 +127,7 @@ function getStudentInitial(name: string): string {
       </p>
     </template>
 
+    <!-- 可拖拽/点击的学生卡片列表 -->
     <div v-if="filteredStudents.length" class="unassigned-panel__list">
       <button
         v-for="student in filteredStudents"
@@ -136,6 +146,7 @@ function getStudentInitial(name: string): string {
       </button>
     </div>
 
+    <!-- 空状态：搜索无结果 / 全部完成 / 无学生 -->
     <div v-else-if="emptyState" class="unassigned-empty" :class="`is-${emptyState}`">
       <span class="unassigned-empty__icon">
         <font-awesome-icon :icon="['solid', emptyIcon]" />

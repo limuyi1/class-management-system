@@ -38,11 +38,16 @@ import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentS
 const router = useRouter()
 const seatingStore = useSeatingChartStore()
 const dataSourceStore = useDataSourceStore()
+// 座位表 store 的响应式数据；editingChart 为当前编辑中的座位表
 const { activeStudents, editingChart, unassignedStudents, assignedCount, seatCapacity } =
   storeToRefs(seatingStore)
+// 页面是否全屏显示
 const fullscreen = shallowRef(false)
+// 正在拖拽的学生 ID，跨组件传递拖拽目标
 const draggedStudentId = ref<string | null>(null)
+// 点击选中的学生 ID，用于拖拽或点击落座
 const selectedStudentId = ref<string | null>(null)
+// 各类弹窗的显隐状态
 const layoutVisible = ref(false)
 const aisleVisible = ref(false)
 const randomModeVisible = ref(false)
@@ -50,31 +55,41 @@ const previewVisible = ref(false)
 const specialSeatVisible = ref(false)
 const exportVisible = shallowRef(false)
 const studentImportVisible = shallowRef(false)
+// Excel 导入的目标：创建新座位表或替换当前名单
 const studentImportTarget = shallowRef<'create' | 'replace'>('create')
+// 新建流程中暂存的学生来源与 Excel 名单，创建时写入 store
 const initialStudentSource = ref<StudentSourceType>(
   dataSourceStore.enabledData.length ? 'system' : 'excel'
 )
 const initialExcelSource = shallowRef<ExcelStudentSourceType | null>(null)
+// 布局弹窗中的临时行列与第一列方向设置
 const layout = ref({
   rows: 6,
   columns: 6,
   firstColumnSide: SeatingFirstColumnSideEnum.Left
 })
+// 新建座位表时的初始布局设置
 const initialLayout = ref({
   rows: 6,
   columns: 6,
   firstColumnSide: SeatingFirstColumnSideEnum.Left
 })
+// 过道弹窗中的临时过道列设置
 const aisles = ref<number[]>([])
+// 补充空座位的随机方案预览数据
 const preview = ref<SeatingChartPreviewType | null>(null)
 
+/** 学生 ID 到姓名的映射，供画布与提示文案使用 */
 const studentNames = computed(
   () => new Map(activeStudents.value.map((student) => [student.id, student.name]))
 )
+/** 学生姓名字典，供需要普通对象格式的子组件使用 */
 const studentNameRecord = computed<Record<string, string>>(() =>
   Object.fromEntries(studentNames.value)
 )
+/** 当前座位表的可见座位（过滤过道占位列） */
 const visibleSeats = computed(() => (editingChart.value ? getVisibleSeats(editingChart.value) : []))
+/** 将可见座位按行分组，供画布逐行渲染 */
 const visibleSeatRows = computed(() => {
   const rows: SeatPositionType[][] = []
   visibleSeats.value.forEach((seat) => {
@@ -85,6 +100,7 @@ const visibleSeatRows = computed(() => {
   return rows
 })
 
+// 系统学生名单变化时重新校对座位表数据，并同步新建流程的默认来源
 watch(
   () => dataSourceStore.enabledData.map((student) => student.studentId).join(','),
   () => {
@@ -94,11 +110,13 @@ watch(
   }
 )
 
+// 挂载时校对名单数据，并注册键盘快捷键监听
 onMounted(() => {
   seatingStore.reconcileStudents()
   window.addEventListener('keydown', handleKeydown)
 })
 
+// 卸载时移除键盘监听
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', handleKeydown)
 })
@@ -118,6 +136,7 @@ function createChart(): void {
   initialStudentSource.value = dataSourceStore.enabledData.length ? 'system' : 'excel'
   seatingStore.startCreatingChart()
 }
+/** 依据新建流程中暂存的来源与布局创建座位表；Excel 名单缺失时先打开导入弹窗 */
 function createInitialChart(): void {
   if (initialStudentSource.value === 'system' && dataSourceStore.enabledData.length) {
     seatingStore.createChart({
@@ -141,6 +160,7 @@ function createInitialChart(): void {
   })
 }
 
+/** 更换学生来源前确认清空已有安排，返回是否继续 */
 async function confirmClearAssignments(): Promise<boolean> {
   if (!assignedCount.value) return true
   try {
@@ -153,6 +173,7 @@ async function confirmClearAssignments(): Promise<boolean> {
   }
 }
 
+/** 处理学生来源切换；Excel 来源缺失名单时先打开导入弹窗 */
 async function handleStudentSourceChange(source: StudentSourceType): Promise<void> {
   if (!editingChart.value || source === editingChart.value.studentSource) return
   if (!(await confirmClearAssignments())) return
@@ -169,21 +190,25 @@ async function handleStudentSourceChange(source: StudentSourceType): Promise<voi
   seatingStore.setStudentSource('system')
 }
 
+/** 打开 Excel 名单导入弹窗；已有座位表时先确认清空安排 */
 async function openStudentImport(): Promise<void> {
   if (editingChart.value && !(await confirmClearAssignments())) return
   studentImportTarget.value = editingChart.value ? 'replace' : 'create'
   studentImportVisible.value = true
 }
 
+/** 新建流程中打开 Excel 名单导入弹窗 */
 function openInitialStudentImport(): void {
   studentImportTarget.value = 'create'
   studentImportVisible.value = true
 }
 
+/** 记录新建流程中选择的学生来源 */
 function handleInitialStudentSourceChange(source: StudentSourceType): void {
   initialStudentSource.value = source
 }
 
+/** 处理 Excel 导入结果：替换当前来源或暂存到新建流程，并提示导入人数 */
 function handleExcelStudentImport(source: ExcelStudentSourceType): void {
   if (studentImportTarget.value === 'replace' && editingChart.value) {
     seatingStore.setStudentSource('excel', source)
@@ -193,10 +218,12 @@ function handleExcelStudentImport(source: ExcelStudentSourceType): void {
   }
   ElMessage.success(`已导入 ${source.students.length} 名学生`)
 }
+/** 切换当前编辑的座位表，并清除选中学生 */
 function selectChart(chartId: string): void {
   seatingStore.setEditingChart(chartId)
   selectedStudentId.value = null
 }
+/** 弹出输入框重命名座位表 */
 async function renameChart(chartId: string): Promise<void> {
   const chart = seatingStore.charts.find((item) => item.id === chartId)
   if (!chart) return
@@ -217,6 +244,7 @@ async function deleteChart(chartId: string): Promise<void> {
   })
   seatingStore.deleteChart(chartId)
 }
+/** 打开布局弹窗，用当前座位表设置初始化临时布局 */
 function openLayout(): void {
   if (!editingChart.value) return
   layout.value = {
@@ -226,6 +254,7 @@ function openLayout(): void {
   }
   layoutVisible.value = true
 }
+/** 应用行列调整；缩减座位时先确认受影响学生数量 */
 async function confirmLayout(): Promise<void> {
   if (!editingChart.value) return
   const affected = getResizeAffectedCount(
@@ -241,14 +270,17 @@ async function confirmLayout(): Promise<void> {
   seatingStore.setFirstColumnSide(layout.value.firstColumnSide)
   layoutVisible.value = false
 }
+/** 打开过道弹窗，用当前过道设置初始化 */
 function openAisles(): void {
   aisles.value = [...(editingChart.value?.aisleAfterColumns || [])]
   aisleVisible.value = true
 }
+/** 保存过道设置 */
 function saveAisles(): void {
   seatingStore.setAisles(aisles.value)
   aisleVisible.value = false
 }
+/** 将拖拽或选中的学生放入指定座位 */
 function dropOnSeat(seat: SeatPositionType): void {
   const studentId = draggedStudentId.value || selectedStudentId.value
   if (!studentId) return
@@ -393,6 +425,7 @@ function handleKeydown(event: KeyboardEvent): void {
         'has-chart': Boolean(editingChart)
       }"
     >
+      <!-- 左侧：座位方案列表 -->
       <aside class="chart-sidebar">
         <div class="sidebar-heading">
           <strong v-show="!seatingStore.isSidebarCollapsed">座位方案</strong
@@ -458,6 +491,7 @@ function handleKeydown(event: KeyboardEvent): void {
           ></el-button
         >
       </aside>
+      <!-- 中间：座位表编辑区（工具栏 + 座位画布） -->
       <main v-if="editingChart" class="chart-editor">
         <seating-chart-toolbar
           :chart-name="editingChart.name"
@@ -484,6 +518,7 @@ function handleKeydown(event: KeyboardEvent): void {
           @select-special-seat="selectSpecialSeat"
         />
       </main>
+      <!-- 无座位表时显示新建向导 -->
       <main v-else class="chart-editor empty-chart">
         <div class="editor-toolbar">
           <div>
@@ -588,6 +623,7 @@ function handleKeydown(event: KeyboardEvent): void {
           </section>
         </div>
       </main>
+      <!-- 右侧：未安排学生面板 -->
       <unassigned-student-panel
         v-if="editingChart"
         :students="unassignedStudents"
@@ -610,6 +646,7 @@ function handleKeydown(event: KeyboardEvent): void {
         </template>
       </unassigned-student-panel>
     </div>
+    <!-- 弹窗：设置座位布局 -->
     <el-dialog v-model="layoutVisible" width="460px"
       ><template #header
         ><seating-dialog-header
@@ -649,6 +686,7 @@ function handleKeydown(event: KeyboardEvent): void {
         ><el-button type="primary" @click="confirmLayout">确认</el-button></template
       ></el-dialog
     >
+    <!-- 弹窗：设置列间过道 -->
     <el-dialog v-model="aisleVisible" width="500px"
       ><template #header
         ><seating-dialog-header
@@ -667,6 +705,7 @@ function handleKeydown(event: KeyboardEvent): void {
         ><el-button type="primary" @click="saveAisles">保存</el-button></template
       ></el-dialog
     >
+    <!-- 弹窗：雅座设置 -->
     <special-seat-settings-dialog
       v-if="editingChart"
       v-model="specialSeatVisible"
@@ -674,12 +713,14 @@ function handleKeydown(event: KeyboardEvent): void {
       :student-names="studentNameRecord"
       @toggle="toggleSpecialSeat"
     />
+    <!-- 弹窗：导出座位表 -->
     <SeatingChartExportDialog
       v-if="editingChart"
       v-model="exportVisible"
       :chart="editingChart"
       :student-names="studentNameRecord"
     />
+    <!-- 弹窗：选择随机排座模式 -->
     <random-mode-dialog
       v-model="randomModeVisible"
       :assigned-count="assignedCount"
@@ -687,6 +728,7 @@ function handleKeydown(event: KeyboardEvent): void {
       @randomize-all="randomizeAll"
       @supplement="openSupplement"
     />
+    <!-- 弹窗：补充空座位方案预览 -->
     <random-supplement-preview-dialog
       v-if="preview && editingChart"
       v-model="previewVisible"
@@ -696,6 +738,7 @@ function handleKeydown(event: KeyboardEvent): void {
       @regenerate="generatePreview"
       @confirm="applyPreview"
     />
+    <!-- 弹窗：导入 Excel 名单 -->
     <seating-student-import-dialog
       v-model="studentImportVisible"
       @confirm="handleExcelStudentImport"

@@ -136,8 +136,10 @@ defineExpose({
     class="score-report"
     :class="`score-report--subjects-${subjectLayout}`"
   >
+    <!-- 纸张背景与外框装饰 -->
     <img class="score-report__paper" :src="reportPaperUrl" alt="" aria-hidden="true" />
     <div class="score-report__outer-frame" aria-hidden="true"></div>
+    <!-- 四角花纹水印 -->
     <img
       v-for="position in ['top-left', 'top-right', 'bottom-left', 'bottom-right']"
       :key="`watermark-${position}`"
@@ -149,6 +151,7 @@ defineExpose({
     />
 
     <div class="score-report__inner">
+      <!-- 内框四角装饰 -->
       <img
         v-for="position in ['top-left', 'top-right', 'bottom-left', 'bottom-right']"
         :key="`report-corner-${position}`"
@@ -159,6 +162,7 @@ defineExpose({
         aria-hidden="true"
       />
 
+      <!-- 页眉：校徽与通知标题 -->
       <header class="score-report__header">
         <div class="score-report__heading-group">
           <img class="score-report__logo" :src="logoUrl" alt="" aria-hidden="true" />
@@ -179,6 +183,7 @@ defineExpose({
       </header>
 
       <div v-if="student" class="score-report__content">
+        <!-- 学生姓名与通知日期 -->
         <div class="score-report__meta">
           <div>
             <span>学生姓名：</span
@@ -190,6 +195,7 @@ defineExpose({
           </div>
         </div>
 
+        <!-- 科目成绩卡片区 -->
         <section class="score-report__subject-section">
           <div class="score-report__subject-grid" :style="subjectGridStyle">
             <div
@@ -239,6 +245,7 @@ defineExpose({
           </div>
         </section>
 
+        <!-- 教师评语区 -->
         <section
           class="score-report__comment"
           :class="{ 'score-report__comment--long': commentLength > 300 }"
@@ -267,6 +274,7 @@ defineExpose({
         </section>
       </div>
 
+      <!-- 未选择学生时的空状态 -->
       <div v-else class="score-report__empty">
         <font-awesome-icon :icon="['solid', 'file-circle-plus']" />
         <strong>导入成绩后预览学生报告</strong>

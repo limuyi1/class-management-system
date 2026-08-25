@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
+/**
+ * ToolsPage 组件测试
+ * 测试目标：工具中心页面
+ * 覆盖功能：按教学场景分组展示工具卡片、点击卡片跳转到对应工具路由
+ */
+
+// 记录路由跳转与解析调用
 const push = vi.fn()
 const resolve = vi.fn((path: string) => ({ href: `#${path}` }))
 
@@ -13,7 +20,9 @@ vi.mock('vue-router', () => ({
 
 import ToolsPage from '../../../src/views/tools/ToolsPage.vue'
 
+// 验证工具分组展示与卡片点击跳转
 describe('ToolsPage', () => {
+  // 每个用例前清空路由 mock 的调用记录
   beforeEach(() => {
     push.mockClear()
     resolve.mockClear()

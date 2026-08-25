@@ -28,13 +28,16 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
+  /** 点击主操作按钮 */
   action: []
 }>()
 
+/** 面板整体样式：由父级控制最小高度 */
 const panelStyle = computed(() => ({
   minHeight: props.minHeight
 }))
 
+/** 说明文案样式：通过 CSS 变量控制最大宽度 */
 const descriptionStyle = computed(() => ({
   '--empty-state-description-max-width': props.descriptionMaxWidth
 }))
@@ -42,13 +45,16 @@ const descriptionStyle = computed(() => ({
 
 <template>
   <div class="empty-state-panel" :style="panelStyle">
+    <!-- 空态图标 -->
     <div class="empty-state-panel__icon">
       <font-awesome-icon :icon="['solid', icon]" />
     </div>
+    <!-- 标题与说明 -->
     <div class="empty-state-panel__title">{{ title }}</div>
     <div class="empty-state-panel__description" :style="descriptionStyle">
       {{ description }}
     </div>
+    <!-- 可选主操作按钮 -->
     <el-button v-if="actionText" type="primary" plain @click="emit('action')">
       {{ actionText }}
     </el-button>

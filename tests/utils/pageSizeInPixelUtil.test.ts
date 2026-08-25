@@ -1,9 +1,15 @@
+/**
+ * pageSizeInPixelUtil 测试
+ * 覆盖页面尺寸工具：纸张像素尺寸查询（getPageSize）与按 96 DPI 的毫米转像素（pageSizeInPixels）。
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PagesEnum } from '@/types/Common'
 
 import { getPageSize, pageSizeInPixels } from '@/utils/pageSizeInPixelUtil'
 
+// 纸张尺寸：纵向返回原始尺寸，横向交换宽高
 describe('getPageSize', () => {
   it('纵向返回原始尺寸', () => {
     expect(getPageSize(PagesEnum.A4, 'portrait')).toEqual({ width: 595.28, height: 841.89 })
@@ -16,7 +22,9 @@ describe('getPageSize', () => {
   })
 })
 
+// 毫米转像素：按 96 DPI 将纸张毫米尺寸换算为像素
 describe('pageSizeInPixels', () => {
+  // 每个用例前 mock div 的 offsetWidth，模拟 96 DPI 屏幕宽度
   beforeEach(() => {
     const originalCreateElement = document.createElement.bind(document)
 

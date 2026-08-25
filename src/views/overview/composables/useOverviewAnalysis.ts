@@ -10,6 +10,9 @@ import type { DashboardDataType } from '@/types/HomeDashboard'
 
 /**
  * 负责总览页 AI 学情分析的生成与状态同步。
+ *
+ * @param dashboardData 总览展示数据（响应式引用），用于构造 AI 提示词
+ * @returns 分析文本、生成时间、加载状态与生成方法
  */
 export function useOverviewAnalysis(dashboardData: { value: DashboardDataType }) {
   const aiConfigStore = useAIConfigStore()
@@ -85,6 +88,7 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
 
   /**
    * 调用 AI 生成学情分析并写入 store。
+   * AI 未配置时直接返回 false，不发起请求。
    *
    * @returns 是否成功生成
    */

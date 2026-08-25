@@ -40,6 +40,7 @@ export class SCSDatabase extends Dexie {
 
   constructor() {
     super(DATABASE_NAME)
+    // 版本 1：初始建表（数据、设置、偏好、AI、错题、概览缓存、工具、附件、试卷草稿）
     this.version(1).stores({
       [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
       [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
@@ -53,6 +54,7 @@ export class SCSDatabase extends Dexie {
       [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt'
     })
 
+    // 版本 2：新增成绩通知单表
     this.version(2).stores({
       [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
       [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
@@ -67,6 +69,7 @@ export class SCSDatabase extends Dexie {
       [DatabaseTableEnum.PaperLayoutDrafts]: 'id, name, createdAt, updatedAt'
     })
 
+    // 版本 3：新增座位表
     this.version(3).stores({
       [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
       [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
@@ -82,6 +85,7 @@ export class SCSDatabase extends Dexie {
       [DatabaseTableEnum.SeatingCharts]: 'id, updatedAt'
     })
 
+    // 版本 4：新增值日表
     this.version(4).stores({
       [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
       [DatabaseTableEnum.ScoreSettings]: 'id, updatedAt',
@@ -98,6 +102,7 @@ export class SCSDatabase extends Dexie {
       [DatabaseTableEnum.DutyRosters]: 'id, updatedAt'
     })
 
+    // 将各表绑定为实例属性，供后续增删改查使用
     this.studentDataset = this.table(DatabaseTableEnum.StudentDataset)
     this.scoreSettings = this.table(DatabaseTableEnum.ScoreSettings)
     this.appPreferences = this.table(DatabaseTableEnum.AppPreferences)
@@ -120,6 +125,7 @@ export const db = new SCSDatabase()
 /** 所有 Store 持久化记录使用的统一主键 */
 export const DB_ID = DATABASE_MAIN_RECORD_ID
 
+// 统一再导出数据库记录类型，便于其他模块从 @/db 引入
 export type {
   AISettingsRecord,
   AppPreferencesRecord,

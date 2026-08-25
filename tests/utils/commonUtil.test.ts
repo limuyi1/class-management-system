@@ -1,6 +1,13 @@
+/**
+ * commonUtil 测试
+ * 覆盖数组分组工具 groupArray 与延时工具 delay，
+ * 包括空数组、余数分组、分组大小边界与假定时器下的延时解析等场景。
+ */
+
 import { describe, expect, it, vi } from 'vitest'
 import { groupArray, delay } from '../../src/utils/commonUtil'
 
+// 数组分组：验证空输入、按指定大小切分与末尾不足一组等场景
 describe('groupArray', () => {
   it('should return empty array when input is empty', () => {
     const result = groupArray([], 3)
@@ -60,7 +67,9 @@ describe('groupArray', () => {
   })
 })
 
+// 延时工具：使用假定时器验证指定毫秒后 promise 被解析
 describe('delay', () => {
+  // 每个用例前启用假定时器，避免真实等待
   beforeEach(() => {
     vi.useFakeTimers()
   })

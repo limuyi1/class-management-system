@@ -11,6 +11,7 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 const wrongBookStore = useWrongBookStore()
 const { questionTypes: list } = storeToRefs(wrongBookStore)
 
+/** 新增题型名称输入与是否处于编辑状态 */
 const text = ref('')
 const editing = ref(false)
 
@@ -62,6 +63,7 @@ const remove = (item: { value: string; label: string }) => {
   <div class="unit-configuration__wrapper">
     <el-card>
       <div class="unit-configuration-title">题型管理</div>
+      <!-- 题型列表（可拖拽排序） -->
       <draggable
         class="unit-configuration-item__wrapper"
         v-model="list"
@@ -82,6 +84,7 @@ const remove = (item: { value: string; label: string }) => {
           </div>
         </template>
       </draggable>
+      <!-- 新增题型入口与输入区 -->
       <el-button class="unit-configuration-btn" v-if="!editing" dashed @click="editing = true">
         <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
         增加题型

@@ -1,3 +1,8 @@
+/**
+ * 测试 seatingChartStudentUtil 模块。
+ * 覆盖：系统学生名单构建（稳定 ID、空名回退）、Excel 名单构建（去空格、跳过空行），
+ * 以及按座位表数据源解析当前使用的名单。
+ */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -8,6 +13,7 @@ import {
 import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
 import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
+// 构造以 Excel 名单为数据源、包含两名重名学生的测试座位表
 const createChart = (): SeatingChartType => ({
   id: 'chart',
   name: '测试座位表',
@@ -29,6 +35,7 @@ const createChart = (): SeatingChartType => ({
   updatedAt: ''
 })
 
+// 座位表学生名单工具函数测试组
 describe('seatingChartStudentUtil', () => {
   it('builds system students with stable system IDs', () => {
     expect(

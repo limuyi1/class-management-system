@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学生趋势分析面板 — 支持多选对比、图表模式切换、学情摘要与评语预览 */
 import { computed, ref } from 'vue'
 import { match } from 'pinyin-pro'
 import { ElMessage } from 'element-plus'
@@ -35,17 +36,24 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对外事件：更新选中学生（v-model）、跳转评语页、导出学生报告 */
 const emit = defineEmits<{
   'update:modelValue': [value: string[]]
   'go-evaluation': []
   'export-report': [studentId: string]
 }>()
 
+/** 图表展示模式：折线图 / 柱状图 */
 const chartMode = ref<'line' | 'bar'>('line')
+/** 学生搜索关键字，支持姓名与拼音匹配 */
 const studentSearchKeyword = ref('')
+/** 评语为空时的占位文案 */
 const emptyCommentText = '暂无评语，可前往评语页继续处理'
+/** 允许同时对比的最大学生人数（来自总览配置） */
 const maxCompareCount = overviewDashboardConfig.studentTrend.maxCompareCount
+/** 是否为外部单人查看入口（只读、单选） */
 const isSingleReadonly = computed(() => props.variant === 'singleReadonly')
+/** 趋势空态面板的标题与说明，按页面阶段区分 */
 const emptyTrendState = computed(() => {
   if (props.stage === 'noUnits') {
     return {
@@ -94,7 +102,9 @@ const selectedValue = computed({
   }
 })
 
+/** 学情摘要列表，由趋势数据构建 */
 const displaySummaries = computed(() => buildStudentTrendSummaries(props.studentTrend))
+/** ECharts 图表配置，根据趋势数据与图表模式构建 */
 const chartOption = computed(() =>
   buildStudentTrendChartOption(props.studentTrend, chartMode.value)
 )
@@ -131,6 +141,7 @@ const exportReport = () => {
   emit('export-report', targetStudentId)
 }
 
+/** 按搜索关键字过滤后的学生选项列表 */
 const filteredStudentOptions = computed(() => {
   const keyword = studentSearchKeyword.value.trim()
   if (!keyword) return props.studentOptions
@@ -153,6 +164,7 @@ const handleStudentFilter = (query: string) => {
 
 <template>
   <div class="student-trend-panel">
+    <!-- 工具栏：学生多选搜索 + 图表模式切换 + 跳转评语 -->
     <div class="toolbar-row" :class="{ 'is-single-readonly': isSingleReadonly }">
       <el-select
         v-if="!isSingleReadonly"
@@ -190,6 +202,7 @@ const handleStudentFilter = (query: string) => {
       </div>
     </div>
 
+    <!-- 快捷加入学生按钮组 -->
     <div v-if="!isSingleReadonly && quickStudents.length" class="quick-students">
       <span class="quick-label">快捷加入</span>
       <button
@@ -205,7 +218,9 @@ const handleStudentFilter = (query: string) => {
       </button>
     </div>
 
+    <!-- 有趋势数据时展示图表与摘要 -->
     <template v-if="studentTrend">
+      <!-- 学生信息区：模式标签、学生标签与导出报告按钮 -->
       <div class="student-meta">
         <div class="meta-title">
           <span>{{
@@ -247,10 +262,12 @@ const handleStudentFilter = (query: string) => {
         </div>
       </div>
 
+      <!-- 趋势图表（折线 / 柱状） -->
       <div class="chart-wrapper">
         <app-e-chart :option="chartOption" height="100%" />
       </div>
 
+      <!-- 学情摘要与评语概览 -->
       <div class="summary-panels">
         <div class="summary-section">
           <div class="summary-title">
@@ -312,6 +329,7 @@ const handleStudentFilter = (query: string) => {
       </div>
     </template>
 
+    <!-- 无数据时的空态面板 -->
     <empty-state-panel
       v-else
       icon="user-graduate"

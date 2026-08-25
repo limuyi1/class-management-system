@@ -26,13 +26,17 @@ const props = withDefaults(
   }
 )
 
+// 预览容器、导出纸张与导出内容元素引用
 const previewHostRef = shallowRef<HTMLElement | null>(null)
 const exportElementRef = shallowRef<HTMLElement | null>(null)
 const contentElementRef = shallowRef<HTMLElement | null>(null)
+// 预览容器尺寸
 const previewWidth = shallowRef(0)
 const previewHeight = shallowRef(0)
+// 导出内容自然尺寸，作为内容缩放计算基准
 const naturalWidth = shallowRef(860)
 const naturalHeight = shallowRef(500)
+// 尺寸变化观察器
 let resizeObserver: ResizeObserver | null = null
 
 /** 当前纸张的页面布局尺寸 */

@@ -1,7 +1,14 @@
+/**
+ * useProgress 组合式函数测试
+ * 覆盖：完成进度百分比与完成/未完成计数的计算，包括空数据、全未填写、全部填写、部分填写，
+ * 以及空字符串与 undefined 视为未完成、数值 0 视为已完成等边界情况。
+ */
+
 import { describe, expect, it } from 'vitest'
 import { useProgress } from '../../src/hooks/useProgress'
 import { ref } from 'vue'
 
+// 目标：验证进度计算对各类“有效值”判定规则的正确性
 describe('useProgress', () => {
   it('should return 0 percentage for empty data', () => {
     const data = ref<Array<{ score: number | null }>>([])

@@ -1,3 +1,9 @@
+/**
+ * dutyRosterUtil 测试
+ * 覆盖值日表工具函数：值班时段列表（getDutyPeriods）、默认岗位（createDefaultDutySections）
+ * 与数据规范化（normalizeDutyRoster），包括无效数据清理与旧版数据迁移等场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import { DutyPeriodEnum, DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
@@ -7,6 +13,7 @@ import {
   normalizeDutyRoster
 } from '@/utils/duty-roster/dutyRosterUtil'
 
+// 构造最小完整值日表数据，供各用例复用
 function createRoster(): DutyRosterType {
   return {
     id: 'roster-1',
@@ -23,6 +30,7 @@ function createRoster(): DutyRosterType {
   }
 }
 
+// 值日表工具：时段列表、无效数据清理与旧版数据迁移
 describe('dutyRosterUtil', () => {
   it('keeps all five weekdays in daily mode and a hidden internal period in weekly mode', () => {
     expect(getDutyPeriods(DutyRosterModeEnum.Daily)).toEqual([

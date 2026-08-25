@@ -37,16 +37,20 @@ import type { ScoreNoticeImportResultType, ScoreNoticeStudentType } from '@/type
 import type { StudentDataType } from '@/types/StudentData'
 import type { ScoreNoticeCommentInputType } from '@/ai/aiService'
 
+/** 预览子组件对外暴露的方法：获取报告根元素 */
 interface PreviewExposeType {
   getElement: () => HTMLElement | null
 }
 
+/** 控制面板子组件对外暴露的方法：填充评语草稿 */
 interface ControlPanelExposeType {
   setCommentDraft: (comment: string) => void
 }
 
+/** 批量生成模式：overwrite 覆盖全部，skip 仅处理空评语 */
 type BatchGenerateModeType = 'overwrite' | 'skip'
 
+// 页面依赖的各 store 与路由实例
 const store = useScoreNoticeStore()
 const router = useRouter()
 const aiConfigStore = useAIConfigStore()
@@ -67,7 +71,9 @@ const exportPreviewRef = ref<PreviewExposeType | null>(null)
 const controlPanelRef = ref<ControlPanelExposeType | null>(null)
 const fontFileInputRef = ref<HTMLInputElement | null>(null)
 const previewViewportRef = ref<HTMLElement | null>(null)
+/** 预览缩放比例，依据容器与报告尺寸动态计算 */
 const previewScale = ref(0.68)
+// 监听预览容器尺寸变化并重新计算缩放比例
 let resizeObserver: ResizeObserver | undefined
 
 const selectedStudent = computed(() => store.selectedStudent)
@@ -424,6 +430,7 @@ const updatePreviewScale = (): void => {
   previewScale.value = Math.min(availableWidth / reportWidth, availableHeight / reportHeight, 1)
 }
 
+// 挂载后初始化手写字体、计算缩放比例，并监听容器尺寸变化
 onMounted(() => {
   void initializeHandwriteFont()
   updatePreviewScale()
@@ -435,6 +442,7 @@ onMounted(() => {
   if (report) resizeObserver?.observe(report)
 })
 
+// 卸载前断开尺寸观察器，避免内存泄漏
 onBeforeUnmount(() => {
   resizeObserver?.disconnect()
 })
@@ -456,7 +464,9 @@ onBeforeUnmount(() => {
       </template>
     </page-header>
 
+    <!-- 工作区：左侧实时预览 + 右侧制作面板 -->
     <main class="score-notice-page__workspace">
+      <!-- 预览区域，报告按容器尺寸动态缩放 -->
       <section ref="previewViewportRef" class="score-notice-page__preview">
         <div
           class="score-notice-page__preview-scale"
@@ -496,6 +506,7 @@ onBeforeUnmount(() => {
       />
     </main>
 
+    <!-- 隐藏的手写字体文件选择框 -->
     <input
       ref="fontFileInputRef"
       class="score-notice-page__font-file-input"
@@ -510,6 +521,7 @@ onBeforeUnmount(() => {
       @confirm="handleImportConfirm"
     />
 
+    <!-- 离屏导出预览：批量导出时逐名学生渲染报告 -->
     <div class="score-notice-page__offscreen" aria-hidden="true">
       <score-notice-preview
         ref="exportPreviewRef"

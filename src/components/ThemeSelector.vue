@@ -22,6 +22,7 @@ const handleThemeChange = (themeName: ThemeName) => {
 
 <template>
   <div class="theme-selector">
+    <!-- 主题色块列表，当前主题高亮并显示勾选图标 -->
     <el-tooltip
       v-for="option in themeOptions"
       :key="option.name"

@@ -23,8 +23,10 @@ interface Props {
   questionTypes: QuestionType[]
 }
 
+/** 表单数据、文件夹列表与题型选项 */
 const props = defineProps<Props>()
 
+/** 表单字段更新事件 */
 const emit = defineEmits<{
   'update:form': [value: FormData]
 }>()
@@ -55,6 +57,7 @@ const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => 
         <span class="card-title">基本信息</span>
       </div>
     </template>
+    <!-- 所属文件夹 / 题型 / 来源 -->
     <div class="form-row">
       <el-form-item label="所属文件夹" class="flex-1">
         <el-select

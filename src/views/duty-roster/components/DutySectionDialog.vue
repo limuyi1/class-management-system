@@ -19,7 +19,9 @@ const emit = defineEmits<{
   reorder: [sectionIds: string[]]
 }>()
 
+/** 各区域名称编辑草稿 */
 const drafts = ref<Record<string, string>>({})
+/** 排序后的区域列表 */
 const orderedSections = ref<DutySectionType[]>([])
 
 // 打开弹窗时回填名称草稿与排序后的区域列表

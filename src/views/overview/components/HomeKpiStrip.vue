@@ -142,6 +142,7 @@ const getCardSpan = (card: DashboardSummaryCardType) => {
 <template>
   <section class="home-kpi-strip">
     <div class="summary-grid">
+      <!-- 统计类卡片：立即关注、值得鼓励、中段变化、波动观察 -->
       <overview-summary-card
         v-for="card in statCards"
         :key="card.key"
@@ -149,6 +150,7 @@ const getCardSpan = (card: DashboardSummaryCardType) => {
         :span="getCardSpan(card)"
       />
 
+      <!-- 班级概况卡片，单独渲染 -->
       <overview-summary-overview-card
         v-if="overviewCard"
         :card="overviewCard"

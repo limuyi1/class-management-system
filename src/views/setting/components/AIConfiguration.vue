@@ -18,11 +18,11 @@ import type { AIPromptsType } from '@/types/AIConfig'
 const store = useAIConfigStore()
 const { modelType, model, apiKey, baseUrl, prompts, availableModels } = storeToRefs(store)
 
-const showApiKey = ref(false)
-const testing = ref(false)
-const fetchingModels = ref(false)
-const activePromptTab = ref<keyof AIPromptsType>('singleComment')
-const aiConfigFormRef = ref<FormInstance>()
+const showApiKey = ref(false) // 是否明文显示 API Key
+const testing = ref(false) // 连接测试进行中
+const fetchingModels = ref(false) // 模型列表拉取中
+const activePromptTab = ref<keyof AIPromptsType>('singleComment') // 当前激活的提示词标签页
+const aiConfigFormRef = ref<FormInstance>() // 表单实例引用，用于字段校验
 
 /** API Key 表单校验规则：必填且不能为空白 */
 const aiConfigFormRules: FormRules = {
@@ -220,6 +220,7 @@ const handleResetAllPrompts = async (): Promise<void> => {
   <div class="ai-configuration">
     <el-row :gutter="16">
       <el-col :span="8">
+        <!-- 左侧卡片：AI 模型与连接配置 -->
         <el-card class="config-card">
           <template #header>
             <div class="card-header">
@@ -318,6 +319,7 @@ const handleResetAllPrompts = async (): Promise<void> => {
       </el-col>
 
       <el-col :span="16">
+        <!-- 右侧卡片：各类提示词编辑与重置 -->
         <el-card class="prompt-card">
           <template #header>
             <div class="card-header prompt-card-header">
@@ -361,6 +363,7 @@ const handleResetAllPrompts = async (): Promise<void> => {
             </el-tab-pane>
           </el-tabs>
 
+          <!-- 提示词占位变量说明，帮助用户编写自定义提示词 -->
           <div class="prompt-tips">
             <div class="tip-title">提示：</div>
             <div class="tip-item">

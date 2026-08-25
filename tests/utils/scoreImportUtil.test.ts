@@ -1,3 +1,8 @@
+/**
+ * 测试 scoreImportUtil 模块。
+ * 覆盖：初次导入与增量导入的学生构建、重名检测、成绩列冲突处理（覆盖/跳过）
+ * 以及成绩值解析（数字 / 空值 / 非法文本）。
+ */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -11,6 +16,7 @@ import { NAME_PROP } from '../../src/constants'
 import type { SettingType } from '../../src/types/Setting'
 import type { StudentDataType } from '../../src/types/StudentData'
 
+// 成绩导入工具函数测试组
 describe('scoreImportUtil', () => {
   it('builds initial students from selected name and score columns', () => {
     const result = buildInitialScoreImport({
@@ -48,6 +54,7 @@ describe('scoreImportUtil', () => {
   })
 
   it('adds new score columns for existing students by name', () => {
+    // 已有表头与学生数据，作为增量导入的基底
     const existingHeaders: SettingType[] = [{ prop: 'shu4_xue2', label: '数学', disabled: false }]
     const existingStudents: StudentDataType[] = [
       { [NAME_PROP]: '张三', shu4_xue2: 90 },
@@ -142,6 +149,7 @@ describe('scoreImportUtil', () => {
   })
 
   it('skips ambiguous names and imports unique names incrementally', () => {
+    // 学生列表中存在两名同名“张三”，增量导入时视为歧义并跳过
     const existingHeaders: SettingType[] = []
     const existingStudents: StudentDataType[] = [
       { studentId: 'student-1', [NAME_PROP]: '张三' },

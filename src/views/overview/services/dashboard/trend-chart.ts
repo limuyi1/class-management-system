@@ -21,9 +21,13 @@ const singleTrendReferenceLineColors = {
 
 /** Tooltip 单行数据（来自 ECharts 的 params 数组项） */
 interface TooltipRowType {
+  /** X 轴类目标签（如单元名称） */
   axisValueLabel?: string
+  /** 系列对应的图例标记（HTML 字符串） */
   marker?: string
+  /** 系列名称（如学生姓名或均分参考线名称） */
   seriesName?: string
+  /** 当前数据点的值 */
   value?: unknown
 }
 
@@ -166,6 +170,7 @@ export function buildStudentTrendChartOption(
 ): EChartsOption {
   const students = trend?.students || []
   const shouldShowLineScoreLabel = trend?.mode === 'single'
+  // 汇总所有学生出现过的单元标签作为 X 轴类目，保证多系列数据对齐
   const xAxisLabels = Array.from(
     new Set(students.flatMap((student) => student.trendPoints.map((point) => point.label)))
   )
@@ -248,6 +253,7 @@ export function buildStudentTrendChartOption(
     }
   }
 
+  // 每个学生生成一个数据系列，柱状与折线共用同一份按 X 轴对齐的数据
   const series: Array<LineSeriesOption | BarSeriesOption> = students.map((student, index) => {
     const studentScoreMap = new Map(student.trendPoints.map((point) => [point.label, point.score]))
     const data = xAxisLabels.map((label) => studentScoreMap.get(label) ?? null)

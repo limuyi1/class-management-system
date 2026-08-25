@@ -22,6 +22,7 @@ const emit = defineEmits<{
   select: [name: string]
 }>()
 
+/** 内部状态：当前激活分组 key、各分组的展开状态记录 */
 const state = reactive({
   activeGroupKey: '',
   expandedByGroup: {} as Record<string, boolean>
@@ -36,6 +37,7 @@ const hasVisibleItems = () => props.focusGroups.some((group) => group.sections.l
 const shouldShowInsufficientDataEmpty = computed(
   () => props.completedUnitCount < 2 && !hasVisibleItems()
 )
+/** 空态说明文案，按页面阶段与数据充足程度动态生成 */
 const emptyDescription = computed(() =>
   props.stage === 'noUnits'
     ? '还没有设置单元，设置并录入成绩后会生成学生观察分组'
@@ -105,6 +107,7 @@ watchEffect(() => {
       </div>
     </div>
 
+    <!-- 分组标签页：存在可见分组时展示 -->
     <el-tabs v-if="hasVisibleItems()" v-model="state.activeGroupKey" class="focus-tabs">
       <el-tab-pane
         v-for="group in focusGroups"
@@ -122,6 +125,7 @@ watchEffect(() => {
       </el-tab-pane>
     </el-tabs>
 
+    <!-- 无任何可见分组时的整体空态 -->
     <el-empty v-else :image-size="56" :description="emptyDescription"></el-empty>
   </el-card>
 </template>

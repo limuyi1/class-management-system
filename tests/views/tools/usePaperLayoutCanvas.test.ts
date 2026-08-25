@@ -8,10 +8,18 @@ import {
 import { PagesEnum } from '@/types/Common'
 import type { AttachmentRecordType, PaperLayoutSettingsType } from '@/types/Tools'
 
+/**
+ * usePaperLayoutCanvas 组合式函数测试
+ * 测试目标：试卷排版画布（图片的添加、移动、缩放、删除与画布缩放）
+ * 覆盖功能：指针像素到毫米的换算、素材添加与选中、拖动与缩放、删除与 URL 回收、预览缩放范围
+ */
+
+// 替身素材转 URL 服务，用稳定的 blob 地址避免依赖真实 URL API
 vi.mock('@/views/tools/services/attachmentService', () => ({
   attachmentToObjectUrl: (attachment: AttachmentRecordType) => `blob:${attachment.id}`
 }))
 
+// 构造默认的试卷排版设置：A4 纵向、自由布局、2 列
 const createSettings = (): PaperLayoutSettingsType => ({
   pageType: PagesEnum.A4,
   orientation: 'portrait',
@@ -22,6 +30,7 @@ const createSettings = (): PaperLayoutSettingsType => ({
   gap: 5
 })
 
+// 构造 100 × 50 的图片素材记录，可用 overrides 覆盖字段
 const createAttachment = (
   id: string,
   overrides: Partial<AttachmentRecordType> = {}
@@ -39,13 +48,16 @@ const createAttachment = (
   ...overrides
 })
 
+// 以默认设置与 420px 宽的预览面板创建画布 hook 实例
 const createCanvas = () =>
   usePaperLayoutCanvas({
     settings: createSettings(),
     previewPanelRef: ref({ clientWidth: 420 } as HTMLElement)
   })
 
+// 覆盖画布素材操作的各项交互与换算逻辑
 describe('usePaperLayoutCanvas', () => {
+  // 拦截 URL 回收，避免 happy-dom 环境下释放假 blob 地址报错
   beforeEach(() => {
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => undefined)
   })

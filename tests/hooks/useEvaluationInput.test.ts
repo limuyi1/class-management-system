@@ -1,3 +1,9 @@
+/**
+ * useEvaluationInput 组合式函数测试
+ * 覆盖：从评语编辑器编辑标签时跳转独立学生信息页（携带编辑标签与返回参数）、
+ * 编辑临时 Excel 行时不写入系统数据源且不跳转标签编辑页。
+ */
+
 import { defineComponent, nextTick, ref } from 'vue'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
@@ -7,14 +13,17 @@ import { useEvaluationInput } from '../../src/hooks/useEvaluationInput'
 import { useDataSourceStore } from '../../src/stores/data-source'
 import { NAME_PROP } from '../../src/constants'
 
+// 记录 vue-router push 调用，用于断言路由跳转的参数
 const routerPush = vi.fn()
 
+// mock vue-router，避免测试依赖真实路由实例
 vi.mock('vue-router', () => ({
   useRouter: () => ({
     push: routerPush
   })
 }))
 
+// 测试宿主组件：模拟评语编辑器场景，内部只挂载 hook 并以 input 暴露其返回值
 const Harness = defineComponent({
   setup() {
     const input = useEvaluationInput({
@@ -26,6 +35,7 @@ const Harness = defineComponent({
   template: '<div />'
 })
 
+// 临时数据宿主组件：模拟外班 Excel 临时学生行（studentId 以 excel: 开头）、临时标签且禁止编辑标签
 const TemporaryHarness = defineComponent({
   setup() {
     const students = ref([
@@ -48,6 +58,7 @@ const TemporaryHarness = defineComponent({
   template: '<div />'
 })
 
+// 目标：验证编辑与标签跳转时对系统 store 写入、路由跳转的边界行为
 describe('useEvaluationInput', () => {
   beforeEach(() => {
     setActivePinia(createPinia())

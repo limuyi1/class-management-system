@@ -6,11 +6,17 @@ import type { ComputedRef, Ref } from 'vue'
 import { NAME_PROP } from '@/constants'
 import type { ScoreStatisticsType, ScoreStudentType } from '@/hooks/useScoreStatistics'
 
+/** 成绩分布操作选项 */
 interface UseScoreDistributionActionsOptions {
+  /** 成绩统计结果 */
   scoreStats: ComputedRef<ScoreStatisticsType | null>
+  /** 低于低分阈值的学生列表 */
   belowThresholdStudents: ComputedRef<ScoreStudentType[]>
+  /** 低分阈值 */
   threshold: Ref<number> | ComputedRef<number>
+  /** 统计标题（可选，默认「成绩分布统计」） */
   title?: Ref<string> | ComputedRef<string>
+  /** 从学生数据中提取分数的函数 */
   getScore: (item: ScoreStudentType) => number | null
 }
 
@@ -36,6 +42,8 @@ const toPng = async (element: HTMLElement, scale = 2): Promise<string> => {
 /**
  * 成绩分布操作（复制和图片导出）
  * 提供成绩统计数据复制到剪贴板、低分学生列表导出为图片的功能
+ * @param options - 成绩分布操作依赖的状态与配置
+ * @returns 复制与图片导出方法
  */
 export function useScoreDistributionActions(options: UseScoreDistributionActionsOptions) {
   const { scoreStats, belowThresholdStudents, threshold, title, getScore } = options
@@ -83,6 +91,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       return
     }
 
+    // 根据导出模式构建表格表头与数据行 HTML
     const headerHtml =
       mode === 'withScore'
         ? '<th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">姓名</th><th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">分数</th>'

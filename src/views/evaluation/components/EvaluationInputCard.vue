@@ -27,6 +27,7 @@ const props = withDefaults(defineProps<Props>(), {
   promptUnsavedOnSwitch: true
 })
 
+/** 录入卡片事件：滚动定位与激活学生变化 */
 const emit = defineEmits<{
   scroll: [studentId: string]
   activeStudentChange: [data: StudentDataType | null]

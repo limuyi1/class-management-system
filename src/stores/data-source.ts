@@ -20,8 +20,11 @@ import type { StudentDataType } from '@/types/StudentData'
 export const useDataSourceStore = defineStore('dataSource', {
   state: () => {
     return {
+      /** 学生数据数组 */
       students: [] as StudentDataType[],
+      /** 数据是否已就绪（首次从数据库加载完成） */
       isDataReady: false,
+      /** 数据初始化错误信息（null 表示无错误） */
       initError: null as string | null
     }
   },

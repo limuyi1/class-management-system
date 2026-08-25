@@ -22,6 +22,7 @@ const router = createRouter({
       path: '/main',
       name: 'Main',
       component: MainPage,
+      // 子路由页面采用懒加载，按需请求对应组件以减小首屏体积
       children: [
         {
           path: '/overview',
@@ -110,6 +111,7 @@ export function createDataGuard(
     _from: RouteLocationNormalized,
     next: (to?: string | false | void) => void
   ) => {
+    // 无学生数据时仍允许访问的页面路径（工具与设置类页面）
     const allowedPaths = [
       '/tools',
       '/tools/comments',
@@ -139,6 +141,7 @@ export function createDataGuard(
   }
 }
 
+// 注册全局前置守卫：等待数据初始化完成，数据为空时重定向到工具页
 router.beforeEach(createDataGuard())
 
 export default router

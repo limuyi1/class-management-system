@@ -4,6 +4,13 @@ import { mount } from '@vue/test-utils'
 import { DutyPeriodEnum, DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
 import DutyScheduleMatrix from '@/views/duty-roster/components/DutyScheduleMatrix.vue'
 
+/**
+ * DutyScheduleMatrix 组件测试
+ * 测试目标：值日安排矩阵（编辑态表格）
+ * 覆盖功能：五个工作日的渲染、周次模式的编辑行、岗位名称双击重命名与右键菜单入口
+ */
+
+// 按模式构造值日数据：每日模式含一个周行，每周模式追加第二个周行
 function createRoster(mode: DutyRosterModeEnum = DutyRosterModeEnum.Daily): DutyRosterType {
   const weeklyRows = [
     { id: 'weekly-row-1', sortOrder: 0 },
@@ -49,6 +56,7 @@ function createRoster(mode: DutyRosterModeEnum = DutyRosterModeEnum.Daily): Duty
   }
 }
 
+// 验证矩阵的静态渲染与编辑交互事件
 describe('DutyScheduleMatrix', () => {
   it('renders all five weekdays, flexible student counts and a neutral leader marker', () => {
     const wrapper = mount(DutyScheduleMatrix, {

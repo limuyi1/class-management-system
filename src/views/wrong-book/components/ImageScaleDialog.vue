@@ -2,6 +2,7 @@
 /** 图片尺寸与位置设置弹窗 — 调整插入图片的缩放比例与对齐方式 */
 import { ElDialog, ElSelect, ElOption, ElRadioGroup, ElRadioButton, ElButton } from 'element-plus'
 
+/** 弹窗可见性、缩放比例、对齐方式与原始图片宽度 */
 interface Props {
   visible: boolean
   imageScale: number
@@ -11,6 +12,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 可见性、缩放、对齐的更新事件与确认事件 */
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   'update:imageScale': [value: number]
@@ -43,6 +45,7 @@ const handleConfirm = () => {
     append-to-body
     @update:model-value="(val) => emit('update:visible', val)"
   >
+    <!-- 缩放比例与对齐方式设置 -->
     <div class="image-settings">
       <div class="setting-row">
         <span class="label">缩放比例：</span>

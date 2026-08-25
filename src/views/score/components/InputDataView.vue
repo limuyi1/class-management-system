@@ -16,18 +16,22 @@ import { NAME_PROP } from '@/constants'
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 组件属性：页面阶段 */
 interface Props {
   stage: ScorePageStageType
 }
 
 defineProps<Props>()
 
+// 学生数据与应用配置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const { students: originList } = storeToRefs(store)
 
+// 分数录入卡片实例引用，用于聚焦与编辑
 const scoreInputCardRef = ref<InstanceType<typeof ScoreInputCard>>()
 
+/** 组件事件：定位学生、AI 识图、清除选中、跳转单元配置 */
 const emit = defineEmits<{
   scroll: [studentId: string]
   uploadImage: []
@@ -35,6 +39,7 @@ const emit = defineEmits<{
   goUnitSetting: []
 }>()
 
+// 计算当前科目的录入进度百分比与未录入人数
 const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
   data: originList,
   getValue: (item: StudentDataType) =>
@@ -57,6 +62,7 @@ const hasNullScoreList = computed(() => {
   })
 })
 
+// 未录入名单浮层显隐
 const unfinishedPopoverVisible = ref(false)
 
 /** 点击未录入学生标签时定位到对应学生 */
@@ -83,6 +89,7 @@ defineExpose({
 
 <template>
   <div class="input-data-view__wrapper">
+    <!-- 未设置单元时展示空状态引导 -->
     <empty-state-panel
       v-if="stage === 'noUnits'"
       icon="table-columns"
@@ -92,6 +99,7 @@ defineExpose({
       @action="emit('goUnitSetting')"
     />
 
+    <!-- 录入进度卡片与未录入名单浮层 -->
     <el-card v-else class="progress-card" shadow="never">
       <div class="progress-header">
         <span class="progress-title">录入进度</span>
@@ -132,6 +140,7 @@ defineExpose({
       </el-popover>
     </el-card>
 
+    <!-- 分数录入卡片（无单元时不展示） -->
     <score-input-card
       v-if="stage !== 'noUnits'"
       ref="scoreInputCardRef"

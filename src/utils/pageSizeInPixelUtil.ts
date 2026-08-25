@@ -1,4 +1,7 @@
-/** 纸张尺寸像素换算工具 */
+/**
+ * 纸张尺寸像素换算工具
+ * 提供各纸张在 PDF 坐标系下的点尺寸，以及按屏幕 DPI 换算的像素尺寸
+ */
 import { PagesEnum } from '@/types/Common'
 
 /** 各纸张在 PDF/layout 坐标系下的尺寸（单位：点 pt） */
@@ -25,7 +28,10 @@ export function getPageSize(
     : { ...portrait }
 }
 
-/** 通过临时 1 英寸元素测量屏幕 DPI（每英寸像素数） */
+/**
+ * 通过临时 1 英寸元素测量屏幕 DPI（每英寸像素数）。
+ * @returns 当前屏幕每英寸像素数
+ */
 const getDPI = () => {
   const tempDiv = document.createElement('div')
   tempDiv.style.width = '1in'
@@ -36,16 +42,24 @@ const getDPI = () => {
   return dpi
 }
 
-/** 毫米转像素（保留小数，不做取整） */
+/**
+ * 毫米转像素（保留小数，不做取整）。
+ * @param mm - 毫米长度
+ * @returns 对应的像素长度
+ */
 const mmToPixelPrecise = (mm: number) => {
   const dpi = getDPI()
 
-  // 1 inch = 25.4 mm
+  // 1 英寸 = 25.4 毫米
   const inches = mm / 25.4
   return inches * dpi
 }
 
-/** 毫米转像素（四舍五入到整数） */
+/**
+ * 毫米转像素（四舍五入到整数）。
+ * @param mm - 毫米长度
+ * @returns 四舍五入后的像素长度
+ */
 const mmToPixel = (mm: number) => {
   return Math.round(mmToPixelPrecise(mm))
 }

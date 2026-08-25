@@ -5,6 +5,7 @@
  */
 import type { ScoreStatisticsType } from '@/hooks/useScoreStatistics'
 
+/** 组件属性：分数统计结果 */
 interface Props {
   scoreStats: ScoreStatisticsType
 }
@@ -14,6 +15,7 @@ defineProps<Props>()
 
 <template>
   <div class="range-list">
+    <!-- 每个分数段：区间标签 + 人数比例条 + 人数浮层 -->
     <div v-for="range in scoreStats.ranges" :key="range.label" class="range-item">
       <div class="range-left" :style="{ backgroundColor: range.color + '20', color: range.color }">
         {{ range.label }}

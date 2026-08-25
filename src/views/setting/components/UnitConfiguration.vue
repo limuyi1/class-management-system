@@ -21,8 +21,8 @@ const configurationStore = useConfigurationStore()
 const { scoreColumns: list } = storeToRefs(store)
 const { scoreFullMark } = storeToRefs(configurationStore)
 
-const text = shallowRef('')
-const editing = shallowRef(false)
+const text = shallowRef('') // 新增表头的输入内容
+const editing = shallowRef(false) // 是否处于新增编辑态
 
 /**
  * 判断当前表头是否为固定的姓名列。
@@ -106,6 +106,7 @@ const cancelAdd = () => {
 
 <template>
   <div class="unit-configuration__wrapper">
+    <!-- 全局成绩满分设置 -->
     <div class="fullmark-card">
       <div class="fullmark-card__label">
         <font-awesome-icon :icon="['solid', 'gauge-high']" />
@@ -122,6 +123,7 @@ const cancelAdd = () => {
     </div>
 
     <div class="unit-configuration-grid">
+      <!-- 表头卡片网格：可拖拽排序，支持启停、编辑与删除 -->
       <draggable
         class="unit-configuration-item__wrapper"
         v-model="list"

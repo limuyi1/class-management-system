@@ -1,7 +1,13 @@
+/**
+ * 测试 pdfUtil 的 exportPDF。
+ * 覆盖：DOM 元素导出为 PDF 的渲染链路、A4 纸张尺寸换算、渲染失败时的错误返回。
+ * 通过 mock pdf-lib、dom-to-image 与页面尺寸工具，避免真实渲染与文件写入。
+ */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PagesEnum } from '@/types/Common'
 
+// 提前构造 pdf-lib 的 mock 对象，供 vi.mock 工厂在模块加载前使用
 const pdfMocks = vi.hoisted(() => {
   const drawImage = vi.fn()
   const page = { drawImage }
@@ -15,8 +21,10 @@ const pdfMocks = vi.hoisted(() => {
   return { create: vi.fn(async () => doc), doc, drawImage, image }
 })
 
+// mock dom-to-image 的 toJpeg，返回固定的 JPEG dataURL
 const domtoimageMocks = vi.hoisted(() => ({ toJpeg: vi.fn() }))
 
+// 用 mock 替换真实依赖：PDF 创建、DOM 截图与页面像素尺寸换算
 vi.mock('pdf-lib', () => ({ PDFDocument: { create: pdfMocks.create } }))
 vi.mock('dom-to-image', () => ({ default: { toJpeg: domtoimageMocks.toJpeg } }))
 vi.mock('@/utils/pageSizeInPixelUtil', () => ({
@@ -25,7 +33,9 @@ vi.mock('@/utils/pageSizeInPixelUtil', () => ({
 
 import { exportPDF } from '@/utils/pdfUtil'
 
+// exportPDF 导出功能测试组
 describe('exportPDF', () => {
+  // 每个用例前重置 mock，并准备下载所需的浏览器 API
   beforeEach(() => {
     vi.clearAllMocks()
     domtoimageMocks.toJpeg.mockResolvedValue('data:image/jpeg;base64,AAA')
@@ -34,6 +44,7 @@ describe('exportPDF', () => {
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: vi.fn(() => 'blob:mock') })
     Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: vi.fn() })
 
+    // 桩掉 createElement，为 <a> 元素提供可控的 click 方法
     const originalCreateElement = document.createElement.bind(document)
     vi.spyOn(document, 'createElement').mockImplementation((tagName, options) => {
       const element = originalCreateElement(tagName, options)
@@ -46,6 +57,7 @@ describe('exportPDF', () => {
     })
   })
 
+  // 用例结束后恢复 mock 与全局桩
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()

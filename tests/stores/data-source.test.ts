@@ -5,7 +5,13 @@ import { useDataSourceStore } from '../../src/stores/data-source'
 import { useConfigurationStore } from '../../src/stores/configuration'
 import type { StudentDataType } from '../../src/types/StudentData'
 
+/**
+ * useDataSourceStore store 测试
+ * 测试目标：学生数据源 store
+ * 覆盖功能：数据初始化与设置、按 ID 查找重名学生、启用学生过滤、总人数与各项统计指标（平均分/及格率/优秀率/优良率/低分率）、初始化就绪等待
+ */
 describe('useDataSourceStore', () => {
+  // 每个用例前创建全新的 Pinia 实例，隔离 store 状态
   beforeEach(() => {
     setActivePinia(createPinia())
   })
@@ -77,6 +83,7 @@ describe('useDataSourceStore', () => {
 
   it('should calculate average correctly', () => {
     const configurationStore = useConfigurationStore()
+    // 指定当前统计的成绩列，各统计 getter 均基于该列计算
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
@@ -209,6 +216,7 @@ describe('useDataSourceStore', () => {
     configurationStore.inputScoreTab = 'yu3_wen2'
 
     const store = useDataSourceStore()
+    // 混入字符串与 null 等非数字成绩，验证统计只计入有效数字
     store.students = [
       { name: '张三', yu3_wen2: 80 },
       { name: '李四', yu3_wen2: '90' },

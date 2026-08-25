@@ -4,10 +4,15 @@ import type { ComputedRef, Ref } from 'vue'
 
 /** 座位表视口缩放组合式函数的入参 */
 interface SeatingChartViewportOptionsType {
+  /** 座位网格视口元素引用 */
   viewportRef: Ref<HTMLElement | null>
+  /** 座位行数 */
   rows: ComputedRef<number>
+  /** 座位列数 */
   columns: ComputedRef<number>
+  /** 过道数量 */
   aisleCount: ComputedRef<number>
+  /** 布局键，行列或方向变化时触发重新缩放 */
   layoutKey: ComputedRef<string>
 }
 
@@ -34,9 +39,13 @@ const MIN_SCALE = 0.95
 
 /**
  * 根据座位画布的可用空间自动缩放；达到可读性下限后改由滚动条承载大布局。
+ * @param options - 视口元素引用、行列数、过道数与布局键等响应式输入
+ * @returns 缩放比例、舞台/内容样式与手动刷新函数
  */
 export function useSeatingChartViewport(options: SeatingChartViewportOptionsType) {
+  /** 当前缩放比例 */
   const scale = shallowRef(1)
+  /** 视口尺寸观察器 */
   const resizeObserver = shallowRef<ResizeObserver | null>(null)
 
   const naturalWidth = computed(() => {
@@ -62,17 +71,20 @@ export function useSeatingChartViewport(options: SeatingChartViewportOptionsType
     )
   })
 
+  /** 缩放后的舞台尺寸样式 */
   const stageStyle = computed(() => ({
     width: `${Math.ceil(naturalWidth.value * scale.value)}px`,
     height: `${Math.ceil(naturalHeight.value * scale.value)}px`
   }))
 
+  /** 座位内容样式：原始尺寸 + 缩放变换 */
   const contentStyle = computed(() => ({
     width: `${naturalWidth.value}px`,
     height: `${naturalHeight.value}px`,
     transform: `scale(${scale.value})`
   }))
 
+  /** 依据视口可用空间重新计算缩放比例 */
   function updateScale(): void {
     const viewport = options.viewportRef.value
     if (!viewport || naturalWidth.value === 0 || naturalHeight.value === 0) {
@@ -91,15 +103,18 @@ export function useSeatingChartViewport(options: SeatingChartViewportOptionsType
     scale.value = Math.max(MIN_SCALE, fitScale)
   }
 
+  /** 等待 DOM 更新后重新计算缩放 */
   async function refresh(): Promise<void> {
     await nextTick()
     updateScale()
   }
 
+  // 行列数、过道数或布局方向变化时重新计算缩放
   watch([options.rows, options.columns, options.aisleCount, options.layoutKey], refresh, {
     immediate: true
   })
 
+  // 视口元素挂载后监听尺寸变化
   watch(
     options.viewportRef,
     (viewport) => {
@@ -114,6 +129,7 @@ export function useSeatingChartViewport(options: SeatingChartViewportOptionsType
     { immediate: true, flush: 'post' }
   )
 
+  // 卸载时断开尺寸观察器
   onBeforeUnmount(() => {
     resizeObserver.value?.disconnect()
   })

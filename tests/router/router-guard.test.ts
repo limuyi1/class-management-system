@@ -1,7 +1,14 @@
+/**
+ * 路由守卫（createDataGuard）测试
+ * 覆盖：工具页与设置页跳过数据检查、无数据时首页/学生信息页重定向到工具页、
+ * 评语工具在没有系统学生数据时仍可访问。
+ */
+
 import { describe, expect, it, vi } from 'vitest'
 
-import router, { createDataGuard } from '../../src/router'
+import { createDataGuard } from '../../src/router'
 
+// 目标：验证 createDataGuard 对不同路由的放行与重定向规则
 describe('router guard', () => {
   it('should allow tools route without data check', async () => {
     const store = {

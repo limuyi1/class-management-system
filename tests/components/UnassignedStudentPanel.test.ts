@@ -4,6 +4,13 @@ import { ElInput } from 'element-plus'
 
 import UnassignedStudentPanel from '../../src/views/seating-chart/components/UnassignedStudentPanel.vue'
 
+/**
+ * UnassignedStudentPanel 组件测试
+ * 测试目标：座位表中的未安排学生面板
+ * 覆盖功能：数据来源控件位置、学生卡片与选择事件、已全部安排/无学生/搜索空状态
+ */
+
+// 全局挂载配置：注册真实 ElInput 以便搜索交互，图标组件使用空替身
 const global = {
   components: {
     ElInput
@@ -13,6 +20,7 @@ const global = {
   }
 }
 
+// 验证面板的数据来源控件、学生列表与各类空状态
 describe('UnassignedStudentPanel', () => {
   it('renders the data source control above the student list', () => {
     const wrapper = mount(UnassignedStudentPanel, {

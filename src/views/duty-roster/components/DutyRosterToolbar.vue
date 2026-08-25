@@ -18,6 +18,7 @@ const emit = defineEmits<{
   toggleFullscreen: []
 }>()
 
+// 值日表名称重命名状态：是否编辑、名称草稿与输入框引用
 const editingName = shallowRef(false)
 const nameDraft = shallowRef('')
 const inputRef = shallowRef<HTMLInputElement | null>(null)

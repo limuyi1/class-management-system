@@ -32,17 +32,24 @@ import type { StudentDataType } from '@/types/StudentData'
  * 展示学生期末评语列表，提供编辑、AI 生成和 PDF 导出功能
  */
 
+/** 左侧评语表格预览视图的组件引用 */
 const evaluationTableViewRef = ref<InstanceType<typeof EvaluationTableView>>()
+/** 右侧工具面板的组件引用 */
 const toolPanelViewRef = ref<InstanceType<typeof ToolPanelView>>()
+/** 隐藏的手写字体文件输入框引用 */
 const fontFileInputRef = ref<HTMLInputElement | null>(null)
+/** 路由与当前路由信息，用于返回工具页与恢复编辑跳转 */
 const route = useRoute()
 const router = useRouter()
 
+/** 返回工具页面 */
 const backToTools = (): void => {
   void router.push('/tools')
 }
 
+// 各全局 store 及响应式引用：学生数据、配置、设置与 AI 配置
 const dataStore = useDataSourceStore()
+/** 系统数据源中的已启用学生 */
 const { enabledData: systemStudents } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
@@ -65,13 +72,18 @@ const {
   systemStudents,
   systemTagCategories: tagCategoryList
 })
+/** 评语完成度：进度百分比与未完成人数 */
 const { percentage, notCompletedCount } = useProgress({
   data: students,
   getValue: (item: StudentDataType) => item.comment
 })
+/** 学生总数 */
 const totalCount = computed(() => students.value.length)
+/** 是否已有可处理的学生数据 */
 const hasWorkspaceData = computed(() => totalCount.value > 0)
+/** 已完成评语人数（避免出现负数） */
 const completedCount = computed(() => Math.max(0, totalCount.value - notCompletedCount.value))
+/** 当前激活的学生 ID，用于左侧预览卡片高亮 */
 const activeStudentId = ref('')
 /**
  * 归一化预览缩放模式，非法值统一回退为 100%。
@@ -88,6 +100,7 @@ const normalizePreviewMode = (value: string): PreviewModeType => {
   return value === 'actual' ? '100' : '100'
 }
 
+/** 预览缩放模式，读写全局配置并在读取时归一化非法值 */
 const previewMode = computed<PreviewModeType>({
   get: () => normalizePreviewMode(configuration.previewMode),
   set: (value) => {
@@ -119,9 +132,11 @@ const { handleExportTextExcel, handleExportTextPDF, textExcelExporting, textPdfE
     enabledStudents: students,
     configuration
   })
+/** 是否有任一导出（PDF/Excel）正在进行 */
 const textExporting = computed(
   () => textPdfExporting.value || textExcelExporting.value || excelExporting.value
 )
+/** 是否有批量生成或润色正在进行 */
 const batchProcessing = computed(() => batchGenerating.value || batchPolishing.value)
 
 /**
@@ -147,6 +162,7 @@ const handleExportAction = (command: string | number | object) => {
   }
 }
 
+/** 分发批量操作命令：填充空白评语 / 覆盖重新生成 / 润色已有评语 */
 const handleBatchAction = async (command: string | number | object): Promise<void> => {
   if (command === 'fill-empty') {
     await handleBatchGenerate('skip')
@@ -175,6 +191,7 @@ const handleBatchAction = async (command: string | number | object): Promise<voi
 }
 
 onMounted(() => {
+  // 页面挂载后恢复或等待手写字体就绪
   void initializeHandwriteFont()
 })
 
@@ -223,6 +240,12 @@ const handleResetComments = async () => {
   }
 }
 
+/**
+ * 按学生 ID 恢复编辑：等待渲染完成后将学生数据填充到输入区。
+ *
+ * @param studentId 学生 ID
+ * @returns 是否成功恢复编辑
+ */
 const resumeEditingStudent = async (studentId: string) => {
   await nextTick()
   const student = dataStore.getStudentById(studentId)

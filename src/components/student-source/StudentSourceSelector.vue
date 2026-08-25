@@ -8,9 +8,13 @@ import type { StudentSourceType } from '@/types/StudentSource'
  * 这些副作用必须由座位表、评语处理等业务容器自行确认和执行。
  */
 interface Props {
+  /** 当前数据来源 */
   source: StudentSourceType
+  /** 系统学生人数 */
   systemStudentCount: number
+  /** Excel 文件名 */
   excelFileName?: string
+  /** Excel 学生人数 */
   excelStudentCount?: number
 }
 
@@ -20,7 +24,9 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
+  /** 来源切换 */
   change: [source: StudentSourceType]
+  /** 请求上传 Excel 名单 */
   upload: []
 }>()
 
@@ -44,6 +50,7 @@ const handleCommand = (command: string | number | object): void => {
 <template>
   <div class="student-source-selector">
     <span class="student-source-selector__caption">数据来源</span>
+    <!-- 来源下拉菜单 -->
     <el-dropdown trigger="click" placement="bottom-start" @command="handleCommand">
       <button class="student-source-selector__trigger source-trigger" type="button">
         <span class="student-source-selector__icon" :class="{ 'is-excel': source === 'excel' }">
@@ -75,6 +82,7 @@ const handleCommand = (command: string | number | object): void => {
         </el-dropdown-menu>
       </template>
     </el-dropdown>
+    <!-- 右侧操作插槽 -->
     <div class="student-source-selector__actions"><slot name="actions" /></div>
   </div>
 </template>

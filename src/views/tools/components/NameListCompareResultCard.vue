@@ -13,6 +13,7 @@ import type {
 type ExportGroupType = keyof NameListCompareGroupsType
 type ExportActionType = 'copy' | 'export'
 
+/** 组件属性：基准/对照标签、对比数据与差异过滤开关 */
 interface Props {
   baselineLabel: string
   comparisonLabel: string
@@ -23,11 +24,14 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对外事件：更新差异过滤开关、发起复制/导出 */
 const emit = defineEmits<{
   'update:onlyDifference': [value: boolean]
   action: [payload: { group: ExportGroupType; action: ExportActionType }]
 }>()
+/** 表格实例引用，用于滚动定位差异行 */
 const tableRef = ref<InstanceType<typeof ElTable>>()
+/** 当前差异游标（对应 differenceRowIndexes 中的位置） */
 const currentDifferenceCursor = ref(0)
 
 /** 依据“只看差异”开关过滤展示行：差异行为基准或对照某一侧为空 */
@@ -78,6 +82,7 @@ const summaryItems = computed(() => {
   ]
 })
 
+/** 向上抛出复制/导出动作 */
 function handleAction(group: ExportGroupType, action: ExportActionType): void {
   emit('action', { group, action })
 }
@@ -153,6 +158,7 @@ watch(
 
 <template>
   <div class="compare-result-card">
+    <!-- 对比汇总胶囊：匹配/仅基准/仅对照 -->
     <div v-if="summaryItems.length > 0" class="summary-strip">
       <button
         v-for="item in summaryItems"
@@ -172,6 +178,7 @@ watch(
     </div>
 
     <div class="result-card">
+      <!-- 卡片头部：标题与差异过滤/导航/复制导出操作 -->
       <div class="result-card__header">
         <div class="result-card__title-group">
           <div class="result-card__title">对照视图</div>
@@ -279,6 +286,7 @@ watch(
         </div>
       </div>
 
+      <!-- 对照表格：按基准顺序逐行对照姓名 -->
       <div v-if="hasRows" class="result-table">
         <el-table
           ref="tableRef"

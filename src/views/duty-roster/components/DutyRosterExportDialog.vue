@@ -29,6 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
+// 导出配置状态：预览引用、格式、纸张、缩放与显示开关等
 const previewRef = shallowRef<InstanceType<typeof DutyRosterExportPreview> | null>(null)
 const format = shallowRef<DutyRosterExportFormatType>('png')
 const pageType = shallowRef<PagesEnum>(PagesEnum.A4)

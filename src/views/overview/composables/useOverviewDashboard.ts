@@ -18,6 +18,8 @@ const getInitialStudentId = (students: Array<{ value: string }>): string | null 
  * 1. 从 store 构建展示数据
  * 2. 维护趋势分析的选中学生
  * 3. 兜底处理默认选中和人数限制
+ *
+ * @returns 选中学生、总览数据以及学生聚焦与选择方法
  */
 export function useOverviewDashboard() {
   const dataStore = useDataSourceStore()

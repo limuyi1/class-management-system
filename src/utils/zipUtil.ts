@@ -14,7 +14,11 @@ const crcTable = Array.from({ length: 256 }, (_, value) => {
   return crc >>> 0
 })
 
-/** 计算字节数组的 CRC-32 校验值 */
+/**
+ * 计算字节数组的 CRC-32 校验值。
+ * @param bytes - 待校验的字节数组
+ * @returns CRC-32 校验值
+ */
 const calculateCrc32 = (bytes: Uint8Array): number => {
   let crc = 0xffffffff
   bytes.forEach((byte) => {
@@ -23,12 +27,22 @@ const calculateCrc32 = (bytes: Uint8Array): number => {
   return (crc ^ 0xffffffff) >>> 0
 }
 
-/** 以 little-endian 写入 16 位无符号整数 */
+/**
+ * 以 little-endian 写入 16 位无符号整数。
+ * @param view - 目标数据视图
+ * @param offset - 写入偏移量（字节）
+ * @param value - 待写入的值
+ */
 const writeUint16 = (view: DataView, offset: number, value: number): void => {
   view.setUint16(offset, value, true)
 }
 
-/** 以 little-endian 写入 32 位无符号整数 */
+/**
+ * 以 little-endian 写入 32 位无符号整数。
+ * @param view - 目标数据视图
+ * @param offset - 写入偏移量（字节）
+ * @param value - 待写入的值
+ */
 const writeUint32 = (view: DataView, offset: number, value: number): void => {
   view.setUint32(offset, value, true)
 }
@@ -39,7 +53,11 @@ export interface ZipEntryType {
   data: Blob | Uint8Array
 }
 
-/** 将 Uint8Array 复制为独立内存的 ArrayBuffer */
+/**
+ * 将 Uint8Array 复制为独立内存的 ArrayBuffer，避免底层缓冲区被复用。
+ * @param bytes - 源字节数组
+ * @returns 复制后的 ArrayBuffer
+ */
 const toArrayBuffer = (bytes: Uint8Array): ArrayBuffer => {
   const copy = new Uint8Array(bytes.byteLength)
   copy.set(bytes)

@@ -1,9 +1,16 @@
+/**
+ * evaluationTextPdfUtil 测试
+ * 覆盖期末评语 PDF 导出（exportEvaluationTextPDF），
+ * 通过 mock pdf-lib、fontkit、手写字体与 canvas 环境，验证导出成功且自适应字号与预览一致。
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { PagesEnum } from '../../src/types/Common'
 import { NAME_PROP } from '../../src/constants'
 import type { ConfigurationType } from '../../src/types/Configuration'
 
+// 预置 pdf-lib 的 mock：文档、页面与绘制方法，用于捕获导出时的绘制调用
 const pdfMocks = vi.hoisted(() => {
   const drawText = vi.fn()
   const drawLine = vi.fn()
@@ -28,12 +35,14 @@ const pdfMocks = vi.hoisted(() => {
   }
 })
 
+// mock fontkit：所有码点均视为已有字形覆盖
 const fontkitMocks = vi.hoisted(() => ({
   create: vi.fn(() => ({
     hasGlyphForCodePoint: vi.fn(() => true)
   }))
 }))
 
+// mock 手写字体工具：返回固定字体字节与测量字体族
 const handwriteFontMocks = vi.hoisted(() => ({
   getEvaluationHandwriteFontBytes: vi.fn(async () => new Uint8Array(2048)),
   getEvaluationHandwriteMeasureFontFamily: vi.fn(() => 'sans-serif')
@@ -52,6 +61,7 @@ vi.mock('@pdf-lib/fontkit', () => ({
 
 vi.mock('../../src/utils/evaluation/evaluationHandwriteFontUtil', () => handwriteFontMocks)
 
+// mock canvas 上下文：以「字符数 × 字号」估算文本宽度
 const createCanvasContextMock = () => {
   let currentFontSize = 16
 
@@ -68,6 +78,7 @@ const createCanvasContextMock = () => {
   }
 }
 
+// 构造完整导出配置：包含字号、纸张类型与评语卡片尺寸
 const createConfiguration = (): ConfigurationType => ({
   fontSize: 18,
   salutationFontSize: 18,
@@ -91,7 +102,9 @@ const createConfiguration = (): ConfigurationType => ({
   evaluationHandwriteFont: null
 })
 
+// 期末评语 PDF 导出：验证导出成功且自适应字号与预览保持一致
 describe('exportEvaluationTextPDF', () => {
+  // 每个用例前 mock DOM、fetch 与 URL 对象方法，搭建导出所需的浏览器环境
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()

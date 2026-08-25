@@ -17,12 +17,19 @@ import type { SeatingChartPageOrientationType } from '@/utils/seating-chart/seat
 
 const props = withDefaults(
   defineProps<{
+    /** 当前座位表 */
     chart: SeatingChartType
+    /** 学生 ID 到姓名的映射 */
     studentNames: Record<string, string>
+    /** 是否显示标题 */
     showTitle?: boolean
+    /** 是否显示“空座位”标签 */
     showEmptyLabels: boolean
+    /** 纸张类型 */
     pageType?: PagesEnum
+    /** 页面方向 */
     orientation?: SeatingChartPageOrientationType
+    /** 版面缩放百分比 */
     layoutScalePercent?: number
   }>(),
   {
@@ -33,13 +40,17 @@ const props = withDefaults(
   }
 )
 
+// 预览宿主元素与导出纸张元素；导出时对 exportElementRef 截图
 const previewHostRef = shallowRef<HTMLElement | null>(null)
 const exportElementRef = shallowRef<HTMLElement | null>(null)
 const contentElementRef = shallowRef<HTMLElement | null>(null)
+// 预览容器的尺寸
 const previewWidth = shallowRef(0)
 const previewHeight = shallowRef(0)
+// 座位内容的自然尺寸，作为缩放计算基准
 const naturalWidth = shallowRef(760)
 const naturalHeight = shallowRef(540)
+// 监听内容与容器尺寸变化的观察器
 let contentResizeObserver: ResizeObserver | null = null
 
 /** 当前纸张的页面布局尺寸 */
@@ -123,6 +134,7 @@ function measurePreviewHost(): void {
   previewHeight.value = previewHostRef.value.clientHeight
 }
 
+// 挂载后测量尺寸，并监听内容与容器尺寸变化以更新预览
 onMounted(async () => {
   await nextTick()
   measureContent()
@@ -136,6 +148,7 @@ onMounted(async () => {
   if (previewHostRef.value) contentResizeObserver.observe(previewHostRef.value)
 })
 
+// 卸载时断开尺寸观察器
 onBeforeUnmount(() => contentResizeObserver?.disconnect())
 
 /**
@@ -175,6 +188,7 @@ defineExpose({ getElement })
 
 <template>
   <div ref="previewHostRef" class="seating-export-preview">
+    <!-- 按容器缩放后的纸张舞台，保证整张纸可见 -->
     <div class="preview-paper-stage" :style="previewStageStyle">
       <div class="preview-paper-display" :style="previewPaperStyle">
         <article ref="exportElementRef" class="seating-export-sheet" :style="paperStyle">
@@ -184,6 +198,7 @@ defineExpose({ getElement })
                 <h2>{{ chart.name }}</h2>
               </header>
 
+              <!-- 教室平面图：讲台区 + 座位网格 -->
               <div class="classroom-plan">
                 <div class="platform-area">
                   <div

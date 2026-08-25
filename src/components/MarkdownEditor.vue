@@ -49,12 +49,15 @@ const toolbars: ToolbarNames[] = [
   'htmlPreview'
 ] as ToolbarNames[]
 
+/** 编辑器内容的 v-model 双向绑定代理 */
 const content = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value)
 })
 
+/** 预览弹窗中渲染的 HTML 内容 */
 const previewContent = ref('')
+/** 预览弹窗是否可见 */
 const previewVisible = ref(false)
 
 /**
@@ -66,6 +69,7 @@ const handleInsertFormula = (formula: string) => {
   emit('insertFormula', formula)
 }
 
+/** 编辑器组件实例引用 */
 const editorRef = ref<InstanceType<typeof MdEditor> | null>(null)
 
 /**
@@ -87,6 +91,7 @@ const handleToggleFullscreen = () => {
   editor.pageFullscreen?.()
 }
 
+// 对外暴露内容读取与全屏切换方法
 defineExpose({
   getContent: () => content.value,
   toggleFullscreen: handleToggleFullscreen
@@ -106,9 +111,11 @@ defineExpose({
       :autofocus="false"
     >
       <template #defToolbars>
+        <!-- 自定义工具栏入口：插入图片 -->
         <NormalToolbar v-if="showImageBtn" title="插入图片" @onClick="emit('insertImage')">
           <font-awesome-icon :icon="['fas', 'image']" />
         </NormalToolbar>
+        <!-- 自定义工具栏入口：插入公式 -->
         <el-popover
           v-if="showFormulaBtn"
           placement="bottom-start"
@@ -126,6 +133,7 @@ defineExpose({
       </template>
     </MdEditor>
 
+    <!-- 预览弹窗 -->
     <el-dialog v-model="previewVisible" title="预览" width="60%" append-to-body>
       <div class="preview-content markdown-body" v-html="previewContent"></div>
       <template #footer>

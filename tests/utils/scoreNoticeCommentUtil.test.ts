@@ -1,3 +1,8 @@
+/**
+ * 测试 scoreNoticeCommentUtil 模块。
+ * 覆盖：评语禁用词校验（具体分数、名次排名）、180~320 字长度限制、
+ * 段落换行归一化以及 AI 不可用时的模板评语生成。
+ */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -7,6 +12,7 @@ import {
 } from '../../src/utils/score-notice/scoreNoticeCommentUtil'
 import { ScoreNoticeCommentStatusEnum } from '../../src/types/ScoreNotice'
 
+// 成绩通知评语工具函数测试组
 describe('scoreNoticeCommentUtil', () => {
   it('rejects comments that reveal concrete scores or rankings', () => {
     expect(getScoreNoticeCommentValidationReasons('本次考试获得了95分，整体表现不错。')).toEqual(
@@ -38,6 +44,7 @@ describe('scoreNoticeCommentUtil', () => {
     )
   })
 
+  // 无 AI 结果时按等第生成模板评语，仍需通过禁用词与字数校验
   it('builds a qualified detailed template comment when AI is unavailable', () => {
     const comment = buildTemplateScoreNoticeComment(
       {

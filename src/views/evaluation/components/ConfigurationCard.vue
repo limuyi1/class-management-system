@@ -10,13 +10,17 @@ import type { EvaluationTableAlignType, PreviewModeType } from '@/types/Configur
 
 const store = useConfigurationStore()
 
+/** 字体大小折叠面板的激活项 */
 const activeNames = ref<string[]>([])
+/** 高级配置展开状态 */
 const expanded = ref(false)
+/** 表格对齐方式选项 */
 const alignOptions: Array<{ label: string; value: EvaluationTableAlignType }> = [
   { label: '靠左', value: 'left' },
   { label: '居中', value: 'center' },
   { label: '靠右', value: 'right' }
 ]
+/** 预览缩放模式选项 */
 const previewOptions: Array<{ label: string; value: PreviewModeType }> = [
   { label: '适应窗口', value: 'fit' },
   { label: '50%', value: '50' },
@@ -25,6 +29,7 @@ const previewOptions: Array<{ label: string; value: PreviewModeType }> = [
   { label: '125%', value: '125' }
 ]
 
+/** 配置摘要文本：卡片尺寸 / 边距 / 表格对齐 / 页码显示 */
 const summaryText = computed(() => {
   const cardSizeText = `卡片 ${store.evaluationCardWidth}×${store.evaluationCardHeight}mm`
   const marginText = `边距 ${store.marginX}/${store.marginY}mm`

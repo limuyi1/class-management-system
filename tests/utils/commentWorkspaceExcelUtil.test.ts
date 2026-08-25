@@ -1,3 +1,9 @@
+/**
+ * commentWorkspaceExcelUtil 测试
+ * 覆盖 Excel 评语工作区的构建与回写：临时标签解析（parseTemporaryCommentTags）、
+ * 工作区行构建（buildExcelCommentWorkspace）与单元格更新（buildExcelCommentCellUpdates）。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -9,6 +15,7 @@ import {
 } from '../../src/utils/evaluation/commentWorkspaceExcelUtil'
 import { NAME_PROP } from '../../src/constants'
 
+// Excel 评语工作区：临时标签解析、工作区构建与回写单元格定位
 describe('commentWorkspaceExcelUtil', () => {
   it('splits temporary tags by common punctuation without splitting spaces in a tag', () => {
     expect(

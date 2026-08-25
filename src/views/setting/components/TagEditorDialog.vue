@@ -35,7 +35,7 @@ const cascaderOptions = computed(() => {
 /** 是否至少存在一个可选标签，用于判断是否需要引导去维护标签 */
 const hasAnyTags = computed(() => cascaderOptions.value.some((cat) => cat.children && cat.children.length > 0))
 
-const currentCascaderValue = ref<string[][]>([])
+const currentCascaderValue = ref<string[][]>([]) // 级联选择器选中值，结构为 [分类, 标签][] 二维数组
 
 /**
  * 将学生的标签对象展开为 [分类, 标签] 二维数组，供级联选择器回显。
@@ -97,6 +97,7 @@ const initCascaderValue = () => {
     destroy-on-close
     @opened="initCascaderValue"
   >
+    <!-- 分类-标签两级多选选择器 -->
     <el-cascader
       v-model="currentCascaderValue"
       :options="cascaderOptions"

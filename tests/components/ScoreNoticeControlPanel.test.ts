@@ -7,11 +7,18 @@ import ScoreNoticeControlPanel from '../../src/views/score-notice/components/Sco
 import { useScoreNoticeStore } from '../../src/stores/score-notice'
 import { ScoreNoticeCommentStatusEnum } from '../../src/types/ScoreNotice'
 
+/**
+ * ScoreNoticeControlPanel 组件测试
+ * 测试目标：成绩通知控制面板（导入 → 设置 → 学生评语 → 导出 的分步面板）
+ * 覆盖功能：分步折叠面板的默认展开与独立开合、批量生成事件、评语草稿的保存机制、导出就绪状态
+ */
 describe('ScoreNoticeControlPanel', () => {
+  // 每个用例前创建全新的 Pinia 实例，隔离成绩通知 store 状态
   beforeEach(() => {
     setActivePinia(createPinia())
   })
 
+  // 以固定的面板 props 挂载组件，简化各用例的重复配置
   const mountPanel = () =>
     mount(ScoreNoticeControlPanel, {
       props: {
@@ -29,6 +36,7 @@ describe('ScoreNoticeControlPanel', () => {
       global: { plugins: [ElementPlus] }
     })
 
+  // 向成绩通知 store 注入两名学生数据：一条待处理、一条已生成
   const seedStudents = (): void => {
     const store = useScoreNoticeStore()
     store.$patch({
@@ -143,6 +151,7 @@ describe('ScoreNoticeControlPanel', () => {
     expect(completedFilter).toBeDefined()
 
     await completedFilter!.trigger('click')
+    // 模拟持久化数据加载后触发 store 补丁，验证已折叠的设置面板不被重新展开
     store.students = store.students.map((student) => ({ ...student }))
     await wrapper.vm.$nextTick()
 
@@ -170,6 +179,7 @@ describe('ScoreNoticeControlPanel', () => {
         3
       )
 
+    // 直接调用组件方法写入草稿，验证草稿在手动保存前不会落入 store
     ;(wrapper.vm as unknown as { setCommentDraft: (comment: string) => void }).setCommentDraft(
       generated
     )

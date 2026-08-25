@@ -13,11 +13,13 @@ import {
 import { renderMarkdown } from '@/utils/katexUtil'
 import type { WrongQuestion } from '@/types/WrongBook'
 
+/** 题目列表与外部传入的已选 id */
 interface Props {
   questions: WrongQuestion[]
   selectedIds?: string[]
 }
 
+/** 编辑、删除、收藏切换与选中变化事件 */
 interface Emits {
   (e: 'edit', question: WrongQuestion): void
   (e: 'delete', id: string): void
@@ -42,6 +44,7 @@ watch(
   { immediate: true, deep: true }
 )
 
+/** 是否已全部选中 */
 const isAllSelected = computed(() => {
   return props.questions.length > 0 && localSelectedIds.value.length === props.questions.length
 })
@@ -99,7 +102,7 @@ const handleDelete = async (question: WrongQuestion) => {
     })
     emit('delete', question.id)
   } catch {
-    // cancelled
+    // 用户取消删除操作
   }
 }
 
@@ -161,6 +164,7 @@ const renderContent = (content: string) => {
   return renderMarkdown(content)
 }
 
+/** 详情弹窗可见性与当前展示的题目 */
 const detailVisible = ref(false)
 const currentQuestion = ref<WrongQuestion | null>(null)
 
@@ -179,6 +183,7 @@ const closeDetail = () => {
   currentQuestion.value = null
 }
 
+/** 图片大图预览可见性与图片源 */
 const imagePreviewVisible = ref(false)
 const imagePreviewUrl = ref('')
 
@@ -194,6 +199,7 @@ const handleImagePreview = (img: string) => {
 
 <template>
   <div class="question-list-container">
+    <!-- 列表头部：全选与数量统计 -->
     <div class="question-header">
       <el-checkbox
         :model-value="isAllSelected"
@@ -211,6 +217,7 @@ const handleImagePreview = (img: string) => {
     <el-empty v-if="questions.length === 0" description="暂无错题，点击右上角添加" />
 
     <el-scrollbar v-else>
+      <!-- 题目卡片列表 -->
       <div class="question-list">
         <div
           v-for="question in questions"
@@ -299,6 +306,7 @@ const handleImagePreview = (img: string) => {
       </div>
     </el-scrollbar>
 
+    <!-- 题目详情弹窗 -->
     <el-dialog
       v-model="detailVisible"
       :title="`错题详情 - ${currentQuestion?.questionType || '题目'}`"
@@ -380,6 +388,7 @@ const handleImagePreview = (img: string) => {
       </template>
     </el-dialog>
 
+    <!-- 图片大图预览 -->
     <el-image-viewer
       v-if="imagePreviewVisible"
       :url-list="[imagePreviewUrl]"

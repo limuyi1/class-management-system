@@ -6,6 +6,7 @@
 import { NAME_PROP } from '@/constants'
 import type { ScoreStudentType } from '@/hooks/useScoreStatistics'
 
+/** 组件属性：阈值、阈值模式、平均分、低分名单与分数读取函数 */
 interface Props {
   threshold: number
   effectiveThreshold: number
@@ -15,6 +16,7 @@ interface Props {
   getScore: (item: ScoreStudentType) => number | null
 }
 
+/** 组件事件：阈值/阈值模式调整与名单下载 */
 interface Emits {
   (event: 'update:threshold', value: number): void
   (event: 'update:threshold-mode', value: 'average' | 'custom'): void
@@ -27,6 +29,7 @@ const emit = defineEmits<Emits>()
 
 <template>
   <div class="threshold-section">
+    <!-- 阈值控制：平均分/自定义切换与自定义输入 -->
     <div class="threshold-controls">
       <span class="label">低于</span>
       <el-segmented
@@ -54,6 +57,7 @@ const emit = defineEmits<Emits>()
       <span class="label">分</span>
     </div>
 
+    <!-- 低分人数与名单下载菜单 -->
     <div class="threshold-actions">
       <span class="student-count">{{ students.length }} 人</span>
       <el-dropdown trigger="hover">
@@ -71,6 +75,7 @@ const emit = defineEmits<Emits>()
     </div>
   </div>
 
+  <!-- 低分学生名单标签 -->
   <div class="student-tags" v-if="students.length">
     <!-- 人数较少时平铺展示，超过 8 人则收起为浮层 -->
     <template v-if="students.length <= 8">

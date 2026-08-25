@@ -9,16 +9,22 @@ interface AttachmentViewType extends AttachmentRecordType {
   url: string
 }
 
+/** 弹窗可见性（通过 v-model:visible 双向绑定） */
 const visible = defineModel<boolean>('visible', { required: true })
+/** 对外事件：确认加入排版、前往素材库添加 */
 const emit = defineEmits<{
   confirm: [attachments: AttachmentRecordType[]]
   addAttachments: []
 }>()
 
+/** 素材视图记录列表 */
 const attachments = ref<AttachmentViewType[]>([])
+/** 已选素材 ID 列表 */
 const selectedIds = ref<string[]>([])
+/** 列表加载中状态 */
 const loading = ref(false)
 
+/** 按选中顺序映射出的素材记录列表 */
 const selectedAttachments = computed(() => {
   return selectedIds.value
     .map((id) => attachments.value.find((attachment) => attachment.id === id))
@@ -29,6 +35,7 @@ onBeforeUnmount(() => {
   revokeUrls()
 })
 
+// 弹窗打开时加载最新素材列表
 watch(
   visible,
   async (nextVisible) => {
@@ -38,6 +45,7 @@ watch(
   { immediate: true }
 )
 
+/** 释放所有视图记录的 object URL */
 function revokeUrls(): void {
   attachments.value.forEach((attachment) => {
     URL.revokeObjectURL(attachment.url)
@@ -52,6 +60,7 @@ function toViewRecord(record: AttachmentRecordType): AttachmentViewType {
   }
 }
 
+/** 加载素材列表并重建视图记录 */
 async function loadAttachments(): Promise<void> {
   loading.value = true
   try {
@@ -89,6 +98,7 @@ function handleConfirm(): void {
 <template>
   <el-dialog v-model="visible" title="从素材库选择" width="900px" :close-on-click-modal="false">
     <div v-loading="loading" class="attachment-selector">
+      <!-- 空态：引导前往素材库添加素材 -->
       <div v-if="attachments.length === 0" class="selector-empty">
         <font-awesome-icon :icon="['solid', 'images']" />
         <span>素材库还没有图片，可先去素材库保存长期复用素材</span>
@@ -98,6 +108,7 @@ function handleConfirm(): void {
         </el-button>
       </div>
 
+      <!-- 素材选择网格：点击卡片切换选中 -->
       <div v-else class="selector-grid">
         <button
           v-for="attachment in attachments"

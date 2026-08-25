@@ -107,6 +107,7 @@ const handleMenuClick = (item: MenuItemType) => {
 
 <template>
   <div class="left-menu" :class="{ collapsed: isCollapse }">
+    <!-- 菜单项列表 -->
     <div
       v-for="item in menuData"
       :key="item.name"
@@ -124,6 +125,7 @@ const handleMenuClick = (item: MenuItemType) => {
       <span class="menu-title">{{ item.name }}</span>
     </div>
 
+    <!-- 折叠/展开按钮 -->
     <div
       class="collapse-button"
       role="button"

@@ -8,12 +8,16 @@ import {
 } from '@/views/tools/services/paperLayoutDraftService'
 import type { PaperLayoutDraftRecordType, PaperLayoutModeType } from '@/types/Tools'
 
+/** 弹窗可见性（通过 v-model:visible 双向绑定） */
 const visible = defineModel<boolean>('visible', { required: true })
+/** 对外事件：打开指定草稿 */
 const emit = defineEmits<{
   open: [draft: PaperLayoutDraftRecordType]
 }>()
 
+/** 草稿记录列表 */
 const drafts = ref<PaperLayoutDraftRecordType[]>([])
+/** 列表加载中状态 */
 const loading = ref(false)
 
 // 弹窗打开时加载最新草稿列表
@@ -67,6 +71,7 @@ function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
         <span>暂无试卷排版草稿</span>
       </div>
 
+      <!-- 草稿列表：展示设置摘要与打开/删除操作 -->
       <div v-else class="draft-list">
         <article v-for="draft in drafts" :key="draft.id" class="draft-item">
           <div class="draft-main">

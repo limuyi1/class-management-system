@@ -27,9 +27,13 @@ import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentS
 
 /** 创建值日表的选项 */
 interface CreateDutyRosterOptionsType {
+  /** 值日表名称 */
   name?: string
+  /** 值日模式（日/周） */
   mode?: DutyRosterModeEnum
+  /** 学生来源 */
   studentSource: StudentSourceType
+  /** Excel 学生来源（学生来源为 excel 时使用） */
   excelSource?: ExcelStudentSourceType
 }
 

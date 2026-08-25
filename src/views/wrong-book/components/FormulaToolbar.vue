@@ -4,16 +4,19 @@ import { ref } from 'vue'
 import katex from 'katex'
 import 'katex/dist/katex.min.css'
 
+/** 插入公式事件 */
 interface Emits {
   (e: 'insert', formula: string): void
 }
 
 const emit = defineEmits<Emits>()
 
+/** 自定义公式输入、实时预览与错误提示 */
 const formulaInput = ref('')
 const formulaPreview = ref('')
 const formulaError = ref('')
 
+/** 常用公式模板列表 */
 const commonFormulas = [
   { label: '分数', formula: '\\frac{a}{b}' },
   { label: '平方', formula: 'x^2' },
@@ -83,6 +86,7 @@ const previewFormula = () => {
     <div class="formula-header">
       <span class="formula-title">常用公式</span>
     </div>
+    <!-- 常用公式按钮区 -->
     <div class="formula-list">
       <div
         v-for="item in commonFormulas"
@@ -95,6 +99,7 @@ const previewFormula = () => {
         <span class="formula-label">{{ item.label }}</span>
       </div>
     </div>
+    <!-- 自定义公式输入与预览 -->
     <div class="formula-custom">
       <div class="formula-header">
         <span class="formula-title">自定义公式</span>

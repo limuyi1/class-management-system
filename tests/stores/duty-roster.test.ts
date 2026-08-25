@@ -5,7 +5,13 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useDutyRosterStore } from '@/stores/duty-roster'
 import { DutyPeriodEnum, DutyRosterModeEnum } from '@/types/DutyRoster'
 
+/**
+ * useDutyRosterStore store 测试
+ * 测试目标：值日安排 store
+ * 覆盖功能：学生分配与岗位复用、组长的唯一性、删除岗位/周行后的学生回收、每日/每周模式切换、区域与周行排序
+ */
 describe('useDutyRosterStore', () => {
+  // 每个用例前创建全新的 Pinia 实例，隔离 store 状态
   beforeEach(() => {
     setActivePinia(createPinia())
   })

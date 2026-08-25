@@ -1,3 +1,8 @@
+/**
+ * 测试 seatingChartUtil 模块。
+ * 覆盖：座位创建与缩放、无效绑定与无效过道位置的归一化、随机/补充排座、
+ * 特殊座位固定、空位保留在末行以及旧版 viewDirection 字段迁移。
+ */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -14,6 +19,7 @@ import {
   resizeSeats
 } from '@/utils/seating-chart/seatingChartUtil'
 
+// 构造指定行列数的测试座位表，行列坐标稳定便于断言
 const chart = (rows = 2, columns = 2): SeatingChartType => ({
   id: 'chart',
   name: '测试',
@@ -28,6 +34,7 @@ const chart = (rows = 2, columns = 2): SeatingChartType => ({
   updatedAt: ''
 })
 
+// 座位表核心工具函数测试组
 describe('seatingChartUtil', () => {
   it('creates stable row-column coordinates and preserves in-bound seats on resize', () => {
     const source = chart()
@@ -58,6 +65,7 @@ describe('seatingChartUtil', () => {
     expect(getVisibleSeats(source).map((seat) => seat.column)).toEqual([1, 0])
   })
 
+  // 旧版 viewDirection 字段迁移为 firstColumnSide 朝向
   it('migrates the legacy view direction to the matching first-column side', () => {
     const source = chart()
     const legacyChart = { ...source, viewDirection: 'facing-students' }

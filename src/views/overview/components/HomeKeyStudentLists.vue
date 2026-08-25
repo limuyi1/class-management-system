@@ -46,6 +46,7 @@ const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
       class="list-card"
       :class="{ 'is-empty': !list.items.length }"
     >
+      <!-- 卡片头部：分组标题与推荐人数说明 -->
       <template #header>
         <div class="card-heading">
           <div class="heading-main">
@@ -68,6 +69,7 @@ const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
         </div>
       </template>
 
+      <!-- 学生列表：最多展示前 3 名推荐学生 -->
       <el-scrollbar v-if="list.items.length" class="student-scrollbar">
         <div class="student-list">
           <overview-student-row
@@ -81,6 +83,7 @@ const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
         </div>
       </el-scrollbar>
 
+      <!-- 无推荐学生时的空态提示 -->
       <div v-else class="list-empty-state">
         <div class="list-empty-title">暂无可推荐学生</div>
         <div class="list-empty-description">

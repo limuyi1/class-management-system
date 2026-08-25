@@ -33,19 +33,27 @@ interface UseEvaluationInputOptions {
   allowTagEditing?: boolean
 }
 
+/** 录入表单数据 */
 interface InputFormDataType {
+  /** 当前学生 ID */
   studentId: string | null
+  /** 学生姓名（显示用） */
   name: string
+  /** 评语内容 */
   comment: string | null
 }
 
+/** 可聚焦元素接口（用于输入框 ref） */
 interface FocusableType {
+  /** 聚焦元素 */
   focus: () => void
 }
 
 /**
  * 期末评语录入交互逻辑
  * 提供学生搜索选择、评语编辑、AI 生成/润色、标签跳转等完整录入体验
+ * @param options - 录入交互配置项
+ * @returns 录入相关的响应式状态与操作方法集合
  */
 export function useEvaluationInput(options: UseEvaluationInputOptions) {
   const {
@@ -225,6 +233,7 @@ export function useEvaluationInput(options: UseEvaluationInputOptions) {
     trySwitchStudent(studentId)
   }
 
+  // 在姓名输入框按回车时填充当前选中的学生
   useEnterUp('stuName', () => {
     fillStudentData(currentSelectedStudentId.value)
   })

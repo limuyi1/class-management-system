@@ -1,7 +1,12 @@
+/**
+ * 测试 zipUtil 的 createStoredZip。
+ * 覆盖：生成含 UTF-8 文件名的合法存储式 ZIP 包（本地文件头与中央目录签名校验）。
+ */
 import { describe, expect, it } from 'vitest'
 
 import { createStoredZip } from '../../src/utils/zipUtil'
 
+// ZIP 工具函数测试组
 describe('zipUtil', () => {
   it('creates a valid stored zip envelope with UTF-8 file names', async () => {
     const blob = await createStoredZip([

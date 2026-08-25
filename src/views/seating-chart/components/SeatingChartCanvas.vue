@@ -13,12 +13,17 @@ import {
 import { getSeatKey } from '@/utils/seating-chart/seatingChartUtil'
 
 const props = defineProps<{
+  /** 当前座位表 */
   chart: SeatingChartType
+  /** 按行分组的可见座位 */
   visibleSeatRows: SeatPositionType[][]
+  /** 学生 ID 到姓名的映射 */
   studentNames: Map<string, string>
+  /** 当前选中的学生 ID */
   selectedStudentId: string | null
 }>()
 
+/** 事件：拖拽开始/结束、落座/点选普通座位与雅座 */
 const emit = defineEmits<{
   dragStart: [studentId: string | null]
   dragEnd: []
@@ -28,18 +33,24 @@ const emit = defineEmits<{
   selectSpecialSeat: [seat: SeatingSpecialSeatType]
 }>()
 
+// 座位网格视口元素，供缩放计算测量
 const seatViewportRef = shallowRef<HTMLElement | null>(null)
+// 行列数与过道数等视口缩放依赖的响应式输入
 const rows = computed(() => props.chart.rows)
 const columns = computed(() => props.chart.columns)
 const aisleCount = computed(() => props.chart.aisleAfterColumns.length)
 // 布局键用于在行列或方向变化时触发视口重新缩放
 const layoutKey = computed(() => props.chart.firstColumnSide)
+// 第一行的可见座位，用于渲染列头
 const visibleColumnSeats = computed(() => props.visibleSeatRows[0] || [])
+// 是否存在启用的雅座
 const hasSpecialSeats = computed(() => props.chart.specialSeats.some((seat) => seat.enabled))
+// 第一列是否位于右侧
 const firstColumnOnRight = computed(
   () => props.chart.firstColumnSide === SeatingFirstColumnSideEnum.Right
 )
 
+// 根据画布可用空间自动缩放座位网格
 const { stageStyle, contentStyle } = useSeatingChartViewport({
   viewportRef: seatViewportRef,
   rows,
@@ -69,6 +80,7 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
 
 <template>
   <div class="classroom">
+    <!-- 讲台与两侧雅座 -->
     <div class="platform-shell">
       <div class="platform-row" :class="{ 'has-special-seats': hasSpecialSeats }">
         <template v-for="specialSeat in chart.specialSeats" :key="specialSeat.position">
@@ -103,6 +115,7 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
       </div>
     </div>
 
+    <!-- 座位网格视口：列头、行头与座位 -->
     <div ref="seatViewportRef" class="seat-viewport">
       <div class="seat-stage" :style="stageStyle">
         <div class="seat-content" :style="contentStyle">

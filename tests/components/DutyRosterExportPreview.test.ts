@@ -5,11 +5,19 @@ import { PagesEnum } from '@/types/Common'
 import { DutyPeriodEnum, DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
 import DutyRosterExportPreview from '@/views/duty-roster/components/DutyRosterExportPreview.vue'
 
+/**
+ * DutyRosterExportPreview 组件测试
+ * 测试目标：值日表导出预览（打印稿）
+ * 覆盖功能：A4 横向纸张渲染、周次模式多行渲染、缩放时纸张尺寸不变、标题与备注的显隐
+ */
+
+// 模拟 ResizeObserver：happy-dom 环境未实现该 API，组件挂载时依赖它监听尺寸
 class ResizeObserverMock {
   observe = vi.fn()
   disconnect = vi.fn()
 }
 
+/** 构造包含岗位、值班安排、组长与备注的每日值日表测试数据 */
 function createRoster(): DutyRosterType {
   return {
     id: 'roster-1',
@@ -46,7 +54,9 @@ function createRoster(): DutyRosterType {
   }
 }
 
+// 验证导出预览的静态打印稿：纸张尺寸、内容缩放与标题/备注显隐
 describe('DutyRosterExportPreview', () => {
+  // 每个用例前注入 ResizeObserver 替身，用例结束后恢复全部全局替身
   beforeEach(() => vi.stubGlobal('ResizeObserver', ResizeObserverMock))
   afterEach(() => vi.unstubAllGlobals())
 

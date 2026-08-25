@@ -46,6 +46,7 @@ function resolveToolHref(tool: ToolItemType): string {
   <div class="tools-page app-page-shell">
     <PageHeader :icon="['solid', 'toolbox']" title="工具" subtitle="按教学场景查找并使用常用工具" />
 
+    <!-- 按分类分组展示工具入口 -->
     <div class="tool-sections">
       <section
         v-for="group in toolGroups"

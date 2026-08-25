@@ -1,3 +1,8 @@
+/**
+ * 测试 studentUtil 模块。
+ * 覆盖：UUID 学生 ID 生成、ID 完整性/唯一性校验、旧数据归一化、按 ID 查找学生、
+ * 旧版最近成绩条目清洗，以及按标签分类提取学生标签。
+ */
 import { describe, expect, it } from 'vitest'
 import {
   createStudentId,
@@ -8,6 +13,7 @@ import {
   normalizeStoredStudents
 } from '../../src/utils/studentUtil'
 
+// 学生身份标识工具函数测试组
 describe('student identity utilities', () => {
   it('creates UUID student IDs', () => {
     expect(createStudentId()).toMatch(
@@ -69,7 +75,9 @@ describe('student identity utilities', () => {
   })
 })
 
+// 学生标签提取测试组
 describe('extractStudentTags', () => {
+  // 模拟的标签分类列表，提取时按 prop 匹配分类
   const mockTagCategoryList = [
     { prop: 'category1', label: '分类1' },
     { prop: 'category2', label: '分类2' },

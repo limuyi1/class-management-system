@@ -10,51 +10,74 @@ import type { SettingType } from '@/types/Setting'
  * 所有状态通过 v-model 事件交由父组件管理，本组件仅做展示与交互转发。
  */
 interface Props {
+  /** 可选成绩列 */
   scoreColumns: SettingType[]
+  /** 已选成绩列 prop 列表 */
   selectedProps: string[]
+  /** 报告正文内容 */
   content: string
+  /** 正文状态 */
   contentStatus: 'idle' | 'ready' | 'dirty' | 'stale'
+  /** AI 生成进行中 */
   generating: boolean
+  /** 导出进行中 */
   exporting: boolean
+  /** 是否允许导出 */
   canExport: boolean
+  /** 正文生成来源标签文案 */
   generatorLabel: string
+  /** AI 是否已配置 */
   aiConfigured: boolean
+  /** 导出质量档位 */
   exportQuality: string
+  /** 导出分辨率倍率 */
   exportScale: string
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 已选成绩项变化 */
   'update:selectedProps': [value: string[]]
+  /** 正文内容变化 */
   'update:content': [value: string]
+  /** 导出质量变化 */
   'update:exportQuality': [value: string]
+  /** 导出倍率变化 */
   'update:exportScale': [value: string]
+  /** 请求应用模板正文 */
   'apply-template-content': []
+  /** 请求 AI 生成正文 */
   'generate-content': []
+  /** 请求导出图片 */
   export: []
 }>()
 
+/** 成绩范围选择的 v-model 双向绑定代理 */
 const selectedModel = computed({
   get: () => props.selectedProps,
   set: (value: string[]) => emit('update:selectedProps', value)
 })
 
+/** 正文内容的 v-model 双向绑定代理 */
 const contentModel = computed({
   get: () => props.content,
   set: (value: string) => emit('update:content', value)
 })
 
+/** 图片质量的 v-model 双向绑定代理 */
 const qualityModel = computed({
   get: () => props.exportQuality,
   set: (value: string) => emit('update:exportQuality', value)
 })
 
+/** 分辨率的 v-model 双向绑定代理 */
 const scaleModel = computed({
   get: () => props.exportScale,
   set: (value: string) => emit('update:exportScale', value)
 })
 
+/** 已选成绩项数量 */
 const selectedCount = computed(() => props.selectedProps.length)
 // 是否已全选所有成绩列
 const allSelected = computed(() => {
@@ -111,6 +134,7 @@ const toggleSelectAll = (): void => {
 
 <template>
   <aside class="student-report-sidebar">
+    <!-- 成绩范围选择 -->
     <section class="student-report-sidebar__card">
       <div class="student-report-sidebar__header">
         <div class="student-report-sidebar__header-main">
@@ -140,6 +164,7 @@ const toggleSelectAll = (): void => {
       </div>
     </section>
 
+    <!-- 正文内容编辑 -->
     <section class="student-report-sidebar__card">
       <div class="student-report-sidebar__header">
         <div class="student-report-sidebar__header-main">
@@ -200,6 +225,7 @@ const toggleSelectAll = (): void => {
       />
     </section>
 
+    <!-- 导出设置（PNG） -->
     <section class="student-report-sidebar__card">
       <div class="student-report-sidebar__header">
         <div class="student-report-sidebar__header-main">
@@ -242,6 +268,7 @@ const toggleSelectAll = (): void => {
       </div>
     </section>
 
+    <!-- 导出按钮与提示 -->
     <button
       class="student-report-sidebar__export-button"
       type="button"

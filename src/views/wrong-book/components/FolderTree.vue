@@ -62,6 +62,7 @@ const handleNodeClick = (data: TreeNode) => {
   wrongBookStore.selectFolder(data.id)
 }
 
+/** 正在重命名的文件夹 id 与名称草稿 */
 const editingFolderId = ref<string | null>(null)
 const editingName = ref('')
 
@@ -110,7 +111,7 @@ const handleDelete = async (data: TreeNode) => {
     wrongBookStore.deleteFolder(data.id)
     ElMessage.success('删除成功')
   } catch {
-    // cancelled
+    // 用户取消删除操作
   }
 }
 </script>
@@ -123,6 +124,7 @@ const handleDelete = async (data: TreeNode) => {
         <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
       </el-button>
     </div>
+    <!-- 文件夹树：自定义节点展示图标、名称、数量与操作 -->
     <el-scrollbar>
       <el-tree
         :data="treeData"

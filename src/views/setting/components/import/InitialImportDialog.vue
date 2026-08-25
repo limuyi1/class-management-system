@@ -30,10 +30,10 @@ const emit = defineEmits<{
   confirm: [value: InitialImportSelectionType & { headerRowIndex?: number }]
 }>()
 
-const selectedHeaderRowIndex = ref(0)
-const selectedNameColumn = ref('')
-const selectedScoreColumns = ref<string[]>([])
-const selectedCommentColumn = ref('')
+const selectedHeaderRowIndex = ref(0) // 选中的表头行索引
+const selectedNameColumn = ref('') // 选中的姓名列
+const selectedScoreColumns = ref<string[]>([]) // 选中的成绩列（可多选）
+const selectedCommentColumn = ref('') // 选中的评语列（最多一列）
 
 /** 是否提供了表头预览数据，决定走预览解析还是直接使用传入表头 */
 const hasHeaderPreview = computed(() => Boolean(props.previewRows?.length))
@@ -68,6 +68,7 @@ const availableCommentColumns = computed(() =>
   )
 )
 
+/** 弹窗显隐的双向绑定 */
 const localVisible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value)
@@ -150,6 +151,7 @@ const handleConfirm = () => {
 <template>
   <el-dialog v-model="localVisible" title="导入学生信息" width="860px">
     <div class="initial-import-dialog">
+      <!-- 表头行选择器：有预览数据时展示 -->
       <excel-header-row-picker
         v-if="hasHeaderPreview"
         v-model="selectedHeaderRowIndex"
@@ -157,6 +159,7 @@ const handleConfirm = () => {
         :merges="previewMerges"
       />
 
+      <!-- 姓名列：必选且只能选一列 -->
       <div class="column-section">
         <div class="column-section__head">
           <div class="column-section__title">姓名列</div>
@@ -169,6 +172,7 @@ const handleConfirm = () => {
         </el-radio-group>
       </div>
 
+      <!-- 成绩列：可多选，也可不选 -->
       <div class="column-section">
         <div class="column-section__head">
           <div class="column-section__title">成绩列</div>
@@ -181,6 +185,7 @@ const handleConfirm = () => {
         </el-checkbox-group>
       </div>
 
+      <!-- 评语列：可选且最多选一列 -->
       <div class="column-section">
         <div class="column-section__head">
           <div class="column-section__title">评语列</div>

@@ -1,6 +1,13 @@
+/**
+ * katexUtil 测试
+ * 覆盖 Markdown 与数学公式渲染：行内公式（renderKatex）、块级公式（renderKatexBlock）
+ * 与 Markdown 渲染（renderMarkdown），包括空输入、无公式与混合内容等场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 import { renderKatex, renderKatexBlock, renderMarkdown } from '../../src/utils/katexUtil'
 
+// 行内公式渲染：处理 $...$ 语法以及空输入与无公式时的兜底
 describe('renderKatex', () => {
   it('should return empty string for empty input', () => {
     const result = renderKatex('')
@@ -40,6 +47,7 @@ describe('renderKatex', () => {
   })
 })
 
+// 块级公式渲染：处理 $$...$$ 语法、含空格/换行的公式与混合内容
 describe('renderKatexBlock', () => {
   it('should return empty string for empty input', () => {
     const result = renderKatexBlock('')
@@ -79,6 +87,7 @@ describe('renderKatexBlock', () => {
   })
 })
 
+// Markdown 渲染：基础语法、行内/块级公式与混合内容
 describe('renderMarkdown', () => {
   it('should return empty string for empty input', () => {
     const result = renderMarkdown('')

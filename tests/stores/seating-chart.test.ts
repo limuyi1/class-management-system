@@ -5,7 +5,13 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useSeatingChartStore } from '@/stores/seating-chart'
 import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
 
+/**
+ * useSeatingChartStore store 测试
+ * 测试目标：座位表 store
+ * 覆盖功能：系统/Excel 学生来源、随机排座、来源切换时清空安排、默认来源回退、创建状态与首列方向
+ */
 describe('useSeatingChartStore', () => {
+  // 每个用例前创建全新的 Pinia 实例，隔离 store 状态
   beforeEach(() => {
     setActivePinia(createPinia())
   })

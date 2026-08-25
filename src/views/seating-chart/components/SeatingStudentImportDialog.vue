@@ -11,8 +11,10 @@ import { buildExcelSeatingStudents } from '@/utils/seating-chart/seatingChartStu
 import type { UploadFile } from 'element-plus'
 import type { ExcelStudentSourceType } from '@/types/StudentSource'
 
+// 弹窗显隐状态（v-model 双向绑定）
 const visible = defineModel<boolean>({ required: true })
 
+/** 事件：确认导入，携带生成的 Excel 学生来源 */
 const emit = defineEmits<{
   confirm: [source: ExcelStudentSourceType]
 }>()
@@ -20,6 +22,7 @@ const emit = defineEmits<{
 // 公共层维护文件与表头预览；座位表只选择姓名列并生成自己的名单快照。
 const { fileName, headerRowIndex, loading, parsedData, preview, parseFile, reset } =
   useExcelPreviewImport({ errorLogLabel: '读取座位表 Excel' })
+/** 用户选择的姓名列 */
 const nameColumn = shallowRef('')
 
 /** 从表头中猜测姓名列，匹配常用姓名列名 */
@@ -82,12 +85,14 @@ watch(visible, (value) => {
 <template>
   <el-dialog v-model="visible" title="导入座位表名单" width="900px" :close-on-click-modal="false">
     <div v-loading="loading" class="seating-student-import">
+      <!-- 文件拖拽上传 -->
       <excel-file-dropzone
         :file-name="fileName"
         description="支持 .xlsx 和 .xls，导入后可确认表头行与姓名列"
         @change="handleFileChange"
       />
 
+      <!-- 文件解析成功后选择表头行与姓名列 -->
       <template v-if="preview">
         <excel-header-row-picker
           v-model="headerRowIndex"

@@ -2,15 +2,15 @@
 
 /** AI 模型提供商枚举 */
 export enum AIModelTypeEnum {
-  /** OpenAI */
+  /** 美国 OpenAI */
   OPENAI = 'openai',
-  /** Google Gemini */
+  /** 谷歌 Gemini */
   GEMINI = 'gemini',
   /** 月之暗面 Kimi */
   KIMI = 'kimi',
   /** 字节跳动豆包 */
   DOUBAO = 'doubao',
-  /** DeepSeek */
+  /** 深度求索 DeepSeek */
   DEEPSEEK = 'deepseek'
 }
 
@@ -47,7 +47,7 @@ export interface AIConfigType {
   modelType: AIModelTypeEnum
   /** 模型名称 */
   model: string
-  /** API Key */
+  /** API 密钥 */
   apiKey: string
   /** API 基础 URL */
   baseUrl: string

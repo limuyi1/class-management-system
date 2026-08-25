@@ -12,16 +12,23 @@ const router = useRouter()
 const dataSourceStore = useDataSourceStore()
 const { enabledData } = storeToRefs(dataSourceStore)
 
+/** 是否已有学生数据 */
 const hasStudentData = computed(() => enabledData.value.length > 0)
+/** 学生信息子组件实例引用 */
 const studentInfoRef = ref<InstanceType<typeof StudentInfo>>()
+/** 待打开标签编辑器的学生 ID，子组件未就绪时暂存 */
 const pendingTagEditorStudentId = ref('')
+/** 标签编辑完成后返回的页面路径 */
 const returnTo = ref('')
+/** 返回页面时重新定位的学生 ID */
 const returnStudentId = ref('')
 
+/** 清除 URL 中的标签编辑查询参数 */
 const clearEditTagsQuery = async () => {
   await router.replace({ path: '/student-info' })
 }
 
+/** 读取路由查询参数，打开对应学生的标签编辑器 */
 const syncEditTagsQuery = async () => {
   if (route.query['edit-tags'] !== '1') return
 
@@ -74,6 +81,7 @@ watch(studentInfoRef, async (instance) => {
 </script>
 
 <template>
+  <!-- 学生信息面板 -->
   <div class="student-info-page app-page-shell">
     <div class="student-info-page__panel">
       <student-info

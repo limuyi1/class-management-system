@@ -1,3 +1,9 @@
+/**
+ * 全局常量测试
+ * 覆盖：学生字段 prop 键（姓名/学生ID）作为唯一事实来源、数据库名称与主记录 ID、
+ * 数据库表枚举到持久化表名的映射。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -10,6 +16,7 @@ import {
   STUDENT_ID_PROP
 } from '@/constants'
 
+// 目标：保证常量与 Dexie schema、学生字段命名保持一致，防止各处硬编码漂移
 describe('constants', () => {
   it('keeps student field prop keys as the single source of truth', () => {
     expect(NAME_PROP).toBe('name')

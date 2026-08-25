@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { ElDialog, ElButton } from 'element-plus'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 
+/** 弹窗可见性与三个编辑器的初始内容 */
 interface Props {
   visible: boolean
   questionText: string
@@ -12,6 +13,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 可见性与三个字段内容的更新事件 */
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   'update:questionText': [value: string]
@@ -56,6 +58,7 @@ const handleSave = () => {
     append-to-body
     @update:model-value="(val) => emit('update:visible', val)"
   >
+    <!-- 全屏展开的题目 / 答案 / 解析编辑器 -->
     <div class="expand-editors">
       <div class="expand-editor-item">
         <h3>题目内容</h3>

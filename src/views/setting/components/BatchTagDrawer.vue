@@ -16,8 +16,8 @@ const emit = defineEmits<BatchTagDrawerEmits>()
 const settingStore = useSettingStore()
 const { tagCategories: categories, tags: tagOptions } = storeToRefs(settingStore)
 
-const currentIndex = ref(0)
-const currentStudentTags = ref<Set<string>>(new Set())
+const currentIndex = ref(0) // 当前浏览的学生下标
+const currentStudentTags = ref<Set<string>>(new Set()) // 当前学生已选标签集合
 
 /** 标签分类对应的主题色变量，按分类索引循环取色 */
 const tagColorVars = [
@@ -189,6 +189,7 @@ watch(
     destroy-on-close
   >
     <div class="quick-tag-drawer">
+      <!-- 顶部：上一个/下一个切换与进度显示 -->
       <div class="drawer-header">
         <el-button type="primary" link :disabled="studentList.length <= 1" @click="goToPrevStudent">
           <template #icon><font-awesome-icon :icon="['fas', 'chevron-left']" /></template>
@@ -201,11 +202,13 @@ watch(
         </el-button>
       </div>
 
+      <!-- 当前学生姓名展示 -->
       <div class="current-student">
         <span class="student-label">当前学生：</span>
         <span class="student-name">{{ getCurrentStudent()?.[NAME_PROP] || '' }}</span>
       </div>
 
+      <!-- 标签编辑区：按分类分组展示可选标签，点击切换选中 -->
       <div class="tags-section">
         <div v-if="totalTagCount === 0" class="empty-tags-tip" @click="emit('goTab', 'label-maintenance')">
           <font-awesome-icon :icon="['fas', 'tag']" />
@@ -228,6 +231,7 @@ watch(
         </div>
       </div>
 
+      <!-- 底部：已标记人数统计与进度条 -->
       <div class="progress-info">
         <span>已标记：{{ taggedStudentCount }} 人</span>
         <el-progress

@@ -1,11 +1,19 @@
+/**
+ * aiService 测试
+ * 覆盖：单条/批量评语生成与批量润色的提示词组装规则（不向 AI 传入具体分数、空标签处理、经典表达频率控制），
+ * 以及 AI JSON 响应的解析（批量润色结果、标签分类生成）。
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AIModelTypeEnum } from '../../src/types/AIConfig'
 
+// 用 vi.hoisted 提前创建 mock 函数，使 vi.mock 工厂与测试用例共享同一引用
 const { generateTextMock } = vi.hoisted(() => ({
   generateTextMock: vi.fn()
 }))
 
+// 完整 mock AI providers，测试不发起真实网络请求
 vi.mock('../../src/ai/providers', () => ({
   createGeminiModel: vi.fn(),
   generateText: generateTextMock,
@@ -14,6 +22,7 @@ vi.mock('../../src/ai/providers', () => ({
   openaiPost: vi.fn()
 }))
 
+// 目标：验证各生成函数渲染提示词模板与解析响应时，分数剥离、空标签、经典表达控制等规则是否生效
 describe('aiService', () => {
   beforeEach(() => {
     vi.clearAllMocks()

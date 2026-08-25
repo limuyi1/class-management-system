@@ -1,5 +1,12 @@
+/**
+ * evaluationTextLayoutUtil 测试
+ * 覆盖评语自适应排版（layoutAdaptiveCommentText），
+ * 通过 mock canvas 测量文本宽度，验证字号缩放、截断与提示逻辑。
+ */
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+// mock canvas 上下文：以「字符数 × 字号」估算文本宽度
 const createCanvasContextMock = () => {
   let currentFontSize = 16
 
@@ -16,7 +23,9 @@ const createCanvasContextMock = () => {
   }
 }
 
+// 评语自适应排版：根据可用宽高自动调整字号与截断提示
 describe('evaluationTextLayoutUtil', () => {
+  // 每个用例前 mock document.createElement，为 canvas 元素注入假测量上下文
   beforeEach(() => {
     vi.resetModules()
     const originalCreateElement = document.createElement.bind(document)

@@ -61,22 +61,31 @@ interface UsePaperLayoutCanvasOptions {
  * @returns 画布状态与各类操作方法
  */
 export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
+  /** 画布条目列表 */
   const canvasItems = ref<PaperLayoutCanvasItemType[]>([])
+  /** 当前选中条目 ID */
   const selectedItemId = ref('')
+  /** 预览缩放比例 */
   const previewScale = ref(1)
+  /** 当前停留页码（从 1 开始） */
   const activePageNumber = ref(1)
+  /** 拖拽/缩放进行中的状态 */
   const dragState = ref<PaperLayoutDragStateType | null>(null)
 
+  /** 当前设置对应的页面尺寸（毫米） */
   const pageSize = computed(() => getPaperLayoutPageSize(options.settings))
+  /** 归一化后的版式设置（列数、填充模式、边距与间距） */
   const layoutSettings = computed(() => ({
     columns: Math.max(options.settings.columns, 1),
     fitMode: options.settings.fitMode,
     gap: Math.max(options.settings.gap, 0),
     margin: Math.max(options.settings.margin, 0)
   }))
+  /** 页面内容区宽度（扣除左右边距） */
   const contentWidth = computed(() =>
     Math.max(pageSize.value.width - layoutSettings.value.margin * 2, 1)
   )
+  /** 页面内容区高度（扣除上下边距） */
   const contentHeight = computed(() =>
     Math.max(pageSize.value.height - layoutSettings.value.margin * 2, 1)
   )
@@ -86,6 +95,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     return Math.max((contentWidth.value - layoutSettings.value.gap * (columns - 1)) / columns, 1)
   })
 
+  /** 自动排版所需的版式指标 */
   const layoutMetrics = computed(() => ({
     pageSize: pageSize.value,
     margin: layoutSettings.value.margin,
@@ -96,6 +106,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     contentHeight: contentHeight.value
   }))
 
+  /** 新增图片分页摆放所需的版式指标 */
   const pagePlacementMetrics = computed(() => ({
     pageSize: pageSize.value,
     margin: layoutSettings.value.margin,
@@ -106,9 +117,12 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     contentHeight: contentHeight.value
   }))
 
+  /** 按页面切分后的渲染数据 */
   const pages = computed(() => buildPaperLayoutPages(canvasItems.value, pageSize.value))
+  /** 页面总数 */
   const pageCount = computed(() => pages.value.length)
 
+  /** 当前选中的画布条目 */
   const selectedItem = computed(() => {
     return canvasItems.value.find((item) => item.id === selectedItemId.value)
   })
@@ -118,17 +132,20 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     () => selectedItem.value?.pageIndex ?? activePageNumber.value - 1
   )
 
+  /** 纸张页面的内联样式（实际尺寸与边距指示线） */
   const pageStyle = computed(() => ({
     width: `${mmToPixelPrecise(pageSize.value.width)}px`,
     height: `${mmToPixelPrecise(pageSize.value.height)}px`,
     '--paper-margin': `${mmToPixelPrecise(layoutSettings.value.margin)}px`
   }))
 
+  /** 按预览缩放计算出的纸张占位尺寸，避免缩放引起布局跳动 */
   const scaledPageStyle = computed(() => ({
     width: `${mmToPixelPrecise(pageSize.value.width) * previewScale.value}px`,
     height: `${mmToPixelPrecise(pageSize.value.height) * previewScale.value}px`
   }))
 
+  /** 预览缩放的百分比文案 */
   const previewPercent = computed(() => `${Math.round(previewScale.value * 100)}%`)
 
   const currentImagesHint = computed(() => {
@@ -136,6 +153,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     return `${canvasItems.value.length} 张图片 / ${pageCount.value} 页`
   })
 
+  /** 将素材记录转换为画布条目 */
   function toCanvasItem(
     attachment: AttachmentRecordType,
     index: number
@@ -148,12 +166,14 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     })
   }
 
+  /** 释放画布条目占用的 object URL */
   function revokeItemUrls(items = canvasItems.value): void {
     items.forEach((item) => {
       URL.revokeObjectURL(item.dataUrl)
     })
   }
 
+  /** 将素材追加到画布当前停留页 */
   function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
     // 新图片摆放到当前停留页，层级从现有最大层级之后续接
     const targetPageIndex = Math.max(activePageNumber.value - 1, 0)
@@ -171,10 +191,12 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     selectedItemId.value = nextItems[nextItems.length - 1]?.id || selectedItemId.value
   }
 
+  /** 按当前版式对全部图片重新自动排版 */
   function autoArrange(): void {
     canvasItems.value = arrangePaperItems(canvasItems.value, layoutMetrics.value)
   }
 
+  /** 纸张尺寸变化后，重新同步所有条目的页码与坐标 */
   function syncCanvasItemPositions(): void {
     canvasItems.value.forEach((item) => {
       const normalizedPosition = normalizePaperItemPosition(item, item.documentY, pageSize.value)
@@ -184,10 +206,12 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     })
   }
 
+  /** 选中指定条目 */
   function selectItem(id: string): void {
     selectedItemId.value = id
   }
 
+  /** 将条目提升到最顶层 */
   function bringItemToFront(item: PaperLayoutCanvasItemType): void {
     const nextZIndex = getNextPaperLayoutZIndex(canvasItems.value)
     // 仅当不在最顶层时才提升层级，避免无意义的层级变化
@@ -196,10 +220,12 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     }
   }
 
+  /** 清空选中 */
   function clearSelection(): void {
     selectedItemId.value = ''
   }
 
+  /** 点击空白处清空选中；点击图片或工具按钮时不处理 */
   function handleToolClick(event: MouseEvent): void {
     const target = event.target as HTMLElement | null
     if (target?.closest('.paper-image-frame')) return
@@ -207,6 +233,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     clearSelection()
   }
 
+  /** 开始拖拽移动条目，记录起始状态 */
   function startMove(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
     selectItem(item.id)
     bringItemToFront(item)
@@ -223,6 +250,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     }
   }
 
+  /** 开始拖拽缩放条目，记录起始状态 */
   function startResize(event: PointerEvent, item: PaperLayoutCanvasItemType): void {
     event.stopPropagation()
     selectItem(item.id)
@@ -240,6 +268,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     }
   }
 
+  /** 将坐标限制在允许拖动的范围内 */
   function clampItemPosition(
     item: PaperLayoutCanvasItemType,
     x: number,
@@ -258,6 +287,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     )
   }
 
+  /** 应用归一化位置，同步更新 pageIndex/y/documentY */
   function applyNormalizedPosition(
     item: PaperLayoutCanvasItemType,
     position: { x: number; documentY: number }
@@ -269,6 +299,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     item.documentY = normalizedPosition.documentY
   }
 
+  /** 指针移动时更新拖拽或缩放中的条目位置与尺寸 */
   function handlePointerMove(event: PointerEvent): void {
     const state = dragState.value
     if (!state) return
@@ -294,10 +325,12 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     applyNormalizedPosition(item, clampItemPosition(item, item.x, item.documentY))
   }
 
+  /** 指针抬起时结束拖拽/缩放 */
   function handlePointerUp(): void {
     dragState.value = null
   }
 
+  /** 按倍率缩放选中条目并保持宽高比 */
   function scaleSelectedItem(factor: number): void {
     const item = selectedItem.value
     if (!item) return
@@ -309,6 +342,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     applyNormalizedPosition(item, clampItemPosition(item, item.x, item.documentY))
   }
 
+  /** 删除选中条目并释放其图片 URL */
   function removeSelectedItem(): void {
     const item = selectedItem.value
     if (!item) return
@@ -317,23 +351,28 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     clearSelection()
   }
 
+  /** 覆盖画布条目列表（打开草稿时使用） */
   function setCanvasItems(items: PaperLayoutCanvasItemType[]): void {
     canvasItems.value = items
   }
 
+  /** 清空画布条目与选中 */
   function clearCanvasItems(): void {
     canvasItems.value = []
     clearSelection()
   }
 
+  /** 设置预览缩放比例并限制在允许范围内 */
   function setPreviewScale(scale: number): void {
     previewScale.value = Math.min(Math.max(scale, 0.35), 1.4)
   }
 
+  /** 按档位放大（1）或缩小（-1）预览 */
   function zoomPreview(direction: -1 | 1): void {
     setPreviewScale(previewScale.value + direction * 0.1)
   }
 
+  /** 根据面板宽度自动适配预览缩放 */
   function fitPreviewWidth(): void {
     const panelWidth = options.previewPanelRef.value?.clientWidth || 0
     const pageWidth = mmToPixelPrecise(pageSize.value.width)
@@ -343,6 +382,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     setPreviewScale(availableWidth / pageWidth)
   }
 
+  /** 计算缩放手柄的位置样式，使其贴在可见区域右下角 */
   function getResizeHandleStyle(item: PaperLayoutCanvasItemType): Record<string, string> {
     // 缩放手柄始终贴在图片可见区域的右下角
     const visibleRight = Math.min(item.width, pageSize.value.width - item.x)
@@ -365,6 +405,7 @@ export function usePaperLayoutCanvas(options: UsePaperLayoutCanvasOptions) {
     })
   }
 
+  /** 滚动预览时更新当前停留页 */
   function handlePreviewScroll(): void {
     const pageElements = Array.from(document.querySelectorAll<HTMLElement>('[data-paper-page]'))
     if (pageElements.length === 0) return

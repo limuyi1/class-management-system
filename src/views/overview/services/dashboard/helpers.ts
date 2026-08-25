@@ -12,6 +12,9 @@ import type { StudentDataType } from '@/types/StudentData'
 /**
  * 读取学生姓名字段，并兜底成稳定文本，避免下游排序和映射出现空值。
  * pinyin-pro 生成的字段名可能为空字符串，排名计算时必须保证键值稳定。
+ *
+ * @param student 学生数据
+ * @returns 学生姓名，缺失时返回”未命名”
  */
 export const getStudentName = (student: StudentDataType): string => {
   const name = student[NAME_PROP]
@@ -21,6 +24,10 @@ export const getStudentName = (student: StudentDataType): string => {
 /**
  * 将分数字段统一转换成数值，兼容表格中字符串数字的场景。
  * Excel 导出/导入场景下分数可能被解析为字符串，需要统一处理。
+ *
+ * @param student 学生数据
+ * @param prop 分数字段名
+ * @returns 数值分数，无法解析时返回 null
  */
 export const getNumericScore = (student: StudentDataType, prop: string): number | null => {
   const value = student[prop]
@@ -36,6 +43,9 @@ export const getNumericScore = (student: StudentDataType, prop: string): number 
 /**
  * 计算算术平均数。
  * 用于班级均分、学生历史均分等场景。
+ *
+ * @param scores 分数列表
+ * @returns 算术平均数，空列表返回 0
  */
 export const averageOf = (scores: number[]): number =>
   scores.length ? scores.reduce((sum, score) => sum + score, 0) / scores.length : 0
@@ -44,6 +54,9 @@ export const averageOf = (scores: number[]): number =>
  * 计算样本标准差（总体标准差公式）。
  * σ = sqrt(Σ(xi - μ)² / n)
  * 用于衡量学生成绩的稳定性，标准差越大说明成绩波动越大。
+ *
+ * @param scores 分数列表
+ * @returns 标准差，空列表返回 0
  */
 export const standardDeviationOf = (scores: number[]): number => {
   if (!scores.length) return 0
@@ -56,12 +69,18 @@ export const standardDeviationOf = (scores: number[]): number => {
 /**
  * 格式化分数显示，保留一位小数。
  * 用于折线图标签、卡片数值等展示场景。
+ *
+ * @param score 分数
+ * @returns 保留一位小数的分数文本（去掉多余的 0）
  */
 export const formatScore = (score: number): string => Number(score.toFixed(1)).toString()
 
 /**
  * 格式化趋势文本，用箭头连接多个分数。
  * 例如：[85, 78, 82] => "85.0 → 78.0 → 82.0"
+ *
+ * @param scores 分数列表
+ * @returns 用箭头连接的分数文本，空列表返回 “--”
  */
 export const formatTrendText = (scores: number[]): string =>
   scores.length ? scores.map((score) => formatScore(score)).join(' → ') : '--'
@@ -69,6 +88,9 @@ export const formatTrendText = (scores: number[]): string =>
 /**
  * 将趋势分数拆成可渲染片段，便于对单个单元分数做颜色标记。
  * 这里只负责把文本和难易标签配对，具体颜色交给展示层决定。
+ *
+ * @param points 分数与难度偏移列表
+ * @returns 可渲染的文本片段列表（相邻分数之间插入箭头片段）
  */
 export const buildTrendSegments = (
   points: Array<{ score: number; difficultyShift: DashboardUnitDifficultyShiftType }>
@@ -87,12 +109,19 @@ export const buildTrendSegments = (
 /**
  * 格式化分差文本，返回绝对值字符串。
  * 用于展示上升/下降幅度时统一显示正数。
+ *
+ * @param value 分差数值
+ * @returns 保留一位小数的绝对值文本
  */
 export const getScoreDiffText = (value: number): string => Number(Math.abs(value).toFixed(1)).toString()
 
 /**
  * 滑动窗口取值：返回数组末尾的 windowSize 个元素。
  * 用于获取学生"最近 N 次"成绩，取最近的时间窗口而非最早的。
+ *
+ * @param values 原始数据列表
+ * @param windowSize 窗口大小
+ * @returns 末尾 windowSize 个元素，窗口大小非正数时返回原列表
  */
 export const getRecentValues = <T>(values: T[], windowSize: number): T[] => {
   if (windowSize <= 0) return values
@@ -102,6 +131,9 @@ export const getRecentValues = <T>(values: T[], windowSize: number): T[] => {
 /**
  * 判断成绩序列是否严格单调递增。
  * 用于”进步明显”标签的判断条件之一。
+ *
+ * @param scores 分数列表
+ * @returns 是否严格单调递增（长度不足 2 时返回 false）
  */
 export const isStrictlyAscending = (scores: number[]): boolean => {
   if (scores.length < 2) return false
@@ -112,6 +144,9 @@ export const isStrictlyAscending = (scores: number[]): boolean => {
 /**
  * 判断成绩序列是否严格单调递减。
  * 用于”下滑关注”标签的判断条件之一。
+ *
+ * @param scores 分数列表
+ * @returns 是否严格单调递减（长度不足 2 时返回 false）
  */
 export const isStrictlyDescending = (scores: number[]): boolean => {
   if (scores.length < 2) return false
@@ -123,6 +158,10 @@ export const isStrictlyDescending = (scores: number[]): boolean => {
  * 为每个单元生成学生排名映射。
  * 按分数降序排列，相同分数排名相同（并列），下一名次跳过多占的名次。
  * 用于”稳定前列”标签判断学生是否长期处于班级前 N 名。
+ *
+ * @param students 学生数据列表
+ * @param unitHeaders 单元表头配置
+ * @returns 每个单元的排名映射列表
  */
 export const buildRankMapByUnit = (students: StudentDataType[], unitHeaders: SettingType[]) => {
   return unitHeaders.map((header) => {
@@ -149,6 +188,10 @@ export const buildRankMapByUnit = (students: StudentDataType[], unitHeaders: Set
 /**
  * 根据标签配置和分组配置创建标签对象。
  * 将配置中的元数据和分组信息合并为可直接使用的 DashboardStudentTagType。
+ *
+ * @param key 标签键
+ * @param config 总览页配置
+ * @returns 可直接使用的标签对象
  */
 export const createTag = (
   key: DashboardTagKeyType,
@@ -171,6 +214,9 @@ export const createTag = (
  * 计算最近一次成绩与最早一次成绩的差值。
  * 正数表示上升，负数表示下降。
  * 用于判断整体趋势方向。
+ *
+ * @param scores 分数列表
+ * @returns 末次与首次成绩的差值，长度不足 2 时返回 0
  */
 export const getRecentChange = (scores: number[]): number => {
   if (scores.length < 2) return 0
@@ -193,6 +239,9 @@ export const getRecentChange = (scores: number[]): number => {
  * 这样可以避免“只看最后一跳”带来的误判：
  * - 35 -> 91 -> 32 => 整体仍低于起点，归为波动下行
  * - 46 -> 88 -> 69 => 虽然最后一跳回落，但整体仍高于起点，归为波动上行
+ *
+ * @param scores 成绩序列（按时间顺序）
+ * @returns 走势方向，序列不足两次时返回 null
  */
 export const getVolatilityDirection = (scores: number[]): DashboardVolatilityDirectionType | null => {
   if (scores.length < 2) return null

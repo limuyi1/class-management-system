@@ -3,11 +3,15 @@
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
 defineProps<{
+  /** 弹窗显隐状态（v-model 双向绑定） */
   modelValue: boolean
+  /** 已安排学生数 */
   assignedCount: number
+  /** 待安排学生数 */
   unassignedCount: number
 }>()
 
+/** 事件：更新显隐 / 全部重新安排 / 补充空座位 */
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
   'randomize-all': []
@@ -24,12 +28,14 @@ const emit = defineEmits<{
     @update:model-value="emit('update:modelValue', $event)"
   >
     <template #header><seating-dialog-header icon="shuffle" title="随机安排" description="选择重新排座或只补充当前空座位" /></template>
+    <!-- 已安排与待安排统计概览 -->
     <div class="random-dialog__hero">
       <span><strong>{{ assignedCount }}</strong> 已安排</span>
       <i></i>
       <span><strong>{{ unassignedCount }}</strong> 待安排</span>
     </div>
 
+    <!-- 两种随机模式入口 -->
     <div class="random-mode-options">
       <button class="random-mode-card random-mode-card--all" type="button" @click="emit('randomize-all')">
         <span class="random-mode-card__icon"><font-awesome-icon :icon="['solid', 'dice']" /></span>
@@ -50,6 +56,7 @@ const emit = defineEmits<{
       </button>
     </div>
 
+    <!-- 补充模式的说明提示 -->
     <div class="random-dialog__note">
       <font-awesome-icon :icon="['regular', 'lightbulb']" />
       补充模式可反复换方案，确认前不会修改当前座位表。

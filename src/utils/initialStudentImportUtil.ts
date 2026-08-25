@@ -1,5 +1,6 @@
 /**
  * 初始学生名单导入工具
+ * 负责首次导入学生名单时，按用户选择同时写入成绩列与期末评语
  */
 import { buildInitialScoreImport } from '@/utils/scoreImportUtil'
 import { NAME_PROP } from '@/constants'

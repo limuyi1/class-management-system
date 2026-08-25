@@ -1,9 +1,17 @@
+/**
+ * backup 工具测试
+ * 覆盖导入数据库备份（importDatabase）与计算距上次备份天数（getDaysSinceBackup），
+ * 其中 element-plus、各 Pinia store 与数据库模块均被 mock，避免依赖真实持久化环境。
+ */
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+// 消息提示与导入状态设置函数的 mock，用于断言成功/失败提示与导入状态切换
 const successMock = vi.fn()
 const errorMock = vi.fn()
 const setDatabaseImportingMock = vi.fn()
 
+// 各 Pinia store 的 mock 实例，仅保留导入流程会用到的属性与方法
 const stores = {
   dataSource: { students: [], isDataReady: false },
   setting: { $patch: vi.fn(), $reset: vi.fn() },
@@ -17,6 +25,7 @@ const stores = {
   dutyRoster: { $patch: vi.fn(), $reset: vi.fn(), reconcileStudents: vi.fn() }
 }
 
+// 各数据库表的 get 方法 mock，默认返回 undefined 表示表内容为空
 const tableGetMocks = {
   studentDataset: vi.fn(async () => undefined),
   scoreSettings: vi.fn(async () => undefined),
@@ -30,8 +39,10 @@ const tableGetMocks = {
   dutyRosters: vi.fn(async () => undefined)
 }
 
+// 数据库 import 方法 mock，用于断言导入调用参数
 const importMock = vi.fn(async () => undefined)
 
+// mock element-plus：以固定时间戳替代 dayjs 格式化，并捕获成功/失败提示
 vi.mock('element-plus', () => ({
   ElMessage: {
     success: successMock,
@@ -42,6 +53,7 @@ vi.mock('element-plus', () => ({
   })
 }))
 
+// 以下 mock 替换导入状态工具、各 store 与数据库模块，隔离真实持久化与 IndexedDB 依赖
 vi.mock('../../src/utils/persistDexieImportState', () => ({
   setDatabaseImporting: setDatabaseImportingMock
 }))
@@ -106,7 +118,9 @@ vi.mock('../../src/db', () => ({
   }
 }))
 
+// 导入备份：验证对旧备份的兼容导入、旧表清理、状态切换与成功提示
 describe('importDatabase', () => {
+  // 每个用例前重置 mock 调用记录与数据源状态，避免用例间相互影响
   beforeEach(() => {
     vi.clearAllMocks()
     stores.dataSource.students = []
@@ -135,6 +149,7 @@ describe('importDatabase', () => {
   })
 })
 
+// 计算距上次备份的天数：从未备份、非法日期返回 null，正常日期返回天数差
 describe('getDaysSinceBackup', () => {
   it('returns null when never backed up or the date is invalid', async () => {
     const { getDaysSinceBackup } = await import('../../src/utils/backup')

@@ -1,7 +1,12 @@
+/**
+ * 测试 settingMigrationUtil 的 normalizeScoreColumns。
+ * 覆盖：旧成绩列数据迁移时的空数组回退、缺失的 disabled 字段补齐 false、保留已有值。
+ */
 import { describe, expect, it } from 'vitest'
 
 import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
 
+// 成绩列数据迁移归一化测试组
 describe('normalizeScoreColumns', () => {
   it('空数组返回空数组', () => {
     expect(normalizeScoreColumns([])).toEqual([])

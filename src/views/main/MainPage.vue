@@ -8,6 +8,7 @@ import { dayjs } from 'element-plus'
 
 import logo from '@/assets/main/logo.png'
 
+/** 应用标题与作者信息，来自环境变量 */
 const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
 const author = ref(import.meta.env.VITE_APP_AUTHOR || '班务管理系统')
 
@@ -17,6 +18,7 @@ const cachedPages = ['OverviewPage', 'ScorePage', 'EvaluationPage']
 
 <template>
   <el-container class="main-container">
+    <!-- 顶部栏：应用标题与主题切换 -->
     <el-header class="main-header" height="60px">
       <div class="header-left">
         <img class="header-logo" :src="logo" alt="" />
@@ -26,6 +28,7 @@ const cachedPages = ['OverviewPage', 'ScorePage', 'EvaluationPage']
         <theme-selector />
       </div>
     </el-header>
+    <!-- 主体：左侧导航菜单 + 右侧页面内容 -->
     <el-container class="main-body">
       <el-aside class="main-aside">
         <left-menu />
@@ -38,6 +41,7 @@ const cachedPages = ['OverviewPage', 'ScorePage', 'EvaluationPage']
         </router-view>
       </el-main>
     </el-container>
+    <!-- 底部版权栏 -->
     <el-footer class="main-footer" height="30px">
       <div>&copy; {{ dayjs().format('YYYY') }} {{ title }} - {{ author }}版权所有</div>
     </el-footer>

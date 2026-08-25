@@ -21,11 +21,11 @@ const store = useSettingStore()
 
 const { tagCategories: list, tags } = storeToRefs(store)
 
-const InputRef = ref<InputInstance>()
-const inputValue = ref('')
-const inputVisible = ref(false)
-const isProcessingInput = ref(false)
-const activeCategory = ref(list.value[0]?.prop || '')
+const InputRef = ref<InputInstance>() // 标签输入框实例引用
+const inputValue = ref('') // 新标签输入值
+const inputVisible = ref(false) // 标签输入框是否可见
+const isProcessingInput = ref(false) // 输入确认处理中，防止重复触发
+const activeCategory = ref(list.value[0]?.prop || '') // 当前选中的分类 prop
 
 // 列表变化后若当前选中分类已不存在，则回退到首个分类
 watch(
@@ -38,12 +38,14 @@ watch(
   { immediate: true }
 )
 
+// AI 生成标签弹窗相关状态
 const aiDialogVisible = ref(false)
 const generating = ref(false)
 const generateCount = ref(10)
 const generateRequirement = ref('')
 const generatedTags = ref<string[]>([])
 const selectedTags = ref<string[]>([])
+// AI 生成字典分类弹窗相关状态
 const categoryAIDialogVisible = ref(false)
 const categoryGenerating = ref(false)
 const categoryGenerateCount = ref(6)
@@ -366,6 +368,7 @@ const handleAddSelectedCategories = () => {
 
 <template>
   <div class="label-maintenance__wrapper">
+    <!-- 左侧：字典分类列表，可重置预设、AI 生成与新增 -->
     <div class="label-maintenance-aside">
       <div class="label-maintenance-aside-header">
         <div class="label-maintenance-aside-title">字典分类</div>
@@ -404,6 +407,7 @@ const handleAddSelectedCategories = () => {
         </el-popconfirm>
       </div>
     </div>
+    <!-- 右侧：当前分类下的标签管理与 AI 生成 -->
     <div class="label-maintenance-main">
       <div class="label-maintenance-main-title">
         {{ list.find((item) => item.prop === activeCategory)?.label || '标签' }}
@@ -448,6 +452,7 @@ const handleAddSelectedCategories = () => {
     </div>
   </div>
 
+  <!-- AI 生成标签弹窗：设置数量与要求后生成并选择添加 -->
   <el-dialog
     v-model="aiDialogVisible"
     title="AI生成标签"
@@ -505,6 +510,7 @@ const handleAddSelectedCategories = () => {
     </template>
   </el-dialog>
 
+  <!-- AI 生成字典分类弹窗：设置数量与要求后生成并选择添加 -->
   <el-dialog
     v-model="categoryAIDialogVisible"
     title="AI生成字典分类"

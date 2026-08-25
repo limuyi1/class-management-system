@@ -57,6 +57,7 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
       />
     </button>
 
+    <!-- 标题、日期与展示内容设置 -->
     <div v-show="expanded && !disabled" class="notice-step__body">
       <div class="notice-settings__field">
         <label for="score-notice-title">通知标题</label>
@@ -93,6 +94,7 @@ const handleModeChange = (value: string | number | boolean | undefined): void =>
         </div>
       </div>
 
+      <!-- 学生姓名手写字体设置 -->
       <div class="notice-settings__appearance">
         <div>
           <strong><font-awesome-icon :icon="['solid', 'font']" /> 学生姓名手写字体</strong>

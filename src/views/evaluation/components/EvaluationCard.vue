@@ -21,6 +21,7 @@ import type { StudentDataType } from '@/types/StudentData'
 import { NAME_PROP } from '@/constants'
 
 const store = useConfigurationStore()
+/** 评语文本排版常量（像素单位） */
 const layoutConstantsPx = getEvaluationTextLayoutConstantsPx()
 
 const emit = defineEmits<EvaluationPreviewCardEmitsType>()
@@ -83,12 +84,14 @@ const getCommentLayout = (
   )
 }
 
+/** 单元格样式：尺寸与整体字号 */
 const cellStyle = computed(() => ({
   width: `${props.pageInfo?.cellWidth}px`,
   height: `${props.pageInfo?.cellHeight}px`,
   fontSize: `${store.fontSize}px`
 }))
 
+/** 表格外层容器样式：页面尺寸与纵向边距 */
 const tableWrapperStyle = computed(() => ({
   width: `${props.pageInfo.pageWidth}px`,
   height: `${props.pageInfo.pageHeight}px`,
@@ -96,6 +99,7 @@ const tableWrapperStyle = computed(() => ({
   boxSizing: 'border-box' as const
 }))
 
+/** 表格样式：宽度与横向偏移 */
 const tableStyle = computed(() => ({
   width: `${props.pageInfo.tableWidth}px`,
   marginLeft: `${props.pageInfo.tableOffsetX}px`

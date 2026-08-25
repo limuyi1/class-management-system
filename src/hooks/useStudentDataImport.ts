@@ -26,6 +26,7 @@ import type {
 /**
  * 统一协调首次导入、增量成绩导入和增量评语导入。
  * 组件只负责展示弹窗；数据校验、写入、状态清理和导入后的路由都集中在这里。
+ * @returns 导入流程所需的响应式状态与处理方法
  */
 export const useStudentDataImport = () => {
   const dataSourceStore = useDataSourceStore()
@@ -97,6 +98,7 @@ export const useStudentDataImport = () => {
 
   /**
    * 导入完成后统一等待数据状态稳定，并校验目标路由是否真正生效。
+   * @param targetPath - 导入完成后跳转的目标路由
    */
   const navigateAfterImport = async (targetPath: '/overview' | '/score' | '/tools/comments') => {
     await nextTick()

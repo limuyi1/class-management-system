@@ -19,31 +19,49 @@ import {
  * 确认后以 Base64 形式返回裁剪结果，并将压缩比例同步回父组件。
  */
 interface Props {
+  /** 弹窗是否可见 */
   visible: boolean
+  /** 待裁剪图片地址 */
   imageSrc: string
+  /** 输出图片格式 */
   outputType?: 'jpeg' | 'png' | 'webp'
+  /** 是否启用压缩选项 */
   enableCompression?: boolean
+  /** 压缩比例（null 表示原图） */
   compressRatio?: number | null
 }
 
 interface Emits {
+  /** 确认裁剪，回传 Base64 结果 */
   (e: 'confirm', croppedBase64: string): void
+  /** 取消裁剪 */
   (e: 'cancel'): void
+  /** 弹窗可见状态变化 */
   (e: 'update:visible', value: boolean): void
+  /** 压缩比例变化 */
   (e: 'update:compressRatio', value: number | null): void
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+/** 确认操作进行中标记 */
 const loading = ref(false)
+/** 是否处于全屏模式 */
 const fullscreen = ref(false)
+/** 裁剪容器 DOM 引用 */
 const cropperWrapperRef = ref<HTMLDivElement | null>(null)
+/** 裁剪器组件实例引用 */
 const cropperRef = ref<InstanceType<typeof VueCropper> | null>(null)
+/** 裁剪器是否已就绪 */
 const cropperReady = ref(false)
+/** 裁剪框宽度 */
 const autoCropWidth = ref(640)
+/** 裁剪框高度 */
 const autoCropHeight = ref(400)
+/** 当前裁剪结果 Base64，用于体积估算 */
 const cropDataBase64 = ref('')
+/** 体积估算进行中标记 */
 const estimating = ref(false)
 
 // 裁剪框相关常量：默认尺寸、宽高比、全屏边距与最小尺寸
@@ -61,13 +79,17 @@ const ESTIMATE_DEBOUNCE_DELAY = 350
 // 「原图」选项的哨兵值，实际压缩比例用 null 表示
 const ORIGINAL_COMPRESS_VALUE = 'original'
 
+/** 压缩选项值：数值比例或「原图」哨兵值 */
 type CompressOptionValueType = number | typeof ORIGINAL_COMPRESS_VALUE
 
 interface CompressOptionType {
+  /** 选项展示文本 */
   label: string
+  /** 选项值 */
   value: CompressOptionValueType
 }
 
+/** 压缩比例选项列表 */
 const COMPRESS_RATIO_OPTIONS: Array<CompressOptionType> = [
   { label: '原图', value: ORIGINAL_COMPRESS_VALUE },
   { label: '80%', value: 0.8 },
@@ -76,11 +98,16 @@ const COMPRESS_RATIO_OPTIONS: Array<CompressOptionType> = [
   { label: '25%', value: 0.25 }
 ]
 
+/** 容器尺寸监听器 */
 let resizeObserver: ResizeObserver | null = null
+/** 布局刷新帧 id，用于合并同一帧内的多次刷新请求 */
 let refreshFrameId = 0
+/** 是否存在待执行的强制刷新 */
 let pendingForceRefresh = false
+/** 压缩估算防抖定时器 id */
 let estimateTimer = 0
 
+/** 裁剪器操作方法名集合 */
 type CropperMethodNameType =
   | 'changeScale'
   | 'rotateLeft'
@@ -89,6 +116,7 @@ type CropperMethodNameType =
   | 'flipY'
   | 'recycle'
 
+/** 裁剪器对外暴露的 API 形状 */
 interface CropperApiType {
   refresh: () => void
   getCropData: (callback: (data: string) => void) => void
@@ -271,6 +299,7 @@ const prepareCropper = async () => {
   scheduleCropEstimate()
 }
 
+// 图片源变化且弹窗可见时重建裁剪器
 watch(
   () => props.imageSrc,
   () => {
@@ -281,6 +310,7 @@ watch(
   }
 )
 
+// 弹窗关闭时重置状态并清理定时器与监听
 watch(
   () => props.visible,
   (visible) => {
@@ -313,12 +343,19 @@ const handleOperation = (method: CropperMethodNameType, ...args: number[]) => {
   cropper[method]()
 }
 
+/** 放大裁剪框 */
 const handleZoomIn = () => handleOperation('changeScale', 0.1)
+/** 缩小裁剪框 */
 const handleZoomOut = () => handleOperation('changeScale', -0.1)
+/** 向左旋转 */
 const handleRotateLeft = () => handleOperation('rotateLeft')
+/** 向右旋转 */
 const handleRotateRight = () => handleOperation('rotateRight')
+/** 水平翻转 */
 const handleFlipHorizontal = () => handleOperation('flipX')
+/** 垂直翻转 */
 const handleFlipVertical = () => handleOperation('flipY')
+/** 重置裁剪框 */
 const handleReset = () => handleOperation('recycle')
 
 // 裁剪实时变化时触发估算调度（内部有防抖）
@@ -426,6 +463,7 @@ onBeforeUnmount(() => {
     @opened="handleOpened"
     @update:model-value="(val) => emit('update:visible', val)"
   >
+    <!-- 裁剪容器，就绪后渲染裁剪器 -->
     <div ref="cropperWrapperRef" class="cropper-wrapper" :class="{ fullscreen }">
       <VueCropper
         v-if="cropperReady"

@@ -1,3 +1,9 @@
+/**
+ * commentPolishUtil 测试
+ * 覆盖 AI 润色评语的目标构建（buildCommentPolishTargets）与结果应用（applyPolishedComments），
+ * 包括目标筛选、评语空白清理与仅写入非空润色结果等场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -6,6 +12,7 @@ import {
 } from '../../src/utils/evaluation/commentPolishUtil'
 import { NAME_PROP } from '../../src/constants'
 
+// AI 润色评语：构建润色目标与回写润色结果，忽略空白评语与未命中学生
 describe('commentPolishUtil', () => {
   it('builds polish targets only from students with existing comments', () => {
     const targets = buildCommentPolishTargets(

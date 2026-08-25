@@ -35,6 +35,7 @@ const emit = defineEmits<{
   removeWeeklyRow: [rowId: string]
 }>()
 
+// 矩阵容器引用与岗位重命名状态
 const matrixRef = shallowRef<HTMLElement | null>(null)
 const editingPositionId = shallowRef<string | null>(null)
 const positionDraft = shallowRef('')

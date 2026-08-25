@@ -30,18 +30,25 @@ import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
 import type { ScoreRecognitionPreviewRowType } from '@/utils/scoreRecognitionUtil'
 
+// 表格视图与录入视图的组件实例引用
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
+// 数据、配置、表头与 AI 配置 store
 const dataStore = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
 
+// 全部学生（识图匹配用）与启用学生（写入成绩用）
 const { students: originList, enabledData } = storeToRefs(dataStore)
+// 启用的成绩科目列
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
+// 学生趋势面板所需的选择与看板数据
 const { selectedStudentIds, dashboardData, focusStudent } = useOverviewDashboard()
 
+/** 是否已设置单元 */
 const hasUnits = computed(() => scoreColumns.value.length > 0)
+/** 是否已有任意成绩 */
 const hasScores = computed(() => dataStore.hasAnyScore)
 /**
  * 成绩页按“无单元 / 有单元无成绩 / 有成绩”降级展示。
@@ -53,12 +60,16 @@ const scoreStage = computed<ScorePageStageType>(() => {
   return 'ready'
 })
 
+// 图片裁剪器显隐与待裁剪图片
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
+// AI 识图结果预览对话框显隐与预览行
 const recognitionPreviewVisible = ref(false)
 const recognitionPreviewRows = ref<ScoreRecognitionPreviewRowType[]>([])
+// 学生趋势抽屉与报告导出对话框显隐
 const trendDrawerVisible = ref(false)
 const reportDialogVisible = ref(false)
+/** 当前查看趋势 / 导出报告的学生 */
 const currentStudent = ref<StudentDataType | null>(null)
 const router = useRouter()
 
@@ -77,6 +88,7 @@ const ensureDefaultScoreTab = () => {
 ensureDefaultScoreTab()
 watch(scoreColumns, ensureDefaultScoreTab)
 
+/** 将焦点聚焦到录入视图的姓名输入框 */
 const autoFocus = () => {
   inputDataRef.value?.autoFocus()
 }
@@ -260,7 +272,9 @@ defineExpose({ autoFocus })
       subtitle="选择当前科目后，可继续手动录入、AI 识图和查看统计"
     />
 
+    <!-- 三栏布局：左学生列表、中分数录入、右成绩统计 -->
     <div class="score-page-content">
+      <!-- 左栏：学生列表与科目切换 -->
       <div class="panel panel-left">
         <score-table-view
           ref="tableRef"
@@ -273,6 +287,7 @@ defineExpose({ autoFocus })
           @inspect-student="handleInspectStudent"
         />
       </div>
+      <!-- 中栏：录入进度与分数录入 -->
       <div class="panel panel-middle">
         <input-data-view
           ref="inputDataRef"
@@ -283,11 +298,13 @@ defineExpose({ autoFocus })
           @go-unit-setting="goToUnitSetting"
         />
       </div>
+      <!-- 右栏：成绩统计 -->
       <div class="panel panel-right">
         <score-analysis-view :can-export="dataStore.hasAnyScore" :stage="scoreStage" />
       </div>
     </div>
 
+    <!-- AI 识图：图片裁剪 -->
     <image-cropper
       v-model:visible="cropperVisible"
       v-model:compress-ratio="configuration.scoreImageCompressRatio"
@@ -297,6 +314,7 @@ defineExpose({ autoFocus })
       @cancel="handleCropCancel"
     />
 
+    <!-- 学生趋势分析抽屉 -->
     <el-drawer
       v-model="trendDrawerVisible"
       class="overview-analysis-drawer score-student-trend-drawer"
@@ -315,12 +333,14 @@ defineExpose({ autoFocus })
       />
     </el-drawer>
 
+    <!-- 学生报告导出对话框 -->
     <student-report-export-dialog
       v-model:visible="reportDialogVisible"
       :student="currentStudent"
       :score-columns="scoreColumns"
     />
 
+    <!-- AI 识图成绩预览确认对话框 -->
     <score-recognition-preview-dialog
       v-model:visible="recognitionPreviewVisible"
       :rows="recognitionPreviewRows"

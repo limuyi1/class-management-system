@@ -1,3 +1,9 @@
+/**
+ * useTabQuerySync 组合式函数测试
+ * 覆盖：标签页与路由 query 的双向同步（query → activeTab、activeTab 变化 → replace 路由）、
+ * 忽略旧版学生信息页遗留的 edit-tags 参数、合法标签集合的响应式更新。
+ */
+
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { nextTick, reactive, ref } from 'vue'
 
@@ -5,11 +11,13 @@ import { useTabQuerySync } from '../../src/hooks/useTabQuerySync'
 
 type TabType = 'system-backup' | 'label-maintenance'
 
+// 等待 nextTick 与微任务队列排空，确保 hook 内部的 watch 回调执行完毕
 const flush = async () => {
   await nextTick()
   await Promise.resolve()
 }
 
+// 目标：验证设置页标签页与 URL query 参数的双向同步及对遗留参数的容错
 describe('useTabQuerySync', () => {
   const validTabs = ['system-backup', 'label-maintenance'] as const
 

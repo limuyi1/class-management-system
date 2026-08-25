@@ -16,12 +16,14 @@ import ContentEditors from './ContentEditors.vue'
 import ImageScaleDialog from './ImageScaleDialog.vue'
 import ExpandEditorDialog from './ExpandEditorDialog.vue'
 
+/** 弹窗可见性、待编辑题目与所属文件夹 */
 interface Props {
   visible: boolean
   question: WrongQuestion | null
   folderId: string
 }
 
+/** 可见性更新与保存事件 */
 interface Emits {
   (e: 'update:visible', value: boolean): void
   (e: 'save', question: Omit<WrongQuestion, 'id' | 'createdAt' | 'updatedAt'>): void
@@ -65,9 +67,11 @@ const resetForm = (folderId?: string) => {
   }
 }
 
+/** 编辑器内图片裁剪器可见性与待裁剪图片源 */
 const editorCropperVisible = ref(false)
 const editorCropperImageSrc = ref('')
 
+/** 图片缩放设置：待插入图片、缩放比例、原始宽度与对齐方式 */
 const imageScaleVisible = ref(false)
 const pendingImageBase64 = ref('')
 const imageScale = ref(100)
@@ -166,6 +170,7 @@ const setActiveEditor = (field: 'question' | 'answer' | 'explanation') => {
   activeEditorRef.value = field
 }
 
+/** AI 答题加载状态 */
 const aiAnswerLoading = ref(false)
 
 /** 调用 AI 服务生成答案与解析并回填表单 */
@@ -261,6 +266,7 @@ watch(
   }
 )
 
+/** 弹窗标题：按是否存在 id 区分编辑与添加 */
 const dialogTitle = computed(() => (props.question?.id ? '编辑错题' : '添加错题'))
 
 /** 关闭弹窗 */
@@ -282,6 +288,7 @@ const toggleFavorite = () => {
   form.value.isFavorite = !form.value.isFavorite
 }
 
+/** 全屏展开编辑弹窗可见性 */
 const expandVisible = ref(false)
 
 /** 打开全屏展开编辑弹窗 */
@@ -289,6 +296,7 @@ const showExpand = () => {
   expandVisible.value = true
 }
 
+/** 内容编辑器引用与当前激活的编辑字段 */
 const contentEditorsRef = ref<InstanceType<typeof ContentEditors> | null>(null)
 const activeEditorRef = ref<'question' | 'answer' | 'explanation' | null>(null)
 </script>
@@ -318,6 +326,7 @@ const activeEditorRef = ref<'question' | 'answer' | 'explanation' | null>(null)
     </template>
 
     <el-form :model="form" label-width="100px" class="question-form">
+      <!-- 基本信息：文件夹 / 题型 / 来源 / 难度 -->
       <BasicInfoCard
         :form="{
           folderId: form.folderId,
@@ -337,6 +346,7 @@ const activeEditorRef = ref<'question' | 'answer' | 'explanation' | null>(null)
         "
       />
 
+      <!-- 题目内容 / 答案 / 解析编辑卡片 -->
       <el-card class="form-card content-card" shadow="never">
         <template #header>
           <div class="card-header">
@@ -386,6 +396,7 @@ const activeEditorRef = ref<'question' | 'answer' | 'explanation' | null>(null)
       </div>
     </template>
 
+    <!-- 弹窗内嵌：图片裁剪、缩放设置与全屏编辑 -->
     <image-cropper
       v-model:visible="editorCropperVisible"
       :image-src="editorCropperImageSrc"

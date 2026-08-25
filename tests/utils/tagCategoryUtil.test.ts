@@ -1,3 +1,8 @@
+/**
+ * 测试 tagCategoryUtil 模块。
+ * 覆盖：新标签分类的拼音 prop 生成、空名/重名拒绝、同名 prop 加后缀去重，
+ * 以及批量创建时的标签去重。
+ */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -6,6 +11,7 @@ import {
   hasCategoryLabel
 } from '../../src/utils/tagCategoryUtil'
 
+// 标签分类工具函数测试组
 describe('tagCategoryUtil', () => {
   it('creates a pinyin prop for a new category', () => {
     const category = createUniqueTagCategory('学习习惯', [])

@@ -21,6 +21,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { fas } from '@fortawesome/free-solid-svg-icons'
 import { far } from '@fortawesome/free-regular-svg-icons'
 
+// 注册 FontAwesome 实心与常规两套图标集
 library.add(fas, far)
 
 import { createPersistedStateDexie, preloadAllStores } from './plugins/persistDexie'
@@ -31,18 +32,23 @@ import router from './router'
 const app = createApp(App)
 
 const pinia = createPinia()
+// 接入 Dexie 持久化插件，Pinia 状态变更时自动写入 IndexedDB
 pinia.use(createPersistedStateDexie())
 
+// 全局注册 FontAwesome 图标组件
 app.component('font-awesome-icon', FontAwesomeIcon)
 
 app.use(pinia)
+// 使用 Element Plus 并设置中文语言包
 app.use(ElementPlus, {
   locale: zhCn
 })
+// 注册 VxeTable 表格组件库及其渲染插件
 app.use(VxeUIAll)
 app.use(VxeUITable)
 app.use(router)
 
+// 挂载根组件
 app.mount('#app')
 
 // 预加载所有 store（不阻塞渲染，提前完成持久化加载）

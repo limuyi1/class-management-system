@@ -10,20 +10,30 @@ import { AIModelTypeEnum, DefaultAIPrompts, type AIConfigType } from '@/types/AI
 import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
 
+/**
+ * useEvaluationBatchComments 组合式函数测试
+ * 测试目标：评语批量生成/润色逻辑
+ * 覆盖功能：标签与经典表达式的格式化、AI 未配置提示、跳过已有评语、按 ID 回填乱序结果、长度过滤、经典表达式的过度使用统计
+ */
+
+// 使用 vi.hoisted 提前声明 mock 工厂，保证 vi.mock 中可引用同一实例
 const aiServiceMocks = vi.hoisted(() => ({
   generateBatchComments: vi.fn(),
   polishBatchComments: vi.fn()
 }))
 
+// ElLoading 服务替身：记录关闭与进度文本调用
 const loadingMocks = vi.hoisted(() => ({
   close: vi.fn(),
   setText: vi.fn()
 }))
 
+// ElMessageBox 确认框替身
 const messageBoxMocks = vi.hoisted(() => ({
   confirm: vi.fn()
 }))
 
+// ElMessage 各类提示替身
 const messageMocks = vi.hoisted(() => ({
   error: vi.fn(),
   info: vi.fn(),
@@ -45,6 +55,7 @@ interface TestAIConfigType extends AIConfigType {
   isConfigured: boolean
 }
 
+// 构造 AI 配置对象，isConfigured 控制 apiKey 是否存在
 const createAIConfig = (isConfigured = true): TestAIConfigType => ({
   isConfigured,
   modelType: AIModelTypeEnum.OPENAI,
@@ -54,8 +65,10 @@ const createAIConfig = (isConfigured = true): TestAIConfigType => ({
   prompts: { ...DefaultAIPrompts }
 })
 
+// 固定的标签分类列表，用于批量生成时的提示词组装
 const tagCategoryList: TagCategoryType[] = [{ prop: 'behavior', label: '表现' }]
 
+// 构造带默认标签的学生数据，可用 overrides 覆盖字段（如已有评语）
 const createStudent = (
   name: string,
   overrides: Partial<StudentDataType> = {}
@@ -68,9 +81,12 @@ const createStudent = (
   ...overrides
 })
 
+// 生成指定长度的评语文本，默认 105 字（超过 100 字下限）
 const createComment = (length = 105): string => '这'.repeat(length)
 
+// 覆盖批量生成与批量润色的完整流程（含边界与异常分支）
 describe('useEvaluationBatchComments', () => {
+  // 每个用例前重置全部 mock 调用记录并恢复默认返回值
   beforeEach(() => {
     vi.clearAllMocks()
     messageBoxMocks.confirm.mockResolvedValue('confirm')

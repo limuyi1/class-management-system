@@ -1,8 +1,14 @@
+/**
+ * 测试 studentReportUtil 的 buildStudentReportData。
+ * 覆盖：学生报告数据构建中空成绩单元保留在明细但排除在汇总统计外，
+ * 以及平均分、最高分、最低分与进退步差值的计算。
+ */
 import { describe, expect, it } from 'vitest'
 
 import { NAME_PROP } from '../../src/constants'
 import { buildStudentReportData } from '../../src/utils/studentReportUtil'
 
+// 学生报告数据构建测试组
 describe('studentReportUtil', () => {
   it('keeps empty-score units in score items and excludes them from summary stats', () => {
     const report = buildStudentReportData({

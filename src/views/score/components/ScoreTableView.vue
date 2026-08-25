@@ -16,12 +16,14 @@ import type { ScorePageStageType } from '@/types/Score'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 组件属性：科目列、当前录入科目、页面阶段 */
 interface Props {
   scoreColumns: SettingType[]
   scoreTab?: string | null
   stage: ScorePageStageType
 }
 
+/** 组件事件：切换科目、重置成绩、编辑行、查看学生趋势 */
 const emit = defineEmits<{
   'update:scoreTab': [value: string]
   resetScore: []
@@ -29,12 +31,15 @@ const emit = defineEmits<{
   inspectStudent: [row: StudentDataType]
 }>()
 
+// 学生数据与应用配置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
+// 启用学生列表作为表格数据源
 const { enabledData: tableData } = storeToRefs(store)
 const props = defineProps<Props>()
 
+// 表格实例、仅未录入开关与当前高亮学生
 const tableRef = ref()
 const showOnlyUnentered = ref(false)
 const activeStudentId = ref<string | null>(null)
@@ -180,6 +185,7 @@ defineExpose({
 <template>
   <div class="score-table-view">
     <div class="table-head-tools">
+      <!-- 表头：学生列表标题与仅未录入开关 -->
       <div class="table-head-main">
         <div class="title">学生列表</div>
         <el-switch
@@ -189,6 +195,7 @@ defineExpose({
           inactive-text="全部"
         />
       </div>
+      <!-- 当前科目选择与重置按钮（无单元阶段不展示） -->
       <div v-if="stage !== 'noUnits'" class="table-head-sub">
         <div class="score-context">
           <span class="score-context__label">当前科目</span>
@@ -210,6 +217,7 @@ defineExpose({
       </div>
     </div>
 
+    <!-- 学生列表表格 -->
     <el-table
       ref="tableRef"
       :data="displayData"
@@ -225,11 +233,13 @@ defineExpose({
       <el-table-column type="index" label="序号" width="68" align="center" />
       <el-table-column :prop="NAME_PROP" label="姓名" min-width="120">
         <template #default="{ row }">
+          <!-- 姓名列为链接，点击查看学生趋势 -->
           <button class="student-link" type="button" @click.stop="handleInspectStudent(row)">
             {{ row[NAME_PROP] }}
           </button>
         </template>
       </el-table-column>
+      <!-- 当前科目分数列（无单元阶段不展示） -->
       <el-table-column
         v-if="stage !== 'noUnits'"
         :prop="configuration.inputScoreTab || ''"

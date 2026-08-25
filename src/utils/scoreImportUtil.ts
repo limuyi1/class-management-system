@@ -47,19 +47,31 @@ export interface IncrementalScoreImportResultType {
   stats: ScoreImportStatsType
 }
 
-/** 规范化姓名字符串：空值转空串并去除首尾空格 */
+/**
+ * 规范化姓名字符串：空值转空串并去除首尾空格。
+ * @param value - 原始单元格值
+ * @returns 规范化后的姓名
+ */
 const normalizeName = (value: ExcelCellValueType): string => {
   if (value === null || value === undefined) return ''
   return String(value).trim()
 }
 
-/** 根据列名生成拼音 prop（带声调数字），拼音失败时回退为原始列名 */
+/**
+ * 根据列名生成拼音 prop（带声调数字），拼音失败时回退为原始列名。
+ * @param label - 成绩列名称
+ * @returns 生成的 prop
+ */
 const createScoreProp = (label: string): string => {
   const prop = pinyin(label, { toneType: 'num', type: 'array' }).join('_')
   return prop || label
 }
 
-/** 根据列名创建成绩列表头配置 */
+/**
+ * 根据列名创建成绩列表头配置。
+ * @param label - 成绩列名称
+ * @returns 新表头配置
+ */
 const createHeader = (label: string): SettingType => ({
   prop: createScoreProp(label),
   label,
@@ -117,7 +129,12 @@ export const findDuplicateNames = (
     .map(([name]) => name)
 }
 
-/** 将重复姓名集合包装为 Set，便于 O(1) 判重 */
+/**
+ * 将重复姓名集合包装为 Set，便于 O(1) 判重。
+ * @param rows - 数据行数组
+ * @param nameKey - 姓名所在的字段名
+ * @returns 重复姓名集合
+ */
 const getDuplicateNameSet = (
   rows: Array<ExcelRowType | StudentDataType>,
   nameKey: string
@@ -212,6 +229,7 @@ export const buildIncrementalScoreImport = (options: {
     skippedColumnCount: 0
   }
 
+  // 名称冲突时按用户策略复用已有列或跳过，否则新建成绩列
   options.selectedColumns.forEach((column) => {
     const existingHeader = existingHeaderByLabel.get(column)
     if (existingHeader) {
@@ -239,6 +257,7 @@ export const buildIncrementalScoreImport = (options: {
   )
   const excelRowsByName = new Map<string, ExcelRowType>()
 
+  // 按姓名匹配系统已有学生，重名或未匹配的 Excel 行计入统计并跳过
   options.rows.forEach((row) => {
     const name = normalizeName(row[options.nameColumn])
     if (!name) return

@@ -6,31 +6,51 @@ import type { StudentDataType } from '@/types/StudentData'
 
 /** 分数段统计 */
 export interface ScoreRangeType {
+  /** 分数段名称（如 90-100分） */
   label: string
+  /** 分数段下限 */
   min: number
+  /** 分数段上限 */
   max: number
+  /** 分数段颜色 */
   color: string
+  /** 该分数段人数 */
   count: number
+  /** 该分数段学生姓名列表 */
   students: string[]
 }
 
 /** 成绩统计结果 */
 export interface ScoreStatisticsType {
+  /** 最高分 */
   maxScore: number
+  /** 获得最高分的人数 */
   maxScoreCount: number
+  /** 最高分学生姓名列表 */
   topStudents: string[]
+  /** 最低分 */
   minScore: number
+  /** 获得最低分的人数 */
   minScoreCount: number
+  /** 最低分学生姓名列表 */
   bottomStudents: string[]
+  /** 平均分（保留两位小数的字符串） */
   avgScore: string
+  /** 常规分数段统计（如 90-100、80-89 等） */
   ranges: ScoreRangeType[]
+  /** 低分分数段统计（0-59 分，每 10 分一档） */
   lowScoreRanges: ScoreRangeType[]
+  /** 低分学生总数 */
   lowScoreTotal: number
+  /** 全部低分学生姓名列表 */
   allLowScoreStudents: string[]
+  /** 各分数段中的最大人数（用于图表比例） */
   maxCount: number
+  /** 有效成绩总数 */
   totalCount: number
 }
 
+/** 成绩统计使用的学生类型（与通用学生数据一致） */
 export type ScoreStudentType = StudentDataType
 
 interface UseScoreStatisticsOptions {
@@ -43,6 +63,8 @@ interface UseScoreStatisticsOptions {
 /**
  * 成绩统计分析
  * 根据学生列表和选中的成绩列计算最高分、最低分、平均分、各分数段分布等统计信息
+ * @param options - 成绩统计配置（学生列表与当前成绩列）
+ * @returns 成绩统计结果及低分阈值相关状态
  */
 export function useScoreStatistics(options: UseScoreStatisticsOptions) {
   const { students, scoreProp } = options
@@ -194,6 +216,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
       .sort((a, b) => (getScore(a) || 0) - (getScore(b) || 0))
   })
 
+  // 平均分模式下自动将低分阈值同步为最新平均分
   watch(
     () => scoreStats.value,
     (newVal) => {

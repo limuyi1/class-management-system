@@ -6,10 +6,18 @@ import { pinyin } from 'pinyin-pro'
 
 import type { TagCategoryType } from '@/types/Setting'
 
-/** 去除标签分类名称首尾空格 */
+/**
+ * 去除标签分类名称首尾空格。
+ * @param label - 分类名称
+ * @returns 去除首尾空格后的名称
+ */
 const normalizeCategoryLabel = (label: string): string => label.trim()
 
-/** 根据标签分类中文名称生成拼音 prop */
+/**
+ * 根据标签分类中文名称生成拼音 prop，生成失败时使用时间戳占位。
+ * @param label - 分类名称
+ * @returns 拼音拼接的 prop
+ */
 const createCategoryPropBase = (label: string): string => {
   const prop = pinyin(label, { toneType: 'num', type: 'array' })
     .map((item) => item.trim())
@@ -50,6 +58,7 @@ export const createUniqueTagCategory = (
   let prop = propBase
   let index = 2
 
+  // prop 冲突时追加数字后缀，直到不与已有分类重复
   while (existingProps.has(prop)) {
     prop = `${propBase}_${index}`
     index += 1

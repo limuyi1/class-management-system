@@ -21,12 +21,19 @@ interface UseExcelPreviewImportOptionsType {
  *
  * - Element Plus el-upload 使用 parseFile。
  * - 原生 input[type=file]（例如同时支持 .dexie 的设置页）使用 parseRawFile。
+ * @param options - 错误日志与提示文案等可选配置
+ * @returns Excel 预览相关的响应式状态与解析方法
  */
 export function useExcelPreviewImport(options: UseExcelPreviewImportOptionsType = {}) {
+  /** 解析后的 Excel 预览数据 */
   const preview = shallowRef<ExcelPreviewResultType | null>(null)
+  /** 原始文件对象 */
   const sourceFile = shallowRef<File | null>(null)
+  /** 文件名 */
   const fileName = shallowRef('')
+  /** 解析中状态 */
   const loading = shallowRef(false)
+  /** 当前选中的表头行索引 */
   const headerRowIndex = shallowRef(0)
 
   /** 根据当前表头行索引解析出的表头与数据行 */

@@ -27,24 +27,34 @@ import type { SeatingChartPageOrientationType } from '@/utils/seating-chart/seat
 const PDF_IMAGE_SCALE = 3
 
 const props = defineProps<{
+  /** 弹窗显隐状态（v-model 双向绑定） */
   modelValue: boolean
+  /** 当前座位表 */
   chart: SeatingChartType
+  /** 学生 ID 到姓名的映射 */
   studentNames: Record<string, string>
 }>()
 
+/** 事件：更新弹窗显隐状态 */
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
 }>()
 
+// 预览组件实例，用于获取待导出的 DOM 元素
 const previewRef = shallowRef<InstanceType<typeof SeatingChartExportPreview> | null>(null)
+// 导出配置：文件格式、纸张与方向
 const format = shallowRef<SeatingChartExportFormatType>('png')
 const pageType = shallowRef<PagesEnum>(PagesEnum.A4)
 const orientation = shallowRef<SeatingChartPageOrientationType>('landscape')
+// 方向模式：auto 智能跟随 / manual 手动选择
 const orientationMode = shallowRef<'auto' | 'manual'>('auto')
+// 版面缩放百分比与 PNG 清晰度倍数
 const layoutScalePercent = shallowRef(100)
 const scale = shallowRef(2)
+// 是否显示标题与“空座位”标签
 const showTitle = shallowRef(true)
 const showEmptyLabels = shallowRef(true)
+// 导出进行中状态，防止重复触发
 const exporting = shallowRef(false)
 
 /** 双向绑定的弹窗显隐状态 */
@@ -169,6 +179,7 @@ async function handleExport(): Promise<void> {
     </template>
 
     <div class="export-workspace">
+      <!-- 左侧：导出配置面板 -->
       <aside class="export-settings">
         <el-scrollbar class="export-settings__scroll">
           <div class="export-settings__content">
@@ -276,6 +287,7 @@ async function handleExport(): Promise<void> {
         </el-scrollbar>
       </aside>
 
+      <!-- 右侧：实时预览面板 -->
       <div class="preview-panel">
         <div class="preview-toolbar">
           <span><i></i>实时预览</span>

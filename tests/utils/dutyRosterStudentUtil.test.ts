@@ -1,3 +1,9 @@
+/**
+ * dutyRosterStudentUtil 测试
+ * 覆盖值日表学生名单处理：系统学生转换（buildSystemDutyStudents）、
+ * Excel 行构建（buildExcelDutyStudents）与名单解析（resolveDutyRosterStudents）。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import { DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
@@ -9,6 +15,7 @@ import {
   resolveDutyRosterStudents
 } from '@/utils/duty-roster/dutyRosterStudentUtil'
 
+// 构造可覆盖默认值的最小值日表数据，供各用例复用
 const createRoster = (overrides: Partial<DutyRosterType> = {}): DutyRosterType => ({
   id: 'r1',
   name: '值日表',
@@ -24,6 +31,7 @@ const createRoster = (overrides: Partial<DutyRosterType> = {}): DutyRosterType =
   ...overrides
 })
 
+// 系统来源：将系统学生转为名单结构，处理空姓名与首尾空白
 describe('buildSystemDutyStudents', () => {
   it('将系统学生转换为最小名单结构', () => {
     const students: StudentDataType[] = [
@@ -40,6 +48,7 @@ describe('buildSystemDutyStudents', () => {
   })
 })
 
+// Excel 来源：按行顺序构建名单并跳过空姓名行
 describe('buildExcelDutyStudents', () => {
   it('按行顺序建立名单并跳过空姓名', () => {
     const rows = [
@@ -56,6 +65,7 @@ describe('buildExcelDutyStudents', () => {
   })
 })
 
+// 名单解析：根据值日表来源（系统/Excel）返回对应名单，无值日表时返回空数组
 describe('resolveDutyRosterStudents', () => {
   const systemStudents: StudentDataType[] = [{ studentId: '1', name: '张三' }]
 

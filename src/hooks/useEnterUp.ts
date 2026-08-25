@@ -1,5 +1,6 @@
 import { onUnmounted, ref } from 'vue'
 
+/** 回车键回调函数类型，支持同步与异步回调 */
 type EnterUpCallback = () => void | Promise<void>
 
 /**

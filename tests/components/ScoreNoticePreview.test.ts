@@ -4,6 +4,13 @@ import { mount } from '@vue/test-utils'
 import ScoreNoticePreview from '../../src/views/score-notice/components/ScoreNoticePreview.vue'
 import { ScoreNoticeCommentStatusEnum, ScoreNoticeModeEnum } from '../../src/types/ScoreNotice'
 
+/**
+ * ScoreNoticePreview 组件测试
+ * 测试目标：成绩通知单预览（报告图样）
+ * 覆盖功能：等级/分数两种展示模式、分数长度样式类、科目数量对应的网格密度
+ */
+
+// 两门固定科目，用于大多数用例；语文满分 100、科学满分 50
 const subjects = [
   {
     id: 'chinese',
@@ -19,6 +26,7 @@ const subjects = [
   }
 ]
 
+// 按需生成指定数量的科目，用于验证 6-10 门与 10 门以上时的网格密度
 const createSubjects = (count: number) =>
   Array.from({ length: count }, (_, index) => ({
     id: `subject-${index + 1}`,
@@ -27,6 +35,7 @@ const createSubjects = (count: number) =>
     rule: { maxScore: 100, gradeAMin: 80, gradeBMin: 60 }
   }))
 
+// 包含原始分、等级与评语的标准学生数据
 const student = {
   id: 'student-1',
   name: '张明轩',
@@ -36,6 +45,7 @@ const student = {
   commentStatus: ScoreNoticeCommentStatusEnum.Generated
 }
 
+// 验证报告图样的渲染：科目、等级/分数、评语与布局密度
 describe('ScoreNoticePreview', () => {
   it('renders arbitrary subjects, grades and comment inside the report image', () => {
     const wrapper = mount(ScoreNoticePreview, {

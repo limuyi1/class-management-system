@@ -1,3 +1,7 @@
+/**
+ * 评语文字排版工具
+ * 提供文字测量、断行、截断与自适应字号等共享排版逻辑，供页面预览与 PDF 导出复用
+ */
 import type { ConfigurationType } from '@/types/Configuration'
 import { getEvaluationHandwriteMeasureFontFamily } from '@/utils/evaluation/evaluationHandwriteFontUtil'
 

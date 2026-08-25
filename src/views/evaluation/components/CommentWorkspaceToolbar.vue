@@ -52,6 +52,7 @@ const handleMoreAction = (command: string | number | object): void => {
     @upload="emit('upload')"
   >
     <template #actions>
+      <!-- 评语完成进度 -->
       <div class="workspace-progress" title="评语完成进度">
         <span>完成 {{ completedCount }}/{{ totalCount }}</span>
         <el-progress
@@ -63,6 +64,7 @@ const handleMoreAction = (command: string | number | object): void => {
         <strong>{{ percentage.toFixed(0) }}%</strong>
       </div>
 
+      <!-- 批量处理：生成空白评语 / 重新生成全部 / 润色已有评语 -->
       <el-dropdown
         trigger="click"
         placement="bottom-end"
@@ -99,6 +101,7 @@ const handleMoreAction = (command: string | number | object): void => {
         </template>
       </el-dropdown>
 
+      <!-- 导出 PDF / Excel -->
       <el-dropdown
         trigger="click"
         placement="bottom-end"
@@ -124,6 +127,7 @@ const handleMoreAction = (command: string | number | object): void => {
         </template>
       </el-dropdown>
 
+      <!-- 更多操作：手写字体切换与重置评语 -->
       <el-dropdown trigger="click" placement="bottom-end" @command="handleMoreAction">
         <el-button class="workspace-more-btn" circle aria-label="更多评语操作" :disabled="!hasData">
           <font-awesome-icon :icon="['solid', 'ellipsis']" />

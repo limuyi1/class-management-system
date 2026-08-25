@@ -7,6 +7,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import PaperLayoutTool from '@/views/tools/components/PaperLayoutTool.vue'
 
 const router = useRouter()
+/** 是否处于全屏模式 */
 const fullscreen = ref(false)
 
 /** 返回工具中心 */
@@ -52,6 +53,7 @@ onBeforeUnmount(() => {
       </template>
     </page-header>
 
+    <!-- 试卷排版工具，接收全屏状态并响应全屏切换 -->
     <paper-layout-tool :fullscreen="fullscreen" @toggle-fullscreen="toggleFullscreen" />
   </div>
 </template>

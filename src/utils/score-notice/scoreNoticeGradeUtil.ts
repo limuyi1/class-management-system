@@ -1,3 +1,7 @@
+/**
+ * 成绩通知等级工具
+ * 提供分数与等级互转、等级规则推断、数据形态检测与分数格式化
+ */
 import { ScoreNoticeModeEnum, type ScoreNoticeGradeRuleType } from '@/types/ScoreNotice'
 
 /** 百分制科目的默认等级规则 */

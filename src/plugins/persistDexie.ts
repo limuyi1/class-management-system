@@ -33,6 +33,7 @@ import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUtil'
 import { DefaultAIPrompts } from '@/types/AIConfig'
 
+/** 可参与持久化的数据库记录类型联合 */
 type PersistableRecordType =
   | StudentDatasetRecord
   | ScoreSettingsRecord
@@ -46,6 +47,7 @@ type PersistableRecordType =
   | SeatingChartStorageRecord
   | DutyRosterStorageRecord
 
+/** dataSource store 在本插件中访问的字段子集 */
 interface DataSourceLikeStoreType {
   isDataReady: boolean
   initError: string | null
@@ -70,8 +72,10 @@ const tableNameMap: Record<string, Table<PersistableRecordType>> = {
   dataSource: db.studentDataset
 }
 
+/** 正在被 liveQuery 更新中的 store ID 集合，防止写入与同步互相触发形成循环 */
 const updatingStores = new Set<string>()
 
+/** 通过 JSON 序列化深拷贝状态，避免持久化数据与内存状态共享引用 */
 const cloneState = <T>(state: T): T => JSON.parse(JSON.stringify(state)) as T
 
 /**
@@ -93,6 +97,7 @@ export function createPersistedStateDexie() {
     // 保存插件接入前的初始 state，用于 IndexedDB 记录被删除后恢复 store 默认值。
     // 不能依赖所有 store 都有 $reset：setup store（如 theme）没有 Pinia 自动生成的 $reset。
     const defaultState = cloneState(store.$state)
+    /** 将数据库记录合并回 store 状态（含各 store 的字段归一化） */
     const patchStateFromRecord = (record: PersistableRecordType) => {
       const stateRecord = record as unknown as Record<string, unknown>
       const { id, updatedAt, ...state } = stateRecord
@@ -111,6 +116,7 @@ export function createPersistedStateDexie() {
       }
       store.$patch(state as _DeepPartial<StateTree>)
     }
+    /** 将 store 恢复为默认状态（数据库记录被删除时调用） */
     const resetStoreState = () => {
       // dataSource 在库中使用 { id, students } 结构，和 store.$state 字段不同，单独恢复。
       if (isDataSource) {
@@ -126,6 +132,7 @@ export function createPersistedStateDexie() {
       }
     }
 
+    /** 从 IndexedDB 读取持久化记录并回填 store 状态 */
     const loadFromDB = async () => {
       try {
         const record = await table.get(DB_ID)
@@ -153,6 +160,7 @@ export function createPersistedStateDexie() {
       dataSourceStore.isDataReady = true
     }
 
+    /** 将 store 状态写入 IndexedDB（数据库导入期间跳过） */
     const saveToDB = async () => {
       if (updatingStores.has(storeId) || isDatabaseImporting()) {
         return
@@ -179,6 +187,7 @@ export function createPersistedStateDexie() {
       }
     }
 
+    // 深度订阅 store 状态变化，任何变更都会触发持久化写入
     store.$subscribe(
       async () => {
         await saveToDB()

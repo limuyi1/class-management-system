@@ -56,10 +56,10 @@ const { students: tableData } = storeToRefs(store)
 const { scoreColumns: headers, enabledScoreColumns: enabledHeaders } = storeToRefs(settingStore)
 const { tagCategories: categories } = storeToRefs(settingStore)
 
-const tableRef = ref()
-const rowConfig = { keyField: 'studentId' }
-const cellConfig = { height: 48 }
-const virtualYConfig = { enabled: true, gt: 40, oSize: 5 }
+const tableRef = ref() // 表格实例引用
+const rowConfig = { keyField: 'studentId' } // 行配置：以 studentId 作为行唯一键
+const cellConfig = { height: 48 } // 单元格统一高度
+const virtualYConfig = { enabled: true, gt: 40, oSize: 5 } // 虚拟滚动：超过 40 行启用
 
 /**
  * 获取学生姓名，缺失时回退为空字符串。
@@ -148,10 +148,10 @@ const rowTagSummaryMap = computed(() =>
 const getRowTagSummary = (row: EditableStudentType) =>
   getStudentInfoTagSummary(rowTagSummaryMap.value, row.studentId)
 
-const dialogVisible = ref(false)
-const batchDrawerVisible = ref(false)
-const currentEditRow = ref<EditableStudentType | null>(null)
-const batchStudentList = ref<EditableStudentType[]>([])
+const dialogVisible = ref(false) // 单个标签编辑弹窗显隐
+const batchDrawerVisible = ref(false) // 批量标签抽屉显隐
+const currentEditRow = ref<EditableStudentType | null>(null) // 当前编辑标签的学生行
+const batchStudentList = ref<EditableStudentType[]>([]) // 批量编辑用的临时学生列表
 
 /**
  * 打开单个学生的标签编辑弹窗。
@@ -420,6 +420,7 @@ defineExpose({
     </el-popover>
 
     <div class="flex-1 overflow-hidden">
+      <!-- 学生信息可编辑表格：序号/姓名/标签/禁用/操作固定，成绩列动态渲染 -->
       <vxe-table
         ref="tableRef"
         border
@@ -522,6 +523,7 @@ defineExpose({
       </vxe-table>
     </div>
 
+    <!-- 单个与批量标签编辑组件 -->
     <TagEditorDialog
       v-model:visible="dialogVisible"
       :student="currentEditRow"
@@ -538,6 +540,7 @@ defineExpose({
     />
   </div>
 
+  <!-- 无学生数据时的空态提示 -->
   <div v-else class="h-full flex items-center justify-center">
     <el-empty description="暂无学生信息，请先上传" />
   </div>

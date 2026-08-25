@@ -27,19 +27,24 @@ import type {
   PaperLayoutOrientationType
 } from '@/types/Tools'
 
+/** 组件属性：是否处于全屏模式 */
 interface Props {
   fullscreen?: boolean
 }
 
 defineProps<Props>()
+/** 对外事件：请求切换全屏 */
 const emit = defineEmits<{
   toggleFullscreen: []
 }>()
 
+/** 预览面板与文件输入框的 DOM 引用 */
 const previewPanelRef = ref<HTMLElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+/** 导出与上传的进行中状态 */
 const exporting = ref(false)
 const uploading = ref(false)
+/** 素材选择弹窗与草稿弹窗的显示状态 */
 const selectorVisible = ref(false)
 const draftDialogVisible = ref(false)
 
@@ -150,14 +155,17 @@ function handleOrientationChange(orientation: PaperLayoutOrientationType): void 
   settings.layoutMode = orientation === 'portrait' ? 'single' : 'double'
 }
 
+/** 跳转素材管理页 */
 function goAttachmentLibrary(): void {
   router.push('/tools/attachments')
 }
 
+/** 触发临时图片上传的文件选择框 */
 function openTemporaryUploader(): void {
   fileInputRef.value?.click()
 }
 
+/** 处理临时图片选择，读取文件后统一走上传流程 */
 async function handleTemporaryFileChange(event: Event): Promise<void> {
   const target = event.target as HTMLInputElement
   const files = Array.from(target.files || [])
@@ -189,6 +197,7 @@ async function uploadTemporaryFiles(files: File[]): Promise<void> {
   }
 }
 
+/** 打开素材选择弹窗 */
 async function openAttachmentSelector(): Promise<void> {
   selectorVisible.value = true
 }
@@ -272,6 +281,7 @@ async function exportPdf(): Promise<void> {
       @change="handleTemporaryFileChange"
     />
 
+    <!-- 顶部工具栏：图片添加、自动排版、纸张设置与导出操作 -->
     <div class="layout-toolbar">
       <el-dropdown trigger="click" @command="handleAddImageCommand">
         <el-button type="primary" size="small" :loading="uploading">
@@ -408,6 +418,7 @@ async function exportPdf(): Promise<void> {
     </div>
 
     <div class="layout-workbench">
+      <!-- 左侧页面导航：缩略图列表，点击滚动到对应页 -->
       <aside class="page-navigator">
         <div class="navigator-title">
           <strong>页面</strong>
@@ -445,6 +456,7 @@ async function exportPdf(): Promise<void> {
         </button>
       </aside>
 
+      <!-- 预览画布：缩放工具栏与可拖拽缩放的纸张页面 -->
       <main ref="previewPanelRef" class="preview-panel">
         <div class="preview-toolbar">
           <div class="preview-title">
@@ -531,6 +543,7 @@ async function exportPdf(): Promise<void> {
       </main>
     </div>
 
+    <!-- 素材选择与草稿弹窗挂载 -->
     <attachment-selector-dialog
       v-model:visible="selectorVisible"
       @confirm="handleSelectAttachments"

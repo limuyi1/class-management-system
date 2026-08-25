@@ -1,3 +1,8 @@
+/**
+ * 测试 seatingChartPageLayoutUtil 模块。
+ * 覆盖：依据纸张类型与方向构建页面布局、自动推荐更合适的纸张方向、
+ * 缩放比例的应用与 150% 上限、隐藏标题后的区域回收。
+ */
 import { describe, expect, it } from 'vitest'
 
 import { PagesEnum } from '@/types/Common'
@@ -8,6 +13,7 @@ import {
 } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
 import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
+// 构造指定行列数的测试座位表，列数超过 2 时在首列后设置过道
 function createChart(rows: number, columns: number): SeatingChartType {
   return {
     id: 'chart',
@@ -24,6 +30,7 @@ function createChart(rows: number, columns: number): SeatingChartType {
   }
 }
 
+// 座位表页面布局工具函数测试组
 describe('seatingChartPageLayoutUtil', () => {
   it('returns the selected paper dimensions and gives A3 more room', () => {
     const chart = createChart(20, 20)

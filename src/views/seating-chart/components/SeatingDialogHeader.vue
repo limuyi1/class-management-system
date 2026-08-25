@@ -1,9 +1,13 @@
 <script setup lang="ts">
 /** 座位表弹窗通用头部 — 展示图标、标题与说明，并支持主题色调 */
 withDefaults(defineProps<{
+  /** FontAwesome 图标名称 */
   icon: string
+  /** 弹窗标题 */
   title: string
+  /** 标题下方的说明文字 */
   description: string
+  /** 主题色调 */
   tone?: 'purple' | 'gold' | 'orange'
 }>(), { tone: 'purple' })
 </script>

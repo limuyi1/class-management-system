@@ -1,3 +1,9 @@
+/**
+ * dutyRosterPageLayoutUtil 测试
+ * 覆盖值日表页面布局计算（buildDutyRosterPageLayout），
+ * 包括横向纸张尺寸、行列数与岗位数统计、内容密度自适应缩放及不同纸张下的可读性。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import { PagesEnum } from '@/types/Common'
@@ -5,6 +11,7 @@ import { DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
 import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLayoutUtil'
 import { createDefaultDutySections } from '@/utils/duty-roster/dutyRosterUtil'
 
+// 构造最小完整值日表数据，供各用例复用
 function createRoster(): DutyRosterType {
   return {
     id: 'roster-1',
@@ -21,6 +28,7 @@ function createRoster(): DutyRosterType {
   }
 }
 
+// 值日表页面布局：验证纸张方向、行列数与岗位数、缩放比例推导
 describe('dutyRosterPageLayoutUtil', () => {
   it('uses a landscape paper and counts daily rows and positions', () => {
     const layout = buildDutyRosterPageLayout(createRoster(), PagesEnum.A4)

@@ -43,6 +43,7 @@ const sourceMode = shallowRef(ScoreNoticeModeEnum.Grade)
 const modeTouched = shallowRef(false)
 const rules = ref<Record<string, ScoreNoticeGradeRuleType>>({})
 
+/** 受控弹窗可见性，双向绑定父组件的 modelValue */
 const visible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value)
@@ -108,6 +109,7 @@ const handleFileChange = async (file: UploadFile): Promise<void> => {
   if (await parseFile(file)) resetSelections()
 }
 
+/** 手动修正等级/分数模式，并记录用户已介入判断 */
 const handleModeChange = (value: string | number | boolean | undefined): void => {
   if (value === ScoreNoticeModeEnum.Grade || value === ScoreNoticeModeEnum.Score) {
     sourceMode.value = value
@@ -200,6 +202,7 @@ watch(
 
 <template>
   <el-dialog v-model="visible" title="导入考试成绩" width="920px" :close-on-click-modal="false">
+    <!-- 文件选择与解析状态区域 -->
     <div v-loading="loading" class="notice-import">
       <excel-file-dropzone
         :file-name="fileName"
@@ -207,6 +210,7 @@ watch(
         @change="handleFileChange"
       />
 
+      <!-- 解析成功后展示：表头行选择、姓名列、科目列与模式配置 -->
       <template v-if="preview">
         <excel-header-row-picker
           v-model="headerRowIndex"
@@ -214,6 +218,7 @@ watch(
           :merges="preview.merges"
         />
 
+        <!-- 选择姓名列 -->
         <section class="notice-import__section">
           <div class="notice-import__section-head">
             <strong>姓名列</strong><span>选择用于识别学生的列</span>
@@ -225,6 +230,7 @@ watch(
           </el-radio-group>
         </section>
 
+        <!-- 选择科目列 -->
         <section class="notice-import__section">
           <div class="notice-import__section-head">
             <strong>科目列</strong><span>科目不固定，可按当前考试自由选择</span>
@@ -236,6 +242,7 @@ watch(
           </el-checkbox-group>
         </section>
 
+        <!-- 等级/分数内容类型切换 -->
         <section class="notice-import__section notice-import__section--mode">
           <div class="notice-import__section-head">
             <strong>Excel 内容类型</strong><span>系统已自动判断，可手动修正</span>
@@ -250,6 +257,7 @@ watch(
           />
         </section>
 
+        <!-- 分数模式下的等级换算规则配置 -->
         <section
           v-if="sourceMode === ScoreNoticeModeEnum.Score"
           class="notice-import__section notice-import__rules"

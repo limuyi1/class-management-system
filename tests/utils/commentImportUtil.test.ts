@@ -1,3 +1,9 @@
+/**
+ * commentImportUtil 测试
+ * 覆盖增量评语导入的构建（buildIncrementalCommentImport）与覆盖计数（countOverwrittenComments），
+ * 包括仅填空、覆盖、重复姓名跳过、行序保持等导入策略场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -6,11 +12,13 @@ import {
 } from '../../src/utils/evaluation/commentImportUtil'
 import { NAME_PROP } from '../../src/constants'
 
+// 基础学生数据：一人已有评语、一人无评语，供各用例复用
 const students = [
   { studentId: 'student-1', [NAME_PROP]: '张三', comment: '原评语' },
   { studentId: 'student-2', [NAME_PROP]: '李四' }
 ]
 
+// 增量评语导入：验证填空/覆盖策略、行序保持、重复姓名与覆盖统计
 describe('commentImportUtil', () => {
   it('fills only empty comments by default', () => {
     const result = buildIncrementalCommentImport({

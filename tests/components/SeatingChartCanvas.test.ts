@@ -9,11 +9,19 @@ import {
 } from '@/types/SeatingChart'
 import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
+/**
+ * SeatingChartCanvas 组件测试
+ * 测试目标：座位表画布（可编辑视图）
+ * 覆盖功能：讲台区域位置、行列坐标轴与过道、首列左右切换、座位点击选择事件
+ */
+
+// 模拟 ResizeObserver：组件挂载时依赖它监听画布尺寸变化
 class ResizeObserverMock {
   observe = vi.fn()
   disconnect = vi.fn()
 }
 
+/** 构造 2 排 × 2 列的座位表：普通座一名学生、讲台左侧特殊座一名学生 */
 function createChart(): SeatingChartType {
   const seats = createSeats(2, 2)
   seats[0].studentId = 'student-1'
@@ -39,7 +47,9 @@ function createChart(): SeatingChartType {
   }
 }
 
+// 验证座位画布的布局结构与交互事件
 describe('SeatingChartCanvas', () => {
+  // 注入 ResizeObserver 替身，用例结束后恢复全部全局替身
   beforeEach(() => {
     vi.stubGlobal('ResizeObserver', ResizeObserverMock)
   })
@@ -76,6 +86,7 @@ describe('SeatingChartCanvas', () => {
   it('reverses only columns while keeping the platform above the first row', async () => {
     const chart = createChart()
     chart.firstColumnSide = SeatingFirstColumnSideEnum.Right
+    // 首列在右侧时，每行座位按倒序排列以保持“面向讲台”的视角
     const visibleSeatRows = [
       [chart.seats[1], chart.seats[0]],
       [chart.seats[3], chart.seats[2]]

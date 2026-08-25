@@ -13,7 +13,9 @@ import type { StudentReportDataType } from '@/utils/studentReportUtil'
  * 图表配置（含班级均分与个人均分参考线）在此组件内组装。
  */
 interface Props {
+  /** 学习报告数据 */
   report: StudentReportDataType
+  /** 报告正文内容 */
   content: string
 }
 
@@ -276,6 +278,7 @@ const chartOption = computed<EChartsOption>(() => {
 
 <template>
   <article class="student-report-card">
+    <!-- 报告头部：印章、标题与生成时间 -->
     <header class="student-report-card__hero">
       <div class="student-report-card__hero-left">
         <img
@@ -295,6 +298,7 @@ const chartOption = computed<EChartsOption>(() => {
       </div>
     </header>
 
+    <!-- 阶段成绩回顾：成绩表格与统计卡片 -->
     <section class="student-report-card__section student-report-card__section--scoreboard">
       <div class="student-report-card__scoreboard-main">
         <div class="student-report-card__section-heading">
@@ -360,6 +364,7 @@ const chartOption = computed<EChartsOption>(() => {
       </div>
     </section>
 
+    <!-- 成绩趋势分析图表 -->
     <section class="student-report-card__section">
       <div class="student-report-card__section-heading">
         <span class="student-report-card__heading-icon student-report-card__heading-icon--teal">
@@ -374,6 +379,7 @@ const chartOption = computed<EChartsOption>(() => {
     </section>
 
     <section class="student-report-card__bottom-grid">
+      <!-- 综合表现总结 -->
       <section class="student-report-card__section">
         <div class="student-report-card__section-heading">
           <span class="student-report-card__heading-icon student-report-card__heading-icon--green">
@@ -389,6 +395,7 @@ const chartOption = computed<EChartsOption>(() => {
         </div>
       </section>
 
+      <!-- 优势与关注点 -->
       <section class="student-report-card__section">
         <div class="student-report-card__section-heading">
           <span class="student-report-card__heading-icon student-report-card__heading-icon--gold">
@@ -415,6 +422,7 @@ const chartOption = computed<EChartsOption>(() => {
       </section>
     </section>
 
+    <!-- 报告脚注声明 -->
     <footer class="student-report-card__footnote">
       本报告根据学生阶段成绩数据整理生成，内容仅作为学习情况参考，不作为唯一评价依据。
     </footer>

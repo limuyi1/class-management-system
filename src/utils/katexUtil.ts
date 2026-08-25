@@ -1,4 +1,7 @@
-/** KaTeX 数学公式渲染工具 */
+/**
+ * KaTeX 数学公式渲染工具
+ * 提供 Markdown 内容渲染，以及行内/块级数学公式的渲染能力
+ */
 import { marked } from 'marked'
 import katex from 'katex'
 
