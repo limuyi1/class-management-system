@@ -90,7 +90,7 @@ export function createDefaultDutySections(): DutySectionType[] {
 /** 创建默认值日说明文本 */
 export function createDefaultDutyNotes(): string {
   return [
-    '红色圆点及红色姓名表示值日组长',
+    '红色姓名表示值日组长',
     '1. 组长负责分工并检查卫生完成情况；',
     '2. 摆课桌、窗台和门、走廊、垃圾桶等岗位职责；',
     '3. 清洁区域需与检查时间同步。'

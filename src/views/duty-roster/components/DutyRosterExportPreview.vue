@@ -36,6 +36,8 @@ const previewHeight = shallowRef(0)
 // 导出内容自然尺寸，作为内容缩放计算基准
 const naturalWidth = shallowRef(860)
 const naturalHeight = shallowRef(500)
+/** 自动适配时为内容外框预留的总缓冲，避免缩放后边框落在裁切边缘 */
+const CONTENT_FIT_GUTTER = 8
 // 尺寸变化观察器
 let resizeObserver: ResizeObserver | null = null
 
@@ -72,8 +74,10 @@ const contentViewportStyle = computed<CSSProperties>(() => ({
 }))
 /** 内容缩放：先适配可用区域，再乘以用户设置的版面缩放比例 */
 const contentScale = computed(() => {
-  const availableWidth = pageLayout.value.pageWidth - pageLayout.value.margin * 2
-  const availableHeight = pageLayout.value.pageHeight - pageLayout.value.margin * 2
+  const availableWidth =
+    pageLayout.value.pageWidth - pageLayout.value.margin * 2 - CONTENT_FIT_GUTTER
+  const availableHeight =
+    pageLayout.value.pageHeight - pageLayout.value.margin * 2 - CONTENT_FIT_GUTTER
   const fitScale = Math.min(
     availableWidth / naturalWidth.value,
     availableHeight / naturalHeight.value
@@ -108,13 +112,43 @@ const rows = computed(() => {
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((row) => ({ key: row.id, period: DutyPeriodEnum.Weekly, rowId: row.id }))
 })
-/** 岗位总数 */
-const positionCount = computed(() =>
-  sections.value.reduce((count, section) => count + section.positions.length, 0)
+/** 各岗位打印列宽，保证同一岗位的姓名可使用顿号单行展示 */
+const positionWidths = computed<Record<string, number>>(() => {
+  const widths = Object.fromEntries(
+    sections.value.flatMap((section) => section.positions.map((position) => [position.id, 94]))
+  )
+
+  props.roster.assignments.forEach((assignment) => {
+    const studentLine = assignment.studentIds
+      .map((studentId) => props.studentNames[studentId] || '未知学生')
+      .join('、')
+    const estimatedWidth =
+      Array.from(studentLine).reduce(
+        (width, character) => width + (/^[\x00-\xff]$/.test(character) ? 8 : 14),
+        30
+      )
+    widths[assignment.positionId] = Math.max(widths[assignment.positionId] || 94, estimatedWidth)
+  })
+
+  return widths
+})
+/** 打印表格宽度，姓名较多时扩展岗位列并由单页布局统一缩放 */
+const tableWidth = computed(() =>
+  Math.max(
+    520,
+    sections.value.reduce(
+      (width, section) =>
+        width +
+        section.positions.reduce(
+          (sectionWidth, position) => sectionWidth + positionWidths.value[position.id],
+          0
+        ),
+      isDaily.value ? 64 : 0
+    )
+  )
 )
-/** 打印表格宽度，保证每列有足够空间展示姓名 */
 const tableStyle = computed<CSSProperties>(() => ({
-  width: `${Math.max(520, positionCount.value * 94 + (isDaily.value ? 64 : 0))}px`
+  width: `${tableWidth.value}px`
 }))
 /** 过滤掉空行的备注说明 */
 const noteLines = computed(() => props.roster.notes.split('\n').filter((line) => line.trim()))
@@ -127,6 +161,11 @@ const noteLines = computed(() => props.roster.notes.split('\n').filter((line) =>
  */
 function getStudentIds(period: DutyPeriodEnum, positionId: string, rowId?: string): string[] {
   return getDutyAssignment(props.roster.assignments, period, positionId, rowId)?.studentIds || []
+}
+
+/** 获取岗位打印列宽 */
+function getPositionColumnStyle(positionId: string): CSSProperties {
+  return { width: `${positionWidths.value[positionId] || 94}px` }
 }
 
 /**
@@ -196,6 +235,7 @@ defineExpose({ getElement })
                       v-for="position in section.positions"
                       :key="position.id"
                       class="duty-print-table__position-column"
+                      :style="getPositionColumnStyle(position.id)"
                     />
                   </template>
                 </colgroup>
@@ -225,17 +265,29 @@ defineExpose({ getElement })
                     </th>
                     <template v-for="section in sections" :key="`${row.key}-${section.id}`">
                       <td v-for="position in section.positions" :key="`${row.key}-${position.id}`">
-                        <span
-                          v-for="studentId in getStudentIds(row.period, position.id, row.rowId)"
-                          :key="studentId"
-                          class="duty-print-table__student"
-                          :class="{ 'is-leader': isLeader(studentId) }"
-                        >
-                          <font-awesome-icon
-                            v-if="isLeader(studentId)"
-                            :icon="['solid', 'circle']"
-                          />
-                          {{ studentNames[studentId] || '未知学生' }}
+                        <span class="duty-print-table__student-list">
+                          <template
+                            v-for="(studentId, index) in getStudentIds(
+                              row.period,
+                              position.id,
+                              row.rowId
+                            )"
+                            :key="studentId"
+                          >
+                            <span
+                              class="duty-print-table__student"
+                              :class="{ 'is-leader': isLeader(studentId) }"
+                            >
+                              {{ studentNames[studentId] || '未知学生' }}
+                            </span>
+                            <span
+                              v-if="
+                                index <
+                                getStudentIds(row.period, position.id, row.rowId).length - 1
+                              "
+                              class="duty-print-table__separator"
+                            >、</span>
+                          </template>
                         </span>
                       </td>
                     </template>
@@ -243,11 +295,14 @@ defineExpose({ getElement })
                 </tbody>
               </table>
 
-              <section v-if="showNotes && noteLines.length" class="duty-print-notes">
+              <section
+                v-if="showNotes && noteLines.length"
+                class="duty-print-notes"
+                :style="tableStyle"
+              >
                 <h3>备注说明</h3>
                 <div class="duty-print-notes__content">
                   <p v-for="(line, index) in noteLines" :key="`${index}-${line}`">
-                    <font-awesome-icon v-if="index === 0" :icon="['solid', 'circle']" />
                     {{ line }}
                   </p>
                 </div>
@@ -284,20 +339,18 @@ defineExpose({ getElement })
 }
 
 .duty-print-sheet {
-  --duty-ink: #29232e;
-  --duty-muted: #776e7c;
-  --duty-line: #d7ceda;
-  --duty-paper: #fffefa;
-  --duty-accent: #5d3f7d;
+  --duty-ink: #22272e;
+  --duty-muted: #525a63;
+  --duty-line: #7d8791;
+  --duty-paper: #fff;
+  --duty-accent: #d93643;
   position: relative;
   box-sizing: border-box;
   flex: none;
   overflow: hidden;
   color: var(--duty-ink);
-  background:
-    linear-gradient(rgba(117, 91, 75, 0.035) 1px, transparent 1px) 0 0/100% 28px,
-    var(--duty-paper);
-  border: 1px solid #e7dfd5;
+  background: var(--duty-paper);
+  border: 1px solid #d8d8d8;
   font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
@@ -320,8 +373,8 @@ defineExpose({ getElement })
 .duty-sheet-header {
   display: flex;
   justify-content: center;
-  padding-bottom: 18px;
-  border-bottom: 2px solid var(--duty-ink);
+  padding-bottom: 16px;
+  border-bottom: 1px solid #aeb5bc;
   text-align: center;
 }
 
@@ -336,12 +389,11 @@ defineExpose({ getElement })
 }
 
 .duty-print-table {
-  margin-top: 24px;
-  overflow: hidden;
-  border: 1.5px solid var(--duty-ink);
+  margin-top: 20px;
+  border: 1px solid var(--duty-line);
   border-spacing: 0;
   border-collapse: separate;
-  border-radius: 4px;
+  border-radius: 0;
   table-layout: fixed;
   font-size: 12px;
 }
@@ -357,6 +409,7 @@ defineExpose({ getElement })
 .duty-print-table th,
 .duty-print-table td {
   box-sizing: border-box;
+  border: 0;
   border-right: 1px solid var(--duty-line);
   border-bottom: 1px solid var(--duty-line);
   text-align: center;
@@ -371,54 +424,57 @@ defineExpose({ getElement })
 }
 
 .duty-print-table__section-row th {
-  height: 34px;
-  padding: 6px 5px;
-  color: #fff;
-  background: var(--duty-ink);
-  border-color: #514a55;
+  height: 36px;
+  padding: 7px 6px;
+  color: var(--duty-ink);
+  background: #e1e6eb;
+  border-color: var(--duty-line);
   font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
 }
 
 .duty-print-table__position-row th {
-  height: 36px;
-  padding: 6px 5px;
-  color: #4f3b67;
-  background: #eee8f3;
-  font-size: 11px;
+  height: 38px;
+  padding: 7px 6px;
+  color: var(--duty-ink);
+  background: #f1f3f5;
+  font-size: 12px;
   font-weight: 700;
   overflow-wrap: anywhere;
 }
 
 .duty-print-table__period {
-  color: #fff;
-  background: var(--duty-accent) !important;
-  border-color: #745d8e !important;
-  font-size: 11px;
+  color: var(--duty-ink);
+  background: #e9edf1 !important;
+  border-color: var(--duty-line) !important;
+  font-size: 12px;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .duty-print-table tbody td {
   height: 62px;
-  padding: 8px 6px;
-  background: rgba(255, 255, 255, 0.82);
+  padding: 9px 7px;
+  background: #fff;
   vertical-align: middle;
 }
 
 .duty-print-table tbody tr:nth-child(even) td {
-  background: rgba(249, 247, 250, 0.88);
+  background: #fafbfc;
+}
+
+.duty-print-table__student-list {
+  display: inline-block;
+  white-space: nowrap;
 }
 
 .duty-print-table__student {
-  display: block;
-  margin: 2px 0;
+  display: inline;
   color: var(--duty-ink);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
-  overflow-wrap: anywhere;
 }
 
 .duty-print-table__student.is-leader {
@@ -426,39 +482,50 @@ defineExpose({ getElement })
   font-weight: 750;
 }
 
-.duty-print-table__student svg,
-.duty-print-notes svg {
-  margin-right: 3px;
-  color: #d93643;
-  font-size: 5px;
-  vertical-align: middle;
+.duty-print-table__separator {
+  color: var(--duty-ink);
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .duty-print-notes {
   display: grid;
-  grid-template-columns: 76px minmax(0, 1fr);
-  margin-top: 20px;
-  padding-top: 12px;
-  color: var(--duty-muted);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  grid-template-columns: 72px minmax(0, 1fr);
+  margin-top: 16px;
+  padding: 10px 12px;
+  color: var(--duty-ink);
   border-top: 1px solid var(--duty-line);
+  background: #fafbfc;
 }
 
 .duty-print-notes h3 {
   margin: 0;
   color: var(--duty-ink);
-  font-family: STKaiti, KaiTi, serif;
-  font-size: 14px;
-  letter-spacing: 0.08em;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.55;
+  letter-spacing: 0.03em;
 }
 
 .duty-print-notes__content {
   display: grid;
+  min-width: 0;
   gap: 3px;
 }
 
 .duty-print-notes p {
+  min-width: 0;
   margin: 0;
-  font-size: 10px;
-  line-height: 1.45;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 </style>

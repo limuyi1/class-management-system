@@ -48,7 +48,7 @@ function createRoster(): DutyRosterType {
         studentId: 'student-1'
       }
     ],
-    notes: '红色圆点及红色姓名表示值日组长\n组长负责检查卫生',
+    notes: '红色姓名表示值日组长\n组长负责检查卫生',
     createdAt: '',
     updatedAt: ''
   }
@@ -138,5 +138,41 @@ describe('DutyRosterExportPreview', () => {
     expect(wrapper.find('.duty-sheet-header').exists()).toBe(false)
     expect(wrapper.find('.duty-print-notes').exists()).toBe(false)
     expect(wrapper.find('.duty-print-table').exists()).toBe(true)
+  })
+
+  it('renders leader names without dots and separates students with ideographic commas', () => {
+    const roster = createRoster()
+    roster.assignments[0].studentIds = ['student-1', 'student-2', 'student-3']
+
+    const wrapper = mount(DutyRosterExportPreview, {
+      props: {
+        roster,
+        studentNames: {
+          'student-1': '张小三',
+          'student-2': '李小四',
+          'student-3': '王小五'
+        }
+      }
+    })
+
+    expect(wrapper.get('.duty-print-table__student-list').text()).toBe('张小三、李小四、王小五')
+    expect(wrapper.find('.duty-print-table tbody svg').exists()).toBe(false)
+    expect(wrapper.get('.duty-print-table__student.is-leader').text()).toBe('张小三')
+    expect(wrapper.get('.duty-print-table__position-column').attributes('style')).toContain(
+      'width: 184px'
+    )
+  })
+
+  it('constrains long notes to the same width as the print table', () => {
+    const roster = createRoster()
+    roster.notes = '这是一段用于验证备注说明在打印区域内自动换行且不会撑宽版面的长文本'.repeat(8)
+
+    const wrapper = mount(DutyRosterExportPreview, {
+      props: { roster, studentNames: {} }
+    })
+
+    expect(wrapper.get('.duty-print-notes').attributes('style')).toBe(
+      wrapper.get('.duty-print-table').attributes('style')
+    )
   })
 })
