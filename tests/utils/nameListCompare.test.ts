@@ -1,3 +1,9 @@
+/**
+ * nameListCompare 测试
+ * 覆盖名单比对工具：姓名规范化（normalizeName）、粘贴内容解析（parsePastedRows）、
+ * 名单条目构建（buildNameEntries）、比对结果生成（buildNameListCompareResult）与姓名列推荐（findSuggestedNameColumn）。
+ */
+
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -8,6 +14,7 @@ import {
   parsePastedRows
 } from '../../src/views/tools/utils/nameListCompare'
 
+// 名单比对：姓名规范化、粘贴解析、比对结果汇总与姓名列推荐
 describe('nameListCompare', () => {
   it('normalizes names by trimming leading and trailing spaces', () => {
     expect(normalizeName(' 张三 ')).toBe('张三')

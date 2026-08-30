@@ -1,14 +1,19 @@
 <script setup lang="ts">
+/**
+ * 名单核对页面 — 支持“与系统名单核对”和“两个外部表格核对”两种模式，
+ * 处理 Excel/粘贴导入、姓名列确认，并生成差异对照视图与导出。
+ */
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
-import { ElMessage, type UploadFile } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import NameListCompareResultCard from '@/views/tools/components/NameListCompareResultCard.vue'
 
-import { exportExcel, parseExcel } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow, exportExcel } from '@/utils/xlsxUtil'
 import {
   buildNameEntries,
   buildNameListCompareResult,
@@ -16,7 +21,7 @@ import {
   parsePastedRows
 } from '@/views/tools/utils/nameListCompare'
 import { useDataSourceStore } from '@/stores/data-source'
-import { NAME_LABEL, NAME_PROP } from '@/types/Constants'
+import { NAME_LABEL, NAME_PROP } from '@/constants'
 import type {
   NameListCompareGroupsType,
   NameListCompareImportedSourceType,
@@ -26,28 +31,39 @@ import type {
 } from '@/types/NameListCompare'
 
 const router = useRouter()
+/** 隐藏的文件选择输入框，由上传按钮间接触发 */
 const fileInputRef = ref<HTMLInputElement | null>(null)
+/** 粘贴导入弹窗的显示与文本内容 */
 const pasteDialogVisible = ref(false)
 const pasteText = ref('')
+/** 姓名列确认弹窗的显示状态与待处理来源槽位 */
 const columnSelectorVisible = ref(false)
 const pendingImportKey = ref<NameListCompareSourceKeyType>('comparison')
+/** 核对模式与外部模式下的基准槽位 */
 const mode = ref<NameListCompareModeType>('system')
 const baselineKey = ref<'sourceA' | 'sourceB'>('sourceA')
+/** 是否只展示差异行 */
 const onlyDifference = ref(false)
+/** 各来源槽位的导入数据 */
 const importedSources = ref<Partial<Record<NameListCompareSourceKeyType, NameListCompareImportedSourceType>>>({})
+/** 姓名列确认弹窗的表头、行数据与建议姓名列 */
 const columnSelectorHeaders = ref<string[]>([])
 const columnSelectorRows = ref<NameListCompareRowType[]>([])
 const suggestedNameColumn = ref('')
 
 const dataSourceStore = useDataSourceStore()
 const { enabledData } = storeToRefs(dataSourceStore)
+// 文件读取、空表校验和错误提示走公共层；双来源槽位与姓名列确认仍由名单核对维护。
+const { parseRawFile } = useExcelPreviewImport({ errorLogLabel: '导入名单 Excel' })
 
+/** 从系统学生数据构造仅含姓名列的名单行 */
 const systemRows = computed<NameListCompareRowType[]>(() => {
   return enabledData.value.map((student) => ({
     [NAME_LABEL]: student[NAME_PROP]
   }))
 })
 
+/** 将系统名单包装为统一来源结构，作为系统核对模式的基准来源 */
 const systemSource = computed<NameListCompareImportedSourceType>(() => ({
   key: 'comparison',
   kind: 'system',
@@ -57,6 +73,7 @@ const systemSource = computed<NameListCompareImportedSourceType>(() => ({
   nameColumn: NAME_LABEL
 }))
 
+/** 根据当前模式与基准槽位，推导出实际的基准来源与对照来源 */
 const activeSourceMap = computed(() => {
   if (mode.value === 'system') {
     return {
@@ -66,6 +83,7 @@ const activeSourceMap = computed(() => {
   }
 
   const activeBaseline = importedSources.value[baselineKey.value] || null
+  // 外部模式下，对照来源始终是基准槽位的另一侧
   const comparisonKey = baselineKey.value === 'sourceA' ? 'sourceB' : 'sourceA'
   return {
     baseline: activeBaseline,
@@ -73,11 +91,13 @@ const activeSourceMap = computed(() => {
   }
 })
 
+/** 基准来源的展示标签 */
 const baselineDisplayLabel = computed(() => {
   if (mode.value === 'system') return '基准名单（系统）'
   return `基准名单（${activeSourceMap.value.baseline?.label || '未选择'}）`
 })
 
+/** 对照来源的展示标签 */
 const comparisonDisplayLabel = computed(() => {
   if (mode.value === 'system') {
     return `对照名单（${activeSourceMap.value.comparison?.label || '未导入'}）`
@@ -85,6 +105,7 @@ const comparisonDisplayLabel = computed(() => {
   return `对照名单（${activeSourceMap.value.comparison?.label || '未选择'}）`
 })
 
+/** 基准与对照来源都具备姓名列时，生成名单对比结果 */
 const compareResult = computed(() => {
   const baselineSource = activeSourceMap.value.baseline
   const comparisonSource = activeSourceMap.value.comparison
@@ -105,11 +126,13 @@ function backToTools(): void {
   router.push('/tools')
 }
 
+/** 切换核对模式并重置差异过滤 */
 function switchMode(value: NameListCompareModeType): void {
   mode.value = value
   onlyDifference.value = false
 }
 
+/** 打开姓名列确认弹窗，预填对应来源的表头、行数据与建议姓名列 */
 function openNameColumnDialog(key: NameListCompareSourceKeyType): void {
   pendingImportKey.value = key
   columnSelectorHeaders.value = importedSources.value[key]?.headers || []
@@ -118,45 +141,49 @@ function openNameColumnDialog(key: NameListCompareSourceKeyType): void {
   columnSelectorVisible.value = true
 }
 
+/** 为指定来源槽位触发文件选择 */
 function openUploadFor(key: NameListCompareSourceKeyType): void {
   pendingImportKey.value = key
   fileInputRef.value?.click()
 }
 
+/** 打开粘贴导入弹窗 */
 function openPasteDialog(key: NameListCompareSourceKeyType): void {
   pendingImportKey.value = key
   pasteText.value = ''
   pasteDialogVisible.value = true
 }
 
+/** 解析上传的 Excel，写入对应来源槽位后弹出姓名列确认 */
 async function handleFileChange(event: Event): Promise<void> {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
   target.value = ''
   if (!file) return
 
-  try {
-    const { header, data } = await parseExcel({ raw: file } as UploadFile)
-    if (header.length === 0) {
-      ElMessage.warning('未读取到可用表头')
-      return
-    }
-
-    importedSources.value[pendingImportKey.value] = {
-      key: pendingImportKey.value,
-      kind: 'excel',
-      label: file.name,
-      headers: header,
-      rows: data,
-      nameColumn: ''
-    }
-    openNameColumnDialog(pendingImportKey.value)
-  } catch (error) {
-    console.error('导入 Excel 失败:', error)
-    ElMessage.error('导入 Excel 失败')
+  const preview = await parseRawFile(file)
+  if (!preview) return
+  const { header, data } = buildExcelDataFromHeaderRow(
+    preview.rows,
+    preview.suggestedHeaderRowIndex
+  )
+  if (header.length === 0) {
+    ElMessage.warning('未读取到可用表头')
+    return
   }
+
+  importedSources.value[pendingImportKey.value] = {
+    key: pendingImportKey.value,
+    kind: 'excel',
+    label: file.name,
+    headers: header,
+    rows: data,
+    nameColumn: ''
+  }
+  openNameColumnDialog(pendingImportKey.value)
 }
 
+/** 解析粘贴内容并写入来源槽位；单列“姓名”时免确认直接导入 */
 function confirmPasteImport(): void {
   const text = pasteText.value.trim()
   if (!text) {
@@ -170,6 +197,7 @@ function confirmPasteImport(): void {
     return
   }
 
+  // 仅单列且表头为“姓名”时可直接确定姓名列，跳过确认弹窗
   importedSources.value[pendingImportKey.value] = {
     key: pendingImportKey.value,
     kind: 'paste',
@@ -188,10 +216,12 @@ function confirmPasteImport(): void {
   openNameColumnDialog(pendingImportKey.value)
 }
 
+/** 清空指定来源槽位的导入数据 */
 function clearSource(key: NameListCompareSourceKeyType): void {
   delete importedSources.value[key]
 }
 
+/** 清空当前模式下的全部导入数据 */
 function clearCurrentImports(): void {
   if (mode.value === 'system') {
     clearSource('comparison')
@@ -202,12 +232,14 @@ function clearCurrentImports(): void {
   clearSource('sourceB')
 }
 
+/** 更新指定来源的姓名列 */
 function updateNameColumn(key: NameListCompareSourceKeyType, column: string): void {
   const source = importedSources.value[key]
   if (!source) return
   source.nameColumn = column
 }
 
+/** 确认姓名列后写入对应来源并关闭弹窗 */
 function handleNameColumnConfirm(payload: { nameColumn?: string }): void {
   const source = importedSources.value[pendingImportKey.value]
   if (!source || !payload.nameColumn) {
@@ -220,17 +252,20 @@ function handleNameColumnConfirm(payload: { nameColumn?: string }): void {
   ElMessage.success('名单已导入')
 }
 
+/** 根据分组生成导出文件的表头文案 */
 function buildExportHeader(group: keyof NameListCompareGroupsType): string {
   if (group === 'baselineOnly') return baselineDisplayLabel.value
   if (group === 'comparisonOnly') return comparisonDisplayLabel.value
   return '共同名单'
 }
 
+/** 读取指定分组下的名单 */
 function getExportGroupNames(group: keyof NameListCompareGroupsType): string[] {
   if (!compareResult.value) return []
   return compareResult.value.groups[group]
 }
 
+/** 处理结果卡片的复制或导出动作 */
 async function handleResultAction(payload: {
   group: keyof NameListCompareGroupsType
   action: 'copy' | 'export'
@@ -266,6 +301,7 @@ async function handleResultAction(payload: {
   }
 }
 
+/** 生成 yyyy-MM-dd_HH-mm-ss 形式的时间戳，用作导出文件名 */
 function formatTimestamp(): string {
   const now = new Date()
   const date = [now.getFullYear(), now.getMonth() + 1, now.getDate()]
@@ -303,10 +339,11 @@ function formatTimestamp(): string {
     />
 
     <div class="source-card">
+      <!-- 模式切换与导入/清空操作 -->
       <div class="source-card__topbar">
         <el-radio-group :model-value="mode" size="default" @update:model-value="switchMode">
-          <el-radio-button label="system">与系统名单核对</el-radio-button>
-          <el-radio-button label="external">两个外部表格核对</el-radio-button>
+          <el-radio-button value="system">与系统名单核对</el-radio-button>
+          <el-radio-button value="external">两个外部表格核对</el-radio-button>
         </el-radio-group>
 
         <div class="source-card__actions">
@@ -328,14 +365,16 @@ function formatTimestamp(): string {
         </div>
       </div>
 
+      <!-- 外部核对模式下的基准表选择 -->
       <div v-if="mode === 'external'" class="baseline-choice">
         <span class="baseline-choice__label">基准表</span>
         <el-radio-group v-model="baselineKey" size="small">
-          <el-radio-button label="sourceA">以 A 为基准</el-radio-button>
-          <el-radio-button label="sourceB">以 B 为基准</el-radio-button>
+          <el-radio-button value="sourceA">以 A 为基准</el-radio-button>
+          <el-radio-button value="sourceB">以 B 为基准</el-radio-button>
         </el-radio-group>
       </div>
 
+      <!-- 来源概览：基准与对照的标签、行数与姓名列选择 -->
       <div class="source-overview">
         <div class="source-inline-info">
           <div class="source-inline-info__group">
@@ -423,6 +462,7 @@ function formatTimestamp(): string {
       </div>
     </div>
 
+    <!-- 对比结果卡片：汇总胶囊、差异导航与对照表格 -->
     <name-list-compare-result-card
       :baseline-label="baselineDisplayLabel"
       :comparison-label="comparisonDisplayLabel"
@@ -433,6 +473,7 @@ function formatTimestamp(): string {
       @action="handleResultAction"
     />
 
+    <!-- 粘贴导入弹窗 -->
     <el-dialog v-model="pasteDialogVisible" title="粘贴名单或表格" width="760px">
       <div class="paste-dialog">
         <div class="paste-dialog__hint">
@@ -453,6 +494,7 @@ function formatTimestamp(): string {
       </template>
     </el-dialog>
 
+    <!-- 姓名列确认弹窗 -->
     <ExcelColumnSelector
       v-model="columnSelectorVisible"
       mode="name-only"

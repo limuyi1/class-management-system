@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩分析视图
+ * 根据页面阶段展示空状态或统计卡片组合。
+ */
 import { computed } from 'vue'
 
 import EmptyStatePanel from '@/components/EmptyStatePanel.vue'
@@ -8,6 +12,7 @@ import StatisticsNumCard from '@/views/score/components/StatisticsNumCard.vue'
 import LowScoreCard from '@/views/score/components/LowScoreCard.vue'
 import type { ScorePageStageType } from '@/types/Score'
 
+/** 组件属性：是否可导出、页面阶段 */
 interface Props {
   canExport?: boolean
   stage: ScorePageStageType
@@ -17,6 +22,7 @@ const props = withDefaults(defineProps<Props>(), {
   canExport: false
 })
 
+/** 依据阶段生成对应的空状态提示 */
 const emptyState = computed(() => {
   if (props.stage === 'noUnits') {
     return {
@@ -36,11 +42,13 @@ const emptyState = computed(() => {
 
 <template>
   <div class="score-analysis-view__wrapper">
+    <!-- 统计标题与导出按钮 -->
     <div class="analysis-header">
       <div class="title">成绩统计</div>
       <download-btn :disabled="!canExport" />
     </div>
 
+    <!-- 未就绪阶段展示空状态提示 -->
     <empty-state-panel
       v-if="stage !== 'ready'"
       :icon="emptyState.icon"
@@ -49,6 +57,7 @@ const emptyState = computed(() => {
       description-max-width="260px"
     />
 
+    <!-- 就绪后滚动展示统计卡片组合 -->
     <el-scrollbar v-else>
       <div class="analysis-body">
         <statistics-num-card />

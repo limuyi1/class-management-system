@@ -1,5 +1,7 @@
+/** 默认标签分类和标签数据 */
 import type { TagCategoryType, TagType } from '@/types/Setting'
 
+/** 默认标签分类列表（含拼音 prop 与中文显示名） */
 export const defaultTagCategories: TagCategoryType[] = [
   { prop: 'xue2_xi2_xi2_guan4', label: '学习习惯' },
   { prop: 'ke4_tang2_biao3_xian4', label: '课堂表现' },
@@ -11,6 +13,7 @@ export const defaultTagCategories: TagCategoryType[] = [
   { prop: 'cheng2_zhang3_jian4_yi4', label: '成长建议' }
 ]
 
+/** 默认标签映射（分类 prop -> 标签数组） */
 export const defaultTags: TagType = {
   xue2_xi2_xi2_guan4: [
     '勤学善思',
@@ -110,8 +113,10 @@ export const defaultTags: TagType = {
   ]
 }
 
+/** 创建默认标签分类的拷贝，避免多处共享同一引用 */
 export const createDefaultTagCategories = (): TagCategoryType[] =>
   defaultTagCategories.map((item) => ({ ...item }))
 
+/** 创建默认标签映射的深拷贝，避免多处共享同一引用 */
 export const createDefaultTags = (): TagType =>
   Object.fromEntries(Object.entries(defaultTags).map(([key, values]) => [key, [...values]]))

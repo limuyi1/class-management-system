@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 期末评语管理页面
+ * 展示学生期末评语列表，提供编辑、AI 生成、批量导入和 PDF 导出功能
+ */
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -6,6 +10,8 @@ import { useRoute, useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
 
+import CommentExcelImportDialog from '@/views/evaluation/components/CommentExcelImportDialog.vue'
+import CommentWorkspaceToolbar from '@/views/evaluation/components/CommentWorkspaceToolbar.vue'
 import EvaluationTableView from '@/views/evaluation/components/EvaluationTableView.vue'
 import ToolPanelView from '@/views/evaluation/components/ToolPanelView.vue'
 import { useProgress } from '@/hooks/useProgress'
@@ -14,12 +20,10 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
-import {
-  getEvaluationStudentName,
-  useEvaluationBatchComments
-} from '@/views/evaluation/composables/useEvaluationBatchComments'
+import { useEvaluationBatchComments } from '@/views/evaluation/composables/useEvaluationBatchComments'
 import { useEvaluationHandwriteFont } from '@/views/evaluation/composables/useEvaluationHandwriteFont'
 import { useEvaluationTextPdfExport } from '@/views/evaluation/composables/useEvaluationTextPdfExport'
+import { useEvaluationCommentSource } from '@/views/evaluation/composables/useEvaluationCommentSource'
 import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -28,33 +32,75 @@ import type { StudentDataType } from '@/types/StudentData'
  * 展示学生期末评语列表，提供编辑、AI 生成和 PDF 导出功能
  */
 
+/** 左侧评语表格预览视图的组件引用 */
 const evaluationTableViewRef = ref<InstanceType<typeof EvaluationTableView>>()
+/** 右侧工具面板的组件引用 */
 const toolPanelViewRef = ref<InstanceType<typeof ToolPanelView>>()
+/** 隐藏的手写字体文件输入框引用 */
 const fontFileInputRef = ref<HTMLInputElement | null>(null)
+/** 路由与当前路由信息，用于返回工具页与恢复编辑跳转 */
 const route = useRoute()
 const router = useRouter()
 
+/** 返回工具页面 */
+const backToTools = (): void => {
+  void router.push('/tools')
+}
+
+// 各全局 store 及响应式引用：学生数据、配置、设置与 AI 配置
 const dataStore = useDataSourceStore()
-const { students, enabledData: enabledStudents } = storeToRefs(dataStore)
+/** 系统数据源中的已启用学生 */
+const { enabledData: systemStudents } = storeToRefs(dataStore)
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 const { tagCategories: tagCategoryList } = storeToRefs(settingStore)
 const aiConfigStore = useAIConfigStore()
+const {
+  allowTagEditing,
+  excelExporting,
+  excelFileName,
+  excelStudentCount,
+  handleExcelExport,
+  handleExcelImport,
+  handleSourceChange,
+  handleUploadRequest,
+  importDialogVisible,
+  source,
+  students,
+  tagCategories
+} = useEvaluationCommentSource({
+  systemStudents,
+  systemTagCategories: tagCategoryList
+})
+/** 评语完成度：进度百分比与未完成人数 */
 const { percentage, notCompletedCount } = useProgress({
   data: students,
   getValue: (item: StudentDataType) => item.comment
 })
+/** 学生总数 */
 const totalCount = computed(() => students.value.length)
+/** 是否已有可处理的学生数据 */
+const hasWorkspaceData = computed(() => totalCount.value > 0)
+/** 已完成评语人数（避免出现负数） */
 const completedCount = computed(() => Math.max(0, totalCount.value - notCompletedCount.value))
-const activeStudentName = ref('')
+/** 当前激活的学生 ID，用于左侧预览卡片高亮 */
+const activeStudentId = ref('')
+/**
+ * 归一化预览缩放模式，非法值统一回退为 100%。
+ *
+ * @param value 配置中的预览模式
+ * @returns 归一化后的模式
+ */
 const normalizePreviewMode = (value: string): PreviewModeType => {
   if (value === 'fit' || value === '50' || value === '75' || value === '100' || value === '125') {
     return value
   }
 
+  // 实际尺寸(actual)暂不支持，统一回退为 100%
   return value === 'actual' ? '100' : '100'
 }
 
+/** 预览缩放模式，读写全局配置并在读取时归一化非法值 */
 const previewMode = computed<PreviewModeType>({
   get: () => normalizePreviewMode(configuration.previewMode),
   set: (value) => {
@@ -65,7 +111,7 @@ const previewMode = computed<PreviewModeType>({
 const { batchGenerating, batchPolishing, handleBatchGenerate, handleBatchPolish } =
   useEvaluationBatchComments({
     students,
-    tagCategoryList,
+    tagCategoryList: tagCategories,
     aiConfig: aiConfigStore
   })
 const {
@@ -83,10 +129,15 @@ const {
 })
 const { handleExportTextExcel, handleExportTextPDF, textExcelExporting, textPdfExporting } =
   useEvaluationTextPdfExport({
-    enabledStudents,
+    enabledStudents: students,
     configuration
   })
-const textExporting = computed(() => textPdfExporting.value || textExcelExporting.value)
+/** 是否有任一导出（PDF/Excel）正在进行 */
+const textExporting = computed(
+  () => textPdfExporting.value || textExcelExporting.value || excelExporting.value
+)
+/** 是否有批量生成或润色正在进行 */
+const batchProcessing = computed(() => batchGenerating.value || batchPolishing.value)
 
 /**
  * 自动聚焦到工具面板
@@ -95,12 +146,7 @@ const autoFocus = () => {
   toolPanelViewRef.value?.autoFocus()
 }
 
-const handleMoreAction = (command: string | number | object) => {
-  if (command !== 'reset-comments') return
-
-  void handleResetComments()
-}
-
+/** 分发导出命令：PDF 或 Excel（Excel 源走临时数据导出，系统源走文字版导出） */
 const handleExportAction = (command: string | number | object) => {
   if (command === 'pdf') {
     void handleExportTextPDF()
@@ -108,11 +154,44 @@ const handleExportAction = (command: string | number | object) => {
   }
 
   if (command === 'excel') {
-    void handleExportTextExcel()
+    if (source.value === 'excel') {
+      void handleExcelExport()
+    } else {
+      void handleExportTextExcel()
+    }
   }
 }
 
+/** 分发批量操作命令：填充空白评语 / 覆盖重新生成 / 润色已有评语 */
+const handleBatchAction = async (command: string | number | object): Promise<void> => {
+  if (command === 'fill-empty') {
+    await handleBatchGenerate('skip')
+    return
+  }
+
+  if (command === 'overwrite') {
+    try {
+      await ElMessageBox.confirm(
+        `将重新生成并覆盖当前 ${students.value.length} 名学生的评语，是否继续？`,
+        '确认重新生成',
+        {
+          confirmButtonText: '覆盖并生成',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }
+      )
+      await handleBatchGenerate('overwrite')
+    } catch {
+      // 用户取消覆盖时保持现有评语。
+    }
+    return
+  }
+
+  if (command === 'polish') await handleBatchPolish()
+}
+
 onMounted(() => {
+  // 页面挂载后恢复或等待手写字体就绪
   void initializeHandwriteFont()
 })
 
@@ -125,10 +204,12 @@ const handleCardClick = (row: StudentDataType) => {
   toolPanelViewRef.value?.fillStudentData(row)
 }
 
+/** 记录当前激活学生 ID，用于预览卡片高亮 */
 const handleActiveStudentChange = (row: StudentDataType | null) => {
-  activeStudentName.value = row ? getStudentName(row) : ''
+  activeStudentId.value = row?.studentId || ''
 }
 
+/** 弹窗确认后清空当前数据源下的所有评语 */
 const handleResetComments = async () => {
   const existingCount = students.value.filter((item) => item.comment && item.comment.trim()).length
 
@@ -159,32 +240,41 @@ const handleResetComments = async () => {
   }
 }
 
-const resumeEditingStudent = async (studentName: string) => {
+/**
+ * 按学生 ID 恢复编辑：等待渲染完成后将学生数据填充到输入区。
+ *
+ * @param studentId 学生 ID
+ * @returns 是否成功恢复编辑
+ */
+const resumeEditingStudent = async (studentId: string) => {
   await nextTick()
-  const student = students.value.find((item) => getStudentName(item) === studentName)
+  const student = dataStore.getStudentById(studentId)
   if (!student || !toolPanelViewRef.value) return false
 
   toolPanelViewRef.value.fillStudentData(student)
   return true
 }
 
-const getStudentName = (student: StudentDataType): string => {
-  return getEvaluationStudentName(student)
-}
-
+// 支持从外部通过 ?resume-edit=1&student-id=xx 直接恢复编辑
 watch(
-  () =>
-    [route.query['resume-edit'], route.query['student-name'], !!toolPanelViewRef.value] as const,
-  async ([resumeEdit, studentName, ready]) => {
-    if (resumeEdit !== '1' || typeof studentName !== 'string' || !studentName || !ready) return
+  () => [route.query['resume-edit'], route.query['student-id'], !!toolPanelViewRef.value] as const,
+  async ([resumeEdit, studentId, ready]) => {
+    if (resumeEdit !== '1' || typeof studentId !== 'string' || !studentId || !ready) return
 
-    const resumed = await resumeEditingStudent(studentName)
+    const resumed = await resumeEditingStudent(studentId)
     if (resumed) {
-      await router.replace({ path: '/comment' })
+      await router.replace({ path: '/tools/comments' })
     }
   },
   { immediate: true }
 )
+
+// 数据源切换后清空激活学生并重置表单
+watch(source, async () => {
+  activeStudentId.value = ''
+  await nextTick()
+  toolPanelViewRef.value?.resetForm()
+})
 
 defineExpose({ autoFocus })
 </script>
@@ -194,118 +284,49 @@ defineExpose({ autoFocus })
     <page-header
       class="evaluation-page-header"
       :icon="['solid', 'comments']"
-      title="期末评语"
-      subtitle="为每位学生撰写期末评语，支持导出评语 PDF"
+      title="评语处理"
+      subtitle="使用系统学生或 Excel 临时数据生成、润色和导出评语"
     >
-      <template #right>
-        <div class="header-toolbar">
-          <div class="header-progress" title="评语完成进度">
-            <div class="progress-title">
-              <font-awesome-icon :icon="['solid', 'chart-pie']" />
-              <span>进度</span>
-            </div>
-            <div class="progress-bar-wrap">
-              <el-progress
-                class="progress-track"
-                :percentage="percentage"
-                :stroke-width="6"
-                :show-text="false"
-                color="var(--theme-primary)"
-              />
-            </div>
-            <div class="progress-meta">
-              <span class="meta-text">完成 {{ completedCount }}/{{ totalCount }}</span>
-              <span class="percentage-badge">{{ percentage.toFixed(0) }}%</span>
-            </div>
-          </div>
-
-          <input
-            ref="fontFileInputRef"
-            class="font-file-input"
-            type="file"
-            accept=".ttf,.otf,font/ttf,font/otf"
-            @change="handleHandwriteFontChange"
-          />
-
-          <div class="header-actions">
-            <el-button type="primary" :loading="batchGenerating" @click="handleBatchGenerate">
-              <template #icon
-                ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
-              /></template>
-              AI 批量生成
-            </el-button>
-            <el-button :loading="batchPolishing" @click="handleBatchPolish">
-              <template #icon
-                ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
-              /></template>
-              AI 批量润色
-            </el-button>
-            <el-dropdown trigger="click" placement="bottom-end" @command="handleExportAction">
-              <el-button :loading="textExporting">
-                <template #icon><font-awesome-icon :icon="['solid', 'file-export']" /></template>
-                导出
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="pdf">
-                    <font-awesome-icon :icon="['solid', 'file-pdf']" />
-                    <span>导出 PDF</span>
-                  </el-dropdown-item>
-                  <el-dropdown-item command="excel">
-                    <font-awesome-icon :icon="['solid', 'file-excel']" />
-                    <span>导出 Excel</span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-
-            <el-dropdown trigger="click" placement="bottom-end" @command="handleMoreAction">
-              <el-button class="more-action-btn">
-                <template #icon><font-awesome-icon :icon="['solid', 'ellipsis']" /></template>
-                更多
-              </el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item class="font-dropdown-item" @click.stop>
-                    <div class="font-control-row">
-                      <div
-                        class="font-status-item"
-                        :title="savedHandwriteFontName || '默认手写字体'"
-                      >
-                        <font-awesome-icon :icon="['solid', 'font']" />
-                        <span>{{
-                          savedHandwriteFontName ? displayHandwriteFontName : '默认手写字体'
-                        }}</span>
-                      </div>
-                      <button
-                        class="font-mini-action"
-                        type="button"
-                        :disabled="handwriteFontApplying"
-                        @click.stop="handleChooseHandwriteFont"
-                      >
-                        {{ handwriteFontApplying ? '应用中' : '更换' }}
-                      </button>
-                      <button
-                        v-if="savedHandwriteFontName"
-                        class="font-mini-action is-muted"
-                        type="button"
-                        @click.stop="handleClearHandwriteFont"
-                      >
-                        默认
-                      </button>
-                    </div>
-                  </el-dropdown-item>
-                  <el-dropdown-item command="reset-comments" divided>
-                    <font-awesome-icon :icon="['solid', 'trash-can']" />
-                    <span>重置评语</span>
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
-        </div>
+      <template #left>
+        <el-tooltip content="返回工具" placement="top">
+          <el-button size="small" circle aria-label="返回工具" @click="backToTools">
+            <font-awesome-icon :icon="['solid', 'arrow-left']" />
+          </el-button>
+        </el-tooltip>
       </template>
     </page-header>
+
+    <input
+      ref="fontFileInputRef"
+      class="font-file-input"
+      type="file"
+      accept=".ttf,.otf,font/ttf,font/otf"
+      @change="handleHandwriteFontChange"
+    />
+
+    <comment-workspace-toolbar
+      v-if="systemStudents.length || excelStudentCount"
+      :source="source"
+      :system-student-count="systemStudents.length"
+      :excel-file-name="excelFileName"
+      :excel-student-count="excelStudentCount"
+      :completed-count="completedCount"
+      :total-count="totalCount"
+      :percentage="percentage"
+      :has-data="hasWorkspaceData"
+      :batch-processing="batchProcessing"
+      :exporting="textExporting"
+      :handwrite-font-name="savedHandwriteFontName"
+      :display-handwrite-font-name="displayHandwriteFontName"
+      :handwrite-font-applying="handwriteFontApplying"
+      @source-change="handleSourceChange"
+      @upload="handleUploadRequest"
+      @batch-action="handleBatchAction"
+      @export-action="handleExportAction"
+      @reset="handleResetComments"
+      @choose-font="handleChooseHandwriteFont"
+      @clear-font="handleClearHandwriteFont"
+    />
 
     <el-alert
       v-if="showDefaultFontSlowNotice"
@@ -316,12 +337,13 @@ defineExpose({ autoFocus })
       :closable="false"
     />
 
-    <div class="evaluation-page-content">
+    <div v-if="hasWorkspaceData" class="evaluation-page-content">
       <div class="evaluation-page-left">
         <evaluation-table-view
           ref="evaluationTableViewRef"
-          :active-student-name="activeStudentName"
+          :active-student-id="activeStudentId"
           :preview-mode="previewMode"
+          :students="students"
           @card-click="handleCardClick"
         />
       </div>
@@ -329,17 +351,35 @@ defineExpose({ autoFocus })
         <el-scrollbar>
           <tool-panel-view
             ref="toolPanelViewRef"
-            @scroll="(index) => evaluationTableViewRef?.scroll(index)"
+            :students="students"
+            :tag-category-list="tagCategories"
+            :allow-tag-editing="allowTagEditing"
+            @scroll="(studentId) => evaluationTableViewRef?.scroll(studentId)"
             @active-student-change="handleActiveStudentChange"
           />
         </el-scrollbar>
       </div>
     </div>
+
+    <div v-else class="comment-workspace-empty">
+      <div class="comment-workspace-empty__icon">
+        <font-awesome-icon :icon="['solid', 'file-excel']" />
+      </div>
+      <h3>上传 Excel 开始处理评语</h3>
+      <el-button type="primary" size="large" @click="handleUploadRequest">
+        <template #icon><font-awesome-icon :icon="['solid', 'file-arrow-up']" /></template>
+        上传 Excel
+      </el-button>
+    </div>
+
+    <comment-excel-import-dialog v-model="importDialogVisible" @confirm="handleExcelImport" />
   </div>
 </template>
 
 <style scoped lang="scss">
 .evaluation-page {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
 }
 
@@ -347,88 +387,6 @@ defineExpose({ autoFocus })
   :deep(.header-left) {
     min-width: 220px;
     flex-shrink: 0;
-  }
-
-  :deep(.header-right) {
-    flex: 1;
-    justify-content: flex-end;
-    min-width: 0;
-  }
-}
-
-.header-toolbar {
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.header-progress {
-  width: clamp(240px, 28vw, 360px);
-  padding: 7px 10px;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 16%, #ffffff);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--el-color-primary) 6%, #ffffff);
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  min-width: 0;
-  flex-shrink: 1;
-
-  .progress-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    flex-shrink: 0;
-    font-size: 12px;
-    color: #64748b;
-    white-space: nowrap;
-
-    svg {
-      color: var(--theme-primary);
-      font-size: 12px;
-    }
-  }
-
-  .progress-bar-wrap {
-    flex: 1;
-    min-width: 54px;
-  }
-
-  .progress-meta {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex-shrink: 0;
-
-    .percentage-badge {
-      padding: 1px 7px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--theme-primary);
-      background: color-mix(in srgb, var(--theme-primary) 14%, #ffffff);
-    }
-
-    .meta-text {
-      font-size: 11px;
-      color: #64748b;
-      white-space: nowrap;
-    }
-  }
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-
-  :deep(.el-button) {
-    height: 36px;
-    margin-left: 0;
   }
 }
 
@@ -441,107 +399,16 @@ defineExpose({ autoFocus })
   flex-shrink: 0;
 }
 
-.more-action-btn {
-  min-width: 78px;
-}
-
-.font-dropdown-item {
-  cursor: default;
-
-  &:hover,
-  &:focus {
-    background: transparent;
-  }
-}
-
-.font-control-row {
-  min-width: 218px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 8px;
-}
-
-.font-status-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  color: #64748b;
-
-  span {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.font-mini-action {
-  height: 24px;
-  border: 1px solid color-mix(in srgb, var(--el-color-primary) 24%, #ffffff);
-  border-radius: 6px;
-  padding: 0 8px;
-  background: color-mix(in srgb, var(--el-color-primary) 8%, #ffffff);
-  color: var(--el-color-primary);
-  font-size: 12px;
-  line-height: 22px;
-  cursor: pointer;
-
-  &:hover {
-    border-color: color-mix(in srgb, var(--el-color-primary) 40%, #ffffff);
-    background: color-mix(in srgb, var(--el-color-primary) 12%, #ffffff);
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.55;
-  }
-
-  &.is-muted {
-    border-color: #e2e8f0;
-    background: #ffffff;
-    color: #64748b;
-
-    &:hover {
-      color: #334155;
-      border-color: #cbd5e1;
-      background: #f8fafc;
-    }
-  }
-}
-
-:deep(.el-dropdown-menu__item) {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  svg {
-    width: 14px;
-    color: #64748b;
-  }
-}
-
-@media (max-width: 1180px) {
-  .evaluation-page-header {
-    :deep(.header-right) {
-      flex: 1;
-    }
-  }
-
-  .header-progress {
-    width: 220px;
-
-    .progress-title span {
-      display: none;
-    }
-  }
-}
-
 .evaluation-page-content {
   flex: 1;
   display: flex;
-  gap: 10px;
+  gap: 0;
   min-height: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.045);
 
   .evaluation-page-left {
     height: 100%;
@@ -552,7 +419,53 @@ defineExpose({ autoFocus })
   .evaluation-page-right {
     height: 100%;
     flex: 2;
-    min-width: 280px;
+    min-width: 300px;
+    padding: 8px 4px;
+    background: #f8fafc;
+    border-left: 1px solid #e2e8f0;
   }
+}
+
+.comment-workspace-empty {
+  flex: 1;
+  min-height: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  text-align: center;
+  background: radial-gradient(circle at 50% 15%, rgba(59, 130, 246, 0.08), transparent 34%), #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+
+  h3 {
+    margin: 16px 0 6px;
+    color: #1e293b;
+    font-size: 18px;
+    font-weight: 650;
+  }
+
+  p {
+    max-width: 520px;
+    margin: 0 0 22px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+}
+
+.comment-workspace-empty__icon {
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 16px;
+  font-size: 25px;
+  box-shadow: 0 10px 24px rgba(21, 128, 61, 0.1);
 }
 </style>

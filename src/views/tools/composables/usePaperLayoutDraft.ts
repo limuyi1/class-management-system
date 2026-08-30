@@ -14,6 +14,7 @@ import type {
   PaperLayoutSettingsType
 } from '@/types/Tools'
 
+/** 试卷排版草稿管理组合式函数的入参 */
 interface UsePaperLayoutDraftOptions {
   settings: PaperLayoutSettingsType
   canvasItems: Ref<PaperLayoutCanvasItemType[]>
@@ -24,20 +25,35 @@ interface UsePaperLayoutDraftOptions {
   clearSelection: () => void
 }
 
+/**
+ * 管理试卷排版草稿的保存与打开。
+ *
+ * 保存时把画布条目转换为可持久化的草稿条目，打开时重建画布条目
+ * 并恢复设置；同时维护草稿数量与当前草稿标识。
+ *
+ * @param options 排版设置、画布条目及相关操作方法
+ * @returns 草稿状态与保存/打开方法
+ */
 export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
+  /** 草稿数量，用于控制“打开草稿”按钮的显示 */
   const draftCount = ref(0)
+  /** 当前草稿 ID；再次保存时更新同一草稿 */
   const currentDraftId = ref('')
+  /** 当前草稿名称，作为下次保存的默认名称 */
   const currentDraftName = ref('')
 
+  /** 刷新草稿数量 */
   async function refreshDraftCount(): Promise<void> {
     draftCount.value = (await getPaperLayoutDrafts()).length
   }
 
+  /** 重置当前草稿标识（新建排版时调用） */
   function resetCurrentDraft(): void {
     currentDraftId.value = ''
     currentDraftName.value = ''
   }
 
+  /** 保存草稿：弹窗确认名称后持久化当前排版设置与画布条目 */
   async function handleSaveDraft(): Promise<void> {
     if (options.canvasItems.value.length === 0) {
       ElMessage.warning('请先加入图片')
@@ -53,6 +69,7 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
         inputErrorMessage: '名称不能为空'
       })
 
+      // 草稿只持久化排版所需字段，dataUrl 在打开草稿时通过 blob 重新生成
       const savedDraft = await savePaperLayoutDraft({
         id: currentDraftId.value || undefined,
         name: result.value.trim(),
@@ -84,9 +101,16 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
     }
   }
 
+  /**
+   * 打开草稿：恢复排版设置并重建画布条目。
+   * 条目按保存时的 order 排序，dataUrl 通过 blob 重新生成。
+   *
+   * @param draft 草稿记录
+   */
   async function handleOpenDraft(draft: PaperLayoutDraftRecordType): Promise<void> {
     Object.assign(options.settings, normalizePaperLayoutSettings(draft.settings))
 
+    // 按保存时的 order 排序，保证图层与顺序一致
     const sortedDraftItems = [...draft.items].sort(
       (first, second) => (first.order || 0) - (second.order || 0)
     )
@@ -110,6 +134,7 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
         pageIndex: draftItem.pageIndex ?? 0,
         x: draftItem.x ?? item.x,
         y: draftItem.y ?? item.y,
+        // 旧草稿可能只有 pageIndex/y，这里兼容计算出 documentY
         documentY:
           draftItem.documentY ??
           (draftItem.pageIndex ?? 0) * options.pageSize.value.height + (draftItem.y ?? item.y),

@@ -1,4 +1,4 @@
-import { getPdfPageSize } from '@/utils/evaluationPdfLayoutUntil'
+import { getPdfPageSize } from '@/utils/evaluation/evaluationPdfLayoutUtil'
 
 import type {
   AttachmentRecordType,
@@ -8,11 +8,13 @@ import type {
   PaperLayoutSettingsType
 } from '@/types/Tools'
 
+/** 纸张尺寸（毫米） */
 export interface PaperLayoutPageSizeType {
   width: number
   height: number
 }
 
+/** 自动排版所需的版式指标 */
 export interface PaperLayoutMetricsType {
   pageSize: PaperLayoutPageSizeType
   margin: number
@@ -23,12 +25,14 @@ export interface PaperLayoutMetricsType {
   contentHeight: number
 }
 
+/** 图片归一化后的位置信息 */
 export interface PaperLayoutPositionType {
   pageIndex: number
   y: number
   documentY: number
 }
 
+/** 新增图片分页摆放所需的版式指标 */
 export interface PaperLayoutPagePlacementMetricsType {
   pageSize: PaperLayoutPageSizeType
   margin: number
@@ -39,10 +43,18 @@ export interface PaperLayoutPagePlacementMetricsType {
   contentHeight: number
 }
 
+/** 生成试卷排版条目的唯一 ID */
 export const createPaperLayoutId = (prefix: string): string => {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+/**
+ * 根据纸张类型与方向计算实际页面尺寸。
+ * 横向时交换宽高。
+ *
+ * @param settings 排版设置
+ * @returns 页面尺寸（毫米）
+ */
 export const getPaperLayoutPageSize = (
   settings: PaperLayoutSettingsType
 ): PaperLayoutPageSizeType => {
@@ -56,6 +68,13 @@ export const getPaperLayoutPageSize = (
   return size
 }
 
+/**
+ * 将素材转换为画布条目，初始尺寸按列宽等比计算。
+ *
+ * @param attachment 素材记录
+ * @param options 初始坐标、列宽与数据 URL
+ * @returns 画布条目
+ */
 export const createPaperLayoutItem = (
   attachment: AttachmentRecordType,
   options: {
@@ -83,10 +102,12 @@ export const createPaperLayoutItem = (
   zIndex: options.index + 1
 })
 
+/** 计算画布中下一个可用层级（当前最大 zIndex + 1） */
 export const getNextPaperLayoutZIndex = (items: PaperLayoutCanvasItemType[]): number => {
   return Math.max(0, ...items.map((item) => item.zIndex)) + 1
 }
 
+/** 计算图片在整份文档中的纵向坐标（兼容旧的 pageIndex/y 字段） */
 export const getPaperItemDocumentY = (
   item: Pick<PaperLayoutCanvasItemType, 'documentY' | 'pageIndex' | 'y'>,
   pageSize: PaperLayoutPageSizeType
@@ -112,6 +133,14 @@ export const normalizePaperItemPosition = (
   }
 }
 
+/**
+ * 将画布条目按页面切分为渲染片段。
+ * 跨页图片会在相邻页面生成多个片段，由页面容器裁切显示。
+ *
+ * @param items 画布条目
+ * @param pageSize 页面尺寸
+ * @returns 分页后的页面数据
+ */
 export const buildPaperLayoutPages = (
   items: PaperLayoutCanvasItemType[],
   pageSize: PaperLayoutPageSizeType
@@ -171,6 +200,7 @@ export const placePaperItemsOnPage = (
 
   return items.map((item, index) => {
     const imageHeight = metrics.columnWidth * (item.naturalHeight / item.naturalWidth)
+    // 图片高度超出内容区时按比例缩小，保证完整放入一页
     const fitScale = imageHeight > contentHeight ? contentHeight / imageHeight : 1
     const width = metrics.fitMode === 'slot' ? metrics.columnWidth : metrics.columnWidth * fitScale
     const height = metrics.fitMode === 'slot' ? metrics.contentHeight : imageHeight * fitScale
@@ -225,6 +255,7 @@ export const arrangePaperItems = (
 
   return items.map((item, index) => {
     const imageHeight = metrics.columnWidth * (item.naturalHeight / item.naturalWidth)
+    // 图片高度超出内容区时按比例缩小，保证完整放入一页
     const fitScale = imageHeight > metrics.contentHeight ? metrics.contentHeight / imageHeight : 1
     const width = metrics.fitMode === 'slot' ? metrics.columnWidth : metrics.columnWidth * fitScale
     const height = metrics.fitMode === 'slot' ? metrics.contentHeight : imageHeight * fitScale

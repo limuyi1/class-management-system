@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 名单核对结果卡片 — 展示对比汇总与对照表格，支持差异定位与复制/导出 */
 import { computed, nextTick, ref, watch } from 'vue'
 
 import type { ElTable } from 'element-plus'
@@ -12,6 +13,7 @@ import type {
 type ExportGroupType = keyof NameListCompareGroupsType
 type ExportActionType = 'copy' | 'export'
 
+/** 组件属性：基准/对照标签、对比数据与差异过滤开关 */
 interface Props {
   baselineLabel: string
   comparisonLabel: string
@@ -22,19 +24,24 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对外事件：更新差异过滤开关、发起复制/导出 */
 const emit = defineEmits<{
   'update:onlyDifference': [value: boolean]
   action: [payload: { group: ExportGroupType; action: ExportActionType }]
 }>()
+/** 表格实例引用，用于滚动定位差异行 */
 const tableRef = ref<InstanceType<typeof ElTable>>()
+/** 当前差异游标（对应 differenceRowIndexes 中的位置） */
 const currentDifferenceCursor = ref(0)
 
+/** 依据“只看差异”开关过滤展示行：差异行为基准或对照某一侧为空 */
 const filteredRows = computed(() => {
   if (!props.onlyDifference) return props.rows
   return props.rows.filter((row) => !(row.baselineName && row.comparisonName))
 })
 
 const hasRows = computed(() => props.rows.length > 0)
+/** 过滤后列表中所有差异行对应的行号 */
 const differenceRowIndexes = computed(() => {
   return filteredRows.value
     .map((row, index) => ({ row, index }))
@@ -43,11 +50,13 @@ const differenceRowIndexes = computed(() => {
 })
 const differenceCount = computed(() => differenceRowIndexes.value.length)
 const hasDifferences = computed(() => differenceCount.value > 0)
+/** 当前差异游标指向的行号，无差异时为 -1 */
 const currentDifferenceRowIndex = computed(() => {
   if (!hasDifferences.value) return -1
   return differenceRowIndexes.value[currentDifferenceCursor.value] ?? -1
 })
 
+/** 构造汇总胶囊数据（匹配/仅基准/仅对照） */
 const summaryItems = computed(() => {
   if (!props.summary) return []
 
@@ -73,10 +82,12 @@ const summaryItems = computed(() => {
   ]
 })
 
+/** 向上抛出复制/导出动作 */
 function handleAction(group: ExportGroupType, action: ExportActionType): void {
   emit('action', { group, action })
 }
 
+/** 数据变化后修正差异游标，避免越界 */
 function syncDifferenceCursor(): void {
   if (!hasDifferences.value) {
     currentDifferenceCursor.value = 0
@@ -88,6 +99,7 @@ function syncDifferenceCursor(): void {
   }
 }
 
+/** 滚动到当前差异行 */
 async function scrollToCurrentDifference(): Promise<void> {
   if (!hasDifferences.value || currentDifferenceRowIndex.value < 0) return
 
@@ -103,6 +115,7 @@ async function scrollToCurrentDifference(): Promise<void> {
   })
 }
 
+/** 跳转上一条差异（循环到末尾） */
 function goToPreviousDifference(): void {
   if (!hasDifferences.value) return
   currentDifferenceCursor.value =
@@ -110,6 +123,7 @@ function goToPreviousDifference(): void {
   void scrollToCurrentDifference()
 }
 
+/** 跳转下一条差异（循环到开头） */
 function goToNextDifference(): void {
   if (!hasDifferences.value) return
   currentDifferenceCursor.value =
@@ -117,6 +131,7 @@ function goToNextDifference(): void {
   void scrollToCurrentDifference()
 }
 
+/** 根据行类型与当前差异游标返回表格行样式类名 */
 function rowClassName({ row }: { row: NameListCompareViewRowType }): string {
   const rowIndex = filteredRows.value.indexOf(row)
 
@@ -143,6 +158,7 @@ watch(
 
 <template>
   <div class="compare-result-card">
+    <!-- 对比汇总胶囊：匹配/仅基准/仅对照 -->
     <div v-if="summaryItems.length > 0" class="summary-strip">
       <button
         v-for="item in summaryItems"
@@ -162,6 +178,7 @@ watch(
     </div>
 
     <div class="result-card">
+      <!-- 卡片头部：标题与差异过滤/导航/复制导出操作 -->
       <div class="result-card__header">
         <div class="result-card__title-group">
           <div class="result-card__title">对照视图</div>
@@ -269,6 +286,7 @@ watch(
         </div>
       </div>
 
+      <!-- 对照表格：按基准顺序逐行对照姓名 -->
       <div v-if="hasRows" class="result-table">
         <el-table
           ref="tableRef"

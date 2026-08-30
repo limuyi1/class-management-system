@@ -1,5 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+/**
+ * 评语录入卡片
+ * 组合学生选择、标签展示与评语输入，提供 AI 生成/润色与提交能力。
+ */
+import { computed, toRef } from 'vue'
 
 import { useEvaluationInput } from '@/hooks/useEvaluationInput'
 
@@ -7,10 +11,15 @@ import StudentSelectField from '@/views/evaluation/components/input/StudentSelec
 import CommentInputForm from '@/views/evaluation/components/input/CommentInputForm.vue'
 
 import type { StudentDataType } from '@/types/StudentData'
+import type { TagCategoryType } from '@/types/Setting'
 
+/** 评语录入卡片的 Props */
 interface Props {
   autoNextOnSubmit?: boolean
   promptUnsavedOnSwitch?: boolean
+  students?: StudentDataType[]
+  tagCategoryList?: TagCategoryType[]
+  allowTagEditing?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -18,8 +27,9 @@ const props = withDefaults(defineProps<Props>(), {
   promptUnsavedOnSwitch: true
 })
 
+/** 录入卡片事件：滚动定位与激活学生变化 */
 const emit = defineEmits<{
-  scroll: [index: number]
+  scroll: [studentId: string]
   activeStudentChange: [data: StudentDataType | null]
 }>()
 
@@ -32,6 +42,7 @@ const {
   formData,
   currentStudentTags,
   hasAnyTags,
+  allowTagEditing,
   nameInputRef,
   commentInputRef,
   autoFocus,
@@ -46,14 +57,38 @@ const {
 } = useEvaluationInput({
   autoNextOnSubmit: props.autoNextOnSubmit,
   promptUnsavedOnSwitch: props.promptUnsavedOnSwitch,
+  students: props.students
+    ? (toRef(props, 'students') as unknown as import('vue').Ref<StudentDataType[]>)
+    : undefined,
+  tagCategoryList: props.tagCategoryList
+    ? (toRef(props, 'tagCategoryList') as unknown as import('vue').Ref<TagCategoryType[]>)
+    : undefined,
+  allowTagEditing: props.allowTagEditing,
   onActiveStudentChange: (student) => emit('activeStudentChange', student),
-  onScroll: (index) => emit('scroll', index)
+  onScroll: (studentId) => emit('scroll', studentId)
 })
 
-const canGenerateComment = computed(() => !!formData.id)
-const canPolishComment = computed(() => !!formData.id && !!formData.comment?.trim())
+/** 是否已选择学生，允许生成评语 */
+const canGenerateComment = computed(() => !!formData.studentId)
+/** 已选择学生且有评语内容时允许润色 */
+const canPolishComment = computed(() => !!formData.studentId && !!formData.comment?.trim())
+/** AI 按钮文案：有评语时显示“润色”，否则显示“生成” */
+const aiActionText = computed(() => (canPolishComment.value ? 'AI 润色' : 'AI 生成'))
+/** 是否正在执行 AI 生成或润色 */
+const aiProcessing = computed(() => generating.value || polishing.value)
+/** 提交按钮文案：开启自动下一个时显示“保存并下一个” */
 const submitText = computed(() => (props.autoNextOnSubmit ? '保存并下一个' : '提 交'))
 
+/** 分发 AI 下拉命令：生成或润色 */
+const handleAiAction = (command: string | number | object): void => {
+  if (command === 'generate') {
+    void handleGenerateComment()
+    return
+  }
+  if (command === 'polish') void handlePolishComment()
+}
+
+/** 供父组件填充学生数据到输入表单 */
 const handleEditData = (data: StudentDataType) => {
   editData(data)
 }
@@ -77,21 +112,22 @@ defineExpose({
         <div class="editor-section">
           <student-select-field
             ref="nameInputRef"
-            :model-value="formData.id"
+            :model-value="formData.studentId"
             :options="optionsList"
             :origin-list="originList"
             :remote-method="remoteMethod"
-            @update:model-value="(value) => (formData.id = value)"
+            @update:model-value="(value) => (formData.studentId = value)"
             @change="selectChange"
           />
 
           <comment-input-form
             ref="commentInputRef"
             :model-value="formData.comment"
-            :disabled="!formData.id"
+            :disabled="!formData.studentId"
             :current-student-tags="currentStudentTags"
             :hasAnyTags="hasAnyTags"
             :tag-category-list="tagCategoryList"
+            :allow-tag-editing="allowTagEditing"
             @update:model-value="(value) => (formData.comment = value)"
             @go-edit-tags="goToEditTags"
           />
@@ -100,53 +136,46 @@ defineExpose({
         <div class="action-section">
           <el-form-item>
             <div class="action-row">
-              <el-tooltip disabled placement="top">
-                <div class="action-item">
-                  <el-button
-                    class="ai-generate-btn"
-                    size="default"
-                    round
-                    :disabled="!canGenerateComment"
-                    :loading="generating"
-                    @click="handleGenerateComment"
-                  >
-                    <template #icon
-                      ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
-                    /></template>
-                    AI 生成评语
-                  </el-button>
-                </div>
-              </el-tooltip>
-
-              <div class="action-item">
+              <el-dropdown
+                trigger="click"
+                placement="bottom-start"
+                :disabled="!canGenerateComment || aiProcessing"
+                @command="handleAiAction"
+              >
                 <el-button
-                  class="ai-polish-btn"
-                  size="default"
-                  round
-                  :disabled="!canPolishComment"
-                  :loading="polishing"
-                  @click="handlePolishComment"
+                  class="ai-assistant-btn"
+                  :disabled="!canGenerateComment"
+                  :loading="aiProcessing"
                 >
-                  <template #icon
-                    ><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']"
-                  /></template>
-                  一键润色
+                  <template #icon>
+                    <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
+                  </template>
+                  {{ aiActionText }}
+                  <font-awesome-icon class="dropdown-arrow" :icon="['solid', 'chevron-down']" />
                 </el-button>
-              </div>
+                <template #dropdown>
+                  <el-dropdown-menu>
+                    <el-dropdown-item command="generate">
+                      <font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" />
+                      <span>{{ canPolishComment ? '重新生成评语' : '生成评语' }}</span>
+                    </el-dropdown-item>
+                    <el-dropdown-item command="polish" :disabled="!canPolishComment">
+                      <font-awesome-icon :icon="['solid', 'pen-nib']" />
+                      <span>润色当前评语</span>
+                    </el-dropdown-item>
+                  </el-dropdown-menu>
+                </template>
+              </el-dropdown>
 
-              <div class="action-item">
-                <el-button
-                  class="submit-btn"
-                  type="primary"
-                  size="default"
-                  round
-                  :disabled="!formData.id"
-                  @click="onSubmit"
-                >
-                  <template #icon><font-awesome-icon :icon="['solid', 'paper-plane']" /></template>
-                  {{ submitText }}
-                </el-button>
-              </div>
+              <el-button
+                class="submit-btn"
+                type="primary"
+                :disabled="!formData.studentId"
+                @click="onSubmit"
+              >
+                <template #icon><font-awesome-icon :icon="['solid', 'paper-plane']" /></template>
+                {{ submitText }}
+              </el-button>
             </div>
           </el-form-item>
         </div>
@@ -187,18 +216,13 @@ defineExpose({
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-
-.action-item {
-  flex: 1;
-  min-width: 0;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 .submit-btn,
-.ai-generate-btn,
-.ai-polish-btn {
-  width: 100%;
+.ai-assistant-btn {
+  min-width: 132px;
 }
 
 .card-header {
@@ -218,6 +242,7 @@ defineExpose({
 
 .submit-btn {
   height: 36px;
+  min-width: 150px;
   font-size: 14px;
   background: var(--theme-gradient);
   border: none;
@@ -231,14 +256,15 @@ defineExpose({
   }
 }
 
-.ai-generate-btn {
+.ai-assistant-btn {
   height: 36px;
   font-size: 14px;
 }
 
-.ai-polish-btn {
-  height: 36px;
-  font-size: 14px;
+.dropdown-arrow {
+  margin-left: 7px;
+  font-size: 10px;
+  opacity: 0.65;
 }
 
 @media (max-width: 1320px) {
@@ -246,8 +272,9 @@ defineExpose({
     flex-wrap: wrap;
   }
 
-  .action-item {
-    min-width: 100%;
+  .submit-btn,
+  .ai-assistant-btn {
+    flex: 1;
   }
 }
 

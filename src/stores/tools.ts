@@ -9,6 +9,7 @@ import { createDefaultPaperLayoutSettings } from '@/views/tools/constants/paperL
  */
 export const useToolsStore = defineStore('tools', {
   state: (): ToolsStateType => ({
+    /** 纸张布局设置 */
     paperLayout: createDefaultPaperLayoutSettings()
   })
 })

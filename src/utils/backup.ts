@@ -1,6 +1,10 @@
+/**
+ * 数据库备份工具
+ * 提供数据库导出、导入与清空，并在操作后同步各运行时 Store
+ */
 import 'dexie-export-import'
 import { db, DB_ID } from '@/db'
-import { DatabaseTableEnum } from '@/db/constants'
+import { DatabaseTableEnum } from '@/constants'
 import { dayjs, ElMessage } from 'element-plus'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -10,9 +14,13 @@ import { useSettingStore } from '@/stores/setting'
 import { useThemeStore } from '@/stores/theme'
 import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
+import { useSeatingChartStore } from '@/stores/seating-chart'
+import { useDutyRosterStore } from '@/stores/duty-roster'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
-import { normalizeScoreColumns } from '@/utils/settingMigrationUntil'
+import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
+import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUtil'
 
+/** 可选导出的工具类数据表，仅在选择包含工具数据时一并导出 */
 const TOOL_TABLES = new Set<string>([
   DatabaseTableEnum.Attachments,
   DatabaseTableEnum.PaperLayoutDrafts,
@@ -31,18 +39,27 @@ const resetRuntimeStores = () => {
   const aiConfigStore = useAIConfigStore()
   const wrongBookStore = useWrongBookStore()
   const toolsStore = useToolsStore()
+  const seatingChartStore = useSeatingChartStore()
+  const dutyRosterStore = useDutyRosterStore()
 
   dataStore.students = []
-  dataStore.isInitialLoading = true
+  dataStore.isDataReady = true
+  dataStore.initError = null
   settingStore.$reset()
   configurationStore.$reset()
   aiConfigStore.$reset()
   wrongBookStore.$reset()
   toolsStore.$reset()
+  seatingChartStore.$reset()
+  dutyRosterStore.$reset()
   // theme 是 setup store，重置时还需要同步刷新 documentElement 上的主题 CSS 变量。
   themeStore.resetTheme()
 }
 
+/**
+ * 导入后把 IndexedDB 中的持久化数据重新灌入各 Pinia 内存 Store。
+ * 迁移逻辑（如补齐 disabled 字段、studentId 校验）与首次加载保持一致。
+ */
 const hydrateRuntimeStores = async () => {
   const dataStore = useDataSourceStore()
   const settingStore = useSettingStore()
@@ -52,21 +69,36 @@ const hydrateRuntimeStores = async () => {
   const wrongBookStore = useWrongBookStore()
   const overviewAnalysisStore = useOverviewAnalysisStore()
   const toolsStore = useToolsStore()
+  const seatingChartStore = useSeatingChartStore()
+  const dutyRosterStore = useDutyRosterStore()
 
-  const [dataSource, setting, configuration, theme, aiConfig, wrongBook, overviewAnalysis, tools] =
-    await Promise.all([
-      db.studentDataset.get(DB_ID),
-      db.scoreSettings.get(DB_ID),
-      db.appPreferences.get(DB_ID),
-      db.themePreferences.get(DB_ID),
-      db.aiSettings.get(DB_ID),
-      db.wrongBook.get(DB_ID),
-      db.overviewAnalysisCache.get(DB_ID),
-      db.toolPreferences.get(DB_ID)
-    ])
+  const [
+    dataSource,
+    setting,
+    configuration,
+    theme,
+    aiConfig,
+    wrongBook,
+    overviewAnalysis,
+    tools,
+    seatingCharts,
+    dutyRosters
+  ] = await Promise.all([
+    db.studentDataset.get(DB_ID),
+    db.scoreSettings.get(DB_ID),
+    db.appPreferences.get(DB_ID),
+    db.themePreferences.get(DB_ID),
+    db.aiSettings.get(DB_ID),
+    db.wrongBook.get(DB_ID),
+    db.overviewAnalysisCache.get(DB_ID),
+    db.toolPreferences.get(DB_ID),
+    db.seatingCharts.get(DB_ID),
+    db.dutyRosters.get(DB_ID)
+  ])
 
-  dataStore.students = dataSource?.students || []
-  dataStore.isInitialLoading = true
+  dataStore.students = normalizeStoredStudents(dataSource?.students)
+  dataStore.isDataReady = true
+  dataStore.initError = null
 
   if (setting) {
     const { id, updatedAt, ...state } = setting
@@ -81,6 +113,7 @@ const hydrateRuntimeStores = async () => {
     const { id, updatedAt, ...state } = configuration
     void id
     void updatedAt
+    state.recentScoreEntries = normalizeRecentScoreEntries(state.recentScoreEntries)
     configurationStore.$patch((storeState) => {
       Object.assign(storeState, state)
     })
@@ -126,14 +159,51 @@ const hydrateRuntimeStores = async () => {
       Object.assign(storeState, state)
     })
   }
+  if (seatingCharts) {
+    const { id, updatedAt, ...state } = seatingCharts
+    void id
+    void updatedAt
+    seatingChartStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+    seatingChartStore.reconcileStudents()
+  }
+  if (dutyRosters) {
+    const { id, updatedAt, ...state } = dutyRosters
+    void id
+    void updatedAt
+    dutyRosterStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+    dutyRosterStore.reconcileStudents()
+  }
 }
 
+/**
+ * 计算距离上次备份的天数。
+ * @param lastBackupAt - 上次备份时间（ISO 格式），null 表示从未备份
+ * @returns 距今整数天数；null 表示从未备份或时间无效
+ */
+export function getDaysSinceBackup(lastBackupAt: string | null): number | null {
+  if (!lastBackupAt) return null
+  const lastTime = new Date(lastBackupAt).getTime()
+  if (Number.isNaN(lastTime)) return null
+  return Math.floor((Date.now() - lastTime) / (1000 * 60 * 60 * 24))
+}
+
+/**
+ * 导出全部数据库为 .dexie 备份文件并触发下载。
+ * @param onProgress - 进度回调，传入 0-100 的百分比
+ * @param includePaperLayout - 是否包含工具类数据表，默认 true
+ * @returns Promise，成功时触发下载并提示，失败时弹出错误提示
+ */
 export async function exportDatabase(
   onProgress?: (percent: number) => void,
   includePaperLayout = true
 ) {
   try {
     const blob = await db.export({
+      // 不包含工具表时，过滤掉附件、试卷版式草稿等临时数据。
       filter: (table) => {
         if (includePaperLayout) return true
         return !TOOL_TABLES.has(table)
@@ -152,6 +222,7 @@ export async function exportDatabase(
     a.download = `scs-backup-${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.dexie`
     a.click()
     URL.revokeObjectURL(url)
+    useConfigurationStore().lastBackupAt = new Date().toISOString()
     ElMessage.success('导出成功')
   } catch (error) {
     console.error('Export failed:', error)
@@ -159,14 +230,23 @@ export async function exportDatabase(
   }
 }
 
+/**
+ * 导入 .dexie 备份文件，清空现有表后写入数据，并重新灌入内存 Store。
+ * @param file - 备份文件
+ * @param onProgress - 进度回调，传入 0-100 的百分比
+ * @param complete - 导入成功后的回调
+ * @returns Promise，导入成功后重新灌入内存 Store 并回调 complete
+ */
 export async function importDatabase(
   file: File,
   onProgress?: (percent: number) => void,
   complete?: () => void
 ) {
   try {
+    // 复制为独立 Blob，避免文件对象被复用导致读取位置偏移。
     const blob = file.slice(0, file.size, 'application/octet-stream')
     setDatabaseImporting(true)
+    // 兼容不同版本与缺失表，导入前清空原有数据，避免新旧数据混合。
     await db.import(blob, {
       acceptVersionDiff: true,
       acceptMissingTables: true,
@@ -190,6 +270,12 @@ export async function importDatabase(
   }
 }
 
+/**
+ * 清空所有数据库表并重置运行时 Store 到默认状态。
+ * @param onProgress - 进度回调，传入 0-100 的百分比
+ * @param complete - 清空完成后的回调
+ * @returns Promise，清空数据库并重置运行时 Store
+ */
 export async function clearDatabase(onProgress?: (percent: number) => void, complete?: () => void) {
   try {
     await db.studentDataset.clear()
@@ -207,6 +293,8 @@ export async function clearDatabase(onProgress?: (percent: number) => void, comp
     await db.attachments.clear()
     await db.paperLayoutDrafts.clear()
     await db.toolPreferences.clear()
+    await db.seatingCharts.clear()
+    await db.dutyRosters.clear()
     onProgress?.(90)
     resetRuntimeStores()
     onProgress?.(100)

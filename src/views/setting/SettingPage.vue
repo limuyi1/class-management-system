@@ -1,10 +1,12 @@
 <script setup lang="ts">
+/** 系统设置页面 — 标签维护、学生管理、导入导出、AI 配置、单元管理 */
 import { computed, defineAsyncComponent, ref } from 'vue'
 
 import { useRoute, useRouter } from 'vue-router'
 import { useTabQuerySync } from '@/hooks/useTabQuerySync'
 import { featureFlags } from '@/config/features'
 
+// 异步加载各标签页组件，减小首屏打包体积
 const LabelMaintenance = defineAsyncComponent(
   () => import('@/views/setting/components/LabelMaintenance.vue')
 )
@@ -23,6 +25,7 @@ const QuestionTypeMaintenance = defineAsyncComponent(
 
 const route = useRoute()
 const router = useRouter()
+/** 设置页支持的标签页标识 */
 type SettingTabType =
   | 'label-maintenance'
   | 'unit-config'
@@ -30,9 +33,11 @@ type SettingTabType =
   | 'system-backup'
   | 'question-type'
 
+/** 根据功能开关计算当前可用的标签页列表 */
 const validTabs = computed<SettingTabType[]>(() => {
   const tabs: SettingTabType[] = ['label-maintenance', 'unit-config', 'ai-config', 'system-backup']
 
+  // 题型管理受功能开关控制，仅在开启时加入
   if (featureFlags.questionTypeManagement) {
     tabs.push('question-type')
   }
@@ -40,8 +45,10 @@ const validTabs = computed<SettingTabType[]>(() => {
   return tabs
 })
 
+/** 当前激活的标签页，默认停在系统备份 */
 const activeTab = ref<SettingTabType>('system-backup')
 
+// 将标签页状态与 URL query 参数双向同步，支持链接直达指定标签页
 useTabQuerySync({
   route,
   router,
@@ -52,6 +59,7 @@ useTabQuerySync({
 
 <template>
   <div class="setting-page app-page-shell">
+    <!-- 标签栏：标签维护 / 单元配置 / AI 配置 / 题型管理 / 系统备份 -->
     <el-tabs v-model="activeTab" class="setting-tabs__wrapper">
       <el-tab-pane name="label-maintenance">
         <template #label>

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 分数分布统计卡片
+ * 展示最高/最低/平均分摘要、分数段分布与低分面板，并支持复制分布文本。
+ */
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 
@@ -12,25 +16,31 @@ import ScoreSummary from '@/views/score/components/statistics/ScoreSummary.vue'
 import ScoreRangeList from '@/views/score/components/statistics/ScoreRangeList.vue'
 import LowScorePanel from '@/views/score/components/statistics/LowScorePanel.vue'
 
+// 学生数据、应用配置与表头设置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 
+// 全部学生与启用的成绩科目列
 const { students: originList } = storeToRefs(store)
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
+// 当前录入科目 prop，作为统计的分数来源
 const scorePropRef = computed(() => configuration.inputScoreTab)
+/** 当前统计标题，无科目时回退为“成绩分布统计” */
 const scoreTitle = computed(() => {
   const scoreProp = configuration.inputScoreTab
   if (!scoreProp) return '成绩分布统计'
   return scoreColumns.value.find((header) => header.prop === scoreProp)?.label || scoreProp
 })
 
+// 分数统计、低分名单、阈值与分数读取函数
 const { scoreStats, belowThresholdStudents, threshold, getScore } = useScoreStatistics({
   students: computed(() => originList.value),
   scoreProp: scorePropRef
 })
 
+// 复制分数分布文本的能力
 const { copyToClipboard } = useScoreDistributionActions({
   scoreStats,
   belowThresholdStudents,
@@ -39,6 +49,7 @@ const { copyToClipboard } = useScoreDistributionActions({
   getScore
 })
 
+/** 触发复制分数分布文本 */
 const copyDistribution = () => {
   copyToClipboard()
 }
@@ -46,6 +57,7 @@ const copyDistribution = () => {
 
 <template>
   <el-card class="statistics-card__wrapper">
+    <!-- 卡片头部：标题与复制按钮 -->
     <div class="card-header">
       <div class="card-title">
         <font-awesome-icon :icon="['solid', 'chart-column']" />
@@ -59,12 +71,14 @@ const copyDistribution = () => {
       </div>
     </div>
 
+    <!-- 有成绩时展示摘要、分数段与低分面板 -->
     <template v-if="scoreStats">
       <score-summary :score-stats="scoreStats" />
       <score-range-list :score-stats="scoreStats" />
       <low-score-panel :score-stats="scoreStats" />
     </template>
 
+    <!-- 无成绩时展示空提示 -->
     <div v-else class="empty-hint">
       <font-awesome-icon :icon="['solid', 'chart-simple']" />
       <span>暂无成绩数据</span>

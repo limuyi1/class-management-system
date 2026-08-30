@@ -3,7 +3,13 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { useSettingStore } from '../../src/stores/setting'
 
+/**
+ * useSettingStore store 测试
+ * 测试目标：设置 store
+ * 覆盖功能：预置标签分类与标签的初始化、不同实例之间预置数组互不影响
+ */
 describe('useSettingStore', () => {
+  // 每个用例前创建全新的 Pinia 实例，隔离 store 状态
   beforeEach(() => {
     setActivePinia(createPinia())
   })

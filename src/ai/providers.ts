@@ -3,8 +3,10 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { AIModelTypeEnum } from '@/types/AIConfig'
 import type { AIServiceConfig } from '@/ai/types'
 
+/** AI 请求默认超时时间（毫秒） */
 export const AI_REQUEST_TIMEOUT_MS = 120_000
 
+/** AI 请求超时错误 */
 export class AIRequestTimeoutError extends Error {
   constructor(timeoutMs: number = AI_REQUEST_TIMEOUT_MS) {
     super(`AI 请求超时，请稍后重试或减少生成数量（已等待 ${Math.round(timeoutMs / 1000)} 秒）`)
@@ -12,6 +14,12 @@ export class AIRequestTimeoutError extends Error {
   }
 }
 
+/**
+ * 为 AI 请求添加超时保护
+ * @param request - 实际请求函数
+ * @param timeoutMs - 超时时间（毫秒），默认 120 秒
+ * @returns 请求结果，超时抛出 AIRequestTimeoutError
+ */
 export async function withAIRequestTimeout<T>(
   request: () => Promise<T>,
   timeoutMs: number = AI_REQUEST_TIMEOUT_MS
@@ -30,6 +38,13 @@ export async function withAIRequestTimeout<T>(
   }
 }
 
+/**
+ * 调用 OpenAI 兼容 API 的 POST 接口
+ * @param config - AI 服务配置
+ * @param endpoint - 接口路径
+ * @param body - 请求体
+ * @returns 接口返回的 JSON
+ */
 export async function openaiPost(
   config: AIServiceConfig,
   endpoint: string,
@@ -66,6 +81,12 @@ export async function openaiPost(
   return response.json()
 }
 
+/**
+ * 调用 OpenAI 兼容 API 的 GET 接口
+ * @param config - AI 服务配置
+ * @param endpoint - 接口路径
+ * @returns 接口返回的 JSON
+ */
 export async function openaiGet(config: AIServiceConfig, endpoint: string): Promise<unknown> {
   const url = `${config.baseUrl}${endpoint}`
   const controller = new AbortController()
@@ -96,11 +117,22 @@ export async function openaiGet(config: AIServiceConfig, endpoint: string): Prom
   return response.json()
 }
 
+/**
+ * 创建 Gemini 生成模型实例
+ * @param config - AI 服务配置
+ * @returns Gemini 模型实例
+ */
 export function createGeminiModel(config: AIServiceConfig) {
   const genAI = new GoogleGenerativeAI(config.apiKey)
   return genAI.getGenerativeModel({ model: config.model || 'gemini-2.0-flash' })
 }
 
+/**
+ * 生成文本（自动区分 Gemini 与 OpenAI 兼容接口）
+ * @param config - AI 服务配置
+ * @param prompt - 提示词
+ * @returns 生成的文本
+ */
 export async function generateText(config: AIServiceConfig, prompt: string): Promise<string> {
   if (config.modelType === AIModelTypeEnum.GEMINI) {
     const model = createGeminiModel(config)
@@ -129,6 +161,12 @@ interface OpenAIResponseType {
   choices?: OpenAIChoiceType[]
 }
 
+/**
+ * 从 OpenAI 兼容响应中提取文本内容
+ * @param data - 接口响应数据
+ * @param fallback - 提取失败时的默认值
+ * @returns 提取的文本内容
+ */
 export function getContentFromOpenAIResponse(data: unknown, fallback: string = ''): string {
   const response = data as OpenAIResponseType
   const content = response?.choices?.[0]?.message?.content

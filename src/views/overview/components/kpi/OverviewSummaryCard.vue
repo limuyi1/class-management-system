@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 汇总卡片 — 展示单个关注分组的统计值或"待分析"占位 */
 import { computed } from 'vue'
 
 import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
@@ -12,6 +13,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 是否处于“待分析”占位状态 */
 const isPendingAnalysis = computed(() => props.card.value === '待分析')
 </script>
 
@@ -27,6 +29,7 @@ const isPendingAnalysis = computed(() => props.card.value === '待分析')
     ]"
     :style="{ gridColumn: `span ${span}` }"
   >
+    <!-- 卡片头部：图标 + 标签 + 数值 -->
     <div class="summary-header">
       <div class="summary-icon">
         <font-awesome-icon :icon="['solid', card.icon]" />
@@ -39,11 +42,13 @@ const isPendingAnalysis = computed(() => props.card.value === '待分析')
         </div>
       </div>
     </div>
+    <!-- "待分析"占位态 -->
     <div v-if="isPendingAnalysis" class="summary-pending-body">
       <span class="summary-pending-value">{{ card.value }}</span>
       <span class="summary-pending-summary">{{ card.summary }}</span>
     </div>
 
+    <!-- 正常态：详情项网格 -->
     <div v-else class="summary-detail-grid">
       <div
         v-for="detail in card.details"

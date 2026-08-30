@@ -1,6 +1,11 @@
 <script setup lang="ts">
+/**
+ * 最高/最低/平均分摘要
+ * 最高最低分额外展示对应学生名单，超出两名时以浮层展开。
+ */
 import type { ScoreStatisticsType } from '@/hooks/useScoreStatistics'
 
+/** 组件属性：分数统计结果 */
 interface Props {
   scoreStats: ScoreStatisticsType
 }
@@ -10,6 +15,7 @@ defineProps<Props>()
 
 <template>
   <div class="summary-row">
+    <!-- 最高分与对应学生名单 -->
     <div class="summary-item highlight">
       <div class="item-main">
         <span class="item-label">最高</span>
@@ -49,6 +55,7 @@ defineProps<Props>()
       </div>
     </div>
 
+    <!-- 最低分与对应学生名单 -->
     <div class="summary-item danger">
       <div class="item-main">
         <span class="item-label">最低</span>
@@ -88,6 +95,7 @@ defineProps<Props>()
       </div>
     </div>
 
+    <!-- 平均分 -->
     <div class="summary-item plain">
       <div class="item-main">
         <span class="item-label">平均</span>

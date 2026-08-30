@@ -1,13 +1,17 @@
 <script setup lang="ts">
+/**
+ * 首次导入（初始化学生名单）弹窗：让用户选择表头行、姓名列、成绩列与评语列，
+ * 支持带合并单元格的表头预览，并对列选择做互斥校验。
+ */
 import { computed, ref, watch } from 'vue'
 
 import { ElMessage } from 'element-plus'
 
 import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderRowPicker.vue'
-import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUntil'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUtil'
 
-import type { ExcelRowType } from '@/utils/scoreImportUntil'
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+import type { ExcelRowType } from '@/utils/scoreImportUtil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 import type { InitialImportSelectionType } from '@/types/StudentImport'
 
 interface Props {
@@ -26,11 +30,14 @@ const emit = defineEmits<{
   confirm: [value: InitialImportSelectionType & { headerRowIndex?: number }]
 }>()
 
-const selectedHeaderRowIndex = ref(0)
-const selectedNameColumn = ref('')
-const selectedScoreColumns = ref<string[]>([])
-const selectedCommentColumn = ref('')
+const selectedHeaderRowIndex = ref(0) // 选中的表头行索引
+const selectedNameColumn = ref('') // 选中的姓名列
+const selectedScoreColumns = ref<string[]>([]) // 选中的成绩列（可多选）
+const selectedCommentColumn = ref('') // 选中的评语列（最多一列）
+
+/** 是否提供了表头预览数据，决定走预览解析还是直接使用传入表头 */
 const hasHeaderPreview = computed(() => Boolean(props.previewRows?.length))
+/** 根据是否有预览，得到实际使用的表头与数据 */
 const parsedImportData = computed(() => {
   if (!hasHeaderPreview.value) {
     return {
@@ -40,7 +47,9 @@ const parsedImportData = computed(() => {
   }
   return buildExcelDataFromHeaderRow(props.previewRows ?? [], selectedHeaderRowIndex.value)
 })
+/** 当前生效的表头列表 */
 const effectiveHeaders = computed(() => parsedImportData.value.header)
+/** 可作为成绩列的候选（排除序号、已选姓名列与评语列） */
 const availableScoreColumns = computed(() =>
   effectiveHeaders.value.filter(
     (header) =>
@@ -49,6 +58,7 @@ const availableScoreColumns = computed(() =>
       header !== selectedCommentColumn.value
   )
 )
+/** 可作为评语列的候选（排除序号、已选姓名列与已选成绩列） */
 const availableCommentColumns = computed(() =>
   effectiveHeaders.value.filter(
     (header) =>
@@ -58,11 +68,17 @@ const availableCommentColumns = computed(() =>
   )
 )
 
+/** 弹窗显隐的双向绑定 */
 const localVisible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value)
 })
 
+/**
+ * 在表头中查找第一个包含任一关键词的列，用于默认列推荐。
+ * @param patterns - 关键词列表
+ * @returns 匹配到的表头名，未匹配返回空字符串
+ */
 const findSuggestedColumn = (patterns: string[]): string =>
   effectiveHeaders.value.find((header) => patterns.some((pattern) => header.includes(pattern))) ||
   ''
@@ -76,6 +92,7 @@ const resetSelections = () => {
   selectedCommentColumn.value = findSuggestedColumn(['期末评语', '评语'])
 }
 
+// 弹窗打开时按建议表头行初始化并重置列推荐
 watch(
   () => props.modelValue,
   (visible) => {
@@ -85,19 +102,23 @@ watch(
   }
 )
 
+// 表头行切换后重新推荐各列
 watch(selectedHeaderRowIndex, () => {
   resetSelections()
 })
 
+// 姓名列被选中后，从成绩列中剔除并清空同列的评语选择
 watch(selectedNameColumn, (column) => {
   selectedScoreColumns.value = selectedScoreColumns.value.filter((item) => item !== column)
   if (selectedCommentColumn.value === column) selectedCommentColumn.value = ''
 })
 
+// 评语列被选中后，从成绩列中剔除
 watch(selectedCommentColumn, (column) => {
   selectedScoreColumns.value = selectedScoreColumns.value.filter((item) => item !== column)
 })
 
+// 成绩列与评语列保持互斥：成绩列包含评语列时清空评语列
 watch(selectedScoreColumns, (columns) => {
   if (selectedCommentColumn.value && columns.includes(selectedCommentColumn.value)) {
     selectedCommentColumn.value = ''
@@ -111,6 +132,7 @@ const handleCommentColumnChange = (columns: Array<string | number>) => {
   selectedCommentColumn.value = columns.length ? String(columns[columns.length - 1]) : ''
 }
 
+/** 确认导入：校验姓名列必选后组装选择结果回传父组件 */
 const handleConfirm = () => {
   if (!selectedNameColumn.value) {
     ElMessage.warning('请选择姓名列')
@@ -129,6 +151,7 @@ const handleConfirm = () => {
 <template>
   <el-dialog v-model="localVisible" title="导入学生信息" width="860px">
     <div class="initial-import-dialog">
+      <!-- 表头行选择器：有预览数据时展示 -->
       <excel-header-row-picker
         v-if="hasHeaderPreview"
         v-model="selectedHeaderRowIndex"
@@ -136,6 +159,7 @@ const handleConfirm = () => {
         :merges="previewMerges"
       />
 
+      <!-- 姓名列：必选且只能选一列 -->
       <div class="column-section">
         <div class="column-section__head">
           <div class="column-section__title">姓名列</div>
@@ -148,6 +172,7 @@ const handleConfirm = () => {
         </el-radio-group>
       </div>
 
+      <!-- 成绩列：可多选，也可不选 -->
       <div class="column-section">
         <div class="column-section__head">
           <div class="column-section__title">成绩列</div>
@@ -160,6 +185,7 @@ const handleConfirm = () => {
         </el-checkbox-group>
       </div>
 
+      <!-- 评语列：可选且最多选一列 -->
       <div class="column-section">
         <div class="column-section__head">
           <div class="column-section__title">评语列</div>
@@ -183,7 +209,13 @@ const handleConfirm = () => {
 
     <template #footer>
       <el-button @click="localVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleConfirm">确认导入</el-button>
+      <el-button
+        type="primary"
+        :disabled="!effectiveHeaders.length || !selectedNameColumn"
+        @click="handleConfirm"
+      >
+        确认导入
+      </el-button>
     </template>
   </el-dialog>
 </template>

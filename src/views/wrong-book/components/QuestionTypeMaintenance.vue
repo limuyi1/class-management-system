@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 题型管理 — 支持题型的增删改与拖拽排序 */
 import { ref } from 'vue'
 import draggable from 'vuedraggable'
 import { ElMessageBox } from 'element-plus'
@@ -10,9 +11,11 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 const wrongBookStore = useWrongBookStore()
 const { questionTypes: list } = storeToRefs(wrongBookStore)
 
+/** 新增题型名称输入与是否处于编辑状态 */
 const text = ref('')
 const editing = ref(false)
 
+/** 新增题型，校验重名后追加到列表 */
 const add = () => {
   if (list.value.some((t) => t.value === text.value)) {
     ElMessageBox.alert('该题型已存在', '提示')
@@ -26,6 +29,10 @@ const add = () => {
   editing.value = false
 }
 
+/**
+ * 弹窗修改题型名称，校验重名后更新
+ * @param item - 待编辑的题型
+ */
 const edit = (item: { value: string; label: string }) => {
   ElMessageBox.prompt('', '请输入新的题型名称', {
     confirmButtonText: '确定',
@@ -43,6 +50,10 @@ const edit = (item: { value: string; label: string }) => {
     .catch(() => {})
 }
 
+/**
+ * 从列表中删除指定题型
+ * @param item - 待删除的题型
+ */
 const remove = (item: { value: string; label: string }) => {
   list.value.splice(list.value.indexOf(item), 1)
 }
@@ -52,6 +63,7 @@ const remove = (item: { value: string; label: string }) => {
   <div class="unit-configuration__wrapper">
     <el-card>
       <div class="unit-configuration-title">题型管理</div>
+      <!-- 题型列表（可拖拽排序） -->
       <draggable
         class="unit-configuration-item__wrapper"
         v-model="list"
@@ -72,6 +84,7 @@ const remove = (item: { value: string; label: string }) => {
           </div>
         </template>
       </draggable>
+      <!-- 新增题型入口与输入区 -->
       <el-button class="unit-configuration-btn" v-if="!editing" dashed @click="editing = true">
         <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
         增加题型

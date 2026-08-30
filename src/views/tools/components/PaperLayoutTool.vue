@@ -1,7 +1,12 @@
 <script setup lang="ts">
+/**
+ * 试卷排版工具 — 上传/选择试卷图片，按纸张与版式自动排布，
+ * 支持拖拽缩放、草稿存取并导出 PDF。
+ */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 
 import AttachmentSelectorDialog from '@/views/tools/components/AttachmentSelectorDialog.vue'
 import PaperLayoutDraftDialog from '@/views/tools/components/PaperLayoutDraftDialog.vue'
@@ -11,7 +16,7 @@ import {
 } from '@/views/tools/constants/paperLayout'
 import { PagesEnum } from '@/types/Common'
 import { useToolsStore } from '@/stores/tools'
-import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
+import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUtil'
 import { createAttachmentRecordsFromFiles } from '@/views/tools/services/attachmentService'
 import { exportPaperLayoutPdf } from '@/views/tools/services/paperLayoutExportService'
 import { usePaperLayoutCanvas } from '@/views/tools/composables/usePaperLayoutCanvas'
@@ -22,25 +27,31 @@ import type {
   PaperLayoutOrientationType
 } from '@/types/Tools'
 
+/** 组件属性：是否处于全屏模式 */
 interface Props {
   fullscreen?: boolean
 }
 
 defineProps<Props>()
+/** 对外事件：请求切换全屏 */
 const emit = defineEmits<{
   toggleFullscreen: []
 }>()
 
+/** 预览面板与文件输入框的 DOM 引用 */
 const previewPanelRef = ref<HTMLElement | null>(null)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+/** 导出与上传的进行中状态 */
 const exporting = ref(false)
 const uploading = ref(false)
+/** 素材选择弹窗与草稿弹窗的显示状态 */
 const selectorVisible = ref(false)
 const draftDialogVisible = ref(false)
 
 const router = useRouter()
 const toolsStore = useToolsStore()
 const settings = toolsStore.paperLayout
+// 旧数据可能缺少版式字段，这里补全为默认设置
 if (!settings.layoutMode || !settings.fitMode) {
   Object.assign(settings, createDefaultPaperLayoutSettings())
 }
@@ -92,6 +103,7 @@ const { draftCount, handleOpenDraft, handleSaveDraft, refreshDraftCount, resetCu
     clearSelection
   })
 
+// 全局监听窗口尺寸与指针事件，卸载时一并移除并释放图片 URL
 onMounted(() => {
   window.addEventListener('resize', fitPreviewWidth)
   window.addEventListener('pointermove', handlePointerMove)
@@ -107,6 +119,7 @@ onBeforeUnmount(() => {
   revokeItemUrls()
 })
 
+// 纸张尺寸变化后重算坐标并适配预览缩放
 watch(
   () => [pageSize.value.width, pageSize.value.height],
   () => {
@@ -115,6 +128,7 @@ watch(
   }
 )
 
+// 切换排版模式时应用对应预设，并对已有图片重新排版
 watch(
   () => settings.layoutMode,
   (layoutMode) => {
@@ -125,6 +139,7 @@ watch(
   }
 )
 
+/** 返回排版模式对应的中文标签 */
 function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
   const labelMap: Record<PaperLayoutModeType, string> = {
     single: '一页一张',
@@ -134,19 +149,23 @@ function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
   return labelMap[layoutMode]
 }
 
+/** 切换纸张方向并同步默认排版模式：纵向单栏、横向双栏 */
 function handleOrientationChange(orientation: PaperLayoutOrientationType): void {
   settings.orientation = orientation
   settings.layoutMode = orientation === 'portrait' ? 'single' : 'double'
 }
 
+/** 跳转素材管理页 */
 function goAttachmentLibrary(): void {
   router.push('/tools/attachments')
 }
 
+/** 触发临时图片上传的文件选择框 */
 function openTemporaryUploader(): void {
   fileInputRef.value?.click()
 }
 
+/** 处理临时图片选择，读取文件后统一走上传流程 */
 async function handleTemporaryFileChange(event: Event): Promise<void> {
   const target = event.target as HTMLInputElement
   const files = Array.from(target.files || [])
@@ -154,6 +173,7 @@ async function handleTemporaryFileChange(event: Event): Promise<void> {
   await uploadTemporaryFiles(files)
 }
 
+/** 将临时图片转为画布条目并追加到当前排版 */
 async function uploadTemporaryFiles(files: File[]): Promise<void> {
   if (files.length === 0) return
 
@@ -177,10 +197,12 @@ async function uploadTemporaryFiles(files: File[]): Promise<void> {
   }
 }
 
+/** 打开素材选择弹窗 */
 async function openAttachmentSelector(): Promise<void> {
   selectorVisible.value = true
 }
 
+/** 分发“添加图片”下拉命令：上传或从素材库选择 */
 async function handleAddImageCommand(command: string | number | object): Promise<void> {
   if (command === 'upload') {
     openTemporaryUploader()
@@ -192,6 +214,7 @@ async function handleAddImageCommand(command: string | number | object): Promise
   }
 }
 
+/** 向画布追加素材；从空画布首次添加时视为新建排版，重置草稿标识 */
 function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
   if (attachments.length > 0 && canvasItems.value.length === 0) {
     resetCurrentDraft()
@@ -200,6 +223,7 @@ function handleSelectAttachments(attachments: AttachmentRecordType[]): void {
   addSelectedAttachments(attachments)
 }
 
+/** 清空当前试卷图片（不删除素材库中的素材） */
 async function clearItems(): Promise<void> {
   if (canvasItems.value.length === 0) return
 
@@ -217,6 +241,7 @@ async function clearItems(): Promise<void> {
   }
 }
 
+/** 将当前分页排版导出为 PDF 并触发下载 */
 async function exportPdf(): Promise<void> {
   if (canvasItems.value.length === 0) {
     ElMessage.warning('请先上传或选择试卷图片')
@@ -224,10 +249,7 @@ async function exportPdf(): Promise<void> {
   }
 
   exporting.value = true
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出 PDF...'
-  })
+  startLoading('正在导出 PDF...')
 
   try {
     const blob = await exportPaperLayoutPdf(pages.value, pageSize.value)
@@ -243,7 +265,7 @@ async function exportPdf(): Promise<void> {
     ElMessage.error('导出失败')
   } finally {
     exporting.value = false
-    loading.close()
+    stopLoading()
   }
 }
 </script>
@@ -259,6 +281,7 @@ async function exportPdf(): Promise<void> {
       @change="handleTemporaryFileChange"
     />
 
+    <!-- 顶部工具栏：图片添加、自动排版、纸张设置与导出操作 -->
     <div class="layout-toolbar">
       <el-dropdown trigger="click" @command="handleAddImageCommand">
         <el-button type="primary" size="small" :loading="uploading">
@@ -395,6 +418,7 @@ async function exportPdf(): Promise<void> {
     </div>
 
     <div class="layout-workbench">
+      <!-- 左侧页面导航：缩略图列表，点击滚动到对应页 -->
       <aside class="page-navigator">
         <div class="navigator-title">
           <strong>页面</strong>
@@ -432,6 +456,7 @@ async function exportPdf(): Promise<void> {
         </button>
       </aside>
 
+      <!-- 预览画布：缩放工具栏与可拖拽缩放的纸张页面 -->
       <main ref="previewPanelRef" class="preview-panel">
         <div class="preview-toolbar">
           <div class="preview-title">
@@ -518,6 +543,7 @@ async function exportPdf(): Promise<void> {
       </main>
     </div>
 
+    <!-- 素材选择与草稿弹窗挂载 -->
     <attachment-selector-dialog
       v-model:visible="selectorVisible"
       @confirm="handleSelectAttachments"

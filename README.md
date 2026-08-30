@@ -165,11 +165,11 @@ src/
 │   └── theme.ts          # 主题状态
 ├── types/                # TypeScript 类型定义
 ├── utils/                # 工具函数
-│   ├── xlsxUntil.ts      # Excel 导入导出
-│   ├── pdfUntil.ts       # PDF 导出
-│   ├── evaluationTextPdfUntil.ts
-│   ├── studentReportUntil.ts
-│   └── pageSizeInPixelUntil.ts
+│   ├── xlsxUtil.ts      # Excel 导入导出
+│   ├── pdfUtil.ts       # PDF 导出
+│   ├── evaluationTextPdfUtil.ts
+│   ├── studentReportUtil.ts
+│   └── pageSizeInPixelUtil.ts
 └── views/                # 页面组件
     ├── overview/         # 班级总览页
     ├── score/            # 成绩录入页面

@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 预览与导出配置卡片
+ * 提供缩放、页面、边距、卡片尺寸、字体等评语预览与导出参数的快捷设置。
+ */
 import { computed, ref } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
@@ -6,13 +10,17 @@ import type { EvaluationTableAlignType, PreviewModeType } from '@/types/Configur
 
 const store = useConfigurationStore()
 
+/** 字体大小折叠面板的激活项 */
 const activeNames = ref<string[]>([])
+/** 高级配置展开状态 */
 const expanded = ref(false)
+/** 表格对齐方式选项 */
 const alignOptions: Array<{ label: string; value: EvaluationTableAlignType }> = [
   { label: '靠左', value: 'left' },
   { label: '居中', value: 'center' },
   { label: '靠右', value: 'right' }
 ]
+/** 预览缩放模式选项 */
 const previewOptions: Array<{ label: string; value: PreviewModeType }> = [
   { label: '适应窗口', value: 'fit' },
   { label: '50%', value: '50' },
@@ -21,6 +29,7 @@ const previewOptions: Array<{ label: string; value: PreviewModeType }> = [
   { label: '125%', value: '125' }
 ]
 
+/** 配置摘要文本：卡片尺寸 / 边距 / 表格对齐 / 页码显示 */
 const summaryText = computed(() => {
   const cardSizeText = `卡片 ${store.evaluationCardWidth}×${store.evaluationCardHeight}mm`
   const marginText = `边距 ${store.marginX}/${store.marginY}mm`
@@ -30,12 +39,18 @@ const summaryText = computed(() => {
   return `${cardSizeText} / ${marginText} / 表格${alignText} / ${pageNumberText}`
 })
 
+/**
+ * 整体字号变化时联动刷新相关字号。
+ *
+ * @param fontSize 新的整体字号
+ */
 const fontChange = (fontSize?: number) => {
   if (fontSize) {
     store.fontSizeChange(fontSize)
   }
 }
 
+/** 切换高级配置的展开/收起状态 */
 const toggleExpanded = () => {
   expanded.value = !expanded.value
 }
@@ -47,7 +62,7 @@ const toggleExpanded = () => {
       <span class="summary-main">
         <span class="summary-title">
           <font-awesome-icon :icon="['solid', 'sliders']" />
-          页面设置
+          预览与导出设置
         </span>
         <span class="summary-text">{{ summaryText }}</span>
       </span>
@@ -58,7 +73,7 @@ const toggleExpanded = () => {
       />
     </button>
 
-    <div class="config-body config-body--basic">
+    <div v-show="expanded" class="config-body config-body--basic">
       <div class="config-grid-panel config-grid-panel--basic">
         <div class="config-item config-item--shrink">
           <label>预览缩放</label>

@@ -1,12 +1,15 @@
 <script setup lang="ts">
+/** 基本信息卡片 — 编辑错题的所属文件夹、题型、来源与难度 */
 import { ElCard, ElFormItem, ElSelect, ElOption, ElSlider, ElInput } from 'element-plus'
 import type { WrongFolder } from '@/types/WrongBook'
 
+/** 题型选项结构 */
 interface QuestionType {
   value: string
   label: string
 }
 
+/** 基本信息表单数据结构 */
 interface FormData {
   folderId: string
   questionType: string
@@ -20,12 +23,15 @@ interface Props {
   questionTypes: QuestionType[]
 }
 
+/** 表单数据、文件夹列表与题型选项 */
 const props = defineProps<Props>()
 
+/** 表单字段更新事件 */
 const emit = defineEmits<{
   'update:form': [value: FormData]
 }>()
 
+/** 难度等级滑块刻度标签 */
 const marks = {
   1: '简单',
   2: '较简单',
@@ -34,6 +40,11 @@ const marks = {
   5: '困难'
 }
 
+/**
+ * 更新表单单个字段并向上层抛出更新事件
+ * @param field - 要更新的字段名
+ * @param value - 字段新值
+ */
 const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => {
   emit('update:form', { ...props.form, [field]: value })
 }
@@ -46,6 +57,7 @@ const updateField = <K extends keyof FormData>(field: K, value: FormData[K]) => 
         <span class="card-title">基本信息</span>
       </div>
     </template>
+    <!-- 所属文件夹 / 题型 / 来源 -->
     <div class="form-row">
       <el-form-item label="所属文件夹" class="flex-1">
         <el-select

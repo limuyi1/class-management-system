@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 单元成绩概览图表 — 展示各单元均分折线与分数段人数柱状图 */
 import { computed } from 'vue'
 import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
 
@@ -22,13 +23,16 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对外事件：跳转单元设置、跳转成绩录入 */
 const emit = defineEmits<{
   goUnitSetting: []
   goScoreInput: []
 }>()
 
+/** 平均分折线主题色 */
 const averageScoreColor = '#7c3aed'
 
+/** 根据页面阶段生成空态面板的图标、文案与跳转动作 */
 const emptyState = computed(() => {
   if (props.stage === 'noUnits') {
     return {
@@ -276,6 +280,7 @@ const chartOption = computed<EChartsOption>(() => {
 
 <template>
   <el-card class="unit-overview-card" :class="{ 'is-empty-stage': !unitOverview.length }">
+    <!-- 卡片头部：标题与单元数标签 -->
     <div class="card-header">
       <div>
         <div class="card-title">单元成绩概览</div>
@@ -285,10 +290,12 @@ const chartOption = computed<EChartsOption>(() => {
       </el-tag>
     </div>
 
+    <!-- 有单元数据时渲染图表 -->
     <div v-if="unitOverview.length" class="chart-wrapper">
       <app-e-chart :option="chartOption" height="100%" />
     </div>
 
+    <!-- 无单元数据时的空态面板 -->
     <empty-state-panel
       v-else
       :icon="emptyState.icon"

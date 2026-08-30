@@ -1,9 +1,13 @@
 <script setup lang="ts">
+/**
+ * 批量打标签抽屉：逐学生展示并编辑标签，支持上一个/下一个切换、
+ * 进度统计与保存，切换学生时自动保存当前编辑结果。
+ */
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSettingStore } from '@/stores/setting'
 import type { BatchTagDrawerProps, BatchTagDrawerEmits } from '@/types/BatchTagDrawer'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 const props = defineProps<BatchTagDrawerProps>()
 
@@ -12,9 +16,10 @@ const emit = defineEmits<BatchTagDrawerEmits>()
 const settingStore = useSettingStore()
 const { tagCategories: categories, tags: tagOptions } = storeToRefs(settingStore)
 
-const currentIndex = ref(0)
-const currentStudentTags = ref<Set<string>>(new Set())
+const currentIndex = ref(0) // 当前浏览的学生下标
+const currentStudentTags = ref<Set<string>>(new Set()) // 当前学生已选标签集合
 
+/** 标签分类对应的主题色变量，按分类索引循环取色 */
 const tagColorVars = [
   'var(--theme-tag-1)',
   'var(--theme-tag-2)',
@@ -26,11 +31,17 @@ const tagColorVars = [
   'var(--theme-tag-8)'
 ]
 
+/**
+ * 根据分类名获取对应主题色。
+ * @param category - 分类名
+ * @returns 主题色 CSS 变量
+ */
 const getTagColor = (category: string) => {
   const catIndex = categories.value.findIndex((c) => c.label === category)
   return tagColorVars[Math.max(catIndex, 0) % tagColorVars.length]
 }
 
+/** 所有分类下的标签总数，用于判断是否展示空态 */
 const totalTagCount = computed(() => {
   let count = 0
   for (const cat of categories.value) {
@@ -40,6 +51,7 @@ const totalTagCount = computed(() => {
   return count
 })
 
+/** 已打标签的学生数量 */
 const taggedStudentCount = computed(() => {
   return props.studentList.filter((student) => {
     if (!student.tags) return false
@@ -50,8 +62,10 @@ const taggedStudentCount = computed(() => {
   }).length
 })
 
+/** 获取当前下标对应的学生 */
 const getCurrentStudent = () => props.studentList[currentIndex.value]
 
+/** 加载当前学生的标签到编辑集合 */
 const loadCurrentStudentTags = () => {
   const student = getCurrentStudent()
   if (!student) return
@@ -66,6 +80,10 @@ const loadCurrentStudentTags = () => {
   currentStudentTags.value = tagSet
 }
 
+/**
+ * 切换单个标签的选中状态。
+ * @param tag - 标签名
+ */
 const toggleTag = (tag: string) => {
   if (currentStudentTags.value.has(tag)) {
     currentStudentTags.value.delete(tag)
@@ -74,8 +92,14 @@ const toggleTag = (tag: string) => {
   }
 }
 
+/**
+ * 判断标签是否已选中。
+ * @param tag - 标签名
+ * @returns 是否选中
+ */
 const isTagSelected = (tag: string) => currentStudentTags.value.has(tag)
 
+/** 将当前编辑集合写回学生，并按标签所属分类重组结构 */
 const saveCurrentTags = () => {
   const student = getCurrentStudent()
   if (!student) return
@@ -92,6 +116,7 @@ const saveCurrentTags = () => {
     }
   })
 
+  // 仅在标签实际变化时写回，避免无意义更新
   const prevTags = JSON.stringify(student.tags || {})
   const newTags = JSON.stringify(tags)
 
@@ -100,11 +125,13 @@ const saveCurrentTags = () => {
   }
 }
 
+/** 保存当前学生编辑结果并通知父组件 */
 const saveBatchProgress = () => {
   saveCurrentTags()
   emit('save', props.studentList)
 }
 
+/** 切换到上一个学生：先保存当前，再加载上一个学生的标签 */
 const goToPrevStudent = () => {
   saveBatchProgress()
   if (currentIndex.value > 0) {
@@ -113,6 +140,7 @@ const goToPrevStudent = () => {
   }
 }
 
+/** 切换到下一个学生：先保存当前，再加载下一个学生的标签 */
 const goToNextStudent = () => {
   saveBatchProgress()
   if (currentIndex.value < props.studentList.length - 1) {
@@ -121,21 +149,25 @@ const goToNextStudent = () => {
   }
 }
 
+/** 取消关闭抽屉 */
 const closeDrawer = () => {
   emit('update:visible', false)
 }
 
+/** 保存并关闭：写回当前学生后通知父组件确认 */
 const confirmAndClose = () => {
   saveCurrentTags()
   emit('confirm', props.studentList)
   emit('update:visible', false)
 }
 
+/** 双向绑定的抽屉显隐状态 */
 const drawerVisible = computed({
   get: () => props.visible,
   set: (val) => emit('update:visible', val)
 })
 
+// 抽屉打开时重置到第一个学生并加载其标签
 watch(
   () => props.visible,
   (newVal) => {
@@ -157,6 +189,7 @@ watch(
     destroy-on-close
   >
     <div class="quick-tag-drawer">
+      <!-- 顶部：上一个/下一个切换与进度显示 -->
       <div class="drawer-header">
         <el-button type="primary" link :disabled="studentList.length <= 1" @click="goToPrevStudent">
           <template #icon><font-awesome-icon :icon="['fas', 'chevron-left']" /></template>
@@ -169,11 +202,13 @@ watch(
         </el-button>
       </div>
 
+      <!-- 当前学生姓名展示 -->
       <div class="current-student">
         <span class="student-label">当前学生：</span>
         <span class="student-name">{{ getCurrentStudent()?.[NAME_PROP] || '' }}</span>
       </div>
 
+      <!-- 标签编辑区：按分类分组展示可选标签，点击切换选中 -->
       <div class="tags-section">
         <div v-if="totalTagCount === 0" class="empty-tags-tip" @click="emit('goTab', 'label-maintenance')">
           <font-awesome-icon :icon="['fas', 'tag']" />
@@ -196,6 +231,7 @@ watch(
         </div>
       </div>
 
+      <!-- 底部：已标记人数统计与进度条 -->
       <div class="progress-info">
         <span>已标记：{{ taggedStudentCount }} 人</span>
         <el-progress

@@ -1,18 +1,26 @@
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import domtoimage from 'dom-to-image'
 import type { ComputedRef, Ref } from 'vue'
 
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 import type { ScoreStatisticsType, ScoreStudentType } from '@/hooks/useScoreStatistics'
 
+/** 成绩分布操作选项 */
 interface UseScoreDistributionActionsOptions {
+  /** 成绩统计结果 */
   scoreStats: ComputedRef<ScoreStatisticsType | null>
+  /** 低于低分阈值的学生列表 */
   belowThresholdStudents: ComputedRef<ScoreStudentType[]>
+  /** 低分阈值 */
   threshold: Ref<number> | ComputedRef<number>
+  /** 统计标题（可选，默认「成绩分布统计」） */
   title?: Ref<string> | ComputedRef<string>
+  /** 从学生数据中提取分数的函数 */
   getScore: (item: ScoreStudentType) => number | null
 }
 
+/** 将 DOM 元素渲染为 PNG DataURL */
 const toPng = async (element: HTMLElement, scale = 2): Promise<string> => {
   const width = element.scrollWidth
   const height = element.scrollHeight
@@ -31,9 +39,16 @@ const toPng = async (element: HTMLElement, scale = 2): Promise<string> => {
   })
 }
 
+/**
+ * 成绩分布操作（复制和图片导出）
+ * 提供成绩统计数据复制到剪贴板、低分学生列表导出为图片的功能
+ * @param options - 成绩分布操作依赖的状态与配置
+ * @returns 复制与图片导出方法
+ */
 export function useScoreDistributionActions(options: UseScoreDistributionActionsOptions) {
   const { scoreStats, belowThresholdStudents, threshold, title, getScore } = options
 
+  /** 将成绩分布统计复制到剪贴板 */
   const copyToClipboard = () => {
     if (!scoreStats.value) return
 
@@ -62,6 +77,10 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       })
   }
 
+  /**
+   * 将低分学生列表导出为图片
+   * @param mode - 导出模式（含分数 / 仅姓名）
+   */
   const downloadImage = async (mode: 'withScore' | 'nameOnly') => {
     const students = [...belowThresholdStudents.value].sort(
       (a, b) => (getScore(b) || 0) - (getScore(a) || 0)
@@ -72,6 +91,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       return
     }
 
+    // 根据导出模式构建表格表头与数据行 HTML
     const headerHtml =
       mode === 'withScore'
         ? '<th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">姓名</th><th style="border:1px solid #ddd;padding:8px;background:#f5f5f5;">分数</th>'
@@ -107,10 +127,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
     container.style.pointerEvents = 'none'
     document.body.appendChild(container)
 
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在导出图片，请稍后...'
-    })
+    startLoading('正在导出图片，请稍后...')
 
     try {
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
@@ -124,7 +141,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
       console.error('导出低分学生图片失败:', error)
       ElMessage.error('下载失败')
     } finally {
-      loading.close()
+      stopLoading()
       container.remove()
     }
   }

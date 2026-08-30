@@ -1,0 +1,49 @@
+/**
+ * 初始学生名单导入工具
+ * 负责首次导入学生名单时，按用户选择同时写入成绩列与期末评语
+ */
+import { buildInitialScoreImport } from '@/utils/scoreImportUtil'
+import { NAME_PROP } from '@/constants'
+
+import type { ExcelRowType } from '@/utils/scoreImportUtil'
+import type { StudentDataType } from '@/types/StudentData'
+
+/** 初始学生名单导入选项：姓名列、成绩列及可选的评语列 */
+interface InitialStudentImportOptionsType {
+  rows: ExcelRowType[]
+  nameColumn: string
+  scoreColumns: string[]
+  commentColumn?: string
+}
+
+/**
+ * 首次导入学生名单，并按用户选择同时写入成绩和期末评语。
+ * 评语保持文本语义，不经过成绩数字解析；空白评语不会写入学生数据。
+ * @param options - 导入选项（行数据、姓名列、成绩列及可选评语列）
+ * @returns 合并后的导入结果，另附成功写入的评语数量 commentCount
+ */
+export const buildInitialStudentImport = (options: InitialStudentImportOptionsType) => {
+  const scoreResult = buildInitialScoreImport(options)
+  // 以归一化姓名为键建立行索引，便于按学生姓名回查原始行中的评语。
+  const rowsByName = new Map(
+    options.rows.map((row) => [String(row[options.nameColumn] ?? '').trim(), row])
+  )
+  let commentCount = 0
+
+  const students = scoreResult.students.map((student) => {
+    if (!options.commentColumn) return student
+
+    const name = String(student[NAME_PROP] ?? '').trim()
+    const comment = String(rowsByName.get(name)?.[options.commentColumn] ?? '').trim()
+    if (!comment) return student
+
+    commentCount += 1
+    return { ...student, comment } as StudentDataType
+  })
+
+  return {
+    ...scoreResult,
+    students,
+    commentCount
+  }
+}

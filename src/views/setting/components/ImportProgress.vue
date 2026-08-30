@@ -1,6 +1,11 @@
 <script setup lang="ts">
+/**
+ * 导入/导出/清空等长耗时操作的进度提示弹窗。
+ * 通过 `visible` 与父组件双向绑定，处理期间禁止关闭页面。
+ */
 import { ref, watch } from 'vue'
 
+/** 组件入参：弹窗显隐、标题与进度百分比 */
 interface Props {
   visible: boolean
   title?: string
@@ -16,8 +21,9 @@ const emit = defineEmits<{
   'update:visible': [value: boolean]
 }>()
 
-const dialogVisible = ref(props.visible)
+const dialogVisible = ref(props.visible) // 内部弹窗显隐状态
 
+// 父组件显隐状态变化时同步到内部弹窗，保持受控
 watch(
   () => props.visible,
   (val) => {
@@ -25,6 +31,7 @@ watch(
   }
 )
 
+// 内部弹窗关闭时回传状态，实现 v-model:visible
 watch(dialogVisible, (val) => {
   emit('update:visible', val)
 })
@@ -41,6 +48,7 @@ watch(dialogVisible, (val) => {
     align-center
     destroy-on-close
   >
+    <!-- 进度条与禁止关闭提示 -->
     <div class="progress-content">
       <el-progress
         :percentage="percent"

@@ -1,7 +1,15 @@
+/**
+ * useScoreStatistics 组合式函数测试
+ * 覆盖：分数统计（最高/最低/平均分、人数）、分数段区间划分与最高分排除、
+ * 无效高分区隐藏、低于阈值学生筛选、阈值随平均分联动、
+ * 最高/最低分并列计数、字符串分数取值等边界场景。
+ */
+
 import { describe, expect, it } from 'vitest'
 import { computed, ref } from 'vue'
 import { useScoreStatistics } from '../../src/hooks/useScoreStatistics'
 
+// 目标：验证成绩统计与分数段分布计算在各边界输入下的正确性
 describe('useScoreStatistics', () => {
   it('should return null stats when no score prop', () => {
     const students = computed(() => [

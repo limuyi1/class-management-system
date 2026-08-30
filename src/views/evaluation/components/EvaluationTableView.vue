@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语表格预览视图
+ * 复用 PDF 布局做像素换算与分页分组，负责缩放适配与按学生滚动定位。
+ */
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElScrollbar, ElEmpty } from 'element-plus'
@@ -7,16 +11,17 @@ import EvaluationPreviewCard from '@/views/evaluation/components/EvaluationCard.
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
-import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUntil'
-import { buildEvaluationPdfLayout } from '@/utils/evaluationPdfLayoutUntil'
-import { groupArray } from '@/utils/commonUntil'
+import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUtil'
+import { buildEvaluationPdfLayout } from '@/utils/evaluation/evaluationPdfLayoutUtil'
+import { groupArray } from '@/utils/commonUtil'
 import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
-  activeStudentName?: string
+  activeStudentId?: string
   suppressActiveState?: boolean
   previewMode?: PreviewModeType
+  students?: StudentDataType[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -27,18 +32,26 @@ const emit = defineEmits<{
   cardClick: [row: StudentDataType]
 }>()
 
+/** 将卡片点击事件透传给父组件 */
 const handleCardClick = (row: StudentDataType) => {
   emit('cardClick', row)
 }
 
 const store = useDataSourceStore()
-const { enabledData: tableData } = storeToRefs(store)
+const { enabledData } = storeToRefs(store)
+/** 表格数据：优先使用传入的学生列表，否则回退为系统启用学生 */
+const tableData = computed(() => props.students ?? enabledData.value)
 
 const configurationStore = useConfigurationStore()
+/** 滚动容器组件引用 */
 const scrollbarRef = ref<InstanceType<typeof ElScrollbar>>()
+/** 预览舞台容器引用 */
 const stageRef = ref<HTMLDivElement | null>(null)
+/** 按页分组后的学生数据 */
 const dataSource = ref<StudentDataType[][]>([])
+/** 当前预览缩放比例 */
 const previewScale = ref(1)
+/** 页面与单元格尺寸等布局信息（像素） */
 const pageInfo = reactive({
   pageWidth: 0,
   pageHeight: 0,
@@ -63,7 +76,7 @@ onBeforeUnmount(() => {
 
 watch(
   () => [
-    tableData.value.length,
+    tableData.value,
     configurationStore.pageType,
     configurationStore.evaluationCardWidth,
     configurationStore.evaluationCardHeight,
@@ -99,10 +112,14 @@ const init = () => {
   updatePreviewScale()
 }
 
+/** 缩放后的页面宽度 */
 const scaledPageWidth = computed(() => pageInfo.pageWidth * previewScale.value)
+/** 缩放后的页面高度 */
 const scaledPageHeight = computed(() => pageInfo.pageHeight * previewScale.value)
+/** 缩放后的单页占位高度（含页间距） */
 const scaledPageOuterHeight = computed(() => (pageInfo.pageHeight + 24) * previewScale.value)
 
+/** 容器尺寸监听器，用于在尺寸变化时重新计算缩放比例 */
 let resizeObserver: ResizeObserver | null = null
 
 // “适应宽度”模式只按容器宽度缩放预览，不改内部原始布局尺寸。
@@ -137,9 +154,10 @@ const bindResizeObserver = () => {
  * 根据学生索引滚动到其所在评语行。
  * 这里按表格行定位，所以索引换算依赖当前列数配置。
  */
-const scroll = (index: number) => {
+const scroll = (studentId: string) => {
   if (!scrollbarRef.value || !pageInfo.cellLevel || !pageInfo.columnCount) return
-  if (index < 1 || index > tableData.value.length) return
+  const index = tableData.value.findIndex((student) => student.studentId === studentId) + 1
+  if (index < 1) return
 
   const rowIndex = Math.floor((index - 1) / pageInfo.columnCount)
   const element = stageRef.value?.querySelectorAll('tr')[rowIndex]
@@ -189,7 +207,7 @@ defineExpose({ scroll })
               :data="data"
               :current-page="index + 1"
               :total-pages="dataSource.length"
-              :active-student-name="props.activeStudentName"
+              :active-student-id="props.activeStudentId"
               :suppress-active-state="props.suppressActiveState"
               @click="handleCardClick"
             />

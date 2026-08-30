@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语输入表单
+ * 展示学生标签并提供期末评语输入框、字数统计与标签编辑入口。
+ */
 import { computed, ref } from 'vue'
 
 import {
@@ -6,18 +10,21 @@ import {
   COMMENT_MIN_LENGTH,
   countCommentLength,
   getCommentLengthError
-} from '@/utils/commentLengthUntil'
+} from '@/utils/evaluation/commentLengthUtil'
 
 import type { TagCategoryType } from '@/types/Setting'
 
+/** 评语输入表单的 Props */
 interface Props {
   modelValue: string | null
   disabled: boolean
   currentStudentTags: Record<string, string[]> | null
   hasAnyTags: boolean
   tagCategoryList: TagCategoryType[]
+  allowTagEditing?: boolean
 }
 
+/** 评语输入表单的 Emits */
 interface Emits {
   (event: 'update:modelValue', value: string | null): void
   (event: 'go-edit-tags'): void
@@ -28,15 +35,19 @@ const emit = defineEmits<Emits>()
 
 const commentInputRef = ref<{ focus: () => void } | null>(null)
 
+/** 当前评语字数 */
 const commentLength = computed(() => countCommentLength(props.modelValue))
+/** 当前评语长度校验错误文案，合法时为空 */
 const commentLengthError = computed(() => getCommentLengthError(props.modelValue))
 
+/** 当前学生有标签的分类列表，仅展示非空分类 */
 const activeCategories = computed(() => {
   const tags = props.currentStudentTags
   if (!tags) return []
   return props.tagCategoryList.filter((category) => tags[category.prop]?.length)
 })
 
+/** 聚焦评语输入框 */
 const focus = () => {
   commentInputRef.value?.focus()
 }
@@ -48,12 +59,23 @@ defineExpose({ focus })
   <div v-if="currentStudentTags" class="tag-panel">
     <div class="tag-panel__header">
       <span class="tag-panel__title">学生标签</span>
-      <el-button link type="primary" class="tag-panel__edit" @click="emit('go-edit-tags')">
+      <el-button
+        v-if="allowTagEditing !== false"
+        link
+        type="primary"
+        class="tag-panel__edit"
+        @click="emit('go-edit-tags')"
+      >
         查看/编辑
       </el-button>
     </div>
 
-    <div v-if="hasAnyTags" class="student-tags" @click="emit('go-edit-tags')">
+    <div
+      v-if="hasAnyTags"
+      class="student-tags"
+      :class="{ 'is-readonly': allowTagEditing === false }"
+      @click="allowTagEditing !== false && emit('go-edit-tags')"
+    >
       <div v-for="cat in activeCategories" :key="cat.prop" class="tag-category">
         <div class="category-label">{{ cat.label }}</div>
         <div class="category-tags">
@@ -70,9 +92,14 @@ defineExpose({ focus })
         </div>
       </div>
     </div>
-    <div v-else class="empty-tags-tip" @click="emit('go-edit-tags')">
+    <div
+      v-else
+      class="empty-tags-tip"
+      :class="{ 'is-readonly': allowTagEditing === false }"
+      @click="allowTagEditing !== false && emit('go-edit-tags')"
+    >
       <font-awesome-icon :icon="['fas', 'exclamation-circle']" />
-      <span>暂无标签，点击添加</span>
+      <span>{{ allowTagEditing === false ? '未提供临时标签' : '暂无标签，点击添加' }}</span>
     </div>
   </div>
 
@@ -129,6 +156,10 @@ defineExpose({ focus })
   background: linear-gradient(180deg, rgba(248, 250, 252, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
   cursor: pointer;
 
+  &.is-readonly {
+    cursor: default;
+  }
+
   .tag-category {
     display: grid;
     grid-template-columns: 52px minmax(0, 1fr);
@@ -175,6 +206,10 @@ defineExpose({ focus })
 
   svg {
     font-size: 14px;
+  }
+
+  &.is-readonly {
+    cursor: default;
   }
 }
 

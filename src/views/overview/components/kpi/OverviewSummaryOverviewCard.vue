@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 班级概况卡片 — 以特殊布局展示班均分、及格率与单元完成进度 */
 import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
 
 interface Props {
@@ -17,6 +18,7 @@ defineProps<Props>()
     :class="`is-${card.tone}`"
     :style="{ gridColumn: `span ${span}` }"
   >
+    <!-- 卡片头部：图标 + 标题 + 单元进度 -->
     <div class="summary-header">
       <div class="summary-icon">
         <font-awesome-icon :icon="['solid', card.icon]" />
@@ -30,6 +32,7 @@ defineProps<Props>()
       </div>
     </div>
 
+    <!-- 指标区：学生人数与评语完成 -->
     <div class="overview-metrics">
       <div v-for="detail in card.details.slice(0, 2)" :key="detail.label" class="overview-metric">
         <span class="overview-label">{{ detail.label }}</span>
@@ -37,6 +40,7 @@ defineProps<Props>()
       </div>
     </div>
 
+    <!-- 进度占位区 -->
     <div class="overview-progress">
       <span class="overview-progress-placeholder"></span>
     </div>

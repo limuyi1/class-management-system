@@ -1,7 +1,12 @@
 <script setup lang="ts">
-import { NAME_PROP } from '@/types/Constants'
+/**
+ * 低分阈值控制与学生名单展示
+ * 支持平均分/自定义阈值切换，超过 8 人时以浮层展开剩余名单。
+ */
+import { NAME_PROP } from '@/constants'
 import type { ScoreStudentType } from '@/hooks/useScoreStatistics'
 
+/** 组件属性：阈值、阈值模式、平均分、低分名单与分数读取函数 */
 interface Props {
   threshold: number
   effectiveThreshold: number
@@ -11,6 +16,7 @@ interface Props {
   getScore: (item: ScoreStudentType) => number | null
 }
 
+/** 组件事件：阈值/阈值模式调整与名单下载 */
 interface Emits {
   (event: 'update:threshold', value: number): void
   (event: 'update:threshold-mode', value: 'average' | 'custom'): void
@@ -23,6 +29,7 @@ const emit = defineEmits<Emits>()
 
 <template>
   <div class="threshold-section">
+    <!-- 阈值控制：平均分/自定义切换与自定义输入 -->
     <div class="threshold-controls">
       <span class="label">低于</span>
       <el-segmented
@@ -50,6 +57,7 @@ const emit = defineEmits<Emits>()
       <span class="label">分</span>
     </div>
 
+    <!-- 低分人数与名单下载菜单 -->
     <div class="threshold-actions">
       <span class="student-count">{{ students.length }} 人</span>
       <el-dropdown trigger="hover">
@@ -67,16 +75,18 @@ const emit = defineEmits<Emits>()
     </div>
   </div>
 
+  <!-- 低分学生名单标签 -->
   <div class="student-tags" v-if="students.length">
+    <!-- 人数较少时平铺展示，超过 8 人则收起为浮层 -->
     <template v-if="students.length <= 8">
-      <el-tag v-for="item in students" :key="String(item[NAME_PROP])" type="warning" size="small">
+      <el-tag v-for="item in students" :key="item.studentId" type="warning" size="small">
         {{ item[NAME_PROP] }} {{ getScore(item) }}分
       </el-tag>
     </template>
     <template v-else>
       <el-tag
         v-for="item in students.slice(0, 8)"
-        :key="String(item[NAME_PROP])"
+        :key="item.studentId"
         type="warning"
         size="small"
       >
@@ -91,7 +101,7 @@ const emit = defineEmits<Emits>()
         <div class="popover-tags">
           <el-tag
             v-for="item in students.slice(8)"
-            :key="String(item[NAME_PROP])"
+            :key="item.studentId"
             type="warning"
             size="small"
           >

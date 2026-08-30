@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学生趋势分析面板 — 支持多选对比、图表模式切换、学情摘要与评语预览 */
 import { computed, ref } from 'vue'
 import { match } from 'pinyin-pro'
 import { ElMessage } from 'element-plus'
@@ -13,19 +14,20 @@ import AppEChart from '@/components/AppEChart.vue'
 import OverlengthTextTooltip from '@/components/OverlengthTextTooltip.vue'
 import type {
   DashboardStudentOptionType,
+  DashboardQuickStudentType,
   DashboardStudentTrendType,
   OverviewDashboardStageType
 } from '@/types/HomeDashboard'
 
 interface Props {
-  /** 当前选中的学生姓名数组（v-model） */
+  /** 当前选中的学生 ID 数组（v-model） */
   modelValue: string[]
   /** 趋势分析数据，支持单人和多人对比 */
   studentTrend: DashboardStudentTrendType | null
   /** 学生下拉选项列表 */
   studentOptions: DashboardStudentOptionType[]
-  /** 快捷添加按钮的学生名单（来自关注列表） */
-  quickStudentNames: string[]
+  /** 快捷添加按钮的学生（来自关注列表） */
+  quickStudents: DashboardQuickStudentType[]
   /** 展示变体：default 用于总览页，singleReadonly 用于外部单人查看入口 */
   variant?: 'default' | 'singleReadonly'
   /** 总览页当前数据阶段，用于解释趋势空态 */
@@ -34,17 +36,24 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 对外事件：更新选中学生（v-model）、跳转评语页、导出学生报告 */
 const emit = defineEmits<{
   'update:modelValue': [value: string[]]
   'go-evaluation': []
-  'export-report': [name: string]
+  'export-report': [studentId: string]
 }>()
 
+/** 图表展示模式：折线图 / 柱状图 */
 const chartMode = ref<'line' | 'bar'>('line')
+/** 学生搜索关键字，支持姓名与拼音匹配 */
 const studentSearchKeyword = ref('')
+/** 评语为空时的占位文案 */
 const emptyCommentText = '暂无评语，可前往评语页继续处理'
+/** 允许同时对比的最大学生人数（来自总览配置） */
 const maxCompareCount = overviewDashboardConfig.studentTrend.maxCompareCount
+/** 是否为外部单人查看入口（只读、单选） */
 const isSingleReadonly = computed(() => props.variant === 'singleReadonly')
+/** 趋势空态面板的标题与说明，按页面阶段区分 */
 const emptyTrendState = computed(() => {
   if (props.stage === 'noUnits') {
     return {
@@ -67,6 +76,7 @@ const emptyTrendState = computed(() => {
   }
 })
 
+/** 弹出超出最大对比人数的提示 */
 const showMaxCompareWarning = () => {
   ElMessage.warning(`最多只能对比 ${maxCompareCount} 名学生`)
 }
@@ -92,7 +102,9 @@ const selectedValue = computed({
   }
 })
 
+/** 学情摘要列表，由趋势数据构建 */
 const displaySummaries = computed(() => buildStudentTrendSummaries(props.studentTrend))
+/** ECharts 图表配置，根据趋势数据与图表模式构建 */
 const chartOption = computed(() =>
   buildStudentTrendChartOption(props.studentTrend, chartMode.value)
 )
@@ -101,31 +113,35 @@ const chartOption = computed(() =>
  * 快捷添加学生到对比列表。
  * 已选中学生会被移到列表首位，未选中学生会追加到末尾。
  */
-const addQuickStudent = (name: string) => {
-  if (!selectedValue.value.includes(name) && selectedValue.value.length >= maxCompareCount) {
+const addQuickStudent = (studentId: string) => {
+  if (!selectedValue.value.includes(studentId) && selectedValue.value.length >= maxCompareCount) {
     showMaxCompareWarning()
     return
   }
 
-  const nextValue = [name, ...selectedValue.value.filter((item) => item !== name)]
+  const nextValue = [studentId, ...selectedValue.value.filter((item) => item !== studentId)]
   selectedValue.value = nextValue
 }
 
+/** 清空当前对比选择 */
 const clearSelected = () => {
   selectedValue.value = []
 }
 
+/** 跳转到评语页 */
 const goToEvaluation = () => {
   emit('go-evaluation')
 }
 
+/** 导出单人模式下当前学生的报告，非单人模式时忽略 */
 const exportReport = () => {
-  const targetName =
-    props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.name : ''
-  if (!targetName) return
-  emit('export-report', targetName)
+  const targetStudentId =
+    props.studentTrend?.mode === 'single' ? props.studentTrend.students[0]?.studentId : ''
+  if (!targetStudentId) return
+  emit('export-report', targetStudentId)
 }
 
+/** 按搜索关键字过滤后的学生选项列表 */
 const filteredStudentOptions = computed(() => {
   const keyword = studentSearchKeyword.value.trim()
   if (!keyword) return props.studentOptions
@@ -136,6 +152,11 @@ const filteredStudentOptions = computed(() => {
   })
 })
 
+/**
+ * 接收下拉框的过滤关键字。
+ *
+ * @param query 搜索关键字
+ */
 const handleStudentFilter = (query: string) => {
   studentSearchKeyword.value = query
 }
@@ -143,6 +164,7 @@ const handleStudentFilter = (query: string) => {
 
 <template>
   <div class="student-trend-panel">
+    <!-- 工具栏：学生多选搜索 + 图表模式切换 + 跳转评语 -->
     <div class="toolbar-row" :class="{ 'is-single-readonly': isSingleReadonly }">
       <el-select
         v-if="!isSingleReadonly"
@@ -180,22 +202,25 @@ const handleStudentFilter = (query: string) => {
       </div>
     </div>
 
-    <div v-if="!isSingleReadonly && quickStudentNames.length" class="quick-students">
+    <!-- 快捷加入学生按钮组 -->
+    <div v-if="!isSingleReadonly && quickStudents.length" class="quick-students">
       <span class="quick-label">快捷加入</span>
       <button
-        v-for="name in quickStudentNames"
-        :key="name"
+        v-for="student in quickStudents"
+        :key="student.studentId"
         class="quick-btn"
-        @click="addQuickStudent(name)"
+        @click="addQuickStudent(student.studentId)"
       >
-        {{ name }}
+        {{ student.name }}
       </button>
       <button v-if="selectedValue.length" class="quick-btn is-clear" @click="clearSelected">
         清空对比
       </button>
     </div>
 
+    <!-- 有趋势数据时展示图表与摘要 -->
     <template v-if="studentTrend">
+      <!-- 学生信息区：模式标签、学生标签与导出报告按钮 -->
       <div class="student-meta">
         <div class="meta-title">
           <span>{{
@@ -227,7 +252,7 @@ const handleStudentFilter = (query: string) => {
         >
           <el-tag
             v-for="tag in studentTrend.students[0].tags"
-            :key="`${studentTrend.students[0]?.name}-${tag.key}`"
+            :key="`${studentTrend.students[0]?.studentId}-${tag.key}`"
             size="small"
             round
             effect="plain"
@@ -237,10 +262,12 @@ const handleStudentFilter = (query: string) => {
         </div>
       </div>
 
+      <!-- 趋势图表（折线 / 柱状） -->
       <div class="chart-wrapper">
         <app-e-chart :option="chartOption" height="100%" />
       </div>
 
+      <!-- 学情摘要与评语概览 -->
       <div class="summary-panels">
         <div class="summary-section">
           <div class="summary-title">
@@ -258,7 +285,7 @@ const handleStudentFilter = (query: string) => {
           <div v-if="studentTrend.mode === 'compare'" class="compare-comment-list">
             <div
               v-for="student in studentTrend.students"
-              :key="student.name"
+              :key="student.studentId"
               class="compare-comment-item"
             >
               <div class="comment-name">{{ student.name }}</div>
@@ -266,7 +293,7 @@ const handleStudentFilter = (query: string) => {
                 <div v-if="student.tags.length" class="compare-tags">
                   <el-tag
                     v-for="tag in student.tags"
-                    :key="`${student.name}-${tag.key}`"
+                    :key="`${student.studentId}-${tag.key}`"
                     size="small"
                     round
                   >
@@ -302,6 +329,7 @@ const handleStudentFilter = (query: string) => {
       </div>
     </template>
 
+    <!-- 无数据时的空态面板 -->
     <empty-state-panel
       v-else
       icon="user-graduate"

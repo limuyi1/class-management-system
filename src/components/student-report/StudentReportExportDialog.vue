@@ -3,7 +3,7 @@ import { computed, nextTick, ref, watch } from 'vue'
 
 import { storeToRefs } from 'pinia'
 
-import { ElLoading, ElMessage } from 'element-plus'
+import { ElMessage } from 'element-plus'
 
 import StudentReportExportSidebar from '@/components/student-report/StudentReportExportSidebar.vue'
 import StudentReportPreviewCard from '@/components/student-report/StudentReportPreviewCard.vue'
@@ -15,46 +15,75 @@ import {
   buildStudentReportData,
   buildStudentReportTemplateText,
   exportStudentReportImage
-} from '@/utils/studentReportUntil'
+} from '@/utils/studentReportUtil'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
+/**
+ * 学习报告导出弹窗。
+ *
+ * 负责组织报告数据、管理正文内容状态与成绩范围选择，
+ * 提供模板正文 / AI 生成两种内容来源，并将预览导出为 PNG 图片。
+ */
 interface Props {
+  /** 弹窗是否可见 */
   visible: boolean
+  /** 目标学生数据 */
   student: StudentDataType | null
+  /** 可选的成绩列 */
   scoreColumns: SettingType[]
 }
 
+/** 正文状态：idle 未选择 / ready 可用 / dirty 已手动编辑 / stale 已过期 */
 type ContentStatusType = 'idle' | 'ready' | 'dirty' | 'stale'
+/** 导出质量档位 */
 type ExportQualityType = 'standard' | 'high' | 'ultra'
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 弹窗可见状态变化 */
   'update:visible': [value: boolean]
 }>()
 
+/** 数据源 store */
 const dataStore = useDataSourceStore()
+/** 设置 store */
 const settingStore = useSettingStore()
+/** AI 配置 store */
 const aiConfigStore = useAIConfigStore()
+/** 启用的学生数据列表 */
 const { enabledData } = storeToRefs(dataStore)
+/** 标签分类列表 */
 const { tagCategories } = storeToRefs(settingStore)
 
+/** 弹窗可见状态的 v-model 双向绑定代理 */
 const dialogVisible = computed({
   get: () => props.visible,
   set: (value: boolean) => emit('update:visible', value)
 })
 
+/** 选中的成绩项 prop 列表 */
 const selectedProps = ref<string[]>([])
+/** 报告正文内容 */
 const content = ref('')
+/** AI 生成进行中标记 */
 const generating = ref(false)
+/** 导出进行中标记 */
 const exporting = ref(false)
+/** 是否全屏展示 */
 const fullscreen = ref(false)
+/** 预览卡片 DOM 引用（导出截图目标） */
 const previewRef = ref<HTMLElement | null>(null)
+/** 正文内容状态 */
 const contentStatus = ref<ContentStatusType>('idle')
+/** 导出质量档位 */
 const exportQuality = ref<ExportQualityType>('high')
+/** 导出分辨率倍率 */
 const exportScale = ref('2')
 
+/** 根据当前选择构建的报告数据 */
 const report = computed(() => {
   if (!props.student) return null
   return buildStudentReportData({
@@ -67,12 +96,17 @@ const report = computed(() => {
   })
 })
 
+/** 已选成绩项数量 */
 const selectedCount = computed(() => selectedProps.value.length)
+/** 正文是否有内容 */
 const hasContent = computed(() => Boolean(content.value.trim()))
+// 导出需同时满足：已选成绩、有正文、且无进行中的生成/导出任务
 const canExport = computed(() => {
   return selectedCount.value > 0 && hasContent.value && !generating.value && !exporting.value
 })
+/** 正文生成来源标签文案 */
 const generatorLabel = computed(() => (aiConfigStore.isConfigured ? '可选 AI 生成' : '模板内容'))
+// 预览优先展示手动/生成的正文，未填写时回退到模板文本
 const previewContent = computed(() => {
   if (content.value.trim()) return content.value
   if (!report.value) return ''
@@ -86,12 +120,16 @@ const syncDefaultSelection = (): void => {
   selectedProps.value = props.scoreColumns.map((item) => item.prop)
 }
 
+/** 将正文切换为当前报告数据的模板文本 */
 const applyTemplateContent = (): void => {
   if (!report.value) return
   content.value = buildStudentReportTemplateText(report.value)
   contentStatus.value = 'ready'
 }
 
+/**
+ * 生成正文：优先调用 AI，未配置 AI 或生成失败时回退到模板内容
+ */
 const generateContent = async (): Promise<void> => {
   if (!report.value || !selectedCount.value) return
 
@@ -130,6 +168,7 @@ const generateContent = async (): Promise<void> => {
   }
 }
 
+/** 打开弹窗时重置默认状态并生成模板正文 */
 const handleOpen = async (): Promise<void> => {
   syncDefaultSelection()
   fullscreen.value = false
@@ -153,33 +192,54 @@ const resolveExportScale = (): number => {
   return Number((baseScale * qualityMap[exportQuality.value]).toFixed(1))
 }
 
+/**
+ * 同步正文输入：有内容标记为手动编辑，清空则视为已过期
+ * @param value - 输入框最新内容
+ */
 const handleContentInput = (value: string): void => {
   content.value = value
   contentStatus.value = value.trim() ? 'dirty' : 'stale'
 }
 
+/**
+ * 同步成绩项选择
+ * @param value - 选中的成绩项 prop 列表
+ */
 const handleSelectedPropsUpdate = (value: string[]): void => {
   selectedProps.value = value
 }
 
+/**
+ * 同步导出质量档位（仅接受合法档位值）
+ * @param value - 质量档位
+ */
 const handleExportQualityUpdate = (value: string): void => {
   if (value === 'standard' || value === 'high' || value === 'ultra') {
     exportQuality.value = value
   }
 }
 
+/**
+ * 同步导出倍率
+ * @param value - 倍率字符串
+ */
 const handleExportScaleUpdate = (value: string): void => {
   exportScale.value = value
 }
 
+/** 切换弹窗全屏状态 */
 const toggleFullscreen = (): void => {
   fullscreen.value = !fullscreen.value
 }
 
+/** 关闭弹窗 */
 const closeDialog = (): void => {
   dialogVisible.value = false
 }
 
+/**
+ * 导出学习报告为 PNG 图片
+ */
 const handleExport = async (): Promise<void> => {
   if (!report.value) return
   if (!canExport.value) {
@@ -190,10 +250,7 @@ const handleExport = async (): Promise<void> => {
   if (!previewRef.value) return
 
   exporting.value = true
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出学习报告图片...'
-  })
+  startLoading('正在导出学习报告图片...')
 
   try {
     await nextTick()
@@ -215,10 +272,11 @@ const handleExport = async (): Promise<void> => {
     dialogVisible.value = false
   } finally {
     exporting.value = false
-    loading.close()
+    stopLoading()
   }
 }
 
+// 弹窗打开且有目标学生时初始化默认状态
 watch(
   () => props.visible,
   async (value) => {
@@ -228,6 +286,7 @@ watch(
   }
 )
 
+// 成绩范围变化后旧正文不再可靠，需强制重新生成
 watch(selectedProps, (value, oldValue) => {
   if (!props.visible || !oldValue) return
   if (value.join('|') === oldValue.join('|')) return
@@ -260,6 +319,7 @@ watch(selectedProps, (value, oldValue) => {
     destroy-on-close
   >
     <template #header>
+      <!-- 自定义头部：标题 + 全屏/关闭按钮 -->
       <div class="student-report-export-dialog__header">
         <span class="student-report-export-dialog__title">导出学习报告</span>
         <div class="student-report-export-dialog__actions">
@@ -295,6 +355,7 @@ watch(selectedProps, (value, oldValue) => {
     </template>
 
     <div v-if="report" class="student-report-export-dialog">
+      <!-- 左侧：成绩范围、正文与导出设置侧边栏 -->
       <el-scrollbar class="student-report-export-dialog__sidebar-scrollbar">
         <div class="student-report-export-dialog__sidebar">
           <student-report-export-sidebar
@@ -320,6 +381,7 @@ watch(selectedProps, (value, oldValue) => {
         </div>
       </el-scrollbar>
 
+      <!-- 右侧：报告预览（导出截图目标） -->
       <div class="student-report-export-dialog__preview">
         <el-scrollbar class="student-report-export-dialog__preview-scrollbar">
           <div class="student-report-export-dialog__preview-shell">

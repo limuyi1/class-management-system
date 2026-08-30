@@ -1,30 +1,50 @@
 <script setup lang="ts">
+/**
+ * 数据导入导出页：提供 .dexie 全量备份导出/恢复、Excel 学生初始化/增量成绩导入，
+ * 以及清空全部数据的能力，并展示最近备份状态。
+ */
 import { computed, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, dayjs } from 'element-plus'
 
 import router from '@/router'
 import { useDataSourceStore } from '@/stores/data-source'
+import { useConfigurationStore } from '@/stores/configuration'
 import { useStudentDataImport } from '@/hooks/useStudentDataImport'
 import ExcelColumnConflictDialog from '@/components/ExcelColumnConflictDialog.vue'
 import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
-import { clearDatabase, exportDatabase, importDatabase } from '@/utils/backup'
-import CommentImportDialog from '@/views/setting/components/import/CommentImportDialog.vue'
+import { clearDatabase, exportDatabase, getDaysSinceBackup, importDatabase } from '@/utils/backup'
 import ImportActionMenu from '@/views/setting/components/import/ImportActionMenu.vue'
 import InitialImportDialog from '@/views/setting/components/import/InitialImportDialog.vue'
 import ImportProgress from './ImportProgress.vue'
 
-const exporting = ref(false)
-const importingBackup = ref(false)
-const progressVisible = ref(false)
-const progressTitle = ref('')
-const progressPercent = ref(0)
+const exporting = ref(false) // 导出进行中
+const importingBackup = ref(false) // 备份导入进行中
+const progressVisible = ref(false) // 进度弹窗显隐
+const progressTitle = ref('') // 进度弹窗标题
+const progressPercent = ref(0) // 进度百分比（0-100）
 
 const dataSourceStore = useDataSourceStore()
 const { students } = storeToRefs(dataSourceStore)
+/** 是否已有学生数据，决定导入按钮走初始化还是增量成绩 */
 const hasStudentData = computed(() => students.value.length > 0)
 
+const configurationStore = useConfigurationStore()
+const { lastBackupAt } = storeToRefs(configurationStore)
+/** 距离上次备份的天数 */
+const daysSinceBackup = computed(() => getDaysSinceBackup(lastBackupAt.value))
+/** 从未备份或超过 7 天未备份时视为逾期 */
+const backupOverdue = computed(
+  () => lastBackupAt.value === null || (daysSinceBackup.value ?? 0) >= 7
+)
+/** 上次备份时间的展示文本 */
+const backupTimeText = computed(() => {
+  if (!lastBackupAt.value) return '从未备份'
+  return dayjs(lastBackupAt.value).format('YYYY-MM-DD HH:mm')
+})
+
+// 从学生导入 hook 解构 Excel 导入流程相关的状态与方法
 const {
   excelFileInputRef,
   importingExcel,
@@ -35,22 +55,25 @@ const {
   excelRows,
   initialDialogVisible,
   scoreColumnSelectorVisible,
-  commentDialogVisible,
   conflictDialogVisible,
   conflictColumns,
   triggerExcelImport,
   handleExcelFileChange,
   handleInitialConfirm,
   handleScoreColumnConfirm,
-  handleCommentConfirm,
   handleConflictConfirm,
   resetExcelImport
 } = useStudentDataImport()
 
+/**
+ * 更新进度条百分比。
+ * @param percent - 进度值（0-100）
+ */
 const updateProgress = (percent: number) => {
   progressPercent.value = percent
 }
 
+/** 导出 .dexie 备份：先询问是否包含试卷排版数据，再执行导出 */
 const handleExport = async () => {
   let includePaperLayout = true
 
@@ -66,6 +89,7 @@ const handleExport = async () => {
       }
     )
   } catch (action) {
+    // 取消导出时不包含排版数据，关闭弹窗则直接中止
     if (action === 'cancel') {
       includePaperLayout = false
     } else {
@@ -82,6 +106,7 @@ const handleExport = async () => {
     await exportDatabase(updateProgress, includePaperLayout)
     progressPercent.value = 100
   } finally {
+    // 延迟 500ms 再关闭弹窗，便于用户看到 100% 的完成态
     window.setTimeout(() => {
       progressVisible.value = false
     }, 500)
@@ -89,6 +114,7 @@ const handleExport = async () => {
   }
 }
 
+/** 导入 .dexie 备份：确认覆盖后执行全量恢复，完成后跳转总览页 */
 const handleBackupImport = async (file: File) => {
   try {
     await ElMessageBox.confirm('导入将覆盖当前所有数据，确定要继续吗？', '确认导入', {
@@ -131,6 +157,7 @@ const handleImportFileChange = async (event: Event) => {
   await handleExcelFileChange(event)
 }
 
+/** 清空全部数据：二次确认后执行，完成后跳转工具页 */
 const handleClear = async () => {
   try {
     await ElMessageBox.confirm('确定要清空所有数据吗？此操作不可恢复！', '确认清空', {
@@ -156,10 +183,11 @@ const handleClear = async () => {
     <el-card>
       <div class="import-export-title">数据导入导出</div>
       <p class="import-export-desc">
-        Excel 可初始化学生名单，或按姓名添加成绩和期末评语；.dexie 用于全量备份与恢复。
+        Excel 可初始化学生名单或按姓名添加成绩；.dexie 用于全量备份与恢复。
       </p>
 
       <div class="import-export-actions">
+        <!-- 导出数据：全量备份为 .dexie 文件 -->
         <div class="action-item">
           <div class="action-icon action-icon-export">
             <font-awesome-icon :icon="['solid', 'file-export']" />
@@ -168,6 +196,14 @@ const handleClear = async () => {
             <div class="action-label">导出数据</div>
             <div class="action-desc">
               将学生、配置、标签、错题本等数据导出为 .dexie 备份，可选试卷排版
+            </div>
+            <div class="backup-status" :class="{ 'is-overdue': backupOverdue }">
+              <font-awesome-icon
+                :icon="['solid', backupOverdue ? 'triangle-exclamation' : 'circle-check']"
+              />
+              <span v-if="lastBackupAt === null">从未备份，建议尽快备份</span>
+              <span v-else-if="backupOverdue">上次备份 {{ daysSinceBackup }} 天前，建议尽快备份</span>
+              <span v-else>上次备份：{{ backupTimeText }}</span>
             </div>
           </div>
           <el-button type="primary" size="large" :loading="exporting" @click="handleExport">
@@ -178,6 +214,7 @@ const handleClear = async () => {
 
         <el-divider />
 
+        <!-- 导入数据：无学生数据走初始化，有数据则增量添加成绩 -->
         <div class="action-item">
           <div class="action-icon action-icon-import">
             <font-awesome-icon :icon="['solid', 'file-import']" />
@@ -187,7 +224,7 @@ const handleClear = async () => {
             <div class="action-desc">
               {{
                 hasStudentData
-                  ? '按姓名添加成绩或评语，也可以使用 .dexie 恢复全量备份'
+                  ? '按姓名添加成绩，也可以使用 .dexie 恢复全量备份'
                   : '从 Excel 创建学生，可同时选择成绩列和评语列'
               }}
             </div>
@@ -197,7 +234,6 @@ const handleClear = async () => {
             :loading="importingBackup || importingExcel"
             @initial="triggerExcelImport('initial')"
             @score="triggerExcelImport('score')"
-            @comment="triggerExcelImport('comment')"
           />
           <input
             ref="excelFileInputRef"
@@ -210,6 +246,7 @@ const handleClear = async () => {
 
         <el-divider />
 
+        <!-- 清空全部数据（不可恢复） -->
         <div class="action-item">
           <div class="action-icon action-icon-clear">
             <font-awesome-icon :icon="['solid', 'trash']" />
@@ -227,10 +264,11 @@ const handleClear = async () => {
 
       <div class="backup-tip">
         <font-awesome-icon :icon="['solid', 'circle-info']" />
-        <span>.dexie 恢复会覆盖当前数据；Excel 空白评语不会覆盖已有内容</span>
+        <span>.dexie 恢复会覆盖当前数据；评语 Excel 请在“工具 → 评语处理”中使用</span>
       </div>
     </el-card>
 
+    <!-- 进度弹窗、初始化导入弹窗与列选择/冲突处理弹窗 -->
     <import-progress
       v-model:visible="progressVisible"
       :title="progressTitle"
@@ -254,15 +292,6 @@ const handleClear = async () => {
       :preview-merges="excelPreviewMerges"
       :suggested-header-row-index="suggestedHeaderRowIndex"
       @confirm="handleScoreColumnConfirm"
-    />
-    <comment-import-dialog
-      v-model="commentDialogVisible"
-      :headers="excelHeaders"
-      :rows="excelRows"
-      :preview-rows="excelPreviewRows"
-      :preview-merges="excelPreviewMerges"
-      :suggested-header-row-index="suggestedHeaderRowIndex"
-      @confirm="handleCommentConfirm"
     />
     <excel-column-conflict-dialog
       v-model="conflictDialogVisible"

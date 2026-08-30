@@ -1,7 +1,11 @@
 <script setup lang="ts">
+/**
+ * 成绩管理页面
+ * 提供成绩录入、表格展示、统计分析三大功能模块的入口
+ */
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
@@ -11,6 +15,7 @@ import { StudentReportExportDialog } from '@/components/student-report'
 import ScoreTableView from '@/views/score/components/ScoreTableView.vue'
 import InputDataView from '@/views/score/components/InputDataView.vue'
 import ScoreAnalysisView from '@/views/score/components/ScoreAnalysisView.vue'
+import ScoreRecognitionPreviewDialog from '@/views/score/components/ScoreRecognitionPreviewDialog.vue'
 import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendPanel.vue'
 import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 import { useDataSourceStore } from '@/stores/data-source'
@@ -18,23 +23,32 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
-import { fileToBase64 } from '@/utils/fileUntil'
-import { NAME_PROP } from '@/types/Constants'
+import { fileToBase64 } from '@/utils/fileUtil'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
+import { buildScoreRecognitionPreview } from '@/utils/scoreRecognitionUtil'
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
+import type { ScoreRecognitionPreviewRowType } from '@/utils/scoreRecognitionUtil'
 
+// 表格视图与录入视图的组件实例引用
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
 const inputDataRef = ref<InstanceType<typeof InputDataView>>()
+// 数据、配置、表头与 AI 配置 store
 const dataStore = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
 
+// 全部学生（识图匹配用）与启用学生（写入成绩用）
 const { students: originList, enabledData } = storeToRefs(dataStore)
+// 启用的成绩科目列
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
-const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
+// 学生趋势面板所需的选择与看板数据
+const { selectedStudentIds, dashboardData, focusStudent } = useOverviewDashboard()
 
+/** 是否已设置单元 */
 const hasUnits = computed(() => scoreColumns.value.length > 0)
+/** 是否已有任意成绩 */
 const hasScores = computed(() => dataStore.hasAnyScore)
 /**
  * 成绩页按“无单元 / 有单元无成绩 / 有成绩”降级展示。
@@ -46,13 +60,20 @@ const scoreStage = computed<ScorePageStageType>(() => {
   return 'ready'
 })
 
+// 图片裁剪器显隐与待裁剪图片
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
+// AI 识图结果预览对话框显隐与预览行
+const recognitionPreviewVisible = ref(false)
+const recognitionPreviewRows = ref<ScoreRecognitionPreviewRowType[]>([])
+// 学生趋势抽屉与报告导出对话框显隐
 const trendDrawerVisible = ref(false)
 const reportDialogVisible = ref(false)
+/** 当前查看趋势 / 导出报告的学生 */
 const currentStudent = ref<StudentDataType | null>(null)
 const router = useRouter()
 
+/** 确保当前录入科目始终指向一个有效单元 */
 const ensureDefaultScoreTab = () => {
   const hasCurrentScoreTab = scoreColumns.value.some((item) => item.prop === configuration.inputScoreTab)
   if (!hasCurrentScoreTab && scoreColumns.value.length) {
@@ -67,10 +88,12 @@ const ensureDefaultScoreTab = () => {
 ensureDefaultScoreTab()
 watch(scoreColumns, ensureDefaultScoreTab)
 
+/** 将焦点聚焦到录入视图的姓名输入框 */
 const autoFocus = () => {
   inputDataRef.value?.autoFocus()
 }
 
+/** 跳转到单元配置页 */
 const goToUnitSetting = () => {
   router.push({
     path: '/setting',
@@ -80,6 +103,7 @@ const goToUnitSetting = () => {
   })
 }
 
+/** 清空当前科目的所有成绩（需二次确认） */
 const resetScore = () => {
   if (!configuration.inputScoreTab) {
     ElMessage.warning('请先选择当前录入科目')
@@ -98,6 +122,7 @@ const resetScore = () => {
   })
 }
 
+/** 选择本地图片并打开裁剪器，进入 AI 识图流程 */
 const handleUploadClick = () => {
   // AI 识图必须先有写入目标单元，再检查 AI 配置。
   if (!hasUnits.value) {
@@ -139,16 +164,17 @@ const handleUploadClick = () => {
   input.click()
 }
 
+/**
+ * 处理裁剪确认：调用 AI 识图并构建预览结果。
+ * @param croppedBase64 裁剪后的图片 base64
+ */
 const handleCropConfirm = async (croppedBase64: string) => {
   cropperVisible.value = false
 
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在识别成绩...'
-  })
+  startLoading('正在识别成绩...')
 
   try {
-    // 识图 -> 姓名匹配 -> 写入当前录入科目
+    // 识图只提供姓名线索；系统先解析为唯一 studentId，再写入当前录入科目。
     const results = await recognizeScoreFromImage(croppedBase64, aiConfigStore.prompts.imageScore, {
       modelType: aiConfigStore.modelType,
       model: aiConfigStore.model,
@@ -167,50 +193,69 @@ const handleCropConfirm = async (croppedBase64: string) => {
       return
     }
 
-    let matchedCount = 0
-    let notMatched: string[] = []
-
-    for (const result of results) {
-      const student = originList.value.find(
-        (item: StudentDataType) => String(item[NAME_PROP] || '') === result.name
-      )
-
-      if (student && result.score !== null) {
-        student[scoreTab] = result.score
-        matchedCount++
-      } else if (result.name) {
-        notMatched.push(result.name)
-      }
-    }
-
-    if (notMatched.length > 0) {
-      ElMessage.warning(`已匹配 ${matchedCount} 人，未找到：${notMatched.join('、')}`)
-    } else {
-      ElMessage.success(`成功识别并填充 ${matchedCount} 个成绩`)
-    }
+    recognitionPreviewRows.value = buildScoreRecognitionPreview(
+      results,
+      originList.value,
+      scoreTab,
+      configuration.scoreFullMark
+    )
+    recognitionPreviewVisible.value = true
   } catch (error) {
     console.error('识别成绩失败:', error)
     ElMessage.error('识别失败：' + (error as Error).message)
   } finally {
-    loading.close()
+    stopLoading()
   }
 }
 
+/** 用户确认预览后，写入勾选且有效的成绩 */
+const handleRecognitionConfirm = (rows: ScoreRecognitionPreviewRowType[]) => {
+  const scoreTab = configuration.inputScoreTab
+  if (!scoreTab) return
+
+  let writtenCount = 0
+  for (const row of rows) {
+    if (!row.matched || !row.valid || row.score === null || !row.studentId) continue
+    const student = dataStore.getStudentById(row.studentId)
+    if (student) {
+      student[scoreTab] = row.score
+      writtenCount++
+    }
+  }
+
+  const notMatched = recognitionPreviewRows.value
+    .filter((row) => !row.matched)
+    .map((row) => row.name)
+  const invalid = recognitionPreviewRows.value
+    .filter((row) => row.matched && !row.valid)
+    .map((row) => row.name)
+
+  const warnings: string[] = []
+  if (notMatched.length > 0) warnings.push(`未匹配：${notMatched.join('、')}`)
+  if (invalid.length > 0) warnings.push(`分数无效：${invalid.join('、')}`)
+
+  if (warnings.length > 0) {
+    ElMessage.warning(`已写入 ${writtenCount} 个成绩；${warnings.join('；')}`)
+  } else {
+    ElMessage.success(`成功写入 ${writtenCount} 个成绩`)
+  }
+}
+
+/** 取消裁剪 */
 const handleCropCancel = () => {
   cropperVisible.value = false
 }
 
+/** 查看学生趋势分析抽屉 */
 const handleInspectStudent = (student: StudentDataType) => {
-  const name = String(student[NAME_PROP] || '')
-  if (!name) return
-
   currentStudent.value = student
-  focusStudent(name)
+  focusStudent(student.studentId)
   trendDrawerVisible.value = true
 }
 
-const handleExportReportFromTrend = (name: string) => {
-  const student = enabledData.value.find((item) => String(item[NAME_PROP] || '') === name)
+/** 从趋势面板发起学生报告导出 */
+const handleExportReportFromTrend = (studentId: string) => {
+  const student = dataStore.getStudentById(studentId)
   if (!student) return
   currentStudent.value = student
   reportDialogVisible.value = true
@@ -227,7 +272,9 @@ defineExpose({ autoFocus })
       subtitle="选择当前科目后，可继续手动录入、AI 识图和查看统计"
     />
 
+    <!-- 三栏布局：左学生列表、中分数录入、右成绩统计 -->
     <div class="score-page-content">
+      <!-- 左栏：学生列表与科目切换 -->
       <div class="panel panel-left">
         <score-table-view
           ref="tableRef"
@@ -240,21 +287,24 @@ defineExpose({ autoFocus })
           @inspect-student="handleInspectStudent"
         />
       </div>
+      <!-- 中栏：录入进度与分数录入 -->
       <div class="panel panel-middle">
         <input-data-view
           ref="inputDataRef"
           :stage="scoreStage"
-          @scroll="(index) => tableRef?.scroll(index)"
+          @scroll="(studentId) => tableRef?.scroll(studentId)"
           @upload-image="handleUploadClick"
           @clear-selection="tableRef?.clearActiveSelection()"
           @go-unit-setting="goToUnitSetting"
         />
       </div>
+      <!-- 右栏：成绩统计 -->
       <div class="panel panel-right">
         <score-analysis-view :can-export="dataStore.hasAnyScore" :stage="scoreStage" />
       </div>
     </div>
 
+    <!-- AI 识图：图片裁剪 -->
     <image-cropper
       v-model:visible="cropperVisible"
       v-model:compress-ratio="configuration.scoreImageCompressRatio"
@@ -264,6 +314,7 @@ defineExpose({ autoFocus })
       @cancel="handleCropCancel"
     />
 
+    <!-- 学生趋势分析抽屉 -->
     <el-drawer
       v-model="trendDrawerVisible"
       class="overview-analysis-drawer score-student-trend-drawer"
@@ -273,19 +324,27 @@ defineExpose({ autoFocus })
     >
       <home-student-trend-panel
         class="drawer-trend-panel"
-        v-model="selectedStudentNames"
+        v-model="selectedStudentIds"
         :student-trend="dashboardData.studentTrend"
         :student-options="dashboardData.studentOptions"
-        :quick-student-names="dashboardData.quickStudentNames"
+        :quick-students="dashboardData.quickStudents"
         variant="singleReadonly"
         @export-report="handleExportReportFromTrend"
       />
     </el-drawer>
 
+    <!-- 学生报告导出对话框 -->
     <student-report-export-dialog
       v-model:visible="reportDialogVisible"
       :student="currentStudent"
       :score-columns="scoreColumns"
+    />
+
+    <!-- AI 识图成绩预览确认对话框 -->
+    <score-recognition-preview-dialog
+      v-model:visible="recognitionPreviewVisible"
+      :rows="recognitionPreviewRows"
+      @confirm="handleRecognitionConfirm"
     />
   </div>
 </template>

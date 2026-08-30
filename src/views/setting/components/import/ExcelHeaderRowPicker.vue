@@ -1,7 +1,11 @@
 <script setup lang="ts">
+/**
+ * 表头行选择器：以表格形式预览 Excel 前几行（含合并单元格还原），
+ * 供用户点击选中某一行作为字段名行。
+ */
 import { computed } from 'vue'
 
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUtil'
 
 interface Props {
   modelValue: number
@@ -9,6 +13,7 @@ interface Props {
   merges?: ExcelMergeRangeType[]
 }
 
+/** 预览的行数上限 */
 const PREVIEW_ROW_COUNT = 8
 
 const props = defineProps<Props>()
@@ -17,17 +22,21 @@ const emit = defineEmits<{
   'update:modelValue': [value: number]
 }>()
 
+/** 仅截取前 N 行用于预览 */
 const previewRows = computed(() => props.rows.slice(0, PREVIEW_ROW_COUNT))
+/** 根据预览行宽度生成列索引列表 */
 const previewColumnIndexes = computed(() => {
   const columnCount = previewRows.value.reduce((count, row) => Math.max(count, row.length), 0)
   return Array.from({ length: columnCount }, (_, index) => index)
 })
+/** 仅保留位于预览范围内的合并区域 */
 const previewMerges = computed(() =>
   (props.merges ?? []).filter(
     (merge) => merge.startRow < PREVIEW_ROW_COUNT && merge.startColumn < previewColumnIndexes.value.length
   )
 )
 
+/** 将预览数据构造成 el-table 的行对象，首列为行号 */
 const tableRows = computed(() =>
   previewRows.value.map((row, rowIndex) => {
     const result: Record<string, ExcelCellValueType | number> = {
@@ -43,14 +52,25 @@ const tableRows = computed(() =>
   })
 )
 
+/**
+ * 点击某行时回传其行索引作为选中的表头行。
+ * @param row - 表格行对象
+ */
 const handleRowClick = (row: Record<string, ExcelCellValueType | number>) => {
   emit('update:modelValue', Number(row.rowIndex))
 }
 
+/** 高亮当前选中的表头行 */
 const getRowClassName = ({ row }: { row: Record<string, ExcelCellValueType | number> }) => {
   return Number(row.rowIndex) === props.modelValue ? 'is-selected-header-row' : ''
 }
 
+/**
+ * 查找覆盖指定单元格的合并区域。
+ * @param rowIndex - 行索引
+ * @param columnIndex - 列索引
+ * @returns 命中的合并区域，未命中返回 undefined
+ */
 const findMergeAtCell = (rowIndex: number, columnIndex: number) => {
   return previewMerges.value.find(
     (merge) =>
@@ -82,6 +102,7 @@ const getCellSpan = ({
     return { rowspan: 1, colspan: 1 }
   }
 
+  // 仅合并区域的起始单元格返回跨度，其余单元格隐藏
   if (merge.startRow !== rowIndex || merge.startColumn !== excelColumnIndex) {
     return { rowspan: 0, colspan: 0 }
   }
@@ -93,6 +114,7 @@ const getCellSpan = ({
   }
 }
 
+/** 为合并单元格添加样式标记 */
 const getCellClassName = ({
   rowIndex,
   columnIndex
@@ -115,6 +137,7 @@ const getCellClassName = ({
         点击预览中的一行作为字段名行，数据将从下一行开始读取。
       </div>
     </div>
+    <!-- 表头行预览：点击某行将其选中为字段名行 -->
     <el-table
       :data="tableRows"
       border

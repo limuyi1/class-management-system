@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 关键学生列表 — 展示立即关注、值得鼓励、波动观察三类推荐学生 */
 import OverviewStudentRow from '@/views/overview/components/OverviewStudentRow.vue'
 
 import type { DashboardFocusGroupKeyType, DashboardKeyStudentListType } from '@/types/HomeDashboard'
@@ -12,7 +13,7 @@ defineProps<Props>()
 
 const emit = defineEmits<{
   /** 点击学生行时触发，打开趋势分析抽屉 */
-  select: [name: string]
+  select: [studentId: string]
 }>()
 
 /**
@@ -29,6 +30,7 @@ const toneMap: Record<DashboardFocusGroupKeyType, 'danger' | 'warning' | 'succes
   volatilityWatch: 'warning'
 }
 
+/** 各分组空态下的引导文案 */
 const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
   attention: '录入成绩后，系统会自动筛选临界、持续低分、明显下滑的学生。',
   encouragement: '录入多次成绩后，系统会识别进步、低位回升和高分稳定学生。',
@@ -44,6 +46,7 @@ const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
       class="list-card"
       :class="{ 'is-empty': !list.items.length }"
     >
+      <!-- 卡片头部：分组标题与推荐人数说明 -->
       <template #header>
         <div class="card-heading">
           <div class="heading-main">
@@ -66,11 +69,12 @@ const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
         </div>
       </template>
 
+      <!-- 学生列表：最多展示前 3 名推荐学生 -->
       <el-scrollbar v-if="list.items.length" class="student-scrollbar">
         <div class="student-list">
           <overview-student-row
             v-for="item in list.items.slice(0, 3)"
-            :key="`${list.key}-${item.name}`"
+            :key="`${list.key}-${item.studentId}`"
             :item="item"
             :tone="toneMap[list.key]"
             variant="list"
@@ -79,6 +83,7 @@ const emptyDescriptions: Partial<Record<DashboardFocusGroupKeyType, string>> = {
         </div>
       </el-scrollbar>
 
+      <!-- 无推荐学生时的空态提示 -->
       <div v-else class="list-empty-state">
         <div class="list-empty-title">暂无可推荐学生</div>
         <div class="list-empty-description">

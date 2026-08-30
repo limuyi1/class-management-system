@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 素材管理页面 — 上传、拖拽排序、重命名、裁剪、删除与预览长期复用图片 */
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -17,39 +18,53 @@ import {
 } from '@/views/tools/services/attachmentService'
 import type { AttachmentRecordType } from '@/types/Tools'
 
+/** 带临时预览 URL 的素材视图记录 */
 interface AttachmentViewType extends AttachmentRecordType {
   url: string
 }
 
 const router = useRouter()
+/** 隐藏的文件选择输入框，由上传按钮间接触发 */
 const fileInputRef = ref<HTMLInputElement | null>(null)
+/** 素材视图记录列表 */
 const attachments = ref<AttachmentViewType[]>([])
+/** 列表加载中状态 */
 const loading = ref(false)
+/** 上传进行中状态 */
 const uploading = ref(false)
+/** 裁剪弹窗的显示与数据状态 */
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
 const editingAttachment = ref<AttachmentViewType | null>(null)
+/** 大图预览的显示与数据状态 */
 const previewAttachment = ref<AttachmentViewType | null>(null)
 const previewVisible = ref(false)
+/** 已选素材 ID 列表 */
 const selectedIds = ref<string[]>([])
 
+/** 素材数量提示文案 */
 const attachmentCountText = computed(() => {
   return attachments.value.length === 0 ? '暂无图片素材' : `共 ${attachments.value.length} 张图片`
 })
 
+/** 已选素材数量 */
 const selectedCount = computed(() => selectedIds.value.length)
+/** 带选中数量的提示文案 */
 const attachmentHintText = computed(() => {
   return selectedCount.value > 0
     ? `${attachmentCountText.value} · 已选 ${selectedCount.value} 张`
     : attachmentCountText.value
 })
+/** 有选中素材时给面板附加高亮类名 */
 const attachmentPanelClass = computed(() => ({
   'has-selection': selectedCount.value > 0
 }))
+/** 裁剪输出类型：PNG 素材保留透明，其余转 JPEG */
 const cropperOutputType = computed<'jpeg' | 'png'>(() => {
   return editingAttachment.value?.mimeType === 'image/png' ? 'png' : 'jpeg'
 })
 
+// 进入页面即加载素材列表
 loadAttachments()
 
 onBeforeUnmount(() => {
@@ -60,12 +75,14 @@ function backToTools(): void {
   router.push('/tools')
 }
 
+/** 释放所有素材视图记录的 object URL */
 function revokeAttachmentUrls(): void {
   attachments.value.forEach((attachment) => {
     URL.revokeObjectURL(attachment.url)
   })
 }
 
+/** 为素材记录补充临时预览 URL，转换为视图记录 */
 function toViewRecord(record: AttachmentRecordType): AttachmentViewType {
   return {
     ...record,
@@ -73,6 +90,7 @@ function toViewRecord(record: AttachmentRecordType): AttachmentViewType {
   }
 }
 
+/** 加载素材列表并重建视图记录 */
 async function loadAttachments(): Promise<void> {
   loading.value = true
   try {
@@ -84,6 +102,7 @@ async function loadAttachments(): Promise<void> {
   }
 }
 
+/** 切换单张素材的选中状态 */
 function toggleSelect(id: string): void {
   if (selectedIds.value.includes(id)) {
     selectedIds.value = selectedIds.value.filter((item) => item !== id)
@@ -92,14 +111,17 @@ function toggleSelect(id: string): void {
   selectedIds.value = [...selectedIds.value, id]
 }
 
+/** 全选所有素材 */
 function selectAll(): void {
   selectedIds.value = attachments.value.map((attachment) => attachment.id)
 }
 
+/** 清空选中 */
 function clearSelection(): void {
   selectedIds.value = []
 }
 
+/** 拖拽排序结束后持久化新顺序 */
 async function handleSortEnd(): Promise<void> {
   try {
     await updateAttachmentOrder(attachments.value.map((attachment) => attachment.id))
@@ -110,10 +132,12 @@ async function handleSortEnd(): Promise<void> {
   }
 }
 
+/** 点击上传按钮时触发隐藏的文件输入框 */
 function handleUploadClick(): void {
   fileInputRef.value?.click()
 }
 
+/** 处理文件选择变更，读取文件后统一走上传流程 */
 async function handleFileChange(event: Event): Promise<void> {
   const target = event.target as HTMLInputElement
   const files = Array.from(target.files || [])
@@ -121,11 +145,13 @@ async function handleFileChange(event: Event): Promise<void> {
   await uploadFiles(files)
 }
 
+/** 处理拖拽放入面板的图片文件 */
 async function handleDrop(event: DragEvent): Promise<void> {
   const files = Array.from(event.dataTransfer?.files || [])
   await uploadFiles(files)
 }
 
+/** 上传文件到素材库并刷新列表 */
 async function uploadFiles(files: File[]): Promise<void> {
   if (files.length === 0) return
 
@@ -146,6 +172,7 @@ async function uploadFiles(files: File[]): Promise<void> {
   }
 }
 
+/** 重命名素材：弹窗输入新名称后保存并刷新 */
 async function handleRename(attachment: AttachmentViewType): Promise<void> {
   try {
     const result = await ElMessageBox.prompt('请输入附件名称', '重命名附件', {
@@ -162,6 +189,7 @@ async function handleRename(attachment: AttachmentViewType): Promise<void> {
   }
 }
 
+/** 删除单个素材：确认后删除并刷新列表 */
 async function handleDelete(attachment: AttachmentViewType): Promise<void> {
   try {
     await ElMessageBox.confirm(`确认删除「${attachment.name}」？`, '删除附件', {
@@ -177,6 +205,7 @@ async function handleDelete(attachment: AttachmentViewType): Promise<void> {
   }
 }
 
+/** 批量删除选中素材 */
 async function handleBatchDelete(): Promise<void> {
   if (selectedIds.value.length === 0) return
 
@@ -197,21 +226,25 @@ async function handleBatchDelete(): Promise<void> {
   }
 }
 
+/** 打开裁剪弹窗并记录当前编辑的素材 */
 function openCropper(attachment: AttachmentViewType): void {
   editingAttachment.value = attachment
   cropperImageSrc.value = attachment.url
   cropperVisible.value = true
 }
 
+/** 打开大图预览弹窗 */
 function openPreview(attachment: AttachmentViewType): void {
   previewAttachment.value = attachment
   previewVisible.value = true
 }
 
+/** 根据宽高返回横向/纵向标签 */
 function getAttachmentOrientationLabel(attachment: AttachmentViewType): string {
   return attachment.width >= attachment.height ? '横向' : '纵向'
 }
 
+/** 保存裁剪结果并刷新列表 */
 async function handleCropConfirm(base64: string): Promise<void> {
   if (!editingAttachment.value) return
 
@@ -227,6 +260,7 @@ async function handleCropConfirm(base64: string): Promise<void> {
   }
 }
 
+/** 取消裁剪，清空编辑中的素材 */
 function handleCropCancel(): void {
   editingAttachment.value = null
 }
@@ -259,6 +293,7 @@ function handleCropCancel(): void {
       @change="handleFileChange"
     />
 
+    <!-- 素材面板：操作工具栏 + 可拖拽排序的素材网格 -->
     <section
       class="attachment-panel"
       :class="attachmentPanelClass"
@@ -362,6 +397,7 @@ function handleCropCancel(): void {
       </draggable>
     </section>
 
+    <!-- 大图预览弹窗 -->
     <el-dialog
       v-model="previewVisible"
       width="860px"
@@ -373,6 +409,7 @@ function handleCropCancel(): void {
       </div>
     </el-dialog>
 
+    <!-- 图片裁剪弹窗 -->
     <image-cropper
       v-model:visible="cropperVisible"
       :image-src="cropperImageSrc"

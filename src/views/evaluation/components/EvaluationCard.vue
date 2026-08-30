@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 评语预览卡片
+ * 按与导出 PDF 同源的排版规则渲染单页表格，支持激活高亮与行点击。
+ */
 import { computed } from 'vue'
 
 import { useConfigurationStore } from '@/stores/configuration'
@@ -7,16 +11,17 @@ import {
   getFooterBlockHeightPx,
   MIN_ADAPTIVE_COMMENT_FONT_SIZE_PX,
   layoutAdaptiveCommentText
-} from '@/utils/evaluationTextLayoutUntil'
-import type { AdaptiveEvaluationCommentLayoutResultType } from '@/utils/evaluationTextLayoutUntil'
+} from '@/utils/evaluation/evaluationTextLayoutUtil'
+import type { AdaptiveEvaluationCommentLayoutResultType } from '@/utils/evaluation/evaluationTextLayoutUtil'
 import type {
   EvaluationPreviewCardEmitsType,
   EvaluationPreviewCardPropsType
 } from '@/types/Evaluation'
 import type { StudentDataType } from '@/types/StudentData'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 const store = useConfigurationStore()
+/** 评语文本排版常量（像素单位） */
 const layoutConstantsPx = getEvaluationTextLayoutConstantsPx()
 
 const emit = defineEmits<EvaluationPreviewCardEmitsType>()
@@ -35,9 +40,15 @@ const props = withDefaults(defineProps<EvaluationPreviewCardPropsType>(), {
   })
 })
 
+/**
+ * 判断学生是否为当前激活项。
+ *
+ * @param student 单元格对应的学生数据
+ * @returns 是否高亮
+ */
 const isActiveStudent = (student: Record<string, unknown> | undefined) => {
-  if (!student || props.suppressActiveState || !props.activeStudentName) return false
-  return String(student[NAME_PROP] || '') === props.activeStudentName
+  if (!student || props.suppressActiveState || !props.activeStudentId) return false
+  return student.studentId === props.activeStudentId
 }
 
 /**
@@ -73,12 +84,14 @@ const getCommentLayout = (
   )
 }
 
+/** 单元格样式：尺寸与整体字号 */
 const cellStyle = computed(() => ({
   width: `${props.pageInfo?.cellWidth}px`,
   height: `${props.pageInfo?.cellHeight}px`,
   fontSize: `${store.fontSize}px`
 }))
 
+/** 表格外层容器样式：页面尺寸与纵向边距 */
 const tableWrapperStyle = computed(() => ({
   width: `${props.pageInfo.pageWidth}px`,
   height: `${props.pageInfo.pageHeight}px`,
@@ -86,15 +99,23 @@ const tableWrapperStyle = computed(() => ({
   boxSizing: 'border-box' as const
 }))
 
+/** 表格样式：宽度与横向偏移 */
 const tableStyle = computed(() => ({
   width: `${props.pageInfo.tableWidth}px`,
   marginLeft: `${props.pageInfo.tableOffsetX}px`
 }))
 
+/** 生成正文区域样式，字体大小取自适应排版结果 */
 const getCommentBodyStyle = (layout: AdaptiveEvaluationCommentLayoutResultType) => ({
   fontSize: `${layout.fontSizePx}px`
 })
 
+/**
+ * 生成单行正文样式，段首缩进行会额外设置左内边距。
+ *
+ * @param layout 自适应排版结果
+ * @param indent 是否为段首缩进行
+ */
 const getAdaptiveCommentLineStyle = (
   layout: AdaptiveEvaluationCommentLayoutResultType,
   indent: boolean
@@ -132,7 +153,7 @@ const getAdaptiveCommentLineStyle = (
         :style="tableStyle"
       >
         <template v-for="(item, index) in data">
-          <tr v-if="index % pageInfo.columnCount == 0" :key="`${item[NAME_PROP]}_${index}`">
+          <tr v-if="index % pageInfo.columnCount == 0" :key="`${item.studentId}_${index}`">
             <template v-for="e in pageInfo.columnCount" :key="`cell_${index}_${e}`">
               <td
                 v-if="data[index + e - 1]?.[NAME_PROP]"
@@ -148,7 +169,7 @@ const getAdaptiveCommentLineStyle = (
                   <!-- 正文区域复用共享排版结果，预览层额外处理轻微溢出的缩字和 tooltip。 -->
                   <template
                     v-for="commentLayout in [getCommentLayout(data[index + e - 1])]"
-                    :key="`${data[index + e - 1]?.[NAME_PROP]}_${commentLayout.fontSizePx}_${commentLayout.showTooltip}`"
+                    :key="`${data[index + e - 1]?.studentId}_${commentLayout.fontSizePx}_${commentLayout.showTooltip}`"
                   >
                     <el-tooltip
                       :content="String(data[index + e - 1]?.comment || '')"
@@ -162,7 +183,7 @@ const getAdaptiveCommentLineStyle = (
                       >
                         <div
                           v-for="(line, lineIndex) in commentLayout.lines"
-                          :key="`${data[index + e - 1]?.[NAME_PROP]}_${lineIndex}`"
+                          :key="`${data[index + e - 1]?.studentId}_${lineIndex}`"
                           class="table-body-line"
                           :style="getAdaptiveCommentLineStyle(commentLayout, line.indent)"
                         >

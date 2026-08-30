@@ -1,3 +1,8 @@
+/**
+ * 测试 views/tools/utils/paperLayoutCanvas 纸面布局画布模块。
+ * 覆盖：图片按列排列与自动分页、拖拽位置夹取、按页分组与层级排序、
+ * 跨页图片渲染、连续坐标归一化、新图片放置以及 Z 轴序号计算。
+ */
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -10,6 +15,7 @@ import {
 } from '../../src/views/tools/utils/paperLayoutCanvas'
 import type { PaperLayoutCanvasItemType } from '../../src/types/Tools'
 
+// 构造测试用的画布图片项，通过 overrides 覆盖默认字段
 const createItem = (
   id: string,
   overrides: Partial<PaperLayoutCanvasItemType> = {}
@@ -32,6 +38,7 @@ const createItem = (
   ...overrides
 })
 
+// 纸面布局画布工具函数测试组
 describe('paperLayoutCanvas', () => {
   it('should arrange images by columns and paginate when the next row exceeds page height', () => {
     const arrangedItems = arrangePaperItems([createItem('a'), createItem('b'), createItem('c')], {
@@ -113,6 +120,7 @@ describe('paperLayoutCanvas', () => {
     })
   })
 
+  // 新放置的图片沿用已有图片的层级继续编号，且不改变已有图片的坐标
   it('should place newly selected images on the active page without changing existing items', () => {
     const existingItem = createItem('existing', {
       pageIndex: 0,

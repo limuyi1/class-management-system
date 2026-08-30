@@ -1,27 +1,41 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
 
-import type { ConflictActionType } from '@/utils/scoreImportUntil'
+import type { ConflictActionType } from '@/utils/scoreImportUtil'
 
+/**
+ * 同名成绩列冲突处理弹窗。
+ *
+ * 导入时若存在与现有成绩同名的列，弹出本组件让用户对每列选择「覆盖」或「跳过」，
+ * 确认后回传列名到处理方式的映射。
+ */
 interface Props {
+  /** 弹窗是否可见 */
   modelValue: boolean
+  /** 冲突的成绩列名列表 */
   columns: string[]
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 弹窗可见状态变化 */
   'update:modelValue': [value: boolean]
+  /** 确认处理，回传列名到处理方式的映射 */
   confirm: [value: Record<string, ConflictActionType>]
+  /** 取消导入 */
   cancel: []
 }>()
 
+/** 各冲突列选择的处理方式（覆盖 / 跳过） */
 const actions = reactive<Record<string, ConflictActionType>>({})
 
+// 弹窗打开时重置每列的默认选择策略
 watch(
   () => props.modelValue,
   (visible) => {
     if (!visible) return
+    // 每次打开都清空旧选择，并为每个冲突列重置默认策略「跳过」
     Object.keys(actions).forEach((key) => {
       delete actions[key]
     })
@@ -31,11 +45,17 @@ watch(
   }
 )
 
+/**
+ * 关闭弹窗并通知取消导入
+ */
 const closeDialog = () => {
   emit('update:modelValue', false)
   emit('cancel')
 }
 
+/**
+ * 回传各冲突列选择的处理方式
+ */
 const handleConfirm = () => {
   emit('confirm', { ...actions })
 }
@@ -52,6 +72,7 @@ const handleConfirm = () => {
     <div class="conflict-dialog">
       <div class="conflict-dialog__tip">以下成绩列已存在，请选择覆盖已有成绩或跳过该列。</div>
 
+      <!-- 冲突列逐项选择处理方式 -->
       <div class="conflict-list">
         <div v-for="column in columns" :key="column" class="conflict-item">
           <div class="conflict-item__name">{{ column }}</div>

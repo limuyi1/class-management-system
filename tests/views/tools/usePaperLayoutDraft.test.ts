@@ -10,11 +10,19 @@ import type {
   PaperLayoutSettingsType
 } from '@/types/Tools'
 
+/**
+ * usePaperLayoutDraft 组合式函数测试
+ * 测试目标：试卷排版草稿的保存与打开逻辑
+ * 覆盖功能：空画布拦截、保存时序列化画布项、打开时排序与补齐缺失坐标
+ */
+
+// 草稿读写服务替身
 const draftServiceMocks = vi.hoisted(() => ({
   getPaperLayoutDrafts: vi.fn(),
   savePaperLayoutDraft: vi.fn()
 }))
 
+// Element Plus 的输入框与消息提示替身
 const elementPlusMocks = vi.hoisted(() => ({
   prompt: vi.fn(),
   success: vi.fn(),
@@ -33,6 +41,7 @@ vi.mock('element-plus', () => ({
   }
 }))
 
+// 构造默认的排版设置：A4 纵向、自由布局、2 列
 const createSettings = (): PaperLayoutSettingsType => ({
   pageType: PagesEnum.A4,
   orientation: 'portrait',
@@ -43,6 +52,7 @@ const createSettings = (): PaperLayoutSettingsType => ({
   gap: 5
 })
 
+// 构造画布素材项，默认位于第 0 页
 const createItem = (
   id: string,
   overrides: Partial<PaperLayoutCanvasItemType> = {}
@@ -65,6 +75,7 @@ const createItem = (
   ...overrides
 })
 
+// 构造 A3 横向、含两条乱序素材项的草稿记录
 const createDraft = (): PaperLayoutDraftRecordType => ({
   id: 'draft-1',
   name: '草稿一',
@@ -115,6 +126,7 @@ const createDraft = (): PaperLayoutDraftRecordType => ({
   updatedAt: '2026-01-02T00:00:00.000Z'
 })
 
+// 组装 hook 及其依赖项：设置、画布项、页面尺寸与回调函数集合
 const createDraftHook = (items = ref<PaperLayoutCanvasItemType[]>([])) => {
   const settings = createSettings()
   const setCanvasItems = vi.fn((nextItems: PaperLayoutCanvasItemType[]) => {
@@ -146,7 +158,9 @@ const createDraftHook = (items = ref<PaperLayoutCanvasItemType[]>([])) => {
   }
 }
 
+// 覆盖草稿保存与打开的完整交互流程
 describe('usePaperLayoutDraft', () => {
+  // 每个用例前清空 mock 记录并恢复空草稿列表
   beforeEach(() => {
     vi.clearAllMocks()
     draftServiceMocks.getPaperLayoutDrafts.mockResolvedValue([])

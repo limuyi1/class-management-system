@@ -1,14 +1,32 @@
 <script setup lang="ts">
+/** 工具中心页面 — 版纸排版、附件库、名单对比等功能入口 */
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
-import { toolItems, type ToolItemType } from '@/views/tools/constants/tools'
+import ToolCard from '@/views/tools/components/ToolCard.vue'
+import {
+  toolCategories,
+  toolItems,
+  type ToolCategoryType,
+  type ToolItemType
+} from '@/views/tools/constants/tools'
+
+/** 工具分类及其下工具项的展示分组 */
+interface ToolGroupType {
+  category: ToolCategoryType
+  tools: ToolItemType[]
+}
 
 const router = useRouter()
 
-function openTool(tool: ToolItemType): void {
-  if (tool.status !== 'available') return
+/** 按分类聚合后的工具分组列表 */
+const toolGroups: ToolGroupType[] = toolCategories.map((category) => ({
+  category,
+  tools: toolItems.filter((tool) => tool.category === category.id)
+}))
 
+/** 打开工具：需要新页签时用 window.open，否则路由内跳转 */
+function openTool(tool: ToolItemType): void {
   if (tool.openInNewTab) {
     const targetUrl = router.resolve(tool.path).href
     window.open(targetUrl, '_blank', 'noopener,noreferrer')
@@ -18,6 +36,7 @@ function openTool(tool: ToolItemType): void {
   router.push(tool.path)
 }
 
+/** 解析工具路由的完整 hash 地址，供新页签链接使用 */
 function resolveToolHref(tool: ToolItemType): string {
   return router.resolve(tool.path).href
 }
@@ -25,70 +44,33 @@ function resolveToolHref(tool: ToolItemType): string {
 
 <template>
   <div class="tools-page app-page-shell">
-    <page-header :icon="['solid', 'toolbox']" title="工具" subtitle="选择一个工具开始使用">
-    </page-header>
+    <PageHeader :icon="['solid', 'toolbox']" title="工具" subtitle="按教学场景查找并使用常用工具" />
 
-    <div class="tools-grid">
-      <template v-for="tool in toolItems" :key="tool.id">
-        <a
-          v-if="tool.openInNewTab"
-          class="tool-card"
-          :href="tool.status === 'available' ? resolveToolHref(tool) : undefined"
-          :target="tool.status === 'available' ? '_blank' : undefined"
-          :rel="tool.status === 'available' ? 'noopener noreferrer' : undefined"
-          :class="{ disabled: tool.status !== 'available', secondary: tool.tone === 'secondary' }"
-          @click.prevent="openTool(tool)"
-        >
-          <span class="tool-card__icon">
-            <font-awesome-icon :icon="['solid', tool.icon]" />
+    <!-- 按分类分组展示工具入口 -->
+    <div class="tool-sections">
+      <section
+        v-for="group in toolGroups"
+        :key="group.category.id"
+        class="tool-section"
+        :class="`tool-section--${group.category.id}`"
+      >
+        <header class="tool-section__header">
+          <span class="tool-section__heading">
+            <h2 class="tool-section__title">{{ group.category.name }}</h2>
+            <span class="tool-section__description">{{ group.category.description }}</span>
           </span>
-          <span class="tool-card__content">
-            <span class="tool-card__header">
-              <strong>{{ tool.name }}</strong>
-              <em>{{
-                tool.tone === 'secondary'
-                  ? '素材库'
-                  : tool.status === 'available'
-                    ? '已上线'
-                    : '规划中'
-              }}</em>
-            </span>
-            <span v-if="tool.openInNewTab" class="tool-card__badge">新页签打开</span>
-            <span class="tool-card__description">{{ tool.description }}</span>
-          </span>
-          <span class="tool-card__arrow">
-            <font-awesome-icon :icon="['solid', 'chevron-right']" />
-          </span>
-        </a>
-        <button
-          v-else
-          class="tool-card"
-          type="button"
-          :class="{ disabled: tool.status !== 'available', secondary: tool.tone === 'secondary' }"
-          @click="openTool(tool)"
-        >
-          <span class="tool-card__icon">
-            <font-awesome-icon :icon="['solid', tool.icon]" />
-          </span>
-          <span class="tool-card__content">
-            <span class="tool-card__header">
-              <strong>{{ tool.name }}</strong>
-              <em>{{
-                tool.tone === 'secondary'
-                  ? '素材库'
-                  : tool.status === 'available'
-                    ? '已上线'
-                    : '规划中'
-              }}</em>
-            </span>
-            <span v-if="tool.openInNewTab" class="tool-card__badge">新页签打开</span>
-            <span class="tool-card__description">{{ tool.description }}</span>
-          </span>
-          <span class="tool-card__arrow">
-            <font-awesome-icon :icon="['solid', 'chevron-right']" />
-          </span>
-        </button>
-      </template>
+        </header>
+
+        <div class="tools-grid">
+          <ToolCard
+            v-for="tool in group.tools"
+            :key="tool.id"
+            :tool="tool"
+            :href="resolveToolHref(tool)"
+            @open="openTool"
+          />
+        </div>
+      </section>
     </div>
   </div>
 </template>
@@ -96,122 +78,78 @@ function resolveToolHref(tool: ToolItemType): string {
 <style scoped lang="scss">
 .tools-page {
   display: flex;
-  flex-direction: column;
   min-height: 0;
+  flex-direction: column;
+}
+
+.tool-sections {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: 22px;
+}
+
+.tool-section {
+  --tool-category-color: #2563eb;
+  --tool-category-icon-bg: #dbeafe;
+
+  min-width: 0;
+}
+
+.tool-section--class-management {
+  --tool-category-color: #0f766e;
+  --tool-category-icon-bg: #ccfbf1;
+}
+
+.tool-section--documents {
+  --tool-category-color: #b45309;
+  --tool-category-icon-bg: #fef3c7;
+}
+
+.tool-section__header {
+  display: flex;
+  min-height: 47px;
+  margin-bottom: 10px;
+  padding-left: 10px;
+  border-left: 3px solid var(--tool-category-color);
+}
+
+.tool-section__heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tool-section__title {
+  margin: 0;
+  color: #1f2937;
+  font-size: 17px;
+  font-weight: 650;
+  line-height: 1.4;
+}
+
+.tool-section__description {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .tools-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr;
+  gap: 10px;
 }
 
-.tool-card {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  min-height: 108px;
-  padding: 16px;
-  text-align: left;
-  color: #1f2937;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-  cursor: pointer;
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s,
-    transform 0.2s;
+@media (max-width: 1080px) {
+  .tool-sections {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
-.tool-card:hover {
-  border-color: var(--theme-menu-active);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.1);
-  transform: translateY(-1px);
-}
-
-.tool-card.disabled {
-  cursor: not-allowed;
-  opacity: 0.62;
-}
-
-.tool-card.secondary {
-  min-height: 96px;
-  background: #fbfdff;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.035);
-}
-
-.tool-card.secondary .tool-card__icon {
-  color: #64748b;
-  background: #f1f5f9;
-}
-
-.tool-card.secondary .tool-card__header em {
-  color: #64748b;
-  background: #f8fafc;
-}
-
-.tool-card__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 46px;
-  height: 46px;
-  flex-shrink: 0;
-  color: var(--theme-menu-active);
-  background: var(--theme-menu-active-bg);
-  border-radius: 8px;
-  font-size: 20px;
-}
-
-.tool-card__content {
-  min-width: 0;
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.tool-card__header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.tool-card__header strong {
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.tool-card__header em {
-  padding: 2px 7px;
-  color: var(--theme-menu-active);
-  background: var(--theme-menu-active-bg);
-  border-radius: 999px;
-  font-size: 12px;
-  font-style: normal;
-}
-
-.tool-card__badge {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: 2px 8px;
-  color: #0f766e;
-  background: #ecfeff;
-  border: 1px solid #a5f3fc;
-  border-radius: 999px;
-  font-size: 12px;
-}
-
-.tool-card__description {
-  color: #6b7280;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.tool-card__arrow {
-  color: #9ca3af;
-  flex-shrink: 0;
+@media (max-width: 680px) {
+  .tool-sections {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

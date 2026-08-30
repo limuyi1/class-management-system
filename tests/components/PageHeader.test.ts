@@ -3,7 +3,13 @@ import { mount } from '@vue/test-utils'
 import { h } from 'vue'
 import PageHeader from '../../src/components/PageHeader.vue'
 
+/**
+ * PageHeader 组件测试
+ * 测试目标：页面头部通用组件
+ * 覆盖功能：图标/标题/副标题渲染、右侧插槽（单个与多个元素）、空插槽、超长文本
+ */
 describe('PageHeader', () => {
+  // 各用例复用的默认 props：图标、标题与副标题
   const defaultProps = {
     icon: ['fas', 'user'] as string[],
     title: 'Test Title',

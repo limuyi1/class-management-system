@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 低分学生预警卡片
+ * 展示低于阈值的学生名单，并支持下载名单图片。
+ */
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 
@@ -9,13 +13,16 @@ import { useScoreDistributionActions } from '@/hooks/useScoreDistributionActions
 
 import ThresholdStudents from '@/views/score/components/statistics/ThresholdStudents.vue'
 
+// 学生数据与应用配置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
 const { students: originList } = storeToRefs(store)
 
+// 当前录入科目 prop，作为统计的分数来源
 const scorePropRef = computed(() => configuration.inputScoreTab)
 
+// 阈值、低分名单与分数统计
 const {
   threshold,
   thresholdMode,
@@ -28,6 +35,7 @@ const {
   scoreProp: scorePropRef
 })
 
+// 下载低分名单图片
 const { downloadImage } = useScoreDistributionActions({
   scoreStats,
   belowThresholdStudents,
@@ -45,6 +53,7 @@ const { downloadImage } = useScoreDistributionActions({
       </div>
     </div>
 
+    <!-- 有成绩时展示阈值控制与低分名单 -->
     <template v-if="scoreStats">
       <threshold-students
         :threshold="threshold"
@@ -59,6 +68,7 @@ const { downloadImage } = useScoreDistributionActions({
       />
     </template>
 
+    <!-- 无成绩时展示空提示 -->
     <div v-else class="empty-hint">
       <font-awesome-icon :icon="['solid', 'chart-simple']" />
       <span>暂无成绩数据</span>

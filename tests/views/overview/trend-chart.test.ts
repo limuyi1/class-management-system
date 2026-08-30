@@ -9,12 +9,20 @@ import {
 } from '@/views/overview/services/dashboard/trend-chart'
 import type { DashboardStudentTrendType } from '@/types/HomeDashboard'
 
+/**
+ * trend-chart 服务函数测试
+ * 测试目标：学生趋势图表数据构建（tooltip 文案、均值参考线、汇总文案、折线/柱状图配置）
+ * 覆盖功能：tooltip 分数格式化、平均分标签防重叠、单人对比汇总、单/对比模式的图表序列
+ */
+
+// 构造单人趋势数据：三个单元成绩、班级均分 80、已生成评语
 const createTrend = (): DashboardStudentTrendType => ({
   mode: 'single',
   classAverageScore: 80,
   summaries: ['整体表现稳定'],
   students: [
     {
+      studentId: 'student-1',
       name: '张三',
       scoreCount: 3,
       completedComment: true,
@@ -29,6 +37,7 @@ const createTrend = (): DashboardStudentTrendType => ({
   ]
 })
 
+// 覆盖趋势图表各工具函数的纯函数行为
 describe('trend-chart', () => {
   it('should format tooltip scores for normal and average series', () => {
     expect(getStudentTrendTooltipScoreText('张三', 88)).toBe('88 分')

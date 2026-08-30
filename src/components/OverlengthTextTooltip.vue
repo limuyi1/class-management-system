@@ -3,11 +3,19 @@ import { ref, computed } from 'vue'
 import { useResizeObserver } from '@vueuse/core'
 import type { OverlengthTextTooltipProps } from '@/types/OverlengthTextTooltip'
 
+/**
+ * 超长文本提示组件。
+ *
+ * 当文本因宽度限制或行数截断无法完整展示时，自动启用 tooltip 悬浮提示；
+ * 通过 Range 测量文字实际尺寸与容器内边距判断是否发生溢出。
+ */
 const props = withDefaults(defineProps<OverlengthTextTooltipProps>(), {
   level: 1
 })
 
+/** 文本容器 DOM 引用 */
 const text = ref<HTMLElement>()
+/** 文本是否发生截断溢出 */
 const isEllipsis = ref(false)
 
 /**
@@ -45,7 +53,8 @@ const checkEllipsis = () => {
 
 /**
  * 获取元素的内边距
- * @param el
+ * @param el - 目标元素
+ * @returns 上下左右四向内边距
  */
 const getPadding = (el: HTMLElement) => {
   const style = window.getComputedStyle(el, null)
@@ -61,6 +70,7 @@ const getPadding = (el: HTMLElement) => {
   }
 }
 
+/** 文本容器样式：宽度、行数截断与自定义样式合并 */
 const getStyle = computed(() => {
   return Object.assign(
     {},
@@ -71,6 +81,7 @@ const getStyle = computed(() => {
 </script>
 
 <template>
+  <!-- 文本溢出时启用 tooltip 展示完整内容 -->
   <el-tooltip
     :content="String(content)"
     placement="top"

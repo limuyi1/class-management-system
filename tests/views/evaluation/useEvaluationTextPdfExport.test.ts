@@ -6,10 +6,18 @@ import { PagesEnum } from '@/types/Common'
 import type { ConfigurationType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
+/**
+ * useEvaluationTextPdfExport 组合式函数测试
+ * 测试目标：期末评语的 PDF/Excel 导出逻辑
+ * 覆盖功能：无学生时的警告、不支持字形确认取消、超长评语截断提示、Excel 导出与失败提示
+ */
+
+// 手写字体字形检测替身
 const fontUtilMocks = vi.hoisted(() => ({
   hasUnsupportedEvaluationHandwriteGlyphs: vi.fn()
 }))
 
+// PDF 与 Excel 导出工具替身，隔离真实导出实现
 const exportMocks = vi.hoisted(() => ({
   exportEvaluationTextExcel: vi.fn(),
   exportEvaluationTextPDF: vi.fn()
@@ -29,9 +37,9 @@ const messageMocks = vi.hoisted(() => ({
   warning: vi.fn()
 }))
 
-vi.mock('@/utils/evaluationHandwriteFontUntil', () => fontUtilMocks)
-vi.mock('@/utils/evaluationTextExcelUntil', () => exportMocks)
-vi.mock('@/utils/evaluationTextPdfUntil', () => exportMocks)
+vi.mock('@/utils/evaluation/evaluationHandwriteFontUtil', () => fontUtilMocks)
+vi.mock('@/utils/evaluation/evaluationTextExcelUtil', () => exportMocks)
+vi.mock('@/utils/evaluation/evaluationTextPdfUtil', () => exportMocks)
 
 vi.mock('element-plus', () => ({
   ElLoading: {
@@ -41,6 +49,7 @@ vi.mock('element-plus', () => ({
   ElMessageBox: messageBoxMocks
 }))
 
+// 构造完整的应用配置对象
 const createConfiguration = (): ConfigurationType => ({
   fontSize: 18,
   salutationFontSize: 18,
@@ -64,12 +73,15 @@ const createConfiguration = (): ConfigurationType => ({
   evaluationHandwriteFont: null
 })
 
+// 构造仅含姓名与评语的学生数据
 const createStudent = (name: string): StudentDataType => ({
   name: name,
   comment: '评语'
 })
 
+// 覆盖 PDF 与 Excel 两条导出路径的成功与失败分支
 describe('useEvaluationTextPdfExport', () => {
+  // 每个用例前重置 mock 记录并恢复默认成功返回值
   beforeEach(() => {
     vi.clearAllMocks()
     fontUtilMocks.hasUnsupportedEvaluationHandwriteGlyphs.mockResolvedValue(false)

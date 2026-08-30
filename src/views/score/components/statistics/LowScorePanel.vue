@@ -1,6 +1,11 @@
 <script setup lang="ts">
+/**
+ * 60分以下低分面板
+ * 无低分学生时静态展示，有低分学生时折叠展示各低分区间名单。
+ */
 import type { ScoreStatisticsType } from '@/hooks/useScoreStatistics'
 
+/** 组件属性：分数统计结果 */
 interface Props {
   scoreStats: ScoreStatisticsType
 }
@@ -9,6 +14,7 @@ defineProps<Props>()
 </script>
 
 <template>
+  <!-- 无低分学生时静态展示 -->
   <div v-if="scoreStats.lowScoreTotal === 0" class="low-score-collapse is-disabled">
     <div class="low-score-static-header">
       <div class="collapse-title">
@@ -18,6 +24,7 @@ defineProps<Props>()
     </div>
   </div>
 
+  <!-- 有低分学生时折叠面板展示各低分区间名单 -->
   <el-collapse
     v-else
     accordion
@@ -28,6 +35,7 @@ defineProps<Props>()
         <div class="collapse-title">
           <span class="collapse-label">60分以下</span>
           <span class="collapse-count">({{ scoreStats.lowScoreTotal }}人)</span>
+          <!-- 悬停查看完整低分名单 -->
           <el-popover
             v-if="scoreStats.allLowScoreStudents.length"
             placement="top"
@@ -51,6 +59,7 @@ defineProps<Props>()
         </div>
       </template>
 
+      <!-- 低分区间网格：每个区间悬停查看名单 -->
       <div class="low-range-grid">
         <div v-for="range in scoreStats.lowScoreRanges" :key="range.label" class="low-range-item">
           <el-tag :color="range.color + '15'" :text-color="range.color" size="small" class="range-label">

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 
 import { createDefaultTagCategories, createDefaultTags } from '@/config/defaultTags'
-import { NAME_PROP } from '@/types/Constants'
+import { NAME_PROP } from '@/constants'
 
 import type { SettingType } from '@/types/Setting'
 
@@ -31,6 +31,10 @@ export const useSettingStore = defineStore('setting', {
     tags: createDefaultTags()
   }),
   getters: {
+    /**
+     * 已启用的成绩列
+     * 过滤掉姓名列和已禁用列
+     */
     enabledScoreColumns: (state) =>
       state.scoreColumns.filter((item) => item.prop !== NAME_PROP && !item.disabled)
   },

@@ -1,17 +1,23 @@
 <script setup lang="ts">
+/**
+ * 成绩导出按钮
+ * 支持导出当前科目总表（含统计）与所有科目成绩汇总。
+ */
 import * as XLSX from 'xlsx'
 import { storeToRefs } from 'pinia'
 
-import { exportExcel } from '@/utils/xlsxUntil'
+import { exportExcel } from '@/utils/xlsxUtil'
 import { passingScoreRanges } from '@/config/score'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
-import { dayjs, ElLoading, ElMessage } from 'element-plus'
-import { NAME_PROP } from '@/types/Constants'
+import { dayjs, ElMessage } from 'element-plus'
+import { startLoading, stopLoading } from '@/hooks/useLoading'
+import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
+/** 组件属性：是否禁用导出 */
 interface Props {
   disabled?: boolean
 }
@@ -20,21 +26,27 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false
 })
 
+// 学生数据、应用配置与表头设置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 
+// 全部学生与启用的成绩科目列
 const { students: originList } = storeToRefs(store)
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
+// 分数段：及格区间追加“60分以下”
 const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max: 59 }]
+// 表格单元格值类型
 type CellValueType = string | number | null
 
+/**
+ * 统一执行 Excel 导出并处理加载状态与错误提示。
+ * @param fileName 导出文件名
+ * @param workbook 工作簿
+ */
 const exportWorkbook = (fileName: string, workbook: XLSX.WorkBook) => {
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出Excel...'
-  })
+  startLoading('正在导出Excel...')
 
   try {
     const result = exportExcel(undefined, undefined, fileName, workbook)
@@ -44,16 +56,18 @@ const exportWorkbook = (fileName: string, workbook: XLSX.WorkBook) => {
     }
     ElMessage.success('导出成功')
   } finally {
-    loading.close()
+    stopLoading()
   }
 }
 
+/** 获取学生当前录入科目的有效分数，未选择科目或分数非法时返回 null */
 const getScore = (item: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
   const score = item[configuration.inputScoreTab]
   return typeof score === 'number' && Number.isFinite(score) ? score : null
 }
 
+/** 按分数区间筛选学生并按分数降序排列 */
 const filterByRange = (range: { min: number; max: number }) => {
   return originList.value
     .filter((e) => {
@@ -63,6 +77,14 @@ const filterByRange = (range: { min: number; max: number }) => {
     .sort((a, b) => (getScore(b) || 0) - (getScore(a) || 0))
 }
 
+/**
+ * 构建带统计页脚的汇总工作表并导出。
+ * @param sheetName 工作表名
+ * @param filename 导出文件名
+ * @param scoreLabels 各科目列标签
+ * @param buildScoreRow 根据学生生成成绩行
+ * @param footerRows 页脚统计行
+ */
 const buildSheetWithStats = (
   sheetName: string,
   filename: string,
@@ -89,6 +111,7 @@ const buildSheetWithStats = (
   exportWorkbook(filename, workbook)
 }
 
+/** 导出当前科目总表：总表页含统计页脚，另按各分数段分页 */
 const exportExcelFun = () => {
   const workbook = XLSX.utils.book_new()
   const filename = `成绩_${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.xlsx`
@@ -124,6 +147,7 @@ const exportExcelFun = () => {
   exportWorkbook(filename, workbook)
 }
 
+/** 导出所有科目的成绩汇总 */
 const exportAllExcelFun = () => {
   const unitHeaders = scoreColumns.value
   const scoreLabels = unitHeaders.map((h) => h.label)
@@ -150,6 +174,7 @@ const exportAllExcelFun = () => {
   )
 }
 
+/** 处理下拉命令：导出当前科目或全部科目成绩 */
 const handleCommand = (command: 'current' | 'all') => {
   if (props.disabled) return
 
@@ -162,6 +187,7 @@ const handleCommand = (command: 'current' | 'all') => {
 </script>
 
 <template>
+  <!-- 导出下拉菜单：当前成绩 / 所有成绩 -->
   <el-dropdown :disabled="disabled" @command="handleCommand" trigger="hover">
     <el-button :disabled="disabled">
       <template #icon><font-awesome-icon :icon="['solid', 'download']" /></template>

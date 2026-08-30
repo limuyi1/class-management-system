@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * 成绩总览卡片
+ * 展示平均分、综合比率、及格率等指标，并通过过渡动画平滑更新。
+ */
 import { computed, ref, watch } from 'vue'
 import { useTransition } from '@vueuse/core'
 
@@ -7,24 +11,31 @@ import { storeToRefs } from 'pinia'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 
+// 学生数据与应用配置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
+// 启用学生列表，变化时驱动统计刷新
 const { enabledData: tableData } = storeToRefs(store)
 
+/** 是否有成绩数据 */
 const hasData = computed(() => store.hasAnyScore)
+/** 已录入人数与总人数（空状态提示用） */
 const validCount = computed(() => store.validCount)
 const totalCount = computed(() => store.totalCount)
+/** 当前科目最高分，无数据时为 0 */
 const maxScore = computed(() => {
   const scores = store.validScores
   if (!scores.length) return 0
   return Math.max(...scores)
 })
+/** 当前科目最低分，无数据时为 0 */
 const minScore = computed(() => {
   const scores = store.validScores
   if (!scores.length) return 0
   return Math.min(...scores)
 })
 
+// 各统计指标原始值，由 exec 从 store 同步
 const comprehensiveRatingRate = ref(0)
 const average = ref(0)
 const passRate = ref(0)
@@ -32,6 +43,7 @@ const excellentRate = ref(0)
 const optimumRate = ref(0)
 const lowScoreRate = ref(0)
 
+// 通过过渡动画平滑更新各项指标展示值
 const outputComprehensiveRatingRate = useTransition(comprehensiveRatingRate, {
   duration: 1500
 })
@@ -51,6 +63,7 @@ const outputLowScoreRate = useTransition(lowScoreRate, {
   duration: 1500
 })
 
+/** 从 store 同步最新统计指标到本地响应式状态 */
 const exec = () => {
   average.value = store.average
   passRate.value = store.passRate
@@ -62,6 +75,7 @@ const exec = () => {
 
 watch(
   () => [tableData.value, configuration.inputScoreTab],
+  // 表格数据或当前科目变化时重新计算统计指标
   () => exec(),
   {
     immediate: true,
@@ -79,6 +93,7 @@ watch(
       </div>
     </div>
 
+    <!-- 有成绩时展示指标网格：平均分、综合比率、及格率 -->
     <template v-if="hasData">
       <div class="stats-grid">
         <div class="stat-item">
@@ -103,6 +118,7 @@ watch(
           <div class="stat-value">{{ outputPassRate.toFixed(2) }}%</div>
         </div>
       </div>
+      <!-- 优秀率、特优率、低分率汇总行 -->
       <div class="meta-line">
         优秀率 {{ outputExcellentRate.toFixed(2) }}% | 特优率 {{ outputOptimumRate.toFixed(2) }}% |
         低分率 {{ outputLowScoreRate.toFixed(2) }}%
@@ -110,6 +126,7 @@ watch(
       <div class="extreme-row">最高 {{ maxScore }} 分 | 最低 {{ minScore }} 分</div>
     </template>
 
+    <!-- 无成绩时展示空提示与录入进度 -->
     <div v-else class="empty-hint">
       <font-awesome-icon :icon="['solid', 'chart-simple']" />
       <span>暂无成绩数据</span>

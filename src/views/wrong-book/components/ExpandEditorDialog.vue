@@ -3,6 +3,7 @@ import { ref, watch } from 'vue'
 import { ElDialog, ElButton } from 'element-plus'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 
+/** 弹窗可见性与三个编辑器的初始内容 */
 interface Props {
   visible: boolean
   questionText: string
@@ -12,6 +13,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+/** 可见性与三个字段内容的更新事件 */
 const emit = defineEmits<{
   'update:visible': [value: boolean]
   'update:questionText': [value: string]
@@ -19,6 +21,7 @@ const emit = defineEmits<{
   'update:explanation': [value: string]
 }>()
 
+// 展开编辑时的本地草稿，保存时回写父组件
 const expandQuestion = ref('')
 const expandAnswer = ref('')
 const expandExplanation = ref('')
@@ -26,6 +29,7 @@ const expandQuestionRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 const expandAnswerRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 const expandExplanationRef = ref<InstanceType<typeof MarkdownEditor> | null>(null)
 
+// 打开弹窗时用当前内容初始化各编辑器的草稿
 watch(
   () => props.visible,
   (isVisible) => {
@@ -37,6 +41,7 @@ watch(
   }
 )
 
+/** 将三个编辑器的内容保存回父组件并关闭弹窗 */
 const handleSave = () => {
   emit('update:questionText', expandQuestionRef.value?.getContent?.() || '')
   emit('update:answer', expandAnswerRef.value?.getContent?.() || '')
@@ -53,6 +58,7 @@ const handleSave = () => {
     append-to-body
     @update:model-value="(val) => emit('update:visible', val)"
   >
+    <!-- 全屏展开的题目 / 答案 / 解析编辑器 -->
     <div class="expand-editors">
       <div class="expand-editor-item">
         <h3>题目内容</h3>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学生观察站 — 以分组标签页展示四类关注学生，并处理空态与展开状态 */
 import { computed, reactive, watchEffect } from 'vue'
 
 import OverviewFocusGroupPanel from '@/views/overview/components/focus/OverviewFocusGroupPanel.vue'
@@ -21,6 +22,7 @@ const emit = defineEmits<{
   select: [name: string]
 }>()
 
+/** 内部状态：当前激活分组 key、各分组的展开状态记录 */
 const state = reactive({
   activeGroupKey: '',
   expandedByGroup: {} as Record<string, boolean>
@@ -35,6 +37,7 @@ const hasVisibleItems = () => props.focusGroups.some((group) => group.sections.l
 const shouldShowInsufficientDataEmpty = computed(
   () => props.completedUnitCount < 2 && !hasVisibleItems()
 )
+/** 空态说明文案，按页面阶段与数据充足程度动态生成 */
 const emptyDescription = computed(() =>
   props.stage === 'noUnits'
     ? '还没有设置单元，设置并录入成绩后会生成学生观察分组'
@@ -45,18 +48,27 @@ const emptyDescription = computed(() =>
         : '暂无符合条件的学生'
 )
 
+/** 当前激活分组是否处于展开状态，展开时撑满剩余高度 */
 const shouldFillRemainingSpace = computed(() =>
   Boolean(state.expandedByGroup[state.activeGroupKey])
 )
 
+/** 当前激活分组对应的语义色调，用于给卡片边框和标题着色 */
 const activeGroupTone = computed(() => {
   return props.focusGroups.find((group) => group.key === state.activeGroupKey)?.tone || 'info'
 })
 
+/**
+ * 记录某个分组的展开状态，供父级判断是否需要撑满剩余空间。
+ *
+ * @param groupKey 分组 key
+ * @param expanded 是否展开
+ */
 const handleExpandChange = (groupKey: string, expanded: boolean) => {
   state.expandedByGroup[groupKey] = expanded
 }
 
+// 同步分组数据变化：重置失效的激活分组与展开状态，避免残留脏状态
 watchEffect(() => {
   const visibleGroup = props.focusGroups.find((group) => group.sections.length > 0)
 
@@ -95,6 +107,7 @@ watchEffect(() => {
       </div>
     </div>
 
+    <!-- 分组标签页：存在可见分组时展示 -->
     <el-tabs v-if="hasVisibleItems()" v-model="state.activeGroupKey" class="focus-tabs">
       <el-tab-pane
         v-for="group in focusGroups"
@@ -112,6 +125,7 @@ watchEffect(() => {
       </el-tab-pane>
     </el-tabs>
 
+    <!-- 无任何可见分组时的整体空态 -->
     <el-empty v-else :image-size="56" :description="emptyDescription"></el-empty>
   </el-card>
 </template>

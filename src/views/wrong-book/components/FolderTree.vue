@@ -8,12 +8,15 @@ import type { TreeNode } from '@/types/FolderTree'
 const wrongBookStore = useWrongBookStore()
 const { folders, selectedFolderId, questions } = storeToRefs(wrongBookStore)
 
+/** Element Tree 的字段映射配置 */
 const defaultProps = {
   children: 'children',
   label: 'name'
 }
 
+/** 由扁平文件夹列表构建的树形结构，按 order 排序 */
 const treeData = computed<TreeNode[]>(() => {
+  // 先建立 id 到树节点的映射，再据此把节点挂载到对应父节点下
   const map = new Map<string, TreeNode>()
   folders.value.forEach((f) => {
     map.set(f.id, { ...f, children: [] })
@@ -30,32 +33,57 @@ const treeData = computed<TreeNode[]>(() => {
   return result.sort((a, b) => a.order - b.order)
 })
 
+/** 默认展开的节点键，初始展开默认文件夹 */
 const expandedKeys = ref<string[]>(['default'])
 
+/**
+ * 统计指定文件夹下的题目数量
+ * @param folderId - 文件夹 id
+ * @returns 题目数量
+ */
 const getQuestionCount = (folderId: string) => {
   return questions.value.filter((q) => q.folderId === folderId).length
 }
 
+/**
+ * 统计指定文件夹下收藏题目的数量
+ * @param folderId - 文件夹 id
+ * @returns 收藏题目数量
+ */
 const getFavoritesCount = (folderId: string) => {
   return questions.value.filter((q) => q.folderId === folderId && q.isFavorite).length
 }
 
+/**
+ * 点击节点时切换到该文件夹
+ * @param data - 被点击的树节点
+ */
 const handleNodeClick = (data: TreeNode) => {
   wrongBookStore.selectFolder(data.id)
 }
 
+/** 正在重命名的文件夹 id 与名称草稿 */
 const editingFolderId = ref<string | null>(null)
 const editingName = ref('')
 
+/** 新建文件夹（默认名称为“新建文件夹”） */
 const handleAddFolder = () => {
   wrongBookStore.addFolder('新建文件夹')
 }
 
+/**
+ * 进入文件夹重命名状态
+ * @param data - 待重命名的树节点
+ */
 const handleRename = (data: TreeNode) => {
   editingFolderId.value = data.id
   editingName.value = data.name
 }
 
+/**
+ * 确认重命名，空名称时给出警告
+ * @param data - 待重命名的树节点
+ */
 const handleRenameConfirm = (data: TreeNode) => {
   if (!editingName.value.trim()) {
     ElMessage.warning('文件夹名称不能为空')
@@ -65,6 +93,10 @@ const handleRenameConfirm = (data: TreeNode) => {
   editingFolderId.value = null
 }
 
+/**
+ * 删除文件夹（默认/收藏文件夹禁止删除），删除前二次确认
+ * @param data - 待删除的树节点
+ */
 const handleDelete = async (data: TreeNode) => {
   if (data.id === 'default' || data.id === 'favorites') {
     ElMessage.warning('默认文件夹或收藏文件夹不能删除')
@@ -79,7 +111,7 @@ const handleDelete = async (data: TreeNode) => {
     wrongBookStore.deleteFolder(data.id)
     ElMessage.success('删除成功')
   } catch {
-    // cancelled
+    // 用户取消删除操作
   }
 }
 </script>
@@ -92,6 +124,7 @@ const handleDelete = async (data: TreeNode) => {
         <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
       </el-button>
     </div>
+    <!-- 文件夹树：自定义节点展示图标、名称、数量与操作 -->
     <el-scrollbar>
       <el-tree
         :data="treeData"

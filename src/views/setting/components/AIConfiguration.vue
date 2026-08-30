@@ -1,7 +1,11 @@
 <script setup lang="ts">
+/**
+ * AI 配置组件：配置 AI 品牌、模型、API Key、Base URL，
+ * 支持拉取可用模型、测试连接，并维护各类提示词的默认值重置。
+ */
 import { ref } from 'vue'
 import { storeToRefs } from 'pinia'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { useAIConfigStore } from '@/stores/ai-config'
 import { featureFlags } from '@/config/features'
@@ -14,12 +18,13 @@ import type { AIPromptsType } from '@/types/AIConfig'
 const store = useAIConfigStore()
 const { modelType, model, apiKey, baseUrl, prompts, availableModels } = storeToRefs(store)
 
-const showApiKey = ref(false)
-const testing = ref(false)
-const fetchingModels = ref(false)
-const activePromptTab = ref<keyof AIPromptsType>('singleComment')
-const aiConfigFormRef = ref<FormInstance>()
+const showApiKey = ref(false) // 是否明文显示 API Key
+const testing = ref(false) // 连接测试进行中
+const fetchingModels = ref(false) // 模型列表拉取中
+const activePromptTab = ref<keyof AIPromptsType>('singleComment') // 当前激活的提示词标签页
+const aiConfigFormRef = ref<FormInstance>() // 表单实例引用，用于字段校验
 
+/** API Key 表单校验规则：必填且不能为空白 */
 const aiConfigFormRules: FormRules = {
   apiKey: [
     {
@@ -32,11 +37,13 @@ const aiConfigFormRules: FormRules = {
   ]
 }
 
+/** AI 品牌下拉选项，由枚举标签映射而来 */
 const modelOptions = Object.entries(AIModelTypeLabels).map(([value, label]) => ({
   value: value as AIModelTypeEnum,
   label
 }))
 
+/** 提示词标签页配置，包含标签名与默认占位内容 */
 const promptTabs: Array<{
   key: keyof AIPromptsType
   label: string
@@ -61,6 +68,7 @@ const promptTabs: Array<{
     placeholder: DefaultAIPrompts.tagCategoryGenerate
   },
   { key: 'tagGenerate', label: '标签生成', placeholder: DefaultAIPrompts.tagGenerate },
+  // 错题本功能开启时追加 AI 答题提示词
   ...(featureFlags.wrongBook
     ? [
         {
@@ -70,9 +78,23 @@ const promptTabs: Array<{
         }
       ]
     : []),
-  { key: 'learningAnalysis', label: '学情分析', placeholder: DefaultAIPrompts.learningAnalysis }
+  { key: 'learningAnalysis', label: '学情分析', placeholder: DefaultAIPrompts.learningAnalysis },
+  {
+    key: 'scoreNoticeSingleComment',
+    label: '通知单评',
+    placeholder: DefaultAIPrompts.scoreNoticeSingleComment
+  },
+  {
+    key: 'scoreNoticeBatchComment',
+    label: '通知批评',
+    placeholder: DefaultAIPrompts.scoreNoticeBatchComment
+  }
 ]
 
+/**
+ * AI 品牌切换处理：更新品牌并尝试重新拉取可用模型列表。
+ * @param val - 新品牌
+ */
 const handleModelChange = async (val: AIModelTypeEnum) => {
   store.setModelType(val)
 
@@ -96,6 +118,10 @@ const handleModelChange = async (val: AIModelTypeEnum) => {
   }
 }
 
+/**
+ * 校验 API Key 是否填写有效。
+ * @returns 是否校验通过
+ */
 const validateApiKey = async (): Promise<boolean> => {
   if (!aiConfigFormRef.value) {
     return apiKey.value.trim().length > 0
@@ -109,6 +135,7 @@ const validateApiKey = async (): Promise<boolean> => {
   }
 }
 
+/** 拉取可用模型：校验通过后请求并选中首个模型 */
 const handleFetchModels = async () => {
   if (!(await validateApiKey())) return
 
@@ -135,6 +162,7 @@ const handleFetchModels = async () => {
   }
 }
 
+/** 测试当前 AI 配置的连接是否可用 */
 const handleTestConnection = async () => {
   if (!(await validateApiKey())) return
 
@@ -158,9 +186,33 @@ const handleTestConnection = async () => {
   }
 }
 
+/**
+ * 重置单个提示词为默认值。
+ * @param promptKey - 提示词键
+ * @param label - 提示词展示名
+ */
 const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
   store.resetPrompt(promptKey)
   ElMessage.success(`${label}提示词已重置为默认值`)
+}
+
+/** 重置全部提示词为默认值（需二次确认） */
+const handleResetAllPrompts = async (): Promise<void> => {
+  try {
+    await ElMessageBox.confirm(
+      '将覆盖所有自定义提示词并恢复为默认值，此操作无法撤销。确定继续吗？',
+      '重置全部提示词',
+      {
+        confirmButtonText: '重置全部',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    store.resetPrompts()
+    ElMessage.success('所有提示词已重置为默认值')
+  } catch {
+    // 用户取消时保持当前提示词不变
+  }
 }
 </script>
 
@@ -168,6 +220,7 @@ const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
   <div class="ai-configuration">
     <el-row :gutter="16">
       <el-col :span="8">
+        <!-- 左侧卡片：AI 模型与连接配置 -->
         <el-card class="config-card">
           <template #header>
             <div class="card-header">
@@ -266,11 +319,20 @@ const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
       </el-col>
 
       <el-col :span="16">
+        <!-- 右侧卡片：各类提示词编辑与重置 -->
         <el-card class="prompt-card">
           <template #header>
-            <div class="card-header">
-              <font-awesome-icon :icon="['solid', 'file-lines']" />
-              <span>提示词配置</span>
+            <div class="card-header prompt-card-header">
+              <div class="prompt-card-header__title">
+                <font-awesome-icon :icon="['solid', 'file-lines']" />
+                <span>提示词配置</span>
+              </div>
+              <el-button type="danger" size="small" plain @click="handleResetAllPrompts">
+                <template #icon>
+                  <font-awesome-icon :icon="['solid', 'rotate-left']" />
+                </template>
+                重置全部
+              </el-button>
             </div>
           </template>
 
@@ -301,6 +363,7 @@ const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
             </el-tab-pane>
           </el-tabs>
 
+          <!-- 提示词占位变量说明，帮助用户编写自定义提示词 -->
           <div class="prompt-tips">
             <div class="tip-title">提示：</div>
             <div class="tip-item">
@@ -400,6 +463,16 @@ const handleResetPrompt = (promptKey: keyof AIPromptsType, label: string) => {
 
     svg {
       color: var(--theme-primary);
+    }
+  }
+
+  .prompt-card-header {
+    justify-content: space-between;
+
+    &__title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   }
 

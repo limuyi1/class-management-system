@@ -33,9 +33,11 @@ import type {
   UnitMetricType
 } from '@/views/overview/services/dashboard/types'
 
+/** 判断走势方向是否为下行（含波动下行） */
 const isDownwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
   direction === 'down' || direction === 'volatileDown'
 
+/** 判断走势方向是否为上行（含波动上行） */
 const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection']) =>
   direction === 'up' || direction === 'volatileUp'
 
@@ -46,6 +48,10 @@ const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection'])
  * 每组下包含多个标签区块（如”突发异常”、”下滑关注”等）。
  * 区块内的学生按推荐分数排序，同一标签优先展示。
  * 波动标签会被细分为”波动上行”和”波动下行”两个区块。
+ *
+ * @param metrics 学生画像列表
+ * @param config 总览页配置
+ * @returns 四类标签分组及其区块结构
  */
 export const buildFocusGroups = (
   metrics: StudentMetricType[],
@@ -156,15 +162,22 @@ export const buildFocusGroups = (
  * - 中段变化：中段层学生的变化情况
  * - 波动观察：波动学生的上行/下行分布
  * - 班级概况：整体均分、及格率、单元完成进度
+ *
+ * @param metrics 学生画像列表
+ * @param kpi 班级 KPI 指标
+ * @param config 总览页配置
+ * @returns 汇总卡片列表
  */
 export const buildSummaryCards = (
   metrics: StudentMetricType[],
   kpi: DashboardKpiType,
   config: HomeDashboardConfigType
 ): DashboardSummaryCardType[] => {
+  /** 筛选命中指定标签分组的学生 */
   const groupStudents = (groupKey: DashboardFocusGroupKeyType) =>
     metrics.filter((metric) => metric.matchedTags.some((tag) => tag.group === groupKey))
 
+  /** 统计指定分组内每个标签的命中人数（过滤掉无人命中的标签） */
   const buildCardDetails = (groupKey: DashboardFocusGroupKeyType) => {
     return Object.entries(config.tagRules.tags)
       .filter(([, tagConfig]) => tagConfig.enabled && tagConfig.group === groupKey)
@@ -261,6 +274,10 @@ export const buildSummaryCards = (
  * 从三个分组（attention/encouragement/volatilityWatch）中各取最多 N 名学生。
  * 选取规则：按推荐分数排序，推荐分数相同则按标签优先级排序。
  * 波动观察组内再按中段变化类型细分排序。
+ *
+ * @param metrics 学生画像列表
+ * @param config 总览页配置
+ * @returns 关键学生名单列表
  */
 export const buildKeyStudentLists = (
   metrics: StudentMetricType[],
@@ -351,6 +368,9 @@ export const buildKeyStudentLists = (
  * - 低分人数最多：该单元不及格学生最多，教学难度大
  * - 差异最大：该单元标准差最大，学生分化严重
  * - 波动最明显：该单元与前一单元均分差异最大
+ *
+ * @param unitMetrics 单元维度统计列表
+ * @returns 教学提示列表
  */
 export const buildTeachingInsights = (unitMetrics: UnitMetricType[]): DashboardTeachingInsightType[] => {
   if (!unitMetrics.length) return []
@@ -404,16 +424,23 @@ export const buildTeachingInsights = (unitMetrics: UnitMetricType[]): DashboardT
  * - 生成对比摘要
  *
  * 两种模式都会限制摘要条数（由配置控制）。
+ *
+ * @param metrics 学生画像列表
+ * @param selectedStudentIds 选中的学生 ID 列表
+ * @param config 总览页配置
+ * @param unitHeaders 单元表头配置
+ * @param kpi 班级 KPI 指标（可选，用于提供班级均分参考线）
+ * @returns 趋势分析数据，无有效选中学生时返回 null
  */
 export const buildStudentTrend = (
   metrics: StudentMetricType[],
-  selectedStudentNames: string[],
+  selectedStudentIds: string[],
   config: HomeDashboardConfigType,
   unitHeaders: SettingType[],
   kpi?: DashboardKpiType
 ): DashboardStudentTrendType | null => {
-  const selectedMetrics = selectedStudentNames
-    .map((name) => metrics.find((metric) => metric.name === name))
+  const selectedMetrics = selectedStudentIds
+    .map((studentId) => metrics.find((metric) => metric.studentId === studentId))
     .filter((item): item is StudentMetricType => item !== undefined)
 
   if (!selectedMetrics.length) return null
@@ -461,6 +488,7 @@ export const buildStudentTrend = (
       const pointMap = new Map(metric.points.map((point) => [point.prop, point.score]))
 
       return {
+        studentId: metric.studentId,
         name: metric.name,
         scoreCount: metric.points.length,
         completedComment: commentPreview.length > 0,
@@ -481,22 +509,27 @@ export const buildStudentTrend = (
  * 生成学生下拉选项列表。
  * 用于趋势分析抽屉的学生选择器。
  * 去重并按中文拼音排序。
+ *
+ * @param students 学生数据列表
+ * @returns 学生下拉选项列表
  */
 export const buildStudentOptions = (students: StudentDataType[]): DashboardStudentOptionType[] => {
   return students
-    .map((student) => getStudentName(student))
-    .filter((name, index, array) => array.indexOf(name) === index)
-    .sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'))
-    .map((name) => ({
-      label: name,
-      value: name
+    .map((student) => ({
+      label: getStudentName(student),
+      value: student.studentId
     }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'zh-Hans-CN'))
 }
 
 /**
  * 生成评语完成情况概览。
  * 统计已写评语人数、待写人数和完成率。
  * aiConfigured 用于提示用户是否已配置 AI 可辅助生成评语。
+ *
+ * @param students 学生数据列表
+ * @param aiConfigured 是否已配置 AI 生成评语
+ * @returns 评语完成情况概览数据
  */
 export const buildEvaluationOverview = (
   students: StudentDataType[],
@@ -527,6 +560,12 @@ export const buildEvaluationOverview = (
  * - attentionStudentCount：命中"立即关注"标签的学生数
  * - biggestFluctuationUnitLabel：均分偏离总体均分最大的单元
  * - diagnosticText：诊断文本，用于 AI 分析输入
+ *
+ * @param unitMetrics 单元维度统计列表
+ * @param metrics 学生画像列表
+ * @param config 总览页配置
+ * @param totalUnitCount 单元总数
+ * @returns 班级 KPI 指标
  */
 export const buildDashboardKpi = (
   unitMetrics: UnitMetricType[],
@@ -536,6 +575,7 @@ export const buildDashboardKpi = (
 ): DashboardKpiType => {
   const allScores = metrics.flatMap((metric) => metric.points.map((point) => point.score))
   const averageScore = averageOf(allScores)
+  // 及格人数 = 分数段下限不低于及格线的分段人数之和
   const passRates = unitMetrics.map((unit) => {
     const passedCount = unit.scoreBands
       .filter((band) => band.min >= config.tagRules.passLine)
@@ -565,6 +605,7 @@ export const buildDashboardKpi = (
   }
 }
 
+/** 将单元统计精简为总览展示所需的字段 */
 const toDashboardUnitOverview = ({
   prop,
   label,
@@ -594,27 +635,30 @@ const toDashboardUnitOverview = ({
  *                ├─> buildStudentTrend
  *                └─> buildSummaryCards
  *
- * quickStudentNames 用于快速定位，收集关注学生和关键学生列表中出现的姓名（去重，最多16个）。
+ * quickStudents 用于快速定位，按 studentId 去重收集关注学生（最多16个）。
+ *
+ * @param options 构建入参
+ * @param unitMetrics 单元维度统计列表
+ * @param metrics 学生画像列表
+ * @returns 组装后的总览展示数据
  */
 export const buildOverviewDashboardData = (
   options: BuildOverviewDashboardDataOptions,
   unitMetrics: UnitMetricType[],
   metrics: StudentMetricType[]
 ): DashboardDataType => {
-  const { students, unitHeaders, selectedStudentNames, aiConfigured, config } = options
+  const { students, unitHeaders, selectedStudentIds, aiConfigured, config } = options
   const kpi = buildDashboardKpi(unitMetrics, metrics, config, unitHeaders.length)
   const focusGroups = buildFocusGroups(metrics, config)
   const keyStudentLists = buildKeyStudentLists(metrics, config)
-  const quickStudentNames = Array.from(
-    new Set(
-      [
-        ...focusGroups.flatMap((group) => group.sections.flatMap((section) => section.items)),
-        ...keyStudentLists.flatMap((list) => list.items)
-      ]
-        .map((item) => item.name)
-        .slice(0, 16)
-    )
+  // 用 Map 按 studentId 去重，合并各分组与名单中的学生
+  const quickStudentMap = new Map(
+    [
+      ...focusGroups.flatMap((group) => group.sections.flatMap((section) => section.items)),
+      ...keyStudentLists.flatMap((list) => list.items)
+    ].map((item) => [item.studentId, { studentId: item.studentId, name: item.name }])
   )
+  const quickStudents = Array.from(quickStudentMap.values()).slice(0, 16)
 
   return {
     unitHeaders,
@@ -625,10 +669,10 @@ export const buildOverviewDashboardData = (
     focusGroups,
     keyStudentLists,
     studentOptions: buildStudentOptions(students),
-    quickStudentNames,
+    quickStudents,
     studentTrend: buildStudentTrend(
       metrics,
-      selectedStudentNames.slice(0, config.studentTrend.maxCompareCount),
+      selectedStudentIds.slice(0, config.studentTrend.maxCompareCount),
       config,
       unitHeaders,
       kpi

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 试卷排版草稿对话框 — 打开或删除已保存的排版草稿 */
 import { ref, watch } from 'vue'
 
 import {
@@ -7,14 +8,19 @@ import {
 } from '@/views/tools/services/paperLayoutDraftService'
 import type { PaperLayoutDraftRecordType, PaperLayoutModeType } from '@/types/Tools'
 
+/** 弹窗可见性（通过 v-model:visible 双向绑定） */
 const visible = defineModel<boolean>('visible', { required: true })
+/** 对外事件：打开指定草稿 */
 const emit = defineEmits<{
   open: [draft: PaperLayoutDraftRecordType]
 }>()
 
+/** 草稿记录列表 */
 const drafts = ref<PaperLayoutDraftRecordType[]>([])
+/** 列表加载中状态 */
 const loading = ref(false)
 
+// 弹窗打开时加载最新草稿列表
 watch(
   visible,
   async (nextVisible) => {
@@ -24,6 +30,7 @@ watch(
   { immediate: true }
 )
 
+/** 读取草稿列表 */
 async function loadDrafts(): Promise<void> {
   loading.value = true
   try {
@@ -33,16 +40,19 @@ async function loadDrafts(): Promise<void> {
   }
 }
 
+/** 打开草稿并关闭对话框 */
 function handleOpen(draft: PaperLayoutDraftRecordType): void {
   emit('open', draft)
   visible.value = false
 }
 
+/** 删除草稿后刷新列表 */
 async function handleDelete(draft: PaperLayoutDraftRecordType): Promise<void> {
   await deletePaperLayoutDraft(draft.id)
   await loadDrafts()
 }
 
+/** 返回排版模式对应的中文标签 */
 function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
   const labelMap: Record<PaperLayoutModeType, string> = {
     single: '一页一张',
@@ -61,6 +71,7 @@ function getLayoutModeLabel(layoutMode: PaperLayoutModeType): string {
         <span>暂无试卷排版草稿</span>
       </div>
 
+      <!-- 草稿列表：展示设置摘要与打开/删除操作 -->
       <div v-else class="draft-list">
         <article v-for="draft in drafts" :key="draft.id" class="draft-item">
           <div class="draft-main">

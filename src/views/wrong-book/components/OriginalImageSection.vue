@@ -1,26 +1,31 @@
 <script setup lang="ts">
+/** 题目原始图片区 — 上传、裁剪、预览与移除单张原始图片 */
 import { ref } from 'vue'
 import { ElFormItem, ElButton, ElImageViewer } from 'element-plus'
 import { ElMessage } from 'element-plus'
-import { fileToBase64 } from '@/utils/fileUntil'
+import { fileToBase64 } from '@/utils/fileUtil'
 import ImageCropper from '@/components/ImageCropper.vue'
 
+/** 原始图片列表 */
 interface Props {
   images: string[]
 }
 
 const props = defineProps<Props>()
 
+/** 图片列表更新与插入图片事件 */
 const emit = defineEmits<{
   'update:images': [value: string[]]
   'insert-image': [base64: string]
 }>()
 
+/** 裁剪器与大图预览的可见性、相关图片源 */
 const cropperVisible = ref(false)
 const cropperImageSrc = ref('')
 const imagePreviewVisible = ref(false)
 const imagePreviewUrl = ref('')
 
+/** 选择图片文件并打开裁剪器，仅允许上传一张原始图片 */
 const handleAddImage = () => {
   if (props.images.length >= 1) {
     ElMessage.warning('题目图片只能上传一张')
@@ -51,21 +56,31 @@ const handleAddImage = () => {
   input.click()
 }
 
+/** 裁剪确认后将裁剪结果追加到图片列表 */
 const handleCropConfirm = (croppedBase64: string) => {
   cropperVisible.value = false
   emit('update:images', [...props.images, croppedBase64])
 }
 
+/** 取消裁剪 */
 const handleCropCancel = () => {
   cropperVisible.value = false
 }
 
+/**
+ * 移除指定位置的图片
+ * @param index - 图片下标
+ */
 const handleRemoveImage = (index: number) => {
   const newImages = [...props.images]
   newImages.splice(index, 1)
   emit('update:images', newImages)
 }
 
+/**
+ * 点击图片打开大图预览
+ * @param index - 图片下标
+ */
 const handleImageClick = (index: number) => {
   const img = props.images[index]
   imagePreviewUrl.value = `data:image/jpeg;base64,${img}`
@@ -75,6 +90,7 @@ const handleImageClick = (index: number) => {
 
 <template>
   <el-form-item label="题目原始图片" class="original-image-form-item">
+    <!-- 原始图片展示区与添加按钮 -->
     <div class="original-image-section">
       <div v-if="images.length > 0" class="original-image-list">
         <div v-for="(img, index) in images" :key="index" class="original-image-item">

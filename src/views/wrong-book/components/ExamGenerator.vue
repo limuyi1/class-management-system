@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 试卷生成器 — 选择题目、设置标题/班级/纸张并导出 PDF 试卷 */
 import { ref, computed, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import {
@@ -9,20 +10,22 @@ import {
   ElCheckbox,
   ElButton,
   ElMessage,
-  ElLoading
 } from 'element-plus'
+import { runWithLoading } from '@/hooks/useLoading'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { PagesEnum } from '@/types/Common'
-import { exportPDF } from '@/utils/pdfUntil'
-import { renderKatex } from '@/utils/katexUntil'
+import { exportPDF } from '@/utils/pdfUtil'
+import { renderKatex } from '@/utils/katexUtil'
 import type { WrongQuestion } from '@/types/WrongBook'
 
+/** 弹窗可见性、已选题目 id 与可选题目列表 */
 interface Props {
   visible: boolean
   questionIds: string[]
   allQuestions?: WrongQuestion[]
 }
 
+/** 可见性更新事件 */
 interface Emits {
   (e: 'update:visible', value: boolean): void
 }
@@ -33,14 +36,18 @@ const emit = defineEmits<Emits>()
 const wrongBookStore = useWrongBookStore()
 const { favoriteQuestions } = storeToRefs(wrongBookStore)
 
+/** 已选题目 id 列表 */
 const selectedQuestions = ref<string[]>([])
+/** 试卷标题、班级、是否包含答案与纸张尺寸 */
 const examTitle = ref('错题练习')
 const className = ref('')
 const includeAnswer = ref(true)
 const pageType = ref<PagesEnum>(PagesEnum.A4)
 
+/** 预览区各题目 DOM 引用，供 PDF 导出定位 */
 const previewRefs = ref<HTMLElement[]>([])
 
+// 外部传入的题目 id 列表变化时同步到本地选中列表
 watch(
   () => props.questionIds,
   (ids) => {
@@ -49,6 +56,7 @@ watch(
   { immediate: true }
 )
 
+/** 可选题目来源：外部传入的题目，否则回退为收藏题目 */
 const availableQuestions = computed(() => {
   if (props.allQuestions && props.allQuestions.length > 0) {
     return props.allQuestions
@@ -56,17 +64,21 @@ const availableQuestions = computed(() => {
   return favoriteQuestions.value
 })
 
+/** 可选题目列表（与 availableQuestions 等价，供模板与全选逻辑使用） */
 const favoriteQuestionsList = computed(() => availableQuestions.value)
+/** 按选中 id 映射出的题目对象列表，用于预览与导出 */
 const selectedQuestionList = computed(() => {
   return selectedQuestions.value
     .map((id) => favoriteQuestionsList.value.find((q) => q.id === id))
     .filter((q): q is WrongQuestion => q !== undefined)
 })
 
+/** 关闭试卷生成弹窗 */
 const handleClose = () => {
   emit('update:visible', false)
 }
 
+/** 校验并导出所选题目为 PDF 试卷 */
 const handleExport = async () => {
   if (selectedQuestions.value.length === 0) {
     ElMessage.warning('请选择要导出的题目')
@@ -80,12 +92,9 @@ const handleExport = async () => {
   }
 
   const fileName = `${examTitle.value || '错题试卷'}_${new Date().toLocaleDateString()}.pdf`
-  const loading = ElLoading.service({
-    lock: true,
-    text: '正在导出PDF...'
+  const result = await runWithLoading('正在导出PDF...', async () => {
+    return await exportPDF(elements, pageType.value, 4, fileName)
   })
-  const result = await exportPDF(elements, pageType.value, 4, fileName)
-  loading.close()
   if (!result.success) {
     ElMessage.error(result.error?.message || '导出失败！')
     return
@@ -93,12 +102,18 @@ const handleExport = async () => {
   ElMessage.success('导出成功')
 }
 
+/**
+ * 收集预览区题目 DOM 引用
+ * @param el - DOM 元素
+ * @param index - 题目在列表中的下标
+ */
 const setRefs = (el: HTMLElement | null, index: number) => {
   if (el) {
     previewRefs.value[index] = el
   }
 }
 
+/** 全选/取消全选所有可选题目 */
 const handleSelectAll = () => {
   if (selectedQuestions.value.length === favoriteQuestionsList.value.length) {
     selectedQuestions.value = []
@@ -107,6 +122,10 @@ const handleSelectAll = () => {
   }
 }
 
+/**
+ * 切换单道题目的选中状态
+ * @param id - 题目 id
+ */
 const toggleQuestionSelect = (id: string) => {
   if (selectedQuestions.value.includes(id)) {
     selectedQuestions.value = selectedQuestions.value.filter((i) => i !== id)
@@ -115,6 +134,11 @@ const toggleQuestionSelect = (id: string) => {
   }
 }
 
+/**
+ * 渲染题目/答案内容中的公式为 HTML
+ * @param content - 原始内容
+ * @returns 渲染后的 HTML
+ */
 const renderContent = (content: string) => {
   if (!content) return ''
   return renderKatex(content)
@@ -130,6 +154,7 @@ const renderContent = (content: string) => {
     @update:model-value="(val) => emit('update:visible', val)"
   >
     <div class="exam-generator">
+      <!-- 试卷设置：标题 / 班级 / 页面尺寸 / 答案开关 -->
       <div class="exam-settings">
         <el-form inline>
           <el-form-item label="试卷标题">
@@ -152,6 +177,7 @@ const renderContent = (content: string) => {
         </el-form>
       </div>
 
+      <!-- 题目勾选列表 -->
       <div class="exam-questions">
         <div class="questions-header">
           <span>选择题目（共 {{ favoriteQuestionsList.length }} 道收藏题）</span>
@@ -196,6 +222,7 @@ const renderContent = (content: string) => {
         </el-scrollbar>
       </div>
 
+      <!-- 试卷预览 -->
       <div class="exam-preview">
         <div class="preview-header">预览</div>
         <el-scrollbar max-height="400px">

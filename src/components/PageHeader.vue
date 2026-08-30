@@ -1,7 +1,16 @@
 <script setup lang="ts">
+/**
+ * 页面标题栏组件。
+ *
+ * 左侧展示图标、标题与副标题，右侧通过插槽放置操作按钮，
+ * 供各业务页面统一页头样式。
+ */
 interface Props {
+  /** FontAwesome 图标名（数组形式，如 ['solid', 'user']） */
   icon: string[]
+  /** 页面标题 */
   title: string
+  /** 可选副标题 */
   subtitle?: string
 }
 defineProps<Props>()
@@ -9,6 +18,7 @@ defineProps<Props>()
 
 <template>
   <div class="page-header">
+    <!-- 左侧：图标、标题与副标题（可经 left 插槽扩展） -->
     <div class="header-left">
       <slot name="left"></slot>
       <div class="header-icon">
@@ -19,6 +29,7 @@ defineProps<Props>()
         <p v-if="subtitle">{{ subtitle }}</p>
       </div>
     </div>
+    <!-- 右侧：操作按钮插槽 -->
     <div class="header-right">
       <slot name="right"></slot>
     </div>

@@ -1,25 +1,22 @@
-import { nextTick, ref } from 'vue'
+import { computed, nextTick, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import type { UploadFile } from 'element-plus'
 
+import { useExcelPreviewImport } from '@/hooks/useExcelPreviewImport'
 import router from '@/router'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import {
   buildIncrementalScoreImport,
-  findDuplicateNames,
   getConflictLabels
-} from '@/utils/scoreImportUntil'
-import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/commentImportUntil'
-import { buildInitialStudentImport } from '@/utils/initialStudentImportUntil'
-import { buildExcelDataFromHeaderRow, parseExcelPreview } from '@/utils/xlsxUntil'
-import { NAME_PROP } from '@/types/Constants'
+} from '@/utils/scoreImportUtil'
+import { buildIncrementalCommentImport, countOverwrittenComments } from '@/utils/evaluation/commentImportUtil'
+import { buildInitialStudentImport } from '@/utils/initialStudentImportUtil'
+import { buildExcelDataFromHeaderRow } from '@/utils/xlsxUtil'
 
-import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUntil'
-import type { ExcelCellValueType, ExcelMergeRangeType } from '@/utils/xlsxUntil'
+import type { ConflictActionType, ExcelRowType } from '@/utils/scoreImportUtil'
 import type {
   CommentImportSelectionType,
   ExcelImportModeType,
@@ -29,6 +26,7 @@ import type {
 /**
  * 统一协调首次导入、增量成绩导入和增量评语导入。
  * 组件只负责展示弹窗；数据校验、写入、状态清理和导入后的路由都集中在这里。
+ * @returns 导入流程所需的响应式状态与处理方法
  */
 export const useStudentDataImport = () => {
   const dataSourceStore = useDataSourceStore()
@@ -37,30 +35,51 @@ export const useStudentDataImport = () => {
   const { students } = storeToRefs(dataSourceStore)
   const { scoreColumns } = storeToRefs(settingStore)
 
+  /** 隐藏的 Excel 文件选择框 ref */
   const excelFileInputRef = ref<HTMLInputElement | null>(null)
-  const importingExcel = ref(false)
+  // 设置页保留 .dexie/Excel 共用的原生 input；Excel 解析状态统一交给公共 composable。
+  const {
+    loading: importingExcel,
+    preview: excelPreview,
+    parseRawFile,
+    reset: resetExcelPreview
+  } = useExcelPreviewImport({ errorLogLabel: '解析 Excel', errorMessage: '导入失败！' })
+  /** 当前导入模式（首次/成绩/评语） */
   const importMode = ref<ExcelImportModeType>('initial')
-  const excelPreviewRows = ref<ExcelCellValueType[][]>([])
-  const excelPreviewMerges = ref<ExcelMergeRangeType[]>([])
-  const suggestedHeaderRowIndex = ref(0)
+  /** 预览行数据 */
+  const excelPreviewRows = computed(() => excelPreview.value?.rows ?? [])
+  /** 预览合并单元格信息 */
+  const excelPreviewMerges = computed(() => excelPreview.value?.merges ?? [])
+  /** 推荐表头行索引 */
+  const suggestedHeaderRowIndex = computed(
+    () => excelPreview.value?.suggestedHeaderRowIndex ?? 0
+  )
+  /** 解析后的表头 */
   const excelHeaders = ref<string[]>([])
+  /** 解析后的数据行 */
   const excelRows = ref<ExcelRowType[]>([])
+  /** 首次导入弹窗可见性 */
   const initialDialogVisible = ref(false)
+  /** 成绩列选择弹窗可见性 */
   const scoreColumnSelectorVisible = ref(false)
+  /** 评语导入弹窗可见性 */
   const commentDialogVisible = ref(false)
+  /** 冲突确认弹窗可见性 */
   const conflictDialogVisible = ref(false)
+  /** 待导入的成绩列 */
   const pendingScoreColumns = ref<string[]>([])
+  /** 待导入的姓名列 */
   const pendingScoreNameColumn = ref('')
+  /** 与现有成绩列冲突的列 */
   const conflictColumns = ref<string[]>([])
 
+  /** 重置 Excel 导入相关的所有临时状态 */
   const resetExcelImport = () => {
     initialDialogVisible.value = false
     scoreColumnSelectorVisible.value = false
     commentDialogVisible.value = false
     conflictDialogVisible.value = false
-    excelPreviewRows.value = []
-    excelPreviewMerges.value = []
-    suggestedHeaderRowIndex.value = 0
+    resetExcelPreview()
     excelHeaders.value = []
     excelRows.value = []
     pendingScoreColumns.value = []
@@ -68,23 +87,20 @@ export const useStudentDataImport = () => {
     conflictColumns.value = []
   }
 
+  /**
+   * 触发文件选择框，按指定模式导入
+   * @param mode - 导入模式（首次/成绩/评语）
+   */
   const triggerExcelImport = (mode: ExcelImportModeType) => {
     importMode.value = mode
     excelFileInputRef.value?.click()
   }
 
-  const validateSystemNames = (): boolean => {
-    const duplicateNames = findDuplicateNames(students.value, NAME_PROP)
-    if (!duplicateNames.length) return true
-
-    ElMessage.error(`系统中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-    return false
-  }
-
   /**
    * 导入完成后统一等待数据状态稳定，并校验目标路由是否真正生效。
+   * @param targetPath - 导入完成后跳转的目标路由
    */
-  const navigateAfterImport = async (targetPath: '/overview' | '/math' | '/comment') => {
+  const navigateAfterImport = async (targetPath: '/overview' | '/score' | '/tools/comments') => {
     await nextTick()
     await dataSourceStore.waitForInitReady()
 
@@ -100,13 +116,12 @@ export const useStudentDataImport = () => {
     }
   }
 
+  /** 根据当前导入模式打开对应的弹窗 */
   const openModeDialog = () => {
     if (importMode.value === 'initial') {
       initialDialogVisible.value = true
       return
     }
-    if (!validateSystemNames()) return
-
     if (importMode.value === 'comment') {
       commentDialogVisible.value = true
     } else {
@@ -114,30 +129,17 @@ export const useStudentDataImport = () => {
     }
   }
 
+  /**
+   * 处理文件选择变化，解析成功后打开对应弹窗
+   * @param event - 文件输入事件
+   */
   const handleExcelFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement
     const file = input.files?.[0]
     input.value = ''
     if (!file) return
 
-    importingExcel.value = true
-    try {
-      const preview = await parseExcelPreview({ raw: file } as UploadFile)
-      if (!preview.rows.length) {
-        ElMessage.error('Excel 中没有可导入的数据')
-        return
-      }
-
-      excelPreviewRows.value = preview.rows
-      excelPreviewMerges.value = preview.merges
-      suggestedHeaderRowIndex.value = preview.suggestedHeaderRowIndex
-      openModeDialog()
-    } catch (error) {
-      console.error('解析 Excel 失败:', error)
-      ElMessage.error('导入失败！')
-    } finally {
-      importingExcel.value = false
-    }
+    if (await parseRawFile(file)) openModeDialog()
   }
 
   /**
@@ -161,16 +163,14 @@ export const useStudentDataImport = () => {
     return true
   }
 
+  /**
+   * 确认首次导入，构建学生数据并写入 store
+   * @param selection - 首次导入的选择配置（含表头行）
+   */
   const handleInitialConfirm = async (
     selection: InitialImportSelectionType & { headerRowIndex?: number }
   ) => {
     if (!applyHeaderRowSelection(selection.headerRowIndex)) return
-
-    const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
-    if (duplicateNames.length) {
-      ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-      return
-    }
 
     const result = buildInitialStudentImport({
       rows: excelRows.value,
@@ -189,11 +189,18 @@ export const useStudentDataImport = () => {
     const summary = [`${result.students.length} 名学生`]
     if (result.headers.length) summary.push(`${result.headers.length} 个成绩列`)
     if (result.commentCount) summary.push(`${result.commentCount} 条评语`)
+    if (result.duplicateStudentCount) {
+      summary.push(`跳过 ${result.duplicateStudentCount} 条重名记录`)
+    }
     ElMessage.success(`导入成功：${summary.join('、')}`)
 
     await navigateAfterImport('/overview')
   }
 
+  /**
+   * 执行成绩增量导入
+   * @param conflictActions - 各冲突列的冲突处理策略
+   */
   const applyScoreImport = async (conflictActions: Record<string, ConflictActionType>) => {
     const result = buildIncrementalScoreImport({
       rows: excelRows.value,
@@ -227,15 +234,22 @@ export const useStudentDataImport = () => {
     if (result.stats.ignoredStudentCount) {
       messages.push(`忽略 ${result.stats.ignoredStudentCount} 名未匹配学生`)
     }
+    if (result.stats.duplicateStudentCount) {
+      messages.push(`跳过 ${result.stats.duplicateStudentCount} 条重名记录`)
+    }
     if (result.stats.invalidScoreCount) {
       messages.push(`${result.stats.invalidScoreCount} 个成绩无法识别，已置为空`)
     }
 
     ElMessage.success(`Excel 成绩导入完成：${messages.join('，')}`)
     resetExcelImport()
-    await navigateAfterImport('/math')
+    await navigateAfterImport('/score')
   }
 
+  /**
+   * 确认成绩列选择，检测冲突后执行成绩导入
+   * @param selection - 姓名列、成绩列及表头行选择
+   */
   const handleScoreColumnConfirm = async (selection: {
     nameColumn?: string
     scoreColumns: string[]
@@ -245,12 +259,6 @@ export const useStudentDataImport = () => {
 
     if (!selection.nameColumn) {
       ElMessage.warning('请选择姓名列')
-      return
-    }
-
-    const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
-    if (duplicateNames.length) {
-      ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
       return
     }
 
@@ -266,16 +274,14 @@ export const useStudentDataImport = () => {
     await applyScoreImport({})
   }
 
+  /**
+   * 确认评语导入，覆盖前二次确认后写入
+   * @param selection - 评语导入的选择配置（含表头行）
+   */
   const handleCommentConfirm = async (
     selection: CommentImportSelectionType & { headerRowIndex?: number }
   ) => {
     if (!applyHeaderRowSelection(selection.headerRowIndex)) return
-
-    const duplicateNames = findDuplicateNames(excelRows.value, selection.nameColumn)
-    if (duplicateNames.length) {
-      ElMessage.error(`Excel 中存在重复姓名：${duplicateNames.slice(0, 3).join('、')}`)
-      return
-    }
 
     if (selection.strategy === 'overwrite') {
       const overwriteCount = countOverwrittenComments({
@@ -305,7 +311,7 @@ export const useStudentDataImport = () => {
       existingStudents: students.value,
       ...selection
     })
-    if (!result.stats.matchedStudentCount) {
+    if (!result.stats.matchedStudentCount && !result.stats.duplicateStudentCount) {
       ElMessage.error('Excel 中没有与系统学生匹配的姓名')
       return
     }
@@ -319,10 +325,13 @@ export const useStudentDataImport = () => {
     if (result.stats.ignoredStudentCount) {
       messages.push(`忽略 ${result.stats.ignoredStudentCount} 名未匹配学生`)
     }
+    if (result.stats.duplicateStudentCount) {
+      messages.push(`跳过 ${result.stats.duplicateStudentCount} 条重名记录`)
+    }
 
     ElMessage.success(`评语导入完成：${messages.join('，')}`)
     resetExcelImport()
-    await navigateAfterImport('/comment')
+    await navigateAfterImport('/tools/comments')
   }
 
   return {

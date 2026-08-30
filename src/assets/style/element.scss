@@ -97,6 +97,29 @@
   border-color: transparent !important;
 }
 
+/*
+ * RadioButton 和 CheckboxButton 会继承根节点的通用按钮背景、文字变量。
+ * 在选择组件层重新定义语义色，确保默认态和选中态始终具备足够对比度。
+ */
+.el-radio-button,
+.el-checkbox-button {
+  --el-button-text-color: var(--el-text-color-regular);
+  --el-button-bg-color: var(--el-fill-color-blank);
+  --el-radio-button-checked-text-color: var(--el-color-white);
+  --el-radio-button-checked-bg-color: var(--theme-primary);
+  --el-radio-button-checked-border-color: var(--theme-primary);
+  --el-checkbox-button-checked-text-color: var(--el-color-white);
+  --el-checkbox-button-checked-bg-color: var(--theme-primary);
+  --el-checkbox-button-checked-border-color: var(--theme-primary);
+}
+
+.el-radio-button:not(.is-active):not(.is-disabled) .el-radio-button__inner:hover,
+.el-checkbox-button:not(.is-checked):not(.is-disabled) .el-checkbox-button__inner:hover {
+  color: var(--theme-primary);
+  background-color: var(--theme-button-hover-bg, var(--el-fill-color-light));
+  border-color: var(--theme-primary);
+}
+
 .el-link {
   --el-link-text-color: var(--theme-primary);
   --el-link-hover-text-color: var(--theme-primary-light);

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学生行组件 — 以紧凑行展示单个关注学生，点击行触发选中 */
 import type { DashboardStudentListItemType } from '@/types/HomeDashboard'
 
 interface Props {
@@ -14,8 +15,9 @@ const props = withDefaults(defineProps<Props>(), {
   variant: 'panel'
 })
 
+/** 对外事件：点击学生行时触发 */
 const emit = defineEmits<{
-  select: [name: string]
+  select: [studentId: string]
 }>()
 
 /**
@@ -29,8 +31,9 @@ const prefixMap: Record<Props['tone'], string> = {
   info: '观察中'
 }
 
+/** 点击行时向父级发出选中事件 */
 const handleSelect = () => {
-  emit('select', props.item.name)
+  emit('select', props.item.studentId)
 }
 
 /** 获取头像文本，取姓名首字母大写 */
@@ -42,6 +45,7 @@ const getAvatarText = (name: string) => {
   return trimmedName.slice(0, 1).toUpperCase()
 }
 
+/** 走势方向对应的中文标签 */
 const directionLabelMap = {
   up: '上行',
   down: '下行',
@@ -49,6 +53,7 @@ const directionLabelMap = {
   volatileDown: '波动下行'
 } as const
 
+/** 走势方向对应的图标名 */
 const directionIconNameMap = {
   up: 'arrow-trend-up',
   down: 'arrow-trend-down',
@@ -59,12 +64,14 @@ const directionIconNameMap = {
 
 <template>
   <button class="overview-student-row" :class="[`is-${tone}`, `is-${variant}`]" @click="handleSelect">
+    <!-- 左侧头像区 -->
     <span class="row-leading">
       <span class="avatar-token">
         {{ getAvatarText(item.name) }}
       </span>
     </span>
 
+    <!-- 中部信息区：姓名、主标签、走势标签与推荐原因 -->
     <span class="row-main">
       <span class="name-block">
         <strong>{{ item.name }}</strong>
@@ -87,11 +94,12 @@ const directionIconNameMap = {
       </span>
     </span>
 
+    <!-- 走势片段展示区 -->
     <span class="trend-block">
       <span class="trend-text">
         <span
           v-for="(segment, index) in item.trendSegments"
-          :key="`${item.name}-${index}-${segment.text}`"
+          :key="`${item.studentId}-${index}-${segment.text}`"
           :class="[`is-${segment.difficultyShift}`]"
         >
           {{ segment.text }}

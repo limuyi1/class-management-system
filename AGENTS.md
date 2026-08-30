@@ -1,107 +1,107 @@
-# AGENTS.md - Coding Agent Guidelines
+# AGENTS.md - 编码代理指南
 
-## Project Overview
+## 项目概述
 
-Scores Recording System (成绩记录系统) — a Vue 3 + TypeScript + Vite desktop-oriented web app for managing student scores and evaluations. Uses Element Plus, VxeTable, Tailwind CSS, and Pinia for state management.
+成绩记录系统（Scores Recording System）—— 一个基于 Vue 3 + TypeScript + Vite 的桌面向 Web 应用，用于管理学生成绩与评语。使用 Element Plus、VxeTable、Tailwind CSS 和 Pinia 进行状态管理。
 
-## Build / Dev / Lint Commands
+## 构建 / 开发 / Lint 命令
 
 ```bash
-pnpm install          # Install dependencies
-pnpm dev              # Start dev server (port from VITE_PORT in .env)
-pnpm build            # Full build (runs type-check and vite build in parallel)
-pnpm build-only       # Vite build only (no type-check)
-pnpm preview          # Preview production build
-pnpm type-check       # Type-check with vue-tsc
-pnpm lint             # Lint check (ESLint)
-pnpm lint:fix         # Lint and auto-fix (ESLint)
-pnpm format           # Format source code (Prettier)
-pnpm test             # Run Vitest tests (run mode)
-pnpm test:watch       # Run Vitest tests (watch mode)
-pnpm test:coverage    # Run Vitest with coverage report
+pnpm install          # 安装依赖
+pnpm dev              # 启动开发服务器（端口来自 .env 中的 VITE_PORT）
+pnpm build            # 完整构建（并行运行 type-check 和 vite build）
+pnpm build-only       # 仅 Vite 构建（不做 type-check）
+pnpm preview          # 预览生产构建
+pnpm type-check       # 使用 vue-tsc 做类型检查
+pnpm lint             # Lint 检查（ESLint）
+pnpm lint:fix         # Lint 并自动修复（ESLint）
+pnpm format           # 格式化源代码（Prettier）
+pnpm test             # 运行 Vitest 测试（run 模式）
+pnpm test:watch       # 运行 Vitest 测试（watch 模式）
+pnpm test:coverage    # 运行 Vitest 并生成覆盖率报告
 ```
 
-### Dev Server Policy
+### 开发服务器策略
 
-- Do not start the dev server (`pnpm dev`, `npm run dev`, `yarn dev`, `bun dev`, etc.) unless the user explicitly asks for it.
+- 除非用户明确要求，否则不要启动开发服务器（`pnpm dev`、`npm run dev`、`yarn dev`、`bun dev` 等）。
 
-### Dependency Install Policy
+### 依赖安装策略
 
-- Do not run `pnpm install`, `npm install`, `yarn install`, or dependency update commands automatically.
-- Assume dependencies have already been installed by the user unless they explicitly ask you to install or update packages.
-- Do not delete, recreate, clean, prune, or otherwise modify `node_modules/` unless the user explicitly asks for that exact action.
-- If `pnpm test`, `pnpm build`, or another script tries to trigger dependency installation/rebuilding, stop and report the exact issue instead of continuing with install attempts.
-- If local test binaries are missing (for example `node_modules/.bin/vitest`), report that verification could not be run in the current agent environment and ask the user to restore dependencies.
+- 不要自动运行 `pnpm install`、`npm install`、`yarn install` 或依赖更新命令。
+- 除非用户明确要求安装或更新包，否则默认依赖已由用户安装完成。
+- 除非用户明确要求，否则不要删除、重建、清理、修剪或以其他方式修改 `node_modules/`。
+- 如果 `pnpm test`、`pnpm build` 或其他脚本尝试触发依赖安装/重建，停止并报告具体问题，而不是继续安装尝试。
+- 如果本地测试二进制文件缺失（例如 `node_modules/.bin/vitest`），报告当前代理环境下无法运行验证，并请用户恢复依赖。
 
-## Testing
+## 测试
 
-Tests use **Vitest** with `@vue/test-utils` and `happy-dom`. Test files are located in the `tests/` directory:
+测试使用 **Vitest** 配合 `@vue/test-utils` 和 `happy-dom`。测试文件位于 `tests/` 目录：
 
 ```
 tests/
-├── components/       # Component tests
-├── hooks/           # Hook/composable tests
-├── stores/          # Pinia store tests
-└── utils/           # Utility function tests
+├── components/       # 组件测试
+├── hooks/           # Hook/组合式函数测试
+├── stores/          # Pinia store 测试
+└── utils/           # 工具函数测试
 ```
 
-Tests follow the pattern `*.test.ts` and import from `../../src/`.
+测试遵循 `*.test.ts` 命名模式，并从 `../../src/` 导入。
 
-## Tech Stack
+## 技术栈
 
-- **Framework**: Vue 3.3+ (Composition API, `<script setup lang="ts">`)
-- **Build**: Vite 5, `@vitejs/plugin-vue`, `@vitejs/plugin-vue-jsx`
-- **Language**: TypeScript 5.3, strict mode via `@vue/tsconfig`
-- **UI**: Element Plus, VxeTable (`vxe-table`/`vxe-pc-ui`), FontAwesome
-- **Styling**: Tailwind CSS 4 + SCSS (scoped styles in SFCs)
-- **State**: Pinia + custom `createPersistedStateDexie()` plugin backed by Dexie
-- **Router**: Vue Router 4 with hash history (`createWebHashHistory`)
-- **Package Manager**: pnpm
-- **Path Alias**: `@` → `./src`
+- **框架**：Vue 3.3+（组合式 API，`<script setup lang="ts">`）
+- **构建**：Vite 5，`@vitejs/plugin-vue`，`@vitejs/plugin-vue-jsx`
+- **语言**：TypeScript 5.3，通过 `@vue/tsconfig` 开启严格模式
+- **UI**：Element Plus、VxeTable（`vxe-table`/`vxe-pc-ui`）、FontAwesome
+- **样式**：Tailwind CSS 4 + SCSS（SFC 中的 scoped 样式）
+- **状态**：Pinia + 自定义的 `createPersistedStateDexie()` 插件，底层基于 Dexie
+- **路由**：Vue Router 4，使用 hash 历史模式（`createWebHashHistory`）
+- **包管理器**：pnpm
+- **路径别名**：`@` → `./src`
 
-## Code Style
+## 代码风格
 
-### Formatting (`.prettierrc.json`)
+### 格式化（`.prettierrc.json`）
 
-- No semicolons, single quotes, no trailing commas, 2-space indent, 100 char width
+- 不使用分号、使用单引号、不使用尾随逗号、2 空格缩进、行宽 100 字符
 
-### Import Order (blank line between groups)
+### 导入顺序（分组之间用空行分隔）
 
-1. Vue core (Vue, Vue features)
-2. Element Plus components/hooks
-3. Third-party libraries
-4. Internal modules using `@/` alias (stores, utils, config, etc.)
-5. Type-only imports (`import type { ... }`)
+1. Vue 核心（Vue、Vue 特性）
+2. Element Plus 组件/hook
+3. 第三方库
+4. 使用 `@/` 别名的内部模块（stores、utils、config 等）
+5. 仅类型导入（`import type { ... }`）
 
 ### TypeScript
 
-- Use `lang="ts"` in all `<script setup>` blocks
-- Prefer explicit types for function parameters/return values
-- Types in `src/types/` with PascalCase filenames (e.g., `Setting.ts`, `Common.ts`)
-- Use `enum` for fixed value sets (e.g., `PagesEnum`, `InputEnum`)
-- Interface/type names use `Type` suffix (e.g., `SettingType`, `ConfigurationType`)
-- Avoid `any`; use only for truly dynamic data (e.g., parsed Excel rows)
-- Use `@ts-ignore` sparingly and only when necessary
+- 所有 `<script setup>` 块使用 `lang="ts"`
+- 优先为函数参数/返回值显式标注类型
+- 类型放在 `src/types/`，文件名使用 PascalCase（如 `Setting.ts`、`Common.ts`）
+- 固定值集合使用 `enum`（如 `PagesEnum`、`InputEnum`）
+- 接口/类型名使用 `Type` 后缀（如 `SettingType`、`ConfigurationType`）
+- 避免使用 `any`；仅在真正动态的数据（如解析的 Excel 行）中使用
+- 谨慎使用 `@ts-ignore`，仅在必要时使用
 
-### Naming Conventions
+### 命名规范
 
-| Item              | Convention                          | Example                                  |
-| ----------------- | ----------------------------------- | ---------------------------------------- |
-| Pinia stores      | `use<Name>Store`, kebab-case file   | `useSettingStore` in `stores/setting.ts` |
-| Composables/hooks | `use<PascalCase>`, file in `hooks/` | `useEnterUp` in `hooks/useEnterUp.ts`    |
-| Utility modules   | `<name>Until.ts` in `utils/`        | `xlsxUntil.ts`, `pdfUntil.ts`            |
-| Vue components    | PascalCase filenames                | `ScoreTableView.vue`                     |
-| Enums             | PascalCase with `Enum` suffix       | `PagesEnum`, `InputEnum`                 |
+| 项目              | 规范                                | 示例                                      |
+| ----------------- | ----------------------------------- | ----------------------------------------- |
+| Pinia store       | `use<Name>Store`，文件用 kebab-case | `useSettingStore`，位于 `stores/setting.ts` |
+| 组合式函数/hook   | `use<PascalCase>`，文件在 `hooks/`  | `useEnterUp`，位于 `hooks/useEnterUp.ts`  |
+| 工具模块          | `utils/` 下的 `<name>Util.ts`       | `xlsxUtil.ts`、`pdfUtil.ts`               |
+| Vue 组件          | PascalCase 文件名                   | `ScoreTableView.vue`                      |
+| 枚举              | PascalCase + `Enum` 后缀            | `PagesEnum`、`InputEnum`                  |
 
-### Vue SFC Template Order
+### Vue SFC 模板顺序
 
-1. `<script setup lang="ts">` — logic
-2. `<template>` — markup
-3. `<style scoped lang="scss">` — styles
+1. `<script setup lang="ts">` — 逻辑
+2. `<template>` — 模板
+3. `<style scoped lang="scss">` — 样式
 
-### Pinia Stores
+### Pinia Store
 
-Use Options API style. Persistence is configured globally via `createPersistedStateDexie()` plugin in main.ts — do NOT add `persist: true` to individual stores:
+使用 Options API 风格。持久化通过 main.ts 中的 `createPersistedStateDexie()` 插件全局配置 —— 不要给单个 store 添加 `persist: true`：
 
 ```ts
 export const useExampleStore = defineStore('example', {
@@ -111,66 +111,73 @@ export const useExampleStore = defineStore('example', {
 })
 ```
 
-### Styling
+### 样式
 
-- Scoped SCSS in Vue SFCs
-- Tailwind CSS utility classes in templates
-- Element Plus CSS variables for theming
-- BEM-like naming (e.g., `setting-tabs__wrapper`)
-- Use `:deep()` for penetrating scoped styles
+- Vue SFC 中使用 scoped SCSS
+- 模板中使用 Tailwind CSS 工具类
+- 使用 Element Plus CSS 变量进行主题定制
+- BEM 式命名（如 `setting-tabs__wrapper`）
+- 使用 `:deep()` 穿透 scoped 样式
 
-### Error Handling
+### 错误处理
 
-- Wrap async operations in try/catch with `console.error` for logging
-- Use `ElMessageBox.confirm` for destructive action confirmations
-- Use `ElLoading.service()` for loading states
+- 用 try/catch 包裹异步操作，并用 `console.error` 记录日志
+- 使用 `ElMessageBox.confirm` 进行破坏性操作的确认
+- 使用 `ElLoading.service()` 处理加载状态
 
-### Comments
+### 注释
 
-- JSDoc comments (`/** ... */`) for utility functions and composables
-- Comments may be in Chinese — maintain consistency
-- Do not add comments to trivial code
+- 工具函数和组合式函数使用 JSDoc 注释（`/** ... */`）
+- 注释可以使用中文 —— 保持一致
+- 不要为显而易见的代码添加注释
 
-## Project Structure
+## 项目结构
 
 ```
 src/
-├── ai/              # AI-related features
-├── assets/          # Static assets, styles
-├── components/      # Shared/global components
-├── config/          # App configuration (score colors, etc.)
-├── db/              # Dexie database schema and migrations
-├── hooks/           # Composables (use* pattern)
-├── plugins/         # Vue plugins (persistence, etc.)
-├── router/          # Vue Router config
-├── stores/          # Pinia stores (kebab-case files)
-├── types/           # TypeScript interfaces & enums
-├── utils/           # Utility modules (*Until.ts)
-├── views/           # Page components (home/, score/, evaluation/, setting/, main/)
+├── ai/              # AI 相关功能
+├── assets/          # 静态资源、样式
+├── components/      # 共享/全局组件
+├── config/          # 应用配置（分数颜色等）
+├── constants/       # 共享运行时常量（字段名、数据库表枚举）
+├── db/              # Dexie 数据库 schema 与迁移
+├── hooks/           # 组合式函数（use* 模式）
+├── plugins/         # Vue 插件（持久化等）
+├── router/          # Vue Router 配置
+├── stores/          # Pinia store（kebab-case 文件）
+├── types/           # TypeScript 接口与枚举
+├── utils/           # 工具模块（*Util.ts）
+├── views/           # 页面组件（home/、score/、evaluation/、setting/、main/）
 ├── App.vue
 └── main.ts
 
-tests/               # Test files
-├── components/       # Component tests
-├── hooks/           # Hook/composable tests
-├── stores/          # Pinia store tests
-└── utils/           # Utility function tests
+tests/               # 测试文件
+├── components/       # 组件测试
+├── hooks/           # Hook/组合式函数测试
+├── stores/          # Pinia store 测试
+└── utils/           # 工具函数测试
 ```
 
-## Important Notes
+## 字体资源策略
 
-- Build output goes to `dist/` directory
-- Hash-based routing (`/#/home`, `/#/score`, etc.)
-- Environment variables prefixed with `VITE_`
-- Pinyin prop names use tone number suffix (e.g., `xing4_ming2` for 姓名)
+- `src/assets/font/SourceHanSerifSC-Regular.otf` 是一个体积较大的仅作备份的字体资源。不要将其用作默认 UI 字体，不要在新样式中引用它，也不要将其嵌入新的 PNG/PDF/导出实现中。
+- 不要扩展对 `SourceHanSerifSC-Regular.otf` 的现有依赖。当所需字形覆盖范围明确时，优先使用系统字体或已有的专用子集字体（如 `SourceHanSerifSC-LabelSubset.otf`）。
+- 任何新的运行时用途启用该备份字体都需要用户明确批准。
 
-## Data Storage Architecture
+## 重要说明
 
-| Store                   | File                      | Purpose                                   |
-| ----------------------- | ------------------------- | ----------------------------------------- |
-| `useDataSourceStore`    | `stores/data-source.ts`   | Student data array, statistics getters    |
-| `useSettingStore`       | `stores/setting.ts`       | Table headers, tag categories, tags       |
-| `useConfigurationStore` | `stores/configuration.ts` | App settings (font size, page type, etc.) |
-| `useThemeStore`         | `stores/theme.ts`         | Theme initialization and management       |
+- 构建输出到 `dist/` 目录
+- 使用 hash 路由（`/#/home`、`/#/score` 等）
+- 环境变量以 `VITE_` 为前缀
+- 学生字段的 prop 键名使用英文标识（`name` 表示姓名，`studentId` 表示学生ID），定义在 `src/constants/student.ts`
 
-Table headers stored as `tableHeaders: Array<SettingType>` in `setting.ts`. First header is always `{ prop: 'xing4_ming2', label: '姓名' }` (cannot be deleted). Each data row has `xing4_ming2` (student name), dynamic keys matching header props, and optional `comment`.
+## 数据存储架构
+
+| Store                   | 文件                      | 用途                                   |
+| ----------------------- | ------------------------- | -------------------------------------- |
+| `useDataSourceStore`    | `stores/data-source.ts`   | 学生数据数组、统计 getter               |
+| `useSettingStore`       | `stores/setting.ts`       | 表头、标签分类、标签                     |
+| `useConfigurationStore` | `stores/configuration.ts` | 应用设置（字体大小、页面类型等）         |
+| `useThemeStore`         | `stores/theme.ts`         | 主题初始化与管理                         |
+
+表头以 `scoreColumns: Array<SettingType>` 存储在 `setting.ts` 中。第一列始终是姓名列（prop 为 `name`，来自 `NAME_PROP`），且不可删除。每一行数据都有 `name`（学生姓名）、`studentId`、与表头 prop 对应的动态键，以及可选的 `comment`。

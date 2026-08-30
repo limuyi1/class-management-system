@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 概览仪表盘页面 — 展示 KPI、关注学生、趋势图表、单元分析和评语概览 */
 import { computed, nextTick, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -17,7 +18,6 @@ import { useOverviewAnalysis } from '@/views/overview/composables/useOverviewAna
 import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
-import { NAME_PROP } from '@/types/Constants'
 import type { OverviewDashboardStageType } from '@/types/HomeDashboard'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -25,22 +25,31 @@ import type { StudentDataType } from '@/types/StudentData'
  * 页面层仅负责页面编排、路由和抽屉开关。
  * 业务数据和 AI 逻辑全部下沉到 composable，减少页面脚本负担。
  */
-const { selectedStudentNames, dashboardData, focusStudent } = useOverviewDashboard()
+const { selectedStudentIds, dashboardData, focusStudent } = useOverviewDashboard()
 const router = useRouter()
+/** 控制学生趋势分析抽屉的显示与隐藏 */
 const trendDrawerVisible = ref(false)
+/** 控制学生报告导出弹窗的显示与隐藏 */
 const reportDialogVisible = ref(false)
+/** 当前要导出报告的学生，打开弹窗时填充 */
 const currentStudent = ref<StudentDataType | null>(null)
 const dataStore = useDataSourceStore()
 const settingStore = useSettingStore()
+/** 启用状态的学生数据列表 */
 const { enabledData } = storeToRefs(dataStore)
+/** 启用状态的成绩单元表头列表 */
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
+/** 是否已设置成绩单元 */
 const hasUnits = computed(() => scoreColumns.value.length > 0)
+/** 是否已录入单元成绩数据 */
 const hasScores = computed(() => dashboardData.value.unitOverview.length > 0)
+/** 根据单元与成绩的完整程度推导页面阶段，用于驱动各卡片的空态展示 */
 const overviewStage = computed<OverviewDashboardStageType>(() => {
   if (!hasUnits.value) return 'noUnits'
   if (!hasScores.value) return 'noScores'
   return 'ready'
 })
+/** AI 学情分析的状态与生成动作，来自 useOverviewAnalysis */
 const {
   analysisText: learningAnalysisText,
   generatedAt: learningAnalysisGeneratedAt,
@@ -48,14 +57,16 @@ const {
   generateAnalysis
 } = useOverviewAnalysis(dashboardData)
 
-const openStudentTrend = (name?: string) => {
-  if (name) {
-    focusStudent(name)
+/** 打开学生趋势抽屉，可选地将焦点定位到指定学生 */
+const openStudentTrend = (studentId?: string) => {
+  if (studentId) {
+    focusStudent(studentId)
   }
 
   trendDrawerVisible.value = true
 }
 
+/** 跳转到设置的 AI 配置标签页 */
 const goToAiSetting = () => {
   router.push({
     path: '/setting',
@@ -65,6 +76,7 @@ const goToAiSetting = () => {
   })
 }
 
+/** 跳转到设置的单元配置标签页 */
 const goToUnitSetting = () => {
   router.push({
     path: '/setting',
@@ -74,23 +86,36 @@ const goToUnitSetting = () => {
   })
 }
 
+/** 跳转到成绩录入页 */
 const goToScoreInput = () => {
-  router.push('/math')
+  router.push('/score')
 }
 
+/**
+ * 从趋势抽屉跳转到评语页。
+ * 先关闭抽屉并等待 DOM 更新，避免路由切换后抽屉残留遮挡页面。
+ */
 const goToEvaluationFromTrend = async () => {
   trendDrawerVisible.value = false
   await nextTick()
-  router.push('/comment')
+  router.push('/tools/comments')
 }
 
-const handleExportReportFromTrend = (name: string) => {
-  const student = enabledData.value.find((item) => String(item[NAME_PROP] || '') === name)
+/**
+ * 打开指定学生的报告导出弹窗，学生不存在时静默忽略。
+ *
+ * @param studentId 学生 ID
+ */
+const handleExportReportFromTrend = (studentId: string) => {
+  const student = dataStore.getStudentById(studentId)
   if (!student) return
   currentStudent.value = student
   reportDialogVisible.value = true
 }
 
+/**
+ * 触发 AI 学情分析生成，AI 未配置时改为跳转到配置页。
+ */
 const handleGenerateLearningAnalysis = async () => {
   if (!dashboardData.value.evaluationOverview.aiConfigured) {
     goToAiSetting()
@@ -105,12 +130,16 @@ const handleGenerateLearningAnalysis = async () => {
   <div class="home-page app-page-shell">
     <page-header :icon="['solid', 'chart-line']" title="班级总览">
       <template #right>
+        <!-- 头部操作区：学生趋势、待写评语、AI 配置入口 -->
         <div class="header-actions">
           <button class="header-action-pill" @click="openStudentTrend()">
             <font-awesome-icon :icon="['solid', 'chart-simple']" />
             <span>学生趋势分析</span>
           </button>
-          <button class="header-action-pill is-light is-warning" @click="router.push('/comment')">
+          <button
+            class="header-action-pill is-light is-warning"
+            @click="router.push('/tools/comments')"
+          >
             <font-awesome-icon :icon="['solid', 'pen-to-square']" />
             <span>待写评语 {{ dashboardData.evaluationOverview.pendingCount }} 人</span>
           </button>
@@ -125,6 +154,7 @@ const handleGenerateLearningAnalysis = async () => {
     </page-header>
 
     <div class="home-dashboard">
+      <!-- 左侧栏：KPI 汇总条 + 单元成绩概览 + 关键学生列表 -->
       <div class="dashboard-left">
         <home-kpi-strip
           class="dashboard-kpi"
@@ -154,6 +184,7 @@ const handleGenerateLearningAnalysis = async () => {
         </div>
       </div>
 
+      <!-- 右侧栏：AI 学情诊断卡片 + 学生观察站 -->
       <div class="dashboard-right">
         <home-diagnosis-card
           class="dashboard-diagnosis"
@@ -177,6 +208,7 @@ const handleGenerateLearningAnalysis = async () => {
       </div>
     </div>
 
+    <!-- 学生趋势分析抽屉 -->
     <el-drawer
       v-model="trendDrawerVisible"
       class="overview-analysis-drawer"
@@ -186,16 +218,17 @@ const handleGenerateLearningAnalysis = async () => {
     >
       <home-student-trend-panel
         class="drawer-trend-panel"
-        v-model="selectedStudentNames"
+        v-model="selectedStudentIds"
         :student-trend="dashboardData.studentTrend"
         :student-options="dashboardData.studentOptions"
-        :quick-student-names="dashboardData.quickStudentNames"
+        :quick-students="dashboardData.quickStudents"
         :stage="overviewStage"
         @go-evaluation="goToEvaluationFromTrend"
         @export-report="handleExportReportFromTrend"
       />
     </el-drawer>
 
+    <!-- 学生报告导出弹窗 -->
     <student-report-export-dialog
       v-model:visible="reportDialogVisible"
       :student="currentStudent"

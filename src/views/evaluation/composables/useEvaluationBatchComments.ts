@@ -1,46 +1,73 @@
 import { ref, type Ref } from 'vue'
-import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { startLoading, stopLoading, updateLoadingText } from '@/hooks/useLoading'
 
 import { generateBatchComments, polishBatchComments } from '@/ai/aiService'
-import { extractStudentTags } from '@/utils/studentUntil'
-import { applyPolishedComments, buildCommentPolishTargets } from '@/utils/commentPolishUntil'
-import { COMMENT_MIN_LENGTH, countCommentLength } from '@/utils/commentLengthUntil'
-import { NAME_PROP } from '@/types/Constants'
+import { extractStudentTags } from '@/utils/studentUtil'
+import { applyPolishedComments, buildCommentPolishTargets } from '@/utils/evaluation/commentPolishUtil'
+import { COMMENT_MIN_LENGTH, countCommentLength } from '@/utils/evaluation/commentLengthUtil'
+import { NAME_PROP } from '@/constants'
 import type { AIConfigType } from '@/types/AIConfig'
 import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
 
+/** AI 批量生成/润色时每批处理的学生数量 */
 const batchSize = 5
+/** 同一经典表达在批次间被允许重复使用的上限 */
 const maxClassicExpressionUsage = 2
 
+/** 组合了 AI 配置与“是否已配置”标记的配置类型 */
 interface EvaluationAIConfigType extends AIConfigType {
   isConfigured: boolean
 }
 
+/** 批量评语生成/润色组合式函数的入参 */
 interface UseEvaluationBatchCommentsOptions {
   students: Ref<StudentDataType[]>
   tagCategoryList: Ref<TagCategoryType[]>
   aiConfig: EvaluationAIConfigType
 }
 
-type GenerateModeType = 'skip' | 'overwrite'
+/** 批量生成的覆盖策略：仅填充空白或覆盖所有 */
+export type EvaluationBatchGenerateModeType = 'skip' | 'overwrite'
+/** 经典表达的已使用次数统计 */
 type ClassicExpressionUsageType = { expression: string; count: number }
+/** AI 返回的单条评语结果 */
 type CommentAIResultType = {
+  studentId: string
   name: string
   comment?: string | null
   classicExpression?: string | null
 }
 
+/**
+ * 读取学生姓名并兜底为空字符串。
+ *
+ * @param student 学生数据
+ * @returns 学生姓名（非字符串统一转为文本）
+ */
 export function getEvaluationStudentName(student: StudentDataType): string {
   const name = student[NAME_PROP]
   return name === null || name === undefined ? '' : String(name)
 }
 
+/**
+ * 将标签数组去重、去除空白后以顿号拼接。
+ *
+ * @param tags 标签数组
+ * @returns 拼接后的标签文本，空数组返回空字符串
+ */
 export function formatEvaluationBatchTags(tags: string[]): string {
   const uniqueTags = Array.from(new Set(tags.map((tag) => tag.trim()).filter(Boolean)))
   return uniqueTags.length ? uniqueTags.join('、') : ''
 }
 
+/**
+ * 归一化 AI 返回的经典表达：去除首尾引号/书名号与句末标点。
+ *
+ * @param expression 原始表达
+ * @returns 归一化后的表达文本
+ */
 export function normalizeClassicExpression(expression: string | null | undefined): string {
   return String(expression || '')
     .trim()
@@ -49,6 +76,7 @@ export function normalizeClassicExpression(expression: string | null | undefined
     .trim()
 }
 
+/** 找出使用次数已达到上限的经典表达，用于后续批次规避重复 */
 function getOverusedClassicExpressions(
   usageMap: Map<string, number>
 ): ClassicExpressionUsageType[] {
@@ -57,6 +85,7 @@ function getOverusedClassicExpressions(
     .map(([expression, count]) => ({ expression, count }))
 }
 
+/** 累计本批结果中每个经典表达的使用次数 */
 function recordClassicExpressionUsage(
   usageMap: Map<string, number>,
   results: CommentAIResultType[]
@@ -68,9 +97,15 @@ function recordClassicExpressionUsage(
   })
 }
 
+/**
+ * 根据学生已有评语情况，通过弹窗确认批量生成的覆盖模式。
+ *
+ * @param students 待处理学生列表
+ * @returns 覆盖模式；用户取消时返回 null
+ */
 async function resolveBatchGenerateMode(
   students: StudentDataType[]
-): Promise<GenerateModeType | null> {
+): Promise<EvaluationBatchGenerateModeType | null> {
   const existingCount = students.filter((item) => item.comment && item.comment.trim()).length
   const emptyCount = students.length - existingCount
 
@@ -111,14 +146,30 @@ async function resolveBatchGenerateMode(
   }
 }
 
+/**
+ * 管理 AI 批量生成与润色期末评语的完整流程。
+ *
+ * 生成/润色均按批次调用 AI，支持“仅填充空白”或“覆盖全部”两种模式，
+ * 并维护经典表达复用次数，避免多批次产出雷同评语。
+ *
+ * @param options 学生列表、标签分类与 AI 配置
+ * @returns 生成/润色状态及触发方法
+ */
 export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOptions) {
   const batchGenerating = ref(false)
   const batchPolishing = ref(false)
 
+  /**
+   * 提取学生标签并格式化为顿号分隔的文本。
+   *
+   * @param student 学生数据
+   * @returns 拼接后的标签文本
+   */
   function getStudentTagsText(student: StudentDataType): string {
     return formatEvaluationBatchTags(extractStudentTags(student, options.tagCategoryList.value))
   }
 
+  /** 组装调用 AI 所需的模型、密钥与地址配置 */
   function getAIRequestOptions() {
     return {
       modelType: options.aiConfig.modelType,
@@ -128,7 +179,14 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
     }
   }
 
-  async function handleBatchGenerate(): Promise<void> {
+  /**
+   * 按批次调用 AI 批量生成期末评语。
+   *
+   * @param requestedMode 指定覆盖模式；未指定时根据已有评语情况弹窗确认
+   */
+  async function handleBatchGenerate(
+    requestedMode?: EvaluationBatchGenerateModeType
+  ): Promise<void> {
     if (!options.aiConfig.isConfigured) {
       ElMessage.warning('请先在设置页面配置 AI')
       return
@@ -139,20 +197,24 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       return
     }
 
-    const mode = await resolveBatchGenerateMode(options.students.value)
+    const mode = requestedMode ?? (await resolveBatchGenerateMode(options.students.value))
     if (!mode) return
 
+    if (mode === 'skip' && options.students.value.every((item) => item.comment?.trim())) {
+      ElMessage.info('当前没有空白评语需要生成')
+      return
+    }
+
     batchGenerating.value = true
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在批量生成期末评语...'
-    })
+    startLoading('正在批量生成期末评语...')
 
     try {
+      // overwrite 处理全部学生；skip 仅处理尚无评语的空白项
       const filteredStudents = options.students.value.filter(
         (item) => mode === 'overwrite' || !item.comment?.trim()
       )
       const studentsData = filteredStudents.map((item) => ({
+        studentId: item.studentId,
         name: getEvaluationStudentName(item),
         tags: getStudentTagsText(item),
         comment: mode === 'overwrite' ? '' : item.comment || ''
@@ -167,7 +229,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
         const end = Math.min(start + batchSize, studentsData.length)
         const batchData = studentsData.slice(start, end)
 
-        loading.setText(`正在生成第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
+        updateLoadingText(`正在生成第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
 
         try {
           const result = await generateBatchComments(
@@ -197,14 +259,15 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
 
       let updatedCount = 0
       let tooShortCount = 0
+      // 以学生 ID 为键汇总各批次结果，重复返回时保留最后一次
       const resultMap = new Map(
         allResults
-          .map((item) => [item.name, item.comment?.trim() || ''] as const)
+          .map((item) => [item.studentId, item.comment?.trim() || ''] as const)
           .filter(([, comment]) => !!comment)
       )
 
       for (const student of filteredStudents) {
-        const generatedComment = resultMap.get(getEvaluationStudentName(student))
+        const generatedComment = resultMap.get(student.studentId)
         if (!generatedComment) continue
 
         if (countCommentLength(generatedComment) < COMMENT_MIN_LENGTH) {
@@ -225,11 +288,12 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       console.error('批量生成期末评语失败:', error)
       ElMessage.error('批量生成期末评语失败：' + (error as Error).message)
     } finally {
-      loading.close()
+      stopLoading()
       batchGenerating.value = false
     }
   }
 
+  /** 按批次调用 AI 润色已有评语，空白评语不会生成或覆盖 */
   async function handleBatchPolish(): Promise<void> {
     if (!options.aiConfig.isConfigured) {
       ElMessage.warning('请先在设置页面配置 AI')
@@ -258,10 +322,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
     }
 
     batchPolishing.value = true
-    const loading = ElLoading.service({
-      lock: true,
-      text: '正在批量润色期末评语...'
-    })
+    startLoading('正在批量润色期末评语...')
 
     try {
       const totalBatches = Math.ceil(polishTargets.length / batchSize)
@@ -274,7 +335,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
         const end = Math.min(start + batchSize, polishTargets.length)
         const batchData = polishTargets.slice(start, end)
 
-        loading.setText(`正在润色第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
+        updateLoadingText(`正在润色第 ${batchIndex + 1}/${totalBatches} 批期末评语...`)
 
         try {
           const result = await polishBatchComments(
@@ -307,7 +368,7 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       console.error('批量润色期末评语失败:', error)
       ElMessage.error('批量润色期末评语失败：' + (error as Error).message)
     } finally {
-      loading.close()
+      stopLoading()
       batchPolishing.value = false
     }
   }
