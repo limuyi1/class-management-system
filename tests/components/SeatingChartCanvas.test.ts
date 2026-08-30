@@ -42,6 +42,9 @@ function createChart(): SeatingChartType {
     firstColumnSide: SeatingFirstColumnSideEnum.Left,
     seats,
     specialSeats,
+    roleDefinitions: [],
+    roleAssignments: [],
+    notes: '',
     createdAt: '',
     updatedAt: ''
   }
@@ -68,7 +71,9 @@ describe('SeatingChartCanvas', () => {
           ['student-1', '张三'],
           ['student-2', '李四']
         ]),
-        selectedStudentId: null
+        selectedStudentId: null,
+        roleDefinitions: [],
+        roleAssignments: []
       }
     })
 
@@ -96,7 +101,9 @@ describe('SeatingChartCanvas', () => {
         chart,
         visibleSeatRows,
         studentNames: new Map([['student-1', '张三']]),
-        selectedStudentId: null
+        selectedStudentId: null,
+        roleDefinitions: [],
+        roleAssignments: []
       }
     })
 
@@ -110,5 +117,47 @@ describe('SeatingChartCanvas', () => {
 
     await wrapper.find('.seat-row .seat').trigger('click')
     expect(wrapper.emitted('selectSeat')?.[0]).toEqual([chart.seats[1]])
+  })
+
+  it('renders multiple role labels and opens the student context menu', async () => {
+    const chart = createChart()
+    chart.roleDefinitions = [
+      {
+        id: 'role-1',
+        subject: '语文',
+        title: '组长',
+        groupName: '一组',
+        shortLabel: '语1组',
+        color: '#D94B4B',
+        sortOrder: 0
+      },
+      {
+        id: 'role-2',
+        subject: '数学',
+        title: '副组长',
+        groupName: '',
+        shortLabel: '数副',
+        color: '#6F9FE3',
+        sortOrder: 1
+      }
+    ]
+    chart.roleAssignments = [{ studentId: 'student-1', roleIds: ['role-1', 'role-2'] }]
+    const wrapper = mount(SeatingChartCanvas, {
+      props: {
+        chart,
+        visibleSeatRows: [chart.seats.slice(0, 2), chart.seats.slice(2, 4)],
+        studentNames: new Map([['student-1', '张三']]),
+        selectedStudentId: null,
+        roleDefinitions: chart.roleDefinitions,
+        roleAssignments: chart.roleAssignments
+      }
+    })
+
+    expect(wrapper.findAll('.seat-row .seat__role').map((item) => item.text())).toEqual([
+      '语1组',
+      '数副'
+    ])
+    await wrapper.find('.seat-row .seat').trigger('contextmenu', { clientX: 120, clientY: 80 })
+    expect(wrapper.emitted('openStudentMenu')?.[0]).toEqual(['student-1', 120, 80])
   })
 })

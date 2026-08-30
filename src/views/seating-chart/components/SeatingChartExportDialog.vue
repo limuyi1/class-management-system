@@ -54,6 +54,9 @@ const scale = shallowRef(2)
 // 是否显示标题与“空座位”标签
 const showTitle = shallowRef(true)
 const showEmptyLabels = shallowRef(true)
+const showRoles = shallowRef(true)
+const showLegend = shallowRef(true)
+const showNotes = shallowRef(true)
 // 导出进行中状态，防止重复触发
 const exporting = shallowRef(false)
 
@@ -279,6 +282,30 @@ async function handleExport(): Promise<void> {
               <el-switch v-model="showEmptyLabels" />
             </section>
 
+            <section class="setting-section setting-section--switch">
+              <div>
+                <strong>显示职务标注</strong>
+                <small>显示组长、副组长与课代表标签</small>
+              </div>
+              <el-switch v-model="showRoles" />
+            </section>
+
+            <section class="setting-section setting-section--switch">
+              <div>
+                <strong>显示职务图例</strong>
+                <small>解释颜色与简称的含义</small>
+              </div>
+              <el-switch v-model="showLegend" :disabled="!showRoles" />
+            </section>
+
+            <section class="setting-section setting-section--switch">
+              <div>
+                <strong>显示备注说明</strong>
+                <small>统一显示在座位表下方</small>
+              </div>
+              <el-switch v-model="showNotes" />
+            </section>
+
             <div v-if="largeChartTip" class="large-chart-tip">
               <font-awesome-icon :icon="['solid', 'circle-info']" />
               <span>{{ largeChartTip }}</span>
@@ -300,6 +327,9 @@ async function handleExport(): Promise<void> {
             :student-names="studentNames"
             :show-title="showTitle"
             :show-empty-labels="showEmptyLabels"
+            :show-roles="showRoles"
+            :show-legend="showLegend"
+            :show-notes="showNotes"
             :page-type="pageType"
             :orientation="orientation"
             :layout-scale-percent="layoutScalePercent"

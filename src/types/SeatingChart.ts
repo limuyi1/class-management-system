@@ -37,6 +37,32 @@ export interface SeatingSpecialSeatType {
   studentId: string | null
 }
 
+/** 座位表中的可配置学生职务 */
+export interface SeatingRoleDefinitionType {
+  /** 职务唯一标识 */
+  id: string
+  /** 所属科目，如语文、数学 */
+  subject: string
+  /** 职务名称，如组长、副组长、课代表 */
+  title: string
+  /** 所属小组，可为空 */
+  groupName: string
+  /** 座位卡上展示的短标签 */
+  shortLabel: string
+  /** 标注颜色 */
+  color: string
+  /** 排序权重 */
+  sortOrder: number
+}
+
+/** 学生与职务的多对多分配记录 */
+export interface SeatingRoleAssignmentType {
+  /** 学生 ID */
+  studentId: string
+  /** 学生拥有的职务 ID 列表 */
+  roleIds: string[]
+}
+
 /** 座位表完整配置 */
 export interface SeatingChartType {
   /** 座位表唯一标识 */
@@ -59,6 +85,12 @@ export interface SeatingChartType {
   seats: SeatPositionType[]
   /** 特殊座位配置列表 */
   specialSeats: SeatingSpecialSeatType[]
+  /** 可用职务定义 */
+  roleDefinitions: SeatingRoleDefinitionType[]
+  /** 学生职务分配 */
+  roleAssignments: SeatingRoleAssignmentType[]
+  /** 座位表备注说明 */
+  notes: string
   /** 创建时间（ISO 格式） */
   createdAt: string
   /** 更新时间（ISO 格式） */

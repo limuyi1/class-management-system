@@ -15,13 +15,18 @@ import SeatingChartCanvas from '@/views/seating-chart/components/SeatingChartCan
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 import SeatingChartExportDialog from '@/views/seating-chart/components/SeatingChartExportDialog.vue'
 import SeatingChartToolbar from '@/views/seating-chart/components/SeatingChartToolbar.vue'
+import SeatingNotesPanel from '@/views/seating-chart/components/SeatingNotesPanel.vue'
+import SeatingRoleManagementDialog from '@/views/seating-chart/components/SeatingRoleManagementDialog.vue'
 import SeatingStudentImportDialog from '@/views/seating-chart/components/SeatingStudentImportDialog.vue'
+import SeatingStudentContextMenu from '@/views/seating-chart/components/SeatingStudentContextMenu.vue'
 import SpecialSeatSettingsDialog from '@/views/seating-chart/components/SpecialSeatSettingsDialog.vue'
 import UnassignedStudentPanel from '@/views/seating-chart/components/UnassignedStudentPanel.vue'
 import {
   SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatingChartPreviewType,
+  type SeatingRoleAssignmentType,
+  type SeatingRoleDefinitionType,
   type SeatingSpecialSeatType,
   type SeatPositionType
 } from '@/types/SeatingChart'
@@ -55,6 +60,10 @@ const previewVisible = ref(false)
 const specialSeatVisible = ref(false)
 const exportVisible = shallowRef(false)
 const studentImportVisible = shallowRef(false)
+const roleManagementVisible = shallowRef(false)
+const notesVisible = shallowRef(false)
+const notesDraft = ref('')
+const studentMenu = shallowRef<{ studentId: string; x: number; y: number } | null>(null)
 // Excel 导入的目标：创建新座位表或替换当前名单
 const studentImportTarget = shallowRef<'create' | 'replace'>('create')
 // 新建流程中暂存的学生来源与 Excel 名单，创建时写入 store
@@ -87,6 +96,17 @@ const studentNames = computed(
 const studentNameRecord = computed<Record<string, string>>(() =>
   Object.fromEntries(studentNames.value)
 )
+/** 右键菜单当前学生的姓名 */
+const menuStudentName = computed(() =>
+  studentMenu.value ? studentNames.value.get(studentMenu.value.studentId) || '未命名学生' : ''
+)
+/** 右键菜单当前学生已有的职务 */
+const menuAssignedRoleIds = computed(
+  () =>
+    editingChart.value?.roleAssignments.find(
+      (assignment) => assignment.studentId === studentMenu.value?.studentId
+    )?.roleIds || []
+)
 /** 当前座位表的可见座位（过滤过道占位列） */
 const visibleSeats = computed(() => (editingChart.value ? getVisibleSeats(editingChart.value) : []))
 /** 将可见座位按行分组，供画布逐行渲染 */
@@ -113,13 +133,20 @@ watch(
 // 挂载时校对名单数据，并注册键盘快捷键监听
 onMounted(() => {
   seatingStore.reconcileStudents()
+  document.addEventListener('click', closeStudentMenu)
   window.addEventListener('keydown', handleKeydown)
 })
 
 // 卸载时移除键盘监听
 onBeforeUnmount(() => {
+  document.removeEventListener('click', closeStudentMenu)
   window.removeEventListener('keydown', handleKeydown)
 })
+
+/** 关闭学生职务右键菜单 */
+function closeStudentMenu(): void {
+  studentMenu.value = null
+}
 
 /** 返回工具页面 */
 function backToTools(): void {
@@ -222,6 +249,7 @@ function handleExcelStudentImport(source: ExcelStudentSourceType): void {
 function selectChart(chartId: string): void {
   seatingStore.setEditingChart(chartId)
   selectedStudentId.value = null
+  closeStudentMenu()
 }
 /** 弹出输入框重命名座位表 */
 async function renameChart(chartId: string): Promise<void> {
@@ -390,6 +418,38 @@ function selectSpecialSeat(seat: SeatingSpecialSeatType): void {
   }
   if (seat.studentId) selectedStudentId.value = seat.studentId
 }
+/** 打开学生职务右键菜单 */
+function openStudentMenu(studentId: string, x: number, y: number): void {
+  studentMenu.value = { studentId, x, y }
+}
+/** 从右键菜单切换当前学生的职务 */
+function toggleMenuStudentRole(roleId: string): void {
+  if (!studentMenu.value) return
+  seatingStore.toggleStudentRole(studentMenu.value.studentId, roleId)
+}
+/** 从右键菜单进入完整职务管理 */
+function manageRolesFromMenu(): void {
+  closeStudentMenu()
+  roleManagementVisible.value = true
+}
+/** 保存职务定义和学生分配 */
+function saveRoleSettings(
+  definitions: SeatingRoleDefinitionType[],
+  assignments: SeatingRoleAssignmentType[]
+): void {
+  seatingStore.setRoleSettings(definitions, assignments)
+  ElMessage.success('职务设置已保存')
+}
+/** 打开备注编辑弹窗 */
+function editNotes(): void {
+  notesDraft.value = editingChart.value?.notes || ''
+  notesVisible.value = true
+}
+/** 保存备注说明 */
+function saveNotes(): void {
+  seatingStore.setNotes(notesDraft.value)
+  notesVisible.value = false
+}
 /** 切换页面全屏显示 */
 function toggleFullscreen(): void {
   fullscreen.value = !fullscreen.value
@@ -402,6 +462,7 @@ function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape' && fullscreen.value) {
     fullscreen.value = false
   }
+  if (event.key === 'Escape') closeStudentMenu()
 }
 </script>
 
@@ -501,6 +562,7 @@ function handleKeydown(event: KeyboardEvent): void {
           @open-layout="openLayout"
           @open-aisles="openAisles"
           @open-special-seats="specialSeatVisible = true"
+          @manage-roles="roleManagementVisible = true"
           @randomize="randomize"
           @export="exportVisible = true"
           @toggle-fullscreen="toggleFullscreen"
@@ -510,13 +572,17 @@ function handleKeydown(event: KeyboardEvent): void {
           :visible-seat-rows="visibleSeatRows"
           :student-names="studentNames"
           :selected-student-id="selectedStudentId"
+          :role-definitions="editingChart.roleDefinitions"
+          :role-assignments="editingChart.roleAssignments"
           @drag-start="draggedStudentId = $event"
           @drag-end="draggedStudentId = null"
           @drop-seat="dropOnSeat"
           @select-seat="selectSeat"
           @drop-special-seat="dropOnSpecialSeat"
           @select-special-seat="selectSpecialSeat"
+          @open-student-menu="openStudentMenu"
         />
+        <SeatingNotesPanel :notes="editingChart.notes" @edit="editNotes" />
       </main>
       <!-- 无座位表时显示新建向导 -->
       <main v-else class="chart-editor empty-chart">
@@ -646,6 +712,24 @@ function handleKeydown(event: KeyboardEvent): void {
         </template>
       </unassigned-student-panel>
     </div>
+    <SeatingStudentContextMenu
+      v-if="studentMenu && editingChart"
+      :x="studentMenu.x"
+      :y="studentMenu.y"
+      :student-name="menuStudentName"
+      :roles="editingChart.roleDefinitions"
+      :assigned-role-ids="menuAssignedRoleIds"
+      @toggle-role="toggleMenuStudentRole"
+      @manage="manageRolesFromMenu"
+    />
+    <SeatingRoleManagementDialog
+      v-if="editingChart"
+      v-model="roleManagementVisible"
+      :definitions="editingChart.roleDefinitions"
+      :assignments="editingChart.roleAssignments"
+      :students="activeStudents"
+      @save="saveRoleSettings"
+    />
     <!-- 弹窗：设置座位布局 -->
     <el-dialog v-model="layoutVisible" width="460px"
       ><template #header
@@ -743,6 +827,21 @@ function handleKeydown(event: KeyboardEvent): void {
       v-model="studentImportVisible"
       @confirm="handleExcelStudentImport"
     />
+    <el-dialog v-model="notesVisible" title="编辑备注说明" width="620px">
+      <el-input
+        v-model="notesDraft"
+        type="textarea"
+        :rows="8"
+        maxlength="500"
+        show-word-limit
+        resize="none"
+        placeholder="每行填写一条说明，可用于座位调整、特殊安排或打印提示"
+      />
+      <template #footer>
+        <el-button @click="notesVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveNotes">保存说明</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 

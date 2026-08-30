@@ -9,6 +9,7 @@ import {
 } from '@/types/SeatingChart'
 import {
   createRandomSeats,
+  createDefaultSeatingRoles,
   createSeats,
   createSpecialSeats,
   normalizeChart,
@@ -17,6 +18,7 @@ import {
 import { resolveSeatingChartStudents } from '@/utils/seating-chart/seatingChartStudentUtil'
 
 import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
+import type { SeatingRoleAssignmentType, SeatingRoleDefinitionType } from '@/types/SeatingChart'
 
 /** 创建座位表的选项 */
 interface CreateSeatingChartOptionsType {
@@ -47,6 +49,7 @@ const clearChartAssignments = (chart: SeatingChartType): void => {
   chart.specialSeats.forEach((seat) => {
     seat.studentId = null
   })
+  chart.roleAssignments = []
 }
 
 /**
@@ -146,6 +149,9 @@ export const useSeatingChartStore = defineStore('seatingChart', {
         firstColumnSide: options.firstColumnSide ?? SeatingFirstColumnSideEnum.Left,
         seats: createSeats(rows, columns),
         specialSeats: createSpecialSeats(),
+        roleDefinitions: createDefaultSeatingRoles(),
+        roleAssignments: [],
+        notes: '',
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -173,6 +179,11 @@ export const useSeatingChartStore = defineStore('seatingChart', {
           : undefined,
         seats: chart.seats.map((seat) => ({ ...seat })),
         specialSeats: chart.specialSeats.map((seat) => ({ ...seat })),
+        roleDefinitions: chart.roleDefinitions.map((role) => ({ ...role })),
+        roleAssignments: chart.roleAssignments.map((assignment) => ({
+          ...assignment,
+          roleIds: [...assignment.roleIds]
+        })),
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -270,6 +281,63 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       this.editingChart.aisleAfterColumns = [...new Set(aisles)]
         .filter((item) => item >= 0 && item < this.editingChart!.columns - 1)
         .sort((a, b) => a - b)
+      this.editingChart.updatedAt = now()
+    },
+    /**
+     * 保存职务定义与学生分配。
+     * @param definitions - 职务定义列表
+     * @param assignments - 学生职务分配列表
+     */
+    setRoleSettings(
+      definitions: SeatingRoleDefinitionType[],
+      assignments: SeatingRoleAssignmentType[]
+    ): void {
+      const chart = this.editingChart
+      if (!chart) return
+      const roleIds = new Set(definitions.map((role) => role.id))
+      const studentIds = new Set(this.activeStudents.map((student) => student.id))
+      chart.roleDefinitions = definitions.map((role, index) => ({
+        ...role,
+        subject: role.subject.trim(),
+        title: role.title.trim(),
+        groupName: role.groupName.trim(),
+        shortLabel: role.shortLabel.trim(),
+        sortOrder: index
+      }))
+      chart.roleAssignments = assignments.flatMap((assignment) => {
+        if (!studentIds.has(assignment.studentId)) return []
+        const assignedRoleIds = [...new Set(assignment.roleIds)].filter((roleId) =>
+          roleIds.has(roleId)
+        )
+        return assignedRoleIds.length
+          ? [{ studentId: assignment.studentId, roleIds: assignedRoleIds }]
+          : []
+      })
+      chart.updatedAt = now()
+    },
+    /** 切换指定学生的某项职务 */
+    toggleStudentRole(studentId: string, roleId: string): void {
+      const chart = this.editingChart
+      if (
+        !chart ||
+        !this.activeStudents.some((student) => student.id === studentId) ||
+        !chart.roleDefinitions.some((role) => role.id === roleId)
+      )
+        return
+      const assignment = chart.roleAssignments.find((item) => item.studentId === studentId)
+      if (!assignment) chart.roleAssignments.push({ studentId, roleIds: [roleId] })
+      else if (assignment.roleIds.includes(roleId)) {
+        assignment.roleIds = assignment.roleIds.filter((item) => item !== roleId)
+        if (!assignment.roleIds.length) {
+          chart.roleAssignments = chart.roleAssignments.filter((item) => item !== assignment)
+        }
+      } else assignment.roleIds.push(roleId)
+      chart.updatedAt = now()
+    },
+    /** 设置整张座位表的备注说明 */
+    setNotes(notes: string): void {
+      if (!this.editingChart) return
+      this.editingChart.notes = notes.trim()
       this.editingChart.updatedAt = now()
     },
     /**

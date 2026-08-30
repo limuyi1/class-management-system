@@ -7,6 +7,7 @@ import {
   SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatPositionType,
+  type SeatingRoleDefinitionType,
   type SeatingChartType
 } from '@/types/SeatingChart'
 import { buildSeatingChartPageLayout } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
@@ -25,6 +26,12 @@ const props = withDefaults(
     showTitle?: boolean
     /** 是否显示“空座位”标签 */
     showEmptyLabels: boolean
+    /** 是否显示学生职务标注 */
+    showRoles?: boolean
+    /** 是否显示职务图例 */
+    showLegend?: boolean
+    /** 是否显示备注说明 */
+    showNotes?: boolean
     /** 纸张类型 */
     pageType?: PagesEnum
     /** 页面方向 */
@@ -34,6 +41,9 @@ const props = withDefaults(
   }>(),
   {
     showTitle: true,
+    showRoles: true,
+    showLegend: true,
+    showNotes: true,
     pageType: PagesEnum.A4,
     orientation: 'landscape',
     layoutScalePercent: 100
@@ -116,6 +126,39 @@ const visibleSeatRows = computed(() => {
 const visibleColumnSeats = computed(() => visibleSeatRows.value[0] || [])
 /** 当前启用的雅座 */
 const enabledSpecialSeats = computed(() => props.chart.specialSeats.filter((seat) => seat.enabled))
+/** 职务 ID 到定义的映射 */
+const roleDefinitionMap = computed(
+  () => new Map(props.chart.roleDefinitions.map((role) => [role.id, role]))
+)
+/** 学生 ID 到职务列表的映射 */
+const studentRoles = computed(
+  () =>
+    new Map(
+      props.chart.roleAssignments.map((assignment) => [
+        assignment.studentId,
+        assignment.roleIds.flatMap((roleId) => {
+          const role = roleDefinitionMap.value.get(roleId)
+          return role ? [role] : []
+        })
+      ])
+    )
+)
+/** 当前已落座学生实际使用到的职务，用于导出图例 */
+const visibleRoleDefinitions = computed(() => {
+  const seatedStudentIds = new Set(
+    [...props.chart.seats, ...props.chart.specialSeats].flatMap((seat) =>
+      seat.studentId ? [seat.studentId] : []
+    )
+  )
+  const usedRoleIds = new Set(
+    props.chart.roleAssignments.flatMap((assignment) =>
+      seatedStudentIds.has(assignment.studentId) ? assignment.roleIds : []
+    )
+  )
+  return props.chart.roleDefinitions.filter((role) => usedRoleIds.has(role.id))
+})
+/** 非空备注行 */
+const noteLines = computed(() => props.chart.notes.split('\n').filter((line) => line.trim()))
 
 /** 测量座位内容的自然尺寸，作为缩放计算基准 */
 function measureContent(): void {
@@ -178,6 +221,16 @@ function isSpecialSeatEnabled(position: SeatingSpecialSeatPositionEnum): boolean
   return Boolean(props.chart.specialSeats.find((seat) => seat.position === position)?.enabled)
 }
 
+/** 获取指定雅座上的学生 ID */
+function getSpecialSeatStudentId(position: SeatingSpecialSeatPositionEnum): string | null {
+  return props.chart.specialSeats.find((seat) => seat.position === position)?.studentId || null
+}
+
+/** 获取学生的全部职务定义 */
+function getStudentRoles(studentId: string | null): SeatingRoleDefinitionType[] {
+  return studentId ? studentRoles.value.get(studentId) || [] : []
+}
+
 /** 暴露导出元素，供导出弹窗调用进行截图 */
 function getElement(): HTMLElement | null {
   return exportElementRef.value
@@ -211,6 +264,38 @@ defineExpose({ getElement })
                         getSpecialSeatName(SeatingSpecialSeatPositionEnum.PlatformLeft) ||
                         (showEmptyLabels ? '空座位' : '')
                       }}</strong>
+                      <div
+                        v-if="
+                          showRoles &&
+                          getStudentRoles(
+                            getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformLeft)
+                          ).length
+                        "
+                        class="export-seat-roles"
+                      >
+                        <span
+                          v-for="role in getStudentRoles(
+                            getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformLeft)
+                          ).slice(0, 2)"
+                          :key="role.id"
+                          :style="{ color: role.color, borderColor: role.color }"
+                          >{{ role.shortLabel }}</span
+                        >
+                        <span
+                          v-if="
+                            getStudentRoles(
+                              getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformLeft)
+                            ).length > 2
+                          "
+                          class="export-seat-role-more"
+                        >
+                          +{{
+                            getStudentRoles(
+                              getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformLeft)
+                            ).length - 2
+                          }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   <div class="export-platform">讲 台</div>
@@ -224,6 +309,38 @@ defineExpose({ getElement })
                         getSpecialSeatName(SeatingSpecialSeatPositionEnum.PlatformRight) ||
                         (showEmptyLabels ? '空座位' : '')
                       }}</strong>
+                      <div
+                        v-if="
+                          showRoles &&
+                          getStudentRoles(
+                            getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformRight)
+                          ).length
+                        "
+                        class="export-seat-roles"
+                      >
+                        <span
+                          v-for="role in getStudentRoles(
+                            getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformRight)
+                          ).slice(0, 2)"
+                          :key="role.id"
+                          :style="{ color: role.color, borderColor: role.color }"
+                          >{{ role.shortLabel }}</span
+                        >
+                        <span
+                          v-if="
+                            getStudentRoles(
+                              getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformRight)
+                            ).length > 2
+                          "
+                          class="export-seat-role-more"
+                        >
+                          +{{
+                            getStudentRoles(
+                              getSpecialSeatStudentId(SeatingSpecialSeatPositionEnum.PlatformRight)
+                            ).length - 2
+                          }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -249,6 +366,23 @@ defineExpose({ getElement })
                             {{ studentNames[seat.studentId] || '未命名学生' }}
                           </strong>
                           <span v-else-if="showEmptyLabels">空座位</span>
+                          <div
+                            v-if="showRoles && getStudentRoles(seat.studentId).length"
+                            class="export-seat-roles"
+                          >
+                            <span
+                              v-for="role in getStudentRoles(seat.studentId).slice(0, 2)"
+                              :key="role.id"
+                              :style="{ color: role.color, borderColor: role.color }"
+                              >{{ role.shortLabel }}</span
+                            >
+                            <span
+                              v-if="getStudentRoles(seat.studentId).length > 2"
+                              class="export-seat-role-more"
+                            >
+                              +{{ getStudentRoles(seat.studentId).length - 2 }}
+                            </span>
+                          </div>
                         </div>
                         <span v-if="hasAisleAfterSeat(seat)" class="aisle"></span>
                       </template>
@@ -256,6 +390,36 @@ defineExpose({ getElement })
                   </div>
                 </div>
               </div>
+
+              <section
+                v-if="
+                  (showRoles && showLegend && visibleRoleDefinitions.length) ||
+                  (showNotes && noteLines.length)
+                "
+                class="sheet-annotations"
+              >
+                <div
+                  v-if="showRoles && showLegend && visibleRoleDefinitions.length"
+                  class="role-legend"
+                >
+                  <strong>职务图例</strong>
+                  <span
+                    v-for="role in visibleRoleDefinitions"
+                    :key="role.id"
+                    :style="{ color: role.color, borderColor: role.color }"
+                  >
+                    {{ role.shortLabel }}：{{
+                      [role.subject, role.groupName, role.title].filter(Boolean).join('')
+                    }}
+                  </span>
+                </div>
+                <div v-if="showNotes && noteLines.length" class="sheet-notes">
+                  <strong>备注说明</strong>
+                  <span v-for="(line, index) in noteLines" :key="`${index}-${line}`">{{
+                    line
+                  }}</span>
+                </div>
+              </section>
 
               <footer class="sheet-footer">
                 <span>共 {{ chart.seats.length + enabledSpecialSeats.length }} 个座位</span>
@@ -503,6 +667,65 @@ defineExpose({ getElement })
   overflow-wrap: anywhere;
   font-size: 13px;
   line-height: 1.25;
+}
+
+.export-seat-roles {
+  display: flex;
+  max-width: 80px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 3px;
+}
+
+.export-seat-roles span,
+.role-legend span {
+  padding: 1px 3px;
+  background: #fff;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 7px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.export-seat-roles .export-seat-role-more {
+  color: #786d82;
+  border-color: #cfc6d5;
+}
+
+.sheet-annotations {
+  display: grid;
+  gap: 8px;
+  max-width: 100%;
+  margin-bottom: 10px;
+  padding: 9px 10px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: 8px;
+}
+
+.role-legend,
+.sheet-notes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.role-legend > strong,
+.sheet-notes > strong {
+  margin-right: 3px;
+  color: var(--ink);
+  font-size: 8px;
+}
+
+.sheet-notes span:not(:last-child)::after {
+  margin-left: 5px;
+  color: #b5acb9;
+  content: '·';
 }
 
 .aisle {

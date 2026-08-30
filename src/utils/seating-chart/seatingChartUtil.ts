@@ -5,6 +5,8 @@
 import {
   SeatingSpecialSeatPositionEnum,
   SeatingFirstColumnSideEnum,
+  type SeatingRoleAssignmentType,
+  type SeatingRoleDefinitionType,
   type SeatPositionType,
   type SeatingChartType,
   type SeatingSpecialSeatType
@@ -14,6 +16,76 @@ import {
 export const SEATING_CHART_MIN_SIZE = 1
 /** 座位表行列数上限 */
 export const SEATING_CHART_MAX_SIZE = 20
+
+/** 默认职务配色：同科目使用同一色系，不同职务保持可辨识差异 */
+const DEFAULT_ROLE_PRESETS = [
+  ['语文', '组长', '语组', '#D94B4B'],
+  ['语文', '副组长', '语副', '#E77B73'],
+  ['语文', '课代表', '语课', '#B83F64'],
+  ['数学', '组长', '数组', '#3978D4'],
+  ['数学', '副组长', '数副', '#6F9FE3'],
+  ['数学', '课代表', '数课', '#5965C8'],
+  ['英语', '组长', '英组', '#228B62'],
+  ['英语', '副组长', '英副', '#5BAA82'],
+  ['英语', '课代表', '英课', '#247F82']
+] as const
+
+/** 创建语数外组长、副组长与课代表的默认职务集合 */
+export function createDefaultSeatingRoles(): SeatingRoleDefinitionType[] {
+  return DEFAULT_ROLE_PRESETS.map(([subject, title, shortLabel, color], index) => ({
+    id: `seating-role-${subject}-${title}`,
+    subject,
+    title,
+    groupName: '',
+    shortLabel,
+    color,
+    sortOrder: index
+  }))
+}
+
+/** 规范化座位表职务定义，旧数据缺失时补齐默认职务 */
+function normalizeRoleDefinitions(chart: SeatingChartType): SeatingRoleDefinitionType[] {
+  if (!Array.isArray(chart.roleDefinitions)) return createDefaultSeatingRoles()
+  const seen = new Set<string>()
+  return chart.roleDefinitions.flatMap((role, index) => {
+    if (!role?.id || seen.has(role.id)) return []
+    seen.add(role.id)
+    return [
+      {
+        id: role.id,
+        subject: String(role.subject || '').trim(),
+        title: String(role.title || '').trim(),
+        groupName: String(role.groupName || '').trim(),
+        shortLabel: String(role.shortLabel || '').trim() || String(role.title || '职务'),
+        color: /^#[0-9a-f]{6}$/i.test(role.color) ? role.color : '#8060AA',
+        sortOrder: Number.isFinite(role.sortOrder) ? role.sortOrder : index
+      }
+    ]
+  })
+}
+
+/** 规范化学生职务分配，清除无效学生、职务和重复项 */
+function normalizeRoleAssignments(
+  chart: SeatingChartType,
+  studentIds: Set<string>,
+  roles: SeatingRoleDefinitionType[]
+): SeatingRoleAssignmentType[] {
+  if (!Array.isArray(chart.roleAssignments)) return []
+  const roleIds = new Set(roles.map((role) => role.id))
+  const assignments = new Map<string, Set<string>>()
+  chart.roleAssignments.forEach((assignment) => {
+    if (!studentIds.has(assignment?.studentId) || !Array.isArray(assignment.roleIds)) return
+    const assignedRoles = assignments.get(assignment.studentId) || new Set<string>()
+    assignment.roleIds.forEach((roleId) => {
+      if (roleIds.has(roleId)) assignedRoles.add(roleId)
+    })
+    if (assignedRoles.size) assignments.set(assignment.studentId, assignedRoles)
+  })
+  return [...assignments].map(([studentId, assignedRoles]) => ({
+    studentId,
+    roleIds: [...assignedRoles]
+  }))
+}
 
 /** 旧版座位表结构：firstColumnSide 可能缺失，viewDirection 为旧字段 */
 interface LegacySeatingChartType extends Omit<SeatingChartType, 'firstColumnSide'> {
@@ -132,6 +204,7 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
   })
   const normalizedChart = { ...legacyChart }
   delete normalizedChart.viewDirection
+  const roleDefinitions = normalizeRoleDefinitions(chart)
   return {
     ...normalizedChart,
     rows,
@@ -139,6 +212,9 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     firstColumnSide,
     seats,
     specialSeats,
+    roleDefinitions,
+    roleAssignments: normalizeRoleAssignments(chart, studentIds, roleDefinitions),
+    notes: typeof chart.notes === 'string' ? chart.notes : '',
     // 过道列需去重、取整并落在有效列区间内。
     aisleAfterColumns: [...new Set(chart.aisleAfterColumns)]
       .filter((column) => Number.isInteger(column) && column >= 0 && column < columns - 1)

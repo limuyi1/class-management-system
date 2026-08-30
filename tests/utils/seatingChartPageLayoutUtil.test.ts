@@ -25,6 +25,9 @@ function createChart(rows: number, columns: number): SeatingChartType {
     firstColumnSide: SeatingFirstColumnSideEnum.Left,
     seats: createSeats(rows, columns),
     specialSeats: createSpecialSeats(),
+    roleDefinitions: [],
+    roleAssignments: [],
+    notes: '',
     createdAt: '',
     updatedAt: ''
   }

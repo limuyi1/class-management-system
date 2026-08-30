@@ -30,6 +30,9 @@ const chart = (rows = 2, columns = 2): SeatingChartType => ({
   firstColumnSide: SeatingFirstColumnSideEnum.Left,
   seats: createSeats(rows, columns),
   specialSeats: createSpecialSeats(),
+  roleDefinitions: [],
+  roleAssignments: [],
+  notes: '',
   createdAt: '',
   updatedAt: ''
 })
@@ -75,6 +78,14 @@ describe('seatingChartUtil', () => {
 
     expect(result.firstColumnSide).toBe(SeatingFirstColumnSideEnum.Right)
     expect('viewDirection' in result).toBe(false)
+  })
+
+  it('adds default roles to legacy charts while preserving an intentionally empty role list', () => {
+    const legacyChart = chart()
+    delete (legacyChart as Partial<SeatingChartType>).roleDefinitions
+
+    expect(normalizeChart(legacyChart, new Set()).roleDefinitions).toHaveLength(9)
+    expect(normalizeChart(chart(), new Set()).roleDefinitions).toEqual([])
   })
 
   it('keeps enabled special-seat students fixed during randomization', () => {

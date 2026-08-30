@@ -31,6 +31,9 @@ const createChart = (): SeatingChartType => ({
   firstColumnSide: SeatingFirstColumnSideEnum.Left,
   seats: createSeats(2, 2),
   specialSeats: createSpecialSeats(),
+  roleDefinitions: [],
+  roleAssignments: [],
+  notes: '',
   createdAt: '',
   updatedAt: ''
 })

@@ -25,6 +25,7 @@ const emit = defineEmits<{
   openLayout: []
   openAisles: []
   openSpecialSeats: []
+  manageRoles: []
   randomize: []
   export: []
   toggleFullscreen: []
@@ -67,6 +68,11 @@ function handleLayoutCommand(command: LayoutCommandType): void {
       </el-dropdown>
 
       <span class="seating-toolbar__divider" aria-hidden="true"></span>
+
+      <el-button size="small" @click="emit('manageRoles')">
+        <font-awesome-icon :icon="['solid', 'user-tag']" />
+        职务管理
+      </el-button>
 
       <el-button size="small" type="primary" @click="emit('randomize')">
         <font-awesome-icon :icon="['solid', 'shuffle']" />

@@ -109,4 +109,39 @@ describe('useSeatingChartStore', () => {
 
     expect(store.editingChart?.firstColumnSide).toBe(SeatingFirstColumnSideEnum.Left)
   })
+
+  it('supports multiple configurable roles per student and keeps them during reseating', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '张三' }]
+    const store = useSeatingChartStore()
+    store.createChart({ studentSource: 'system', rows: 1, columns: 1 })
+    const roles = store.editingChart!.roleDefinitions
+    const chineseLeader = roles.find((role) => role.subject === '语文' && role.title === '组长')!
+    const mathDeputy = roles.find((role) => role.subject === '数学' && role.title === '副组长')!
+
+    store.toggleStudentRole('student-1', chineseLeader.id)
+    store.toggleStudentRole('student-1', mathDeputy.id)
+    store.randomizeAll()
+
+    expect(store.editingChart?.roleAssignments).toEqual([
+      { studentId: 'student-1', roleIds: [chineseLeader.id, mathDeputy.id] }
+    ])
+    expect(store.editingChart?.seats[0].studentId).toBe('student-1')
+  })
+
+  it('clears student role assignments when replacing the student source', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '张三' }]
+    const store = useSeatingChartStore()
+    store.createChart({ studentSource: 'system', rows: 1, columns: 1 })
+    store.toggleStudentRole('student-1', store.editingChart!.roleDefinitions[0].id)
+
+    store.setStudentSource('excel', {
+      fileName: '名单.xlsx',
+      students: [{ id: 'excel:0', name: '李四' }]
+    })
+
+    expect(store.editingChart?.roleAssignments).toEqual([])
+    expect(store.editingChart?.roleDefinitions).toHaveLength(9)
+  })
 })

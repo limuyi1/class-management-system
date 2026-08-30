@@ -7,6 +7,8 @@ import {
   SeatingFirstColumnSideEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatPositionType,
+  type SeatingRoleAssignmentType,
+  type SeatingRoleDefinitionType,
   type SeatingChartType,
   type SeatingSpecialSeatType
 } from '@/types/SeatingChart'
@@ -21,6 +23,10 @@ const props = defineProps<{
   studentNames: Map<string, string>
   /** 当前选中的学生 ID */
   selectedStudentId: string | null
+  /** 可用职务定义 */
+  roleDefinitions: SeatingRoleDefinitionType[]
+  /** 学生职务分配 */
+  roleAssignments: SeatingRoleAssignmentType[]
 }>()
 
 /** 事件：拖拽开始/结束、落座/点选普通座位与雅座 */
@@ -31,6 +37,7 @@ const emit = defineEmits<{
   selectSeat: [seat: SeatPositionType]
   dropSpecialSeat: [position: SeatingSpecialSeatPositionEnum]
   selectSpecialSeat: [seat: SeatingSpecialSeatType]
+  openStudentMenu: [studentId: string, x: number, y: number]
 }>()
 
 // 座位网格视口元素，供缩放计算测量
@@ -48,6 +55,23 @@ const hasSpecialSeats = computed(() => props.chart.specialSeats.some((seat) => s
 // 第一列是否位于右侧
 const firstColumnOnRight = computed(
   () => props.chart.firstColumnSide === SeatingFirstColumnSideEnum.Right
+)
+/** 职务 ID 到定义的映射 */
+const roleDefinitionMap = computed(
+  () => new Map(props.roleDefinitions.map((role) => [role.id, role]))
+)
+/** 学生 ID 到职务定义列表的映射 */
+const studentRoles = computed(
+  () =>
+    new Map(
+      props.roleAssignments.map((assignment) => [
+        assignment.studentId,
+        assignment.roleIds.flatMap((roleId) => {
+          const role = roleDefinitionMap.value.get(roleId)
+          return role ? [role] : []
+        })
+      ])
+    )
 )
 
 // 根据画布可用空间自动缩放座位网格
@@ -76,6 +100,16 @@ function hasAisleAfterSeat(seat: SeatPositionType): boolean {
 function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
   return position === SeatingSpecialSeatPositionEnum.PlatformLeft ? '左' : '右'
 }
+
+/** 获取学生座位上应展示的职务 */
+function getStudentRoles(studentId: string | null): SeatingRoleDefinitionType[] {
+  return studentId ? studentRoles.value.get(studentId) || [] : []
+}
+
+/** 打开学生职务右键菜单 */
+function openStudentMenu(event: MouseEvent, studentId: string | null): void {
+  if (studentId) emit('openStudentMenu', studentId, event.clientX, event.clientY)
+}
 </script>
 
 <template>
@@ -97,11 +131,28 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
             @dragover.prevent
             @drop="emit('dropSpecialSeat', specialSeat.position)"
             @click="emit('selectSpecialSeat', specialSeat)"
+            @contextmenu.prevent="openStudentMenu($event, specialSeat.studentId)"
           >
             <span v-if="specialSeat.studentId" class="seat__name">
               {{ studentNames.get(specialSeat.studentId) }}
             </span>
             <span v-else class="seat__empty">＋ 空座位</span>
+            <span v-if="getStudentRoles(specialSeat.studentId).length" class="seat__roles">
+              <span
+                v-for="role in getStudentRoles(specialSeat.studentId).slice(0, 2)"
+                :key="role.id"
+                class="seat__role"
+                :title="[role.subject, role.groupName, role.title].filter(Boolean).join(' · ')"
+                :style="{ color: role.color, borderColor: role.color }"
+                >{{ role.shortLabel }}</span
+              >
+              <span
+                v-if="getStudentRoles(specialSeat.studentId).length > 2"
+                class="seat__role-more"
+              >
+                +{{ getStudentRoles(specialSeat.studentId).length - 2 }}
+              </span>
+            </span>
             <small class="special-seat__side">{{ specialSeatSide(specialSeat.position) }}</small>
           </button>
           <div v-else-if="hasSpecialSeats" class="special-seat-placeholder"></div>
@@ -154,11 +205,30 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
                     @dragover.prevent
                     @drop="emit('dropSeat', seat)"
                     @click="emit('selectSeat', seat)"
+                    @contextmenu.prevent="openStudentMenu($event, seat.studentId)"
                   >
                     <span v-if="seat.studentId" class="seat__name">
                       {{ studentNames.get(seat.studentId) }}
                     </span>
                     <span v-else class="seat__empty">＋ 空座位</span>
+                    <span v-if="getStudentRoles(seat.studentId).length" class="seat__roles">
+                      <span
+                        v-for="role in getStudentRoles(seat.studentId).slice(0, 2)"
+                        :key="role.id"
+                        class="seat__role"
+                        :title="
+                          [role.subject, role.groupName, role.title].filter(Boolean).join(' · ')
+                        "
+                        :style="{ color: role.color, borderColor: role.color }"
+                        >{{ role.shortLabel }}</span
+                      >
+                      <span
+                        v-if="getStudentRoles(seat.studentId).length > 2"
+                        class="seat__role-more"
+                      >
+                        +{{ getStudentRoles(seat.studentId).length - 2 }}
+                      </span>
+                    </span>
                   </button>
                   <span
                     v-if="hasAisleAfterSeat(seat)"
@@ -226,8 +296,10 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
 
 .seat {
   position: relative;
-  display: grid;
-  place-content: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   width: 96px;
   min-width: 96px;
   min-height: 58px;
@@ -244,6 +316,35 @@ function specialSeatSide(position: SeatingSpecialSeatPositionEnum): string {
     border-color 0.16s ease,
     background 0.16s ease,
     box-shadow 0.16s ease;
+}
+
+.seat__roles {
+  display: flex;
+  max-width: 84px;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
+.seat__role,
+.seat__role-more {
+  max-width: 34px;
+  padding: 1px 4px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+}
+
+.seat__role-more {
+  color: #786d82;
+  border-color: #cfc6d5;
 }
 
 .seat:hover,

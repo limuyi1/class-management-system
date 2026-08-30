@@ -37,6 +37,9 @@ function createChart(): SeatingChartType {
     firstColumnSide: SeatingFirstColumnSideEnum.Left,
     seats,
     specialSeats,
+    roleDefinitions: [],
+    roleAssignments: [],
+    notes: '',
     createdAt: '',
     updatedAt: ''
   }
@@ -136,5 +139,63 @@ describe('SeatingChartExportPreview', () => {
     expect(wrapper.find('.sheet-header').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('一班座位表')
     expect(wrapper.find('.classroom-plan').exists()).toBe(true)
+  })
+
+  it('renders student roles, the legend and notes when enabled', () => {
+    const chart = createChart()
+    chart.roleDefinitions = [
+      {
+        id: 'role-1',
+        subject: '英语',
+        title: '副组长',
+        groupName: '二组',
+        shortLabel: '英2副',
+        color: '#228B62',
+        sortOrder: 0
+      }
+    ]
+    chart.roleAssignments = [{ studentId: 'student-1', roleIds: ['role-1'] }]
+    chart.notes = '第一排为视力调整座位\n每周轮换一次'
+    const wrapper = mount(SeatingChartExportPreview, {
+      props: {
+        chart,
+        studentNames: { 'student-1': '张三' },
+        showEmptyLabels: true
+      }
+    })
+
+    expect(wrapper.get('.export-seat-roles').text()).toContain('英2副')
+    expect(wrapper.get('.role-legend').text()).toContain('英语二组副组长')
+    expect(wrapper.get('.sheet-notes').text()).toContain('每周轮换一次')
+  })
+
+  it('can hide roles, the legend and notes from the export', () => {
+    const chart = createChart()
+    chart.roleDefinitions = [
+      {
+        id: 'role-1',
+        subject: '语文',
+        title: '组长',
+        groupName: '',
+        shortLabel: '语组',
+        color: '#D94B4B',
+        sortOrder: 0
+      }
+    ]
+    chart.roleAssignments = [{ studentId: 'student-1', roleIds: ['role-1'] }]
+    chart.notes = '备注内容'
+    const wrapper = mount(SeatingChartExportPreview, {
+      props: {
+        chart,
+        studentNames: { 'student-1': '张三' },
+        showEmptyLabels: true,
+        showRoles: false,
+        showLegend: false,
+        showNotes: false
+      }
+    })
+
+    expect(wrapper.find('.export-seat-roles').exists()).toBe(false)
+    expect(wrapper.find('.sheet-annotations').exists()).toBe(false)
   })
 })
