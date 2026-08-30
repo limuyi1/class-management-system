@@ -164,7 +164,7 @@ async function exportRoster(): Promise<void> {
                 v-model="layoutScalePercent"
                 :min="70"
                 :max="150"
-                :step="5"
+                :step="1"
                 :show-tooltip="false"
               />
               <div class="scale-range">

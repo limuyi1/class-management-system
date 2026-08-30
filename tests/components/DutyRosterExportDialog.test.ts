@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
-import ElementPlus from 'element-plus'
+import ElementPlus, { ElSlider } from 'element-plus'
 
 import { DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
 import { createDefaultDutySections } from '@/utils/duty-roster/dutyRosterUtil'
@@ -53,6 +53,7 @@ describe('DutyRosterExportDialog', () => {
     expect(overlay).not.toBeNull()
     expect(Number(overlay?.style.zIndex)).toBeGreaterThanOrEqual(2000)
     expect(overlay?.querySelector('.export-workspace')).not.toBeNull()
+    expect(wrapper.findComponent(ElSlider).props('step')).toBe(1)
 
     wrapper.unmount()
   })

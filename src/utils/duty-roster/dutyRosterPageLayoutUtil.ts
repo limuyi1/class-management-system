@@ -22,7 +22,6 @@ const BASE_PERIOD_WIDTH = 64
 const BASE_POSITION_WIDTH = 94
 const BASE_TABLE_HEADER_HEIGHT = 70
 const BASE_ROW_HEIGHT = 62
-const BASE_STUDENT_LINE_HEIGHT = 22
 const BASE_TITLE_HEIGHT = 58
 const BASE_NOTES_HEADING_HEIGHT = 28
 const BASE_NOTE_LINE_HEIGHT = 17
@@ -54,19 +53,19 @@ export function buildDutyRosterPageLayout(
   )
   const rowCount =
     roster.mode === DutyRosterModeEnum.Daily ? 5 : Math.max(1, roster.weeklyRows?.length || 0)
-  const maxStudentCount = Math.max(
-    1,
-    ...roster.assignments.map((assignment) => assignment.studentIds.length)
-  )
-  const noteLineCount = roster.notes.split('\n').filter((line) => line.trim()).length
   const naturalTableWidth =
     Math.max(1, positionCount) * BASE_POSITION_WIDTH +
     (roster.mode === DutyRosterModeEnum.Daily ? BASE_PERIOD_WIDTH : 0)
-  const naturalRowHeight = Math.max(
-    BASE_ROW_HEIGHT,
-    maxStudentCount * BASE_STUDENT_LINE_HEIGHT + 18
-  )
-  const naturalTableHeight = BASE_TABLE_HEADER_HEIGHT + rowCount * naturalRowHeight
+  const noteCharactersPerLine = Math.max(24, Math.floor(naturalTableWidth / 10))
+  const noteLineCount = roster.notes
+    .split('\n')
+    .filter((line) => line.trim())
+    .reduce(
+      (count, line) =>
+        count + Math.max(1, Math.ceil(Array.from(line.trim()).length / noteCharactersPerLine)),
+      0
+    )
+  const naturalTableHeight = BASE_TABLE_HEADER_HEIGHT + rowCount * BASE_ROW_HEIGHT
   const naturalTitleHeight = showTitle ? BASE_TITLE_HEIGHT + BASE_CONTENT_GAP : 0
   const naturalNotesHeight =
     showNotes && noteLineCount
