@@ -15,6 +15,7 @@ import {
   type DutyRosterExportFormatType
 } from '@/utils/duty-roster/dutyRosterExportUtil'
 import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLayoutUtil'
+import { exportDutyRosterExcel } from '@/utils/duty-roster/dutyRosterExcelUtil'
 import DutyRosterExportPreview from '@/views/duty-roster/components/DutyRosterExportPreview.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
@@ -56,11 +57,18 @@ const selectedLayout = computed(() =>
 )
 /** 大值日表提示文案：比例超范围或字号过小时给出建议 */
 const denseRosterTip = computed(() => {
+  if (format.value === 'xlsx') return ''
   if (layoutScalePercent.value > 100) {
     return '当前比例超过自动适配范围，部分内容可能进入页边距或被裁切。'
   }
   if (selectedLayout.value.fontScale >= 0.72) return ''
   return '当前岗位或值日行较多，已缩放到单页；如姓名偏小，建议选择 A3。'
+})
+/** 当前格式对应的导出按钮文案。 */
+const exportButtonText = computed(() => {
+  if (format.value === 'png') return '导出图片'
+  if (format.value === 'pdf') return '导出 PDF'
+  return '导出 Excel'
 })
 
 // 打开弹窗时重置为默认缩放
@@ -86,6 +94,11 @@ async function exportRoster(): Promise<void> {
   exporting.value = true
   startLoading('正在生成值日表...')
   try {
+    if (format.value === 'xlsx') {
+      exportDutyRosterExcel(props.roster, props.studentNames)
+      ElMessage.success('值日表 Excel 导出成功')
+      return
+    }
     await nextTick()
     const element = previewRef.value?.getElement()
     if (!element) throw new Error('值日表预览尚未准备完成')
@@ -138,12 +151,13 @@ async function exportRoster(): Promise<void> {
                 <div><strong>文件格式</strong><small>选择使用场景</small></div>
               </div>
               <el-radio-group v-model="format" class="format-options">
-                <el-radio-button value="png">高清 PNG</el-radio-button>
-                <el-radio-button value="pdf">打印 PDF</el-radio-button>
+                <el-radio-button value="png">PNG</el-radio-button>
+                <el-radio-button value="pdf">PDF</el-radio-button>
+                <el-radio-button value="xlsx">Excel</el-radio-button>
               </el-radio-group>
             </section>
 
-            <section class="setting-section">
+            <section v-if="format !== 'xlsx'" class="setting-section">
               <div class="setting-heading">
                 <span class="setting-index">02</span>
                 <div><strong>纸张设置</strong><small>横向内容自动适应单页</small></div>
@@ -154,7 +168,7 @@ async function exportRoster(): Promise<void> {
               </el-select>
             </section>
 
-            <section class="setting-section">
+            <section v-if="format !== 'xlsx'" class="setting-section">
               <div class="setting-heading setting-heading--scale">
                 <span class="setting-index">03</span>
                 <div><strong>版面缩放</strong><small>缩放纸张上的全部内容</small></div>
@@ -192,12 +206,12 @@ async function exportRoster(): Promise<void> {
               </el-select>
             </section>
 
-            <section class="setting-section setting-section--switch">
+            <section v-if="format !== 'xlsx'" class="setting-section setting-section--switch">
               <div><strong>显示标题</strong><small>关闭后同时隐藏标题分隔线</small></div>
               <el-switch v-model="showTitle" />
             </section>
 
-            <section class="setting-section setting-section--switch">
+            <section v-if="format !== 'xlsx'" class="setting-section setting-section--switch">
               <div><strong>显示备注说明</strong><small>统一显示在表格下方</small></div>
               <el-switch v-model="showNotes" />
             </section>
@@ -213,9 +227,14 @@ async function exportRoster(): Promise<void> {
       <div class="preview-panel">
         <div class="preview-toolbar">
           <span><i></i>实时预览</span>
-          <small>纸张预览已自动适应窗口</small>
+          <small>{{ format === 'xlsx' ? 'Excel 将保留岗位层级与人员安排' : '纸张预览已自动适应窗口' }}</small>
         </div>
-        <div class="preview-scroll">
+        <div v-if="format === 'xlsx'" class="excel-preview-placeholder">
+          <font-awesome-icon :icon="['solid', 'file-excel']" />
+          <strong>Excel 成果表</strong>
+          <span>包含值日周期、区域、岗位、学生、组长标识和备注说明</span>
+        </div>
+        <div v-else class="preview-scroll">
           <DutyRosterExportPreview
             ref="previewRef"
             :roster="roster"
@@ -239,7 +258,7 @@ async function exportRoster(): Promise<void> {
           <el-button @click="visible = false">取消</el-button>
           <el-button type="primary" :loading="exporting" @click="exportRoster">
             <font-awesome-icon v-if="!exporting" :icon="['solid', 'download']" />
-            导出{{ format === 'png' ? '图片' : ' PDF' }}
+            {{ exportButtonText }}
           </el-button>
         </div>
       </div>
@@ -336,7 +355,7 @@ async function exportRoster(): Promise<void> {
 }
 
 .format-options :deep(.el-radio-button) {
-  width: 50%;
+  width: 33.333%;
 }
 
 .format-options :deep(.el-radio-button__inner) {
@@ -397,6 +416,32 @@ async function exportRoster(): Promise<void> {
   display: flex;
   min-width: 0;
   flex-direction: column;
+}
+
+.excel-preview-placeholder {
+  display: grid;
+  flex: 1;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: #697386;
+  text-align: center;
+}
+
+.excel-preview-placeholder svg {
+  color: #2e8b57;
+  font-size: 42px;
+}
+
+.excel-preview-placeholder strong {
+  color: #342a3d;
+  font-size: 16px;
+}
+
+.excel-preview-placeholder span {
+  max-width: 360px;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .preview-toolbar {

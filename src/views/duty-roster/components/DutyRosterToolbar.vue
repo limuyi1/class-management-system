@@ -172,8 +172,8 @@ function handleModeChange(value: string | number | boolean | undefined): void {
 }
 
 .duty-toolbar__actions :deep(.el-button) {
-  min-height: 28px;
-  height: 28px;
+  min-height: 30px;
+  height: 30px;
   flex: none;
   padding: 0 10px;
   font-size: 11px;
@@ -181,8 +181,8 @@ function handleModeChange(value: string | number | boolean | undefined): void {
 }
 
 .duty-toolbar__actions :deep(.el-button.is-circle) {
-  width: 28px;
-  min-width: 28px;
+  width: 30px;
+  min-width: 30px;
   padding: 6px;
 }
 

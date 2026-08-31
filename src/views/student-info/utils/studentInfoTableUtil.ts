@@ -95,3 +95,40 @@ export function getStudentInfoTagSummary(
 ): StudentInfoTagSummaryType {
   return summaryMap.get(studentId) || EMPTY_TAG_SUMMARY
 }
+
+/**
+ * 将新学生插入指定一基序号；目标位置已有学生时，该学生及其后续学生顺延。
+ * @param students 学生列表
+ * @param student 待插入学生
+ * @param sequence 目标序号（从 1 开始）
+ */
+export function insertStudentAtSequence(
+  students: StudentDataType[],
+  student: StudentDataType,
+  sequence: number
+): void {
+  const targetIndex = Math.min(Math.max(Math.trunc(sequence) - 1, 0), students.length)
+  students.splice(targetIndex, 0, student)
+}
+
+/**
+ * 按一基序号移动学生；目标位置已有学生时，中间学生自动前移或后移。
+ * @param students 学生列表
+ * @param studentId 待移动学生 ID
+ * @param sequence 目标序号（从 1 开始）
+ * @returns 是否成功移动
+ */
+export function moveStudentToSequence(
+  students: StudentDataType[],
+  studentId: string,
+  sequence: number
+): boolean {
+  const sourceIndex = students.findIndex((student) => student.studentId === studentId)
+  if (sourceIndex === -1) return false
+  const targetIndex = Math.min(Math.max(Math.trunc(sequence) - 1, 0), students.length - 1)
+  if (sourceIndex === targetIndex) return true
+
+  const [student] = students.splice(sourceIndex, 1)
+  students.splice(targetIndex, 0, student)
+  return true
+}

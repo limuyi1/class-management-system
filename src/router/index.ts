@@ -121,6 +121,7 @@ export function createDataGuard(
       '/tools/score-notice',
       '/tools/seating-chart',
       '/tools/duty-roster',
+      '/student-info',
       '/setting'
     ]
 

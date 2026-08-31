@@ -124,7 +124,7 @@ const positionWidths = computed<Record<string, number>>(() => {
       .join('、')
     const estimatedWidth =
       Array.from(studentLine).reduce(
-        (width, character) => width + (/^[\x00-\xff]$/.test(character) ? 8 : 14),
+        (width, character) => width + ((character.codePointAt(0) ?? 0) <= 0xff ? 8 : 14),
         30
       )
     widths[assignment.positionId] = Math.max(widths[assignment.positionId] || 94, estimatedWidth)
