@@ -217,15 +217,7 @@ export function normalizeDutyRoster(
     if (!section.positions.some((position) => position.id === studentAssignment.positionId)) {
       return false
     }
-    return (
-      items.findIndex(
-        (item) =>
-          item.period === leader.period &&
-          (roster.mode !== DutyRosterModeEnum.Weekly ||
-            (item.rowId || fallbackWeeklyRowId) === rowId) &&
-          item.sectionId === leader.sectionId
-      ) === index
-    )
+    return items.findIndex((item) => item.studentId === leader.studentId) === index
   })
 
   return {

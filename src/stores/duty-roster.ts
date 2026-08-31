@@ -473,7 +473,11 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
      */
     assignStudent(studentId: string, target: DutyAssignmentTargetType): void {
       const roster = this.editingRoster
-      if (!roster || !findDutySectionByPosition(roster, target.positionId)) return
+      const targetSection = roster
+        ? findDutySectionByPosition(roster, target.positionId)
+        : undefined
+      if (!roster || !targetSection) return
+      const shouldKeepLeader = roster.leaders.some((leader) => leader.studentId === studentId)
       // 先移除该学生原有分配，避免重复分配
       const removed = removeDutyStudent(roster.assignments, roster.leaders, studentId)
       roster.assignments = removed.assignments
@@ -486,6 +490,15 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       )
       if (assignment) assignment.studentIds.push(studentId)
       else roster.assignments.push({ ...target, studentIds: [studentId] })
+      if (shouldKeepLeader) {
+        // 拖动组长时仅迁移本人身份，目标分组已有的组长保持不变
+        roster.leaders.push({
+          period: target.period,
+          rowId: target.rowId,
+          sectionId: targetSection.id,
+          studentId
+        })
+      }
       touch(roster)
     },
     /**
@@ -515,15 +528,6 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       const existingIndex = roster.leaders.findIndex((leader) => leader.studentId === studentId)
       if (existingIndex >= 0) roster.leaders.splice(existingIndex, 1)
       else {
-        // 同一分组同一时段只保留一个组长，先移除旧组长再写入
-        roster.leaders = roster.leaders.filter(
-          (leader) =>
-            !(
-              leader.period === assignment.period &&
-              leader.rowId === assignment.rowId &&
-              leader.sectionId === section.id
-            )
-        )
         roster.leaders.push({
           period: assignment.period,
           rowId: assignment.rowId,

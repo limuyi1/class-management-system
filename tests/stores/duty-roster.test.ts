@@ -8,7 +8,7 @@ import { DutyPeriodEnum, DutyRosterModeEnum } from '@/types/DutyRoster'
 /**
  * useDutyRosterStore store 测试
  * 测试目标：值日安排 store
- * 覆盖功能：学生分配与岗位复用、组长的唯一性、删除岗位/周行后的学生回收、每日/每周模式切换、区域与周行排序
+ * 覆盖功能：学生分配与岗位复用、多组长设置、删除岗位/周行后的学生回收、每日/每周模式切换、区域与周行排序
  */
 describe('useDutyRosterStore', () => {
   // 每个用例前创建全新的 Pinia 实例，隔离 store 状态
@@ -60,7 +60,50 @@ describe('useDutyRosterStore', () => {
     ])
   })
 
-  it('allows only one leader in the same period and section', () => {
+  it('moves the leader role with the student and keeps existing target group leaders', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [
+      { studentId: 'student-1', name: '张三' },
+      { studentId: 'student-2', name: '李四' }
+    ]
+    const store = useDutyRosterStore()
+    const roster = store.createRoster({ studentSource: 'system' })
+    const indoorSection = roster.sections[0]
+    const cleaningSection = roster.sections[1]
+    const indoorPositionId = indoorSection.positions[0].id
+    const cleaningPositionId = cleaningSection.positions[0].id
+
+    store.assignStudent('student-1', {
+      period: DutyPeriodEnum.Monday,
+      positionId: indoorPositionId
+    })
+    store.toggleLeader('student-1')
+    store.assignStudent('student-2', {
+      period: DutyPeriodEnum.Tuesday,
+      positionId: cleaningPositionId
+    })
+    store.toggleLeader('student-2')
+
+    store.assignStudent('student-1', {
+      period: DutyPeriodEnum.Tuesday,
+      positionId: cleaningPositionId
+    })
+
+    expect(roster.leaders).toEqual([
+      {
+        period: DutyPeriodEnum.Tuesday,
+        sectionId: cleaningSection.id,
+        studentId: 'student-2'
+      },
+      {
+        period: DutyPeriodEnum.Tuesday,
+        sectionId: cleaningSection.id,
+        studentId: 'student-1'
+      }
+    ])
+  })
+
+  it('allows multiple leaders in the same period and section', () => {
     const dataStore = useDataSourceStore()
     dataStore.students = [
       { studentId: 'student-1', name: '张三' },
@@ -81,8 +124,7 @@ describe('useDutyRosterStore', () => {
     store.toggleLeader('student-1')
     store.toggleLeader('student-2')
 
-    expect(roster.leaders).toHaveLength(1)
-    expect(roster.leaders[0].studentId).toBe('student-2')
+    expect(roster.leaders.map((leader) => leader.studentId)).toEqual(['student-1', 'student-2'])
   })
 
   it('returns students to the unassigned list after deleting a position', () => {

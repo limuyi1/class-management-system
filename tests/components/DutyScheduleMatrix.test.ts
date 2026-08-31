@@ -71,6 +71,13 @@ describe('DutyScheduleMatrix', () => {
     expect(wrapper.text()).toContain('星期五')
     expect(wrapper.findAll('.duty-matrix__student')).toHaveLength(2)
     expect(wrapper.find('.duty-matrix__leader-dot').exists()).toBe(true)
+    expect(wrapper.find('.duty-matrix__leader-dot').text()).toBe('组')
+    expect(wrapper.find('.duty-matrix__student.is-leader').attributes('aria-label')).toBe(
+      '张三，组长'
+    )
+    expect(wrapper.find('.duty-matrix__student.is-leader').attributes('title')).toContain(
+      '张三（组长）'
+    )
     expect(wrapper.find('.duty-matrix__crown').exists()).toBe(false)
   })
 
@@ -110,5 +117,28 @@ describe('DutyScheduleMatrix', () => {
 
     await header.trigger('contextmenu', { clientX: 80, clientY: 120 })
     expect(wrapper.emitted('positionContext')?.[0]?.[0]).toBe('position-1')
+
+    await header.get('.duty-matrix__position-action').trigger('click')
+    expect(wrapper.emitted('positionContext')?.[1]?.[0]).toBe('position-1')
+  })
+
+  it('shows and clears the student drop target feedback', async () => {
+    const wrapper = mount(DutyScheduleMatrix, {
+      props: { roster: createRoster(), studentNames: {} }
+    })
+    const targetCell = wrapper.findAll('.duty-matrix__cell')[1]
+
+    await targetCell.trigger('dragenter', { dataTransfer: { types: [] } })
+    expect(targetCell.classes()).toContain('is-drop-target')
+
+    await targetCell.trigger('drop')
+    expect(targetCell.classes()).not.toContain('is-drop-target')
+    expect(wrapper.emitted('dropStudent')?.[0]).toEqual([
+      {
+        period: DutyPeriodEnum.Monday,
+        rowId: undefined,
+        positionId: 'position-2'
+      }
+    ])
   })
 })

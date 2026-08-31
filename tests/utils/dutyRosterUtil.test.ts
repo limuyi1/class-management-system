@@ -80,6 +80,34 @@ describe('dutyRosterUtil', () => {
     expect(normalized.leaders).toEqual([])
   })
 
+  it('keeps multiple leaders assigned to the same period and section', () => {
+    const roster = createRoster()
+    const section = roster.sections[0]
+    roster.assignments = [
+      {
+        period: DutyPeriodEnum.Monday,
+        positionId: section.positions[0].id,
+        studentIds: ['student-1', 'student-2']
+      }
+    ]
+    roster.leaders = [
+      {
+        period: DutyPeriodEnum.Monday,
+        sectionId: section.id,
+        studentId: 'student-1'
+      },
+      {
+        period: DutyPeriodEnum.Monday,
+        sectionId: section.id,
+        studentId: 'student-2'
+      }
+    ]
+
+    const normalized = normalizeDutyRoster(roster, new Set(['student-1', 'student-2']))
+
+    expect(normalized.leaders.map((leader) => leader.studentId)).toEqual(['student-1', 'student-2'])
+  })
+
   it('migrates the old crown wording in saved notes', () => {
     const roster = createRoster()
     roster.notes = '皇冠图标及红色姓名表示值日组长\n组长负责检查卫生'
