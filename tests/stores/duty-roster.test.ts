@@ -34,6 +34,47 @@ describe('useDutyRosterStore', () => {
     expect(store.unassignedStudents).toEqual([])
   })
 
+  it('adds and removes students from only the current Excel roster', () => {
+    const store = useDutyRosterStore()
+    const roster = store.createRoster({
+      studentSource: 'excel',
+      excelSource: {
+        fileName: '名单.xlsx',
+        students: [
+          { id: 'excel:0', name: '张三' },
+          { id: 'excel:1', name: '李四' }
+        ]
+      }
+    })
+    const positionId = roster.sections[0].positions[0].id
+    store.assignStudent('excel:0', { period: DutyPeriodEnum.Monday, positionId })
+    store.toggleLeader('excel:0')
+
+    const added = store.addExcelStudent(' 王五 ')
+
+    expect(added).toMatchObject({ name: '王五' })
+    expect(added?.id).toMatch(/^manual:/)
+    expect(store.unassignedStudents.map((student) => student.name)).toEqual(['李四', '王五'])
+    expect(roster.assignments[0].studentIds).toEqual(['excel:0'])
+    expect(roster.leaders).toHaveLength(1)
+
+    expect(store.removeExcelStudent('excel:0')).toBe(true)
+    expect(roster.excelSource?.students.map((student) => student.name)).toEqual(['李四', '王五'])
+    expect(roster.assignments).toEqual([])
+    expect(roster.leaders).toEqual([])
+  })
+
+  it('does not edit the system student source through Excel roster actions', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '张三' }]
+    const store = useDutyRosterStore()
+    store.createRoster({ studentSource: 'system' })
+
+    expect(store.addExcelStudent('李四')).toBeNull()
+    expect(store.removeExcelStudent('student-1')).toBe(false)
+    expect(dataStore.students).toEqual([{ studentId: 'student-1', name: '张三' }])
+  })
+
   it('moves a student instead of duplicating the student', () => {
     const dataStore = useDataSourceStore()
     dataStore.students = [{ studentId: 'student-1', name: '张三' }]

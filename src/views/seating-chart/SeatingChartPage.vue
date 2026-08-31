@@ -6,6 +6,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
+import ExcelStudentRosterDialog from '@/components/student-source/ExcelStudentRosterDialog.vue'
 import StudentSourceSelector from '@/components/student-source/StudentSourceSelector.vue'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSeatingChartStore } from '@/stores/seating-chart'
@@ -38,7 +39,11 @@ import {
   SEATING_CHART_MIN_SIZE
 } from '@/utils/seating-chart/seatingChartUtil'
 
-import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
+import type {
+  ExcelStudentSourceType,
+  StudentSourceStudentType,
+  StudentSourceType
+} from '@/types/StudentSource'
 
 const router = useRouter()
 const seatingStore = useSeatingChartStore()
@@ -60,6 +65,7 @@ const previewVisible = ref(false)
 const specialSeatVisible = ref(false)
 const exportVisible = shallowRef(false)
 const studentImportVisible = shallowRef(false)
+const studentRosterVisible = shallowRef(false)
 const roleManagementVisible = shallowRef(false)
 const notesVisible = shallowRef(false)
 const notesDraft = ref('')
@@ -107,6 +113,12 @@ const menuAssignedRoleIds = computed(
       (assignment) => assignment.studentId === studentMenu.value?.studentId
     )?.roleIds || []
 )
+/** 当前名单中已有座位或职务的学生 ID，供删除影响提示使用 */
+const managedAssignedStudentIds = computed(() => {
+  const studentIds = new Set(seatingStore.assignedStudentIds)
+  editingChart.value?.roleAssignments.forEach((assignment) => studentIds.add(assignment.studentId))
+  return [...studentIds]
+})
 /** 当前座位表的可见座位（过滤过道占位列） */
 const visibleSeats = computed(() => (editingChart.value ? getVisibleSeats(editingChart.value) : []))
 /** 将可见座位按行分组，供画布逐行渲染 */
@@ -244,6 +256,28 @@ function handleExcelStudentImport(source: ExcelStudentSourceType): void {
     initialStudentSource.value = 'excel'
   }
   ElMessage.success(`已导入 ${source.students.length} 名学生`)
+}
+/** 向当前座位表的外部名单追加学生 */
+function addExcelStudent(name: string): void {
+  if (!seatingStore.addExcelStudent(name)) return
+  ElMessage.success(`已将“${name}”添加到当前座位表`)
+}
+
+/** 确认后从当前座位表外部名单删除学生及其关联安排 */
+async function removeExcelStudent(student: StudentSourceStudentType): Promise<void> {
+  const hasAssignment = managedAssignedStudentIds.value.includes(student.id)
+  const message = hasAssignment
+    ? `“${student.name}”已有座位或职务安排，删除后相关安排也会一并移除。是否继续？`
+    : `确定从当前座位表名单中删除“${student.name}”吗？`
+  try {
+    await ElMessageBox.confirm(message, '删除名单学生', { type: 'warning' })
+  } catch {
+    return
+  }
+  if (!seatingStore.removeExcelStudent(student.id)) return
+  if (selectedStudentId.value === student.id) selectedStudentId.value = null
+  if (studentMenu.value?.studentId === student.id) closeStudentMenu()
+  ElMessage.success(`已从当前座位表删除“${student.name}”`)
 }
 /** 切换当前编辑的座位表，并清除选中学生 */
 function selectChart(chartId: string): void {
@@ -708,7 +742,20 @@ function handleKeydown(event: KeyboardEvent): void {
             :excel-student-count="editingChart.excelSource?.students.length"
             @change="handleStudentSourceChange"
             @upload="openStudentImport"
-          />
+          >
+            <template v-if="editingChart.studentSource === 'excel'" #actions>
+              <el-tooltip content="管理当前外部名单" placement="bottom">
+                <el-button
+                  size="small"
+                  circle
+                  aria-label="管理当前外部名单"
+                  @click="studentRosterVisible = true"
+                >
+                  <font-awesome-icon :icon="['solid', 'user-pen']" />
+                </el-button>
+              </el-tooltip>
+            </template>
+          </student-source-selector>
         </template>
       </unassigned-student-panel>
     </div>
@@ -729,6 +776,15 @@ function handleKeydown(event: KeyboardEvent): void {
       :assignments="editingChart.roleAssignments"
       :students="activeStudents"
       @save="saveRoleSettings"
+    />
+    <ExcelStudentRosterDialog
+      v-if="editingChart?.studentSource === 'excel' && editingChart.excelSource"
+      v-model="studentRosterVisible"
+      scope-label="当前座位表"
+      :students="editingChart.excelSource.students"
+      :assigned-student-ids="managedAssignedStudentIds"
+      @add="addExcelStudent"
+      @remove="removeExcelStudent"
     />
     <!-- 弹窗：设置座位布局 -->
     <el-dialog v-model="layoutVisible" width="460px"

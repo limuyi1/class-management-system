@@ -6,6 +6,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
+import ExcelStudentRosterDialog from '@/components/student-source/ExcelStudentRosterDialog.vue'
 import StudentSourceSelector from '@/components/student-source/StudentSourceSelector.vue'
 import UnassignedStudentPanel from '@/views/seating-chart/components/UnassignedStudentPanel.vue'
 import { useDataSourceStore } from '@/stores/data-source'
@@ -24,7 +25,11 @@ import DutyStudentContextMenu from '@/views/duty-roster/components/DutyStudentCo
 import DutyStudentImportDialog from '@/views/duty-roster/components/DutyStudentImportDialog.vue'
 
 import type { DutyAssignmentTargetType } from '@/types/DutyRoster'
-import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
+import type {
+  ExcelStudentSourceType,
+  StudentSourceStudentType,
+  StudentSourceType
+} from '@/types/StudentSource'
 
 /** 右键菜单坐标 */
 interface MenuPositionType {
@@ -53,6 +58,7 @@ const fullscreen = shallowRef(false)
 const draggedStudentId = shallowRef<string | null>(null)
 const exportVisible = shallowRef(false)
 const importVisible = shallowRef(false)
+const studentRosterVisible = shallowRef(false)
 const importTarget = shallowRef<'create' | 'replace'>('create')
 const sectionsVisible = shallowRef(false)
 const notesVisible = shallowRef(false)
@@ -258,6 +264,28 @@ function handleStudentImport(source: ExcelStudentSourceType): void {
     initialSource.value = 'excel'
   }
   ElMessage.success(`已导入 ${source.students.length} 名学生`)
+}
+
+/** 向当前值日表的外部名单追加学生 */
+function addExcelStudent(name: string): void {
+  if (!dutyStore.addExcelStudent(name)) return
+  ElMessage.success(`已将“${name}”添加到当前值日表`)
+}
+
+/** 确认后从当前值日表外部名单删除学生及其关联安排 */
+async function removeExcelStudent(student: StudentSourceStudentType): Promise<void> {
+  const hasAssignment = dutyStore.assignedStudentIds.includes(student.id)
+  const message = hasAssignment
+    ? `“${student.name}”已有值日岗位或组长安排，删除后相关安排也会一并移除。是否继续？`
+    : `确定从当前值日表名单中删除“${student.name}”吗？`
+  try {
+    await ElMessageBox.confirm(message, '删除名单学生', { type: 'warning' })
+  } catch {
+    return
+  }
+  if (!dutyStore.removeExcelStudent(student.id)) return
+  if (studentMenu.value?.studentId === student.id) closeContextMenus()
+  ElMessage.success(`已从当前值日表删除“${student.name}”`)
 }
 
 /** 开始拖拽学生，并关闭右键菜单 */
@@ -511,7 +539,20 @@ function saveNotes(): void {
             :excel-student-count="editingRoster.excelSource?.students.length"
             @change="changeStudentSource"
             @upload="openStudentImport"
-          />
+          >
+            <template v-if="editingRoster.studentSource === 'excel'" #actions>
+              <el-tooltip content="管理当前外部名单" placement="bottom">
+                <el-button
+                  size="small"
+                  circle
+                  aria-label="管理当前外部名单"
+                  @click="studentRosterVisible = true"
+                >
+                  <font-awesome-icon :icon="['solid', 'user-pen']" />
+                </el-button>
+              </el-tooltip>
+            </template>
+          </StudentSourceSelector>
         </template>
       </UnassignedStudentPanel>
     </div>
@@ -548,6 +589,15 @@ function saveNotes(): void {
       :model-value="importVisible"
       @update:model-value="importVisible = $event"
       @confirm="handleStudentImport"
+    />
+    <ExcelStudentRosterDialog
+      v-if="editingRoster?.studentSource === 'excel' && editingRoster.excelSource"
+      v-model="studentRosterVisible"
+      scope-label="当前值日表"
+      :students="editingRoster.excelSource.students"
+      :assigned-student-ids="dutyStore.assignedStudentIds"
+      @add="addExcelStudent"
+      @remove="removeExcelStudent"
     />
     <DutyRosterExportDialog
       v-if="editingRoster"

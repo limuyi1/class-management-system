@@ -23,7 +23,11 @@ import {
 } from '@/utils/duty-roster/dutyRosterUtil'
 import { resolveDutyRosterStudents } from '@/utils/duty-roster/dutyRosterStudentUtil'
 
-import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
+import type {
+  ExcelStudentSourceType,
+  StudentSourceStudentType,
+  StudentSourceType
+} from '@/types/StudentSource'
 
 /** 创建值日表的选项 */
 interface CreateDutyRosterOptionsType {
@@ -228,6 +232,46 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       roster.assignments = []
       roster.leaders = []
       touch(roster)
+    },
+    /**
+     * 向当前值日表保存的 Excel 名单追加一名学生。
+     * 不更换学生来源，也不改变已有岗位与组长安排。
+     * @param name - 学生姓名
+     * @returns 新增学生；当前不是 Excel 来源或姓名为空时返回 null
+     */
+    addExcelStudent(name: string): StudentSourceStudentType | null {
+      const roster = this.editingRoster
+      const normalizedName = name.trim()
+      if (!roster || roster.studentSource !== 'excel' || !roster.excelSource || !normalizedName) {
+        return null
+      }
+      const student: StudentSourceStudentType = {
+        id: `manual:${createId()}`,
+        name: normalizedName
+      }
+      roster.excelSource.students.push(student)
+      touch(roster)
+      return student
+    },
+    /**
+     * 从当前值日表的 Excel 名单删除一名学生，并清理其岗位与组长记录。
+     * @param studentId - 学生 ID
+     * @returns 是否成功删除
+     */
+    removeExcelStudent(studentId: string): boolean {
+      const roster = this.editingRoster
+      if (!roster || roster.studentSource !== 'excel' || !roster.excelSource) return false
+      const studentIndex = roster.excelSource.students.findIndex(
+        (student) => student.id === studentId
+      )
+      if (studentIndex < 0) return false
+
+      roster.excelSource.students.splice(studentIndex, 1)
+      const result = removeDutyStudent(roster.assignments, roster.leaders, studentId)
+      roster.assignments = result.assignments
+      roster.leaders = result.leaders
+      touch(roster)
+      return true
     },
     /**
      * 设置值日备注

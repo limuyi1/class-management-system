@@ -196,15 +196,31 @@ function getStudentInitial(name: string): string {
 
 .unassigned-panel__source :deep(.student-source-selector) {
   width: 100%;
+  min-width: 0;
 }
 
 .unassigned-panel__source :deep(.student-source-selector__caption) {
   display: none;
 }
 
-.unassigned-panel__source :deep(.el-dropdown),
+.unassigned-panel__source :deep(.el-dropdown) {
+  width: auto;
+  min-width: 0;
+  flex: 1;
+}
+
 .unassigned-panel__source :deep(.student-source-selector__trigger) {
   width: 100%;
+  min-width: 0;
+}
+
+.unassigned-panel__source :deep(.student-source-selector__actions) {
+  flex: 0 0 auto;
+  margin-left: 0;
+}
+
+.unassigned-panel__source :deep(.student-source-selector__actions:empty) {
+  display: none;
 }
 
 .unassigned-panel__count {

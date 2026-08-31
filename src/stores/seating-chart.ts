@@ -17,7 +17,11 @@ import {
 } from '@/utils/seating-chart/seatingChartUtil'
 import { resolveSeatingChartStudents } from '@/utils/seating-chart/seatingChartStudentUtil'
 
-import type { ExcelStudentSourceType, StudentSourceType } from '@/types/StudentSource'
+import type {
+  ExcelStudentSourceType,
+  StudentSourceStudentType,
+  StudentSourceType
+} from '@/types/StudentSource'
 import type { SeatingRoleAssignmentType, SeatingRoleDefinitionType } from '@/types/SeatingChart'
 
 /** 创建座位表的选项 */
@@ -247,6 +251,52 @@ export const useSeatingChartStore = defineStore('seatingChart', {
       }
       clearChartAssignments(chart)
       chart.updatedAt = now()
+    },
+    /**
+     * 向当前座位表保存的 Excel 名单追加一名学生。
+     * 不更换学生来源，也不改变已有座位与职务安排。
+     * @param name - 学生姓名
+     * @returns 新增学生；当前不是 Excel 来源或姓名为空时返回 null
+     */
+    addExcelStudent(name: string): StudentSourceStudentType | null {
+      const chart = this.editingChart
+      const normalizedName = name.trim()
+      if (!chart || chart.studentSource !== 'excel' || !chart.excelSource || !normalizedName) {
+        return null
+      }
+      const student: StudentSourceStudentType = {
+        id: `manual:${createId()}`,
+        name: normalizedName
+      }
+      chart.excelSource.students.push(student)
+      chart.updatedAt = now()
+      return student
+    },
+    /**
+     * 从当前座位表的 Excel 名单删除一名学生，并清理其座位与职务。
+     * @param studentId - 学生 ID
+     * @returns 是否成功删除
+     */
+    removeExcelStudent(studentId: string): boolean {
+      const chart = this.editingChart
+      if (!chart || chart.studentSource !== 'excel' || !chart.excelSource) return false
+      const studentIndex = chart.excelSource.students.findIndex(
+        (student) => student.id === studentId
+      )
+      if (studentIndex < 0) return false
+
+      chart.excelSource.students.splice(studentIndex, 1)
+      chart.seats.forEach((seat) => {
+        if (seat.studentId === studentId) seat.studentId = null
+      })
+      chart.specialSeats.forEach((seat) => {
+        if (seat.studentId === studentId) seat.studentId = null
+      })
+      chart.roleAssignments = chart.roleAssignments.filter(
+        (assignment) => assignment.studentId !== studentId
+      )
+      chart.updatedAt = now()
+      return true
     },
     /**
      * 设置首列朝向
