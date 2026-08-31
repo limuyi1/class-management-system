@@ -19,14 +19,7 @@ const noteLines = computed(() => props.notes.split('\n').filter((line) => line.t
       </el-button>
     </div>
     <div class="duty-notes__content">
-      <p v-for="(line, index) in noteLines" :key="`${index}-${line}`">
-        <font-awesome-icon
-          v-if="index === 0"
-          class="duty-notes__leader-dot"
-          :icon="['solid', 'circle']"
-        />
-        {{ line }}
-      </p>
+      <p v-for="(line, index) in noteLines" :key="`${index}-${line}`">{{ line }}</p>
       <p v-if="!noteLines.length" class="duty-notes__empty">暂无备注说明</p>
     </div>
   </section>
@@ -62,12 +55,6 @@ const noteLines = computed(() => props.notes.split('\n').filter((line) => line.t
 
 .duty-notes__content p {
   margin: 2px 0;
-}
-
-.duty-notes__leader-dot {
-  margin-right: 5px;
-  color: #ef3f44;
-  font-size: 6px;
 }
 
 .duty-notes__empty {

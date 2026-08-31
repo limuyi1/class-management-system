@@ -18,6 +18,7 @@ import {
   buildSeatingChartPageLayout,
   resolveSeatingChartPageOrientation
 } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
+import { exportSeatingChartExcel } from '@/utils/seating-chart/seatingChartExcelUtil'
 import SeatingChartExportPreview from '@/views/seating-chart/components/SeatingChartExportPreview.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
@@ -83,11 +84,18 @@ const selectedLayout = computed(() =>
 const orientationLabel = computed(() => (orientation.value === 'portrait' ? '纵向' : '横向'))
 /** 大座位表提示文案：比例超范围或字号过小时给出建议 */
 const largeChartTip = computed(() => {
+  if (format.value === 'xlsx') return ''
   if (layoutScalePercent.value > 100) {
     return '当前比例超过自动适配范围，部分内容可能进入页边距或被裁切。'
   }
   if (selectedLayout.value.fontScale >= 0.72) return ''
   return '当前座位较多，已缩放到单页；如姓名偏小，建议选择 A3。'
+})
+/** 当前格式对应的导出按钮文案。 */
+const exportButtonText = computed(() => {
+  if (format.value === 'png') return '导出图片'
+  if (format.value === 'pdf') return '导出 PDF'
+  return '导出 Excel'
 })
 
 // 打开弹窗时重置为智能方向与默认缩放
@@ -136,6 +144,11 @@ async function handleExport(): Promise<void> {
   exporting.value = true
   startLoading('正在生成座位表...')
   try {
+    if (format.value === 'xlsx') {
+      exportSeatingChartExcel(props.chart, props.studentNames)
+      ElMessage.success('座位表 Excel 导出成功')
+      return
+    }
     const baseName = `${sanitizeSeatingChartFileName(props.chart.name)}_${formatSeatingChartExportDate()}`
     await nextTick()
     const element = previewRef.value?.getElement()
@@ -192,12 +205,13 @@ async function handleExport(): Promise<void> {
                 <div><strong>文件格式</strong><small>选择使用场景</small></div>
               </div>
               <el-radio-group v-model="format" class="format-options">
-                <el-radio-button value="png">高清 PNG</el-radio-button>
-                <el-radio-button value="pdf">打印 PDF</el-radio-button>
+                <el-radio-button value="png">PNG</el-radio-button>
+                <el-radio-button value="pdf">PDF</el-radio-button>
+                <el-radio-button value="xlsx">Excel</el-radio-button>
               </el-radio-group>
             </section>
 
-            <section class="setting-section">
+            <section v-if="format !== 'xlsx'" class="setting-section">
               <div class="setting-heading">
                 <span class="setting-index">02</span>
                 <div><strong>纸张设置</strong><small>内容自动适应单页</small></div>
@@ -228,7 +242,7 @@ async function handleExport(): Promise<void> {
               </div>
             </section>
 
-            <section class="setting-section">
+            <section v-if="format !== 'xlsx'" class="setting-section">
               <div class="setting-heading setting-heading--scale">
                 <span class="setting-index">03</span>
                 <div><strong>版面缩放</strong><small>缩放纸张上的全部内容</small></div>
@@ -266,7 +280,7 @@ async function handleExport(): Promise<void> {
               </el-select>
             </section>
 
-            <section class="setting-section setting-section--switch">
+            <section v-if="format !== 'xlsx'" class="setting-section setting-section--switch">
               <div>
                 <strong>显示标题</strong>
                 <small>关闭后同时隐藏标题分隔线</small>
@@ -274,7 +288,7 @@ async function handleExport(): Promise<void> {
               <el-switch v-model="showTitle" />
             </section>
 
-            <section class="setting-section setting-section--switch">
+            <section v-if="format !== 'xlsx'" class="setting-section setting-section--switch">
               <div>
                 <strong>显示“空座位”</strong>
                 <small>关闭后仍保留空座轮廓</small>
@@ -282,7 +296,7 @@ async function handleExport(): Promise<void> {
               <el-switch v-model="showEmptyLabels" />
             </section>
 
-            <section class="setting-section setting-section--switch">
+            <section v-if="format !== 'xlsx'" class="setting-section setting-section--switch">
               <div>
                 <strong>显示职务标注</strong>
                 <small>显示组长、副组长与课代表标签</small>
@@ -290,7 +304,7 @@ async function handleExport(): Promise<void> {
               <el-switch v-model="showRoles" />
             </section>
 
-            <section class="setting-section setting-section--switch">
+            <section v-if="format !== 'xlsx'" class="setting-section setting-section--switch">
               <div>
                 <strong>显示职务图例</strong>
                 <small>解释颜色与简称的含义</small>
@@ -298,7 +312,7 @@ async function handleExport(): Promise<void> {
               <el-switch v-model="showLegend" :disabled="!showRoles" />
             </section>
 
-            <section class="setting-section setting-section--switch">
+            <section v-if="format !== 'xlsx'" class="setting-section setting-section--switch">
               <div>
                 <strong>显示备注说明</strong>
                 <small>统一显示在座位表下方</small>
@@ -318,9 +332,14 @@ async function handleExport(): Promise<void> {
       <div class="preview-panel">
         <div class="preview-toolbar">
           <span><i></i>实时预览</span>
-          <small>纸张预览已自动适应窗口</small>
+          <small>{{ format === 'xlsx' ? 'Excel 将保留座位方向与过道' : '纸张预览已自动适应窗口' }}</small>
         </div>
-        <div class="preview-scroll">
+        <div v-if="format === 'xlsx'" class="excel-preview-placeholder">
+          <font-awesome-icon :icon="['solid', 'file-excel']" />
+          <strong>Excel 成果表</strong>
+          <span>包含讲台、特殊座位、过道、学生姓名、职务和备注说明</span>
+        </div>
+        <div v-else class="preview-scroll">
           <SeatingChartExportPreview
             ref="previewRef"
             :chart="chart"
@@ -345,7 +364,7 @@ async function handleExport(): Promise<void> {
           <el-button @click="dialogVisible = false">取消</el-button>
           <el-button type="primary" :loading="exporting" @click="handleExport">
             <font-awesome-icon v-if="!exporting" :icon="['solid', 'download']" />
-            导出{{ format === 'png' ? '图片' : ' PDF' }}
+            {{ exportButtonText }}
           </el-button>
         </div>
       </div>
@@ -447,6 +466,10 @@ async function handleExport(): Promise<void> {
   width: 50%;
 }
 
+.format-options :deep(.el-radio-button) {
+  width: 33.333%;
+}
+
 .format-options :deep(.el-radio-button__inner),
 .orientation-options :deep(.el-radio-button__inner) {
   width: 100%;
@@ -526,6 +549,32 @@ async function handleExport(): Promise<void> {
   display: flex;
   min-width: 0;
   flex-direction: column;
+}
+
+.excel-preview-placeholder {
+  display: grid;
+  flex: 1;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: #697386;
+  text-align: center;
+}
+
+.excel-preview-placeholder svg {
+  color: #2e8b57;
+  font-size: 42px;
+}
+
+.excel-preview-placeholder strong {
+  color: #342a3d;
+  font-size: 16px;
+}
+
+.excel-preview-placeholder span {
+  max-width: 360px;
+  font-size: 12px;
+  line-height: 1.6;
 }
 
 .preview-toolbar {

@@ -1,19 +1,11 @@
 <script setup lang="ts">
 /** 学生信息页 — 学生列表展示、筛选和标签编辑 */
-import { computed, nextTick, ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia'
-
-import { useDataSourceStore } from '@/stores/data-source'
 import StudentInfo from '@/views/setting/components/StudentInfo.vue'
 
 const route = useRoute()
 const router = useRouter()
-const dataSourceStore = useDataSourceStore()
-const { enabledData } = storeToRefs(dataSourceStore)
-
-/** 是否已有学生数据 */
-const hasStudentData = computed(() => enabledData.value.length > 0)
 /** 学生信息子组件实例引用 */
 const studentInfoRef = ref<InstanceType<typeof StudentInfo>>()
 /** 待打开标签编辑器的学生 ID，子组件未就绪时暂存 */
@@ -50,16 +42,6 @@ const syncEditTagsQuery = async () => {
   pendingTagEditorStudentId.value = ''
   await clearEditTagsQuery()
 }
-
-watch(
-  hasStudentData,
-  async (hasData) => {
-    // 无学生数据时跳回工具页
-    if (hasData) return
-    await router.replace('/tools')
-  },
-  { immediate: true }
-)
 
 // 路由查询参数变化时触发标签编辑
 watch(

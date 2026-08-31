@@ -8,8 +8,8 @@ import { PDFDocument } from 'pdf-lib'
 import { PagesEnum } from '@/types/Common'
 import { getPageSize } from '@/utils/pageSizeInPixelUtil'
 
-/** 值日表导出格式：PNG 或 PDF */
-export type DutyRosterExportFormatType = 'png' | 'pdf'
+/** 值日表导出格式：PNG、PDF 或 Excel */
+export type DutyRosterExportFormatType = 'png' | 'pdf' | 'xlsx'
 
 /** 值日表 PDF 导出所需参数 */
 export interface DutyRosterPdfOptionsType {

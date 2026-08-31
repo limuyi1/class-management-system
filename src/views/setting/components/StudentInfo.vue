@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
  * 学生信息管理组件：以可编辑表格维护学生名单、成绩列与标签。
- * 支持行内新增/删除、动态成绩列增删、单个/批量标签编辑，以及从评语页回跳后恢复编辑。
+ * 支持弹窗新增/编辑、删除、动态成绩列增删、单个/批量标签编辑，以及从评语页回跳后恢复编辑。
  */
-import { computed, ref, h } from 'vue'
+import { computed, h, nextTick, ref, shallowRef } from 'vue'
 
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
@@ -17,19 +17,20 @@ import { useSettingStore } from '@/stores/setting'
 import { createStudentId } from '@/utils/studentUtil'
 import {
   buildStudentInfoTagSummaryMap,
-  getStudentInfoTagSummary
+  getStudentInfoTagSummary,
+  insertStudentAtSequence,
+  moveStudentToSequence
 } from '@/views/student-info/utils/studentInfoTableUtil'
 import TagEditorDialog from './TagEditorDialog.vue'
 import BatchTagDrawer from './BatchTagDrawer.vue'
+import StudentFormDialog from '@/views/student-info/components/StudentFormDialog.vue'
 
 import type { VxeTableEvents, VxeTablePropTypes } from 'vxe-table'
 import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
-/** 学生数据在表格中的可编辑扩展类型，`isNew` 标记尚未确认的新增行 */
-type EditableStudentType = StudentDataType & {
-  isNew?: boolean
-}
+/** 学生数据在表格中的可编辑扩展类型 */
+type EditableStudentType = StudentDataType
 
 /** 表格列的最小结构，用于判断固定列与字段名 */
 interface TableColumnType {
@@ -56,19 +57,10 @@ const { students: tableData } = storeToRefs(store)
 const { scoreColumns: headers, enabledScoreColumns: enabledHeaders } = storeToRefs(settingStore)
 const { tagCategories: categories } = storeToRefs(settingStore)
 
-const tableRef = ref() // 表格实例引用
+const tableRef = shallowRef<{ clearSort: () => void | Promise<unknown> } | null>(null)
 const rowConfig = { keyField: 'studentId' } // 行配置：以 studentId 作为行唯一键
 const cellConfig = { height: 48 } // 单元格统一高度
 const virtualYConfig = { enabled: true, gt: 40, oSize: 5 } // 虚拟滚动：超过 40 行启用
-
-/**
- * 获取学生姓名，缺失时回退为空字符串。
- * @param student - 学生数据
- * @returns 姓名文本
- */
-const getStudentName = (student: EditableStudentType): string => {
-  return String(student[NAME_PROP] || '')
-}
 
 /**
  * 按 studentId 删除指定学生行。
@@ -81,59 +73,64 @@ const deleteStudent = (row: EditableStudentType) => {
   }
 }
 
-/**
- * 在指定学生上方插入一条空白新增行。
- * @param row - 参照的学生行
- */
-const addStudentAbove = (row: EditableStudentType) => {
-  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
-  if (index === -1) return
-  const newStudent: EditableStudentType = {
-    studentId: createStudentId(),
-    [NAME_PROP]: '',
-    isNew: true
-  }
-  tableData.value.splice(index, 0, newStudent)
+const studentFormVisible = ref(false)
+const editingStudent = ref<EditableStudentType | null>(null)
+/** 弹窗中的当前序号：新增默认末尾，编辑使用 Store 数组中的实际位置。 */
+const studentFormSequence = computed(() => {
+  if (!editingStudent.value) return tableData.value.length + 1
+  const index = tableData.value.findIndex(
+    (student) => student.studentId === editingStudent.value?.studentId
+  )
+  return index === -1 ? 1 : index + 1
+})
+/** 弹窗允许的最大序号。 */
+const studentFormMaxSequence = computed(() =>
+  editingStudent.value ? Math.max(1, tableData.value.length) : tableData.value.length + 1
+)
+
+/** 打开新增学生弹窗。 */
+const openCreateStudent = () => {
+  editingStudent.value = null
+  studentFormVisible.value = true
 }
 
-/**
- * 在指定学生下方插入一条空白新增行。
- * @param row - 参照的学生行
- */
-const addStudentBelow = (row: EditableStudentType) => {
-  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
-  if (index === -1) return
-  const newStudent: EditableStudentType = {
-    studentId: createStudentId(),
-    [NAME_PROP]: '',
-    isNew: true
-  }
-  tableData.value.splice(index + 1, 0, newStudent)
+/** 打开指定学生的编辑弹窗。 */
+const openEditStudent = (row: EditableStudentType) => {
+  editingStudent.value = row
+  studentFormVisible.value = true
 }
 
-/**
- * 确认新增行：校验姓名非空后清除新增标记。
- * @param row - 待确认的新增行
- */
-const confirmNewStudent = (row: EditableStudentType) => {
-  const name = getStudentName(row).trim()
-  if (!name) {
-    ElMessage.error('姓名不能为空')
-    return
+/** 保存新增或编辑结果，并按目标序号重排 Store 中的学生数组。 */
+const saveStudent = async (
+  values: Record<string, string | number | boolean | null | undefined>,
+  sequence: number
+) => {
+  if (editingStudent.value) {
+    Object.assign(editingStudent.value, values)
+    moveStudentToSequence(tableData.value, editingStudent.value.studentId, sequence)
+    ElMessage.success('学生信息已更新')
+  } else {
+    insertStudentAtSequence(
+      tableData.value,
+      { studentId: createStudentId(), ...values } as StudentDataType,
+      sequence
+    )
+    ElMessage.success('学生添加成功')
   }
-  row[NAME_PROP] = name
-  delete row.isNew
+  studentFormVisible.value = false
+  editingStudent.value = null
+  await nextTick()
+  await tableRef.value?.clearSort()
 }
 
-/**
- * 取消新增行：直接从列表中移除该行。
- * @param row - 待取消的新增行
- */
-const cancelNewStudent = (row: EditableStudentType) => {
-  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
-  if (index > -1) {
-    tableData.value.splice(index, 1)
-  }
+/** 前往系统学生的批量评语处理工作区。 */
+const openBatchComments = () => {
+  router.push('/tools/comments')
+}
+
+/** 前往系统设置中的 Excel 数据导入区域。 */
+const openBatchImport = () => {
+  router.push({ path: '/setting', query: { tab: 'system-backup', section: 'excel-import' } })
 }
 
 /** 预构建“学生 -> 标签摘要”映射，供表格渲染复用，避免每行重复计算 */
@@ -240,12 +237,6 @@ const goToTab = (tab: string) => {
   router.push({ path: '/setting', query: { tab } })
 }
 
-/** 表格单元格编辑配置：双击单元格进入编辑态 */
-const editConfig = ref<VxeTablePropTypes.EditConfig>({
-  trigger: 'dblclick',
-  mode: 'cell',
-  showIcon: false
-})
 /** 表头右键菜单配置：固定列不展示列操作菜单 */
 const menuConfig = ref<VxeTablePropTypes.MenuConfig>({
   header: {
@@ -419,6 +410,27 @@ defineExpose({
       </div>
     </el-popover>
 
+    <div class="student-info__toolbar">
+      <div>
+        <strong>学生名单</strong>
+        <span>共 {{ tableData.length }} 名学生</span>
+      </div>
+      <div class="student-info__toolbar-actions">
+        <el-button size="small" @click="openBatchComments">
+          <font-awesome-icon :icon="['solid', 'comments']" />
+          批量评语
+        </el-button>
+        <el-button size="small" @click="openBatchImport">
+          <font-awesome-icon :icon="['solid', 'file-import']" />
+          Excel 导入
+        </el-button>
+        <el-button type="primary" size="small" @click="openCreateStudent">
+          <font-awesome-icon :icon="['solid', 'user-plus']" />
+          新增学生
+        </el-button>
+      </div>
+    </div>
+
     <div class="flex-1 overflow-hidden">
       <!-- 学生信息可编辑表格：序号/姓名/标签/禁用/操作固定，成绩列动态渲染 -->
       <vxe-table
@@ -426,7 +438,6 @@ defineExpose({
         border
         align="center"
         height="100%"
-        :edit-config="editConfig"
         :menu-config="menuConfig"
         :row-config="rowConfig"
         :cell-config="cellConfig"
@@ -442,7 +453,6 @@ defineExpose({
           fixed="left"
           sortable
           resizable
-          :edit-render="{ name: 'input' }"
         />
         <vxe-column field="tags" title="标签" min-width="300" fixed="left" resizable>
           <template #header>
@@ -485,27 +495,16 @@ defineExpose({
         </vxe-column>
         <vxe-column field="cao_zuo" title="操作" width="100" fixed="right" :resizable="false">
           <template #default="{ row }">
-            <div class="operation-icons" v-if="row.isNew">
-              <span class="operation-icon" @click="confirmNewStudent(row)" title="确认">
-                <font-awesome-icon :icon="['fas', 'check']" />
+            <div class="operation-icons">
+              <span class="operation-icon" title="编辑" @click="openEditStudent(row)">
+                <font-awesome-icon :icon="['fas', 'pen']" />
               </span>
-              <span class="operation-icon" @click="cancelNewStudent(row)" title="取消">
-                <font-awesome-icon :icon="['fas', 'times']" />
-              </span>
-            </div>
-            <div class="operation-icons" v-else>
               <span
                 class="operation-icon delete-icon"
                 title="删除"
                 @click.stop="openDeletePopover(row, $event)"
               >
                 <font-awesome-icon :icon="['fas', 'trash']" />
-              </span>
-              <span class="operation-icon" title="上方添加一行" @click="addStudentAbove(row)">
-                <font-awesome-icon :icon="['fas', 'chevron-up']" />
-              </span>
-              <span class="operation-icon" title="下方添加一行" @click="addStudentBelow(row)">
-                <font-awesome-icon :icon="['fas', 'chevron-down']" />
               </span>
             </div>
           </template>
@@ -518,7 +517,6 @@ defineExpose({
           sortable
           resizable
           min-width="180"
-          :edit-render="{ name: 'input' }"
         />
       </vxe-table>
     </div>
@@ -538,15 +536,79 @@ defineExpose({
       @confirm="confirmBatchEdit"
       @go-tab="goToTab"
     />
+
+    <StudentFormDialog
+      v-model="studentFormVisible"
+      :student="editingStudent"
+      :score-columns="enabledHeaders"
+      :sequence="studentFormSequence"
+      :max-sequence="studentFormMaxSequence"
+      @save="saveStudent"
+    />
   </div>
 
-  <!-- 无学生数据时的空态提示 -->
-  <div v-else class="h-full flex items-center justify-center">
-    <el-empty description="暂无学生信息，请先上传" />
+  <!-- 无学生数据时支持直接新增或进入 Excel 批量导入 -->
+  <div v-else class="student-info__empty h-full flex items-center justify-center">
+    <el-empty description="暂无学生信息，可单个新增或通过 Excel 批量导入">
+      <div class="student-info__empty-actions">
+        <el-button @click="openBatchImport">批量导入学生</el-button>
+        <el-button type="primary" @click="openCreateStudent">新增学生</el-button>
+      </div>
+    </el-empty>
+    <StudentFormDialog
+      v-model="studentFormVisible"
+      :student="editingStudent"
+      :score-columns="enabledHeaders"
+      :sequence="studentFormSequence"
+      :max-sequence="studentFormMaxSequence"
+      @save="saveStudent"
+    />
   </div>
 </template>
 
 <style scoped lang="scss">
+.student-info__toolbar {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.student-info__toolbar > div,
+.student-info__toolbar-actions,
+.student-info__empty-actions,
+.operation-icons {
+  display: flex;
+  align-items: center;
+}
+
+.student-info__toolbar > div:first-child {
+  gap: 8px;
+}
+
+.student-info__toolbar strong {
+  color: #303133;
+  font-size: 15px;
+}
+
+.student-info__toolbar span {
+  color: #909399;
+  font-size: 12px;
+}
+
+.student-info__toolbar-actions,
+.student-info__empty-actions,
+.operation-icons {
+  gap: 8px;
+}
+
+.operation-icons {
+  width: 100%;
+  justify-content: center;
+}
+
 .tags-header {
   display: inline-flex;
   align-items: center;

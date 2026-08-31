@@ -52,14 +52,14 @@ const activePath = computed(() => {
 
 /**
  * 生成实际渲染的菜单项：
- * 过滤隐藏项，并按是否已导入数据设置禁用状态（设置与工具页始终可用）。
+ * 过滤隐藏项，并按是否已导入数据设置禁用状态（学生、设置与工具页始终可用）。
  */
 const menuData = computed(() => {
   return data
     .filter((item) => !item.hidden)
     .map((item) => {
       const newItem = { ...item }
-      if (item.path === '/setting' || item.path === '/tools') {
+      if (item.path === '/setting' || item.path === '/tools' || item.path === '/student-info') {
         newItem.disabled = false
       } else {
         newItem.disabled = !hasData.value

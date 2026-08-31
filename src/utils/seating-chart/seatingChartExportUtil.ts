@@ -10,8 +10,8 @@ import { getSeatingChartPageSize } from '@/utils/seating-chart/seatingChartPageL
 
 import type { SeatingChartPageOrientationType } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
 
-/** 座位表导出格式：PNG 或 PDF */
-export type SeatingChartExportFormatType = 'png' | 'pdf'
+/** 座位表导出格式：PNG、PDF 或 Excel */
+export type SeatingChartExportFormatType = 'png' | 'pdf' | 'xlsx'
 
 /** PDF 导出所需参数：纸张预览生成的图片及纸张设置 */
 export interface SeatingChartPdfOptionsType {

@@ -19,8 +19,9 @@ const stores = {
   theme: { $patch: vi.fn(), applyTheme: vi.fn(), resetTheme: vi.fn() },
   aiConfig: { $patch: vi.fn(), $reset: vi.fn() },
   wrongBook: { $patch: vi.fn(), $reset: vi.fn() },
-  overviewAnalysis: { $patch: vi.fn() },
+  overviewAnalysis: { $patch: vi.fn(), $reset: vi.fn() },
   tools: { $patch: vi.fn(), $reset: vi.fn() },
+  scoreNotice: { $patch: vi.fn(), $reset: vi.fn() },
   seatingChart: { $patch: vi.fn(), $reset: vi.fn(), reconcileStudents: vi.fn() },
   dutyRoster: { $patch: vi.fn(), $reset: vi.fn(), reconcileStudents: vi.fn() }
 }
@@ -36,11 +37,13 @@ const tableGetMocks = {
   overviewAnalysisCache: vi.fn(async () => undefined),
   toolPreferences: vi.fn(async () => undefined),
   seatingCharts: vi.fn(async () => undefined),
-  dutyRosters: vi.fn(async () => undefined)
+  dutyRosters: vi.fn(async () => undefined),
+  scoreNotice: vi.fn(async () => undefined)
 }
 
 // 数据库 import 方法 mock，用于断言导入调用参数
 const importMock = vi.fn(async () => undefined)
+const allTableClearMock = vi.fn(async () => undefined)
 
 // mock element-plus：以固定时间戳替代 dayjs 格式化，并捕获成功/失败提示
 vi.mock('element-plus', () => ({
@@ -98,10 +101,15 @@ vi.mock('../../src/stores/duty-roster', () => ({
   useDutyRosterStore: vi.fn(() => stores.dutyRoster)
 }))
 
+vi.mock('../../src/stores/score-notice', () => ({
+  useScoreNoticeStore: vi.fn(() => stores.scoreNotice)
+}))
+
 vi.mock('../../src/db', () => ({
   DB_ID: 'main',
   db: {
     import: importMock,
+    tables: [{ clear: allTableClearMock }],
     studentDataset: { get: tableGetMocks.studentDataset, clear: vi.fn() },
     scoreSettings: { get: tableGetMocks.scoreSettings, clear: vi.fn() },
     appPreferences: { get: tableGetMocks.appPreferences, clear: vi.fn() },
@@ -112,6 +120,7 @@ vi.mock('../../src/db', () => ({
     toolPreferences: { get: tableGetMocks.toolPreferences, clear: vi.fn() },
     seatingCharts: { get: tableGetMocks.seatingCharts, clear: vi.fn() },
     dutyRosters: { get: tableGetMocks.dutyRosters, clear: vi.fn() },
+    scoreNotice: { get: tableGetMocks.scoreNotice, clear: vi.fn() },
     attachments: { clear: vi.fn() },
     paperLayoutDrafts: { clear: vi.fn() },
     export: vi.fn()
@@ -137,6 +146,7 @@ describe('importDatabase', () => {
     await importDatabase(file, onProgress, complete)
 
     expect(importMock).toHaveBeenCalledTimes(1)
+    expect(allTableClearMock).toHaveBeenCalledTimes(1)
     expect(importMock.mock.calls[0]?.[1]).toMatchObject({
       acceptVersionDiff: true,
       acceptMissingTables: true,
@@ -146,6 +156,9 @@ describe('importDatabase', () => {
     expect(complete).toHaveBeenCalledTimes(1)
     expect(setDatabaseImportingMock).toHaveBeenNthCalledWith(1, true)
     expect(setDatabaseImportingMock).toHaveBeenLastCalledWith(false)
+    expect(stores.seatingChart.$reset).toHaveBeenCalledTimes(1)
+    expect(stores.dutyRoster.$reset).toHaveBeenCalledTimes(1)
+    expect(stores.scoreNotice.$reset).toHaveBeenCalledTimes(1)
   })
 })
 

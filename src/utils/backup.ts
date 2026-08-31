@@ -16,6 +16,7 @@ import { useToolsStore } from '@/stores/tools'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useSeatingChartStore } from '@/stores/seating-chart'
 import { useDutyRosterStore } from '@/stores/duty-roster'
+import { useScoreNoticeStore } from '@/stores/score-notice'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUtil'
@@ -38,7 +39,9 @@ const resetRuntimeStores = () => {
   const themeStore = useThemeStore()
   const aiConfigStore = useAIConfigStore()
   const wrongBookStore = useWrongBookStore()
+  const overviewAnalysisStore = useOverviewAnalysisStore()
   const toolsStore = useToolsStore()
+  const scoreNoticeStore = useScoreNoticeStore()
   const seatingChartStore = useSeatingChartStore()
   const dutyRosterStore = useDutyRosterStore()
 
@@ -49,7 +52,9 @@ const resetRuntimeStores = () => {
   configurationStore.$reset()
   aiConfigStore.$reset()
   wrongBookStore.$reset()
+  overviewAnalysisStore.$reset()
   toolsStore.$reset()
+  scoreNoticeStore.$reset()
   seatingChartStore.$reset()
   dutyRosterStore.$reset()
   // theme 是 setup store，重置时还需要同步刷新 documentElement 上的主题 CSS 变量。
@@ -71,6 +76,7 @@ const hydrateRuntimeStores = async () => {
   const toolsStore = useToolsStore()
   const seatingChartStore = useSeatingChartStore()
   const dutyRosterStore = useDutyRosterStore()
+  const scoreNoticeStore = useScoreNoticeStore()
 
   const [
     dataSource,
@@ -82,7 +88,8 @@ const hydrateRuntimeStores = async () => {
     overviewAnalysis,
     tools,
     seatingCharts,
-    dutyRosters
+    dutyRosters,
+    scoreNotice
   ] = await Promise.all([
     db.studentDataset.get(DB_ID),
     db.scoreSettings.get(DB_ID),
@@ -93,7 +100,8 @@ const hydrateRuntimeStores = async () => {
     db.overviewAnalysisCache.get(DB_ID),
     db.toolPreferences.get(DB_ID),
     db.seatingCharts.get(DB_ID),
-    db.dutyRosters.get(DB_ID)
+    db.dutyRosters.get(DB_ID),
+    db.scoreNotice.get(DB_ID)
   ])
 
   dataStore.students = normalizeStoredStudents(dataSource?.students)
@@ -177,6 +185,14 @@ const hydrateRuntimeStores = async () => {
     })
     dutyRosterStore.reconcileStudents()
   }
+  if (scoreNotice) {
+    const { id, updatedAt, ...state } = scoreNotice
+    void id
+    void updatedAt
+    scoreNoticeStore.$patch((storeState) => {
+      Object.assign(storeState, state)
+    })
+  }
 }
 
 /**
@@ -194,7 +210,7 @@ export function getDaysSinceBackup(lastBackupAt: string | null): number | null {
 /**
  * 导出全部数据库为 .dexie 备份文件并触发下载。
  * @param onProgress - 进度回调，传入 0-100 的百分比
- * @param includePaperLayout - 是否包含工具类数据表，默认 true
+ * @param includePaperLayout - 是否包含工具类数据表；完整系统备份保持默认 true
  * @returns Promise，成功时触发下载并提示，失败时弹出错误提示
  */
 export async function exportDatabase(
@@ -246,7 +262,9 @@ export async function importDatabase(
     // 复制为独立 Blob，避免文件对象被复用导致读取位置偏移。
     const blob = file.slice(0, file.size, 'application/octet-stream')
     setDatabaseImporting(true)
-    // 兼容不同版本与缺失表，导入前清空原有数据，避免新旧数据混合。
+    // 先清空当前版本的全部表，确保旧备份缺失的新表不会残留导入前的数据。
+    await Promise.all(db.tables.map((table) => table.clear()))
+    // 兼容不同版本与缺失表，导入后再统一灌入运行时 Store。
     await db.import(blob, {
       acceptVersionDiff: true,
       acceptMissingTables: true,
@@ -259,11 +277,19 @@ export async function importDatabase(
         return true
       }
     })
+    // 先恢复全部 Store 默认值，旧备份缺失的模块因此保持空状态而不会残留旧内存数据。
+    resetRuntimeStores()
     await hydrateRuntimeStores()
     ElMessage.success('导入成功')
     complete?.()
   } catch (error) {
     console.error('Import failed:', error)
+    try {
+      resetRuntimeStores()
+      await hydrateRuntimeStores()
+    } catch (hydrateError) {
+      console.error('Failed to synchronize stores after import error:', hydrateError)
+    }
     ElMessage.error(`导入失败：${error instanceof Error ? error.message : '未知错误'}`)
   } finally {
     setDatabaseImporting(false)
@@ -278,24 +304,11 @@ export async function importDatabase(
  */
 export async function clearDatabase(onProgress?: (percent: number) => void, complete?: () => void) {
   try {
-    await db.studentDataset.clear()
-    onProgress?.(15)
-    await db.scoreSettings.clear()
-    onProgress?.(35)
-    await db.appPreferences.clear()
-    onProgress?.(45)
-    await db.themePreferences.clear()
-    onProgress?.(60)
-    await db.aiSettings.clear()
-    onProgress?.(80)
-    await db.wrongBook.clear()
-    await db.overviewAnalysisCache.clear()
-    await db.attachments.clear()
-    await db.paperLayoutDrafts.clear()
-    await db.toolPreferences.clear()
-    await db.seatingCharts.clear()
-    await db.dutyRosters.clear()
-    onProgress?.(90)
+    const tables = db.tables
+    for (let index = 0; index < tables.length; index += 1) {
+      await tables[index].clear()
+      onProgress?.(Math.round(((index + 1) / Math.max(1, tables.length)) * 90))
+    }
     resetRuntimeStores()
     onProgress?.(100)
     ElMessage.success('数据已清空')

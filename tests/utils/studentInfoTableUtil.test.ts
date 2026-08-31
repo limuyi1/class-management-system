@@ -7,7 +7,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildStudentInfoTagSummaryMap,
-  getStudentInfoTagSummary
+  getStudentInfoTagSummary,
+  insertStudentAtSequence,
+  moveStudentToSequence
 } from '../../src/views/student-info/utils/studentInfoTableUtil'
 
 import type { StudentDataType } from '../../src/types/StudentData'
@@ -50,5 +52,64 @@ describe('studentInfoTableUtil', () => {
       visibleTags: [],
       hiddenCount: 0
     })
+  })
+
+  it('moves a student by sequence without changing its associated data', () => {
+    const target: StudentDataType = {
+      studentId: 'student-2',
+      name: '李四',
+      math: 96,
+      comment: '保持原评语',
+      tags: { strength: ['认真'] }
+    }
+    const students: StudentDataType[] = [
+      { studentId: 'student-1', name: '张三' },
+      target,
+      { studentId: 'student-3', name: '王五' }
+    ]
+
+    expect(moveStudentToSequence(students, 'student-2', 3)).toBe(true)
+    expect(students.map((student) => student.studentId)).toEqual([
+      'student-1',
+      'student-3',
+      'student-2'
+    ])
+    expect(students[2]).toBe(target)
+    expect(students[2]).toMatchObject({ math: 96, comment: '保持原评语' })
+  })
+
+  it('inserts a new student at an occupied sequence and shifts existing students back', () => {
+    const students: StudentDataType[] = [
+      { studentId: 'student-1', name: '张三' },
+      { studentId: 'student-2', name: '李四' },
+      { studentId: 'student-3', name: '王五' }
+    ]
+
+    insertStudentAtSequence(students, { studentId: 'student-new', name: '赵六' }, 2)
+
+    expect(students.map((student) => student.studentId)).toEqual([
+      'student-1',
+      'student-new',
+      'student-2',
+      'student-3'
+    ])
+  })
+
+  it('moves a student forward and shifts the occupied range back', () => {
+    const students: StudentDataType[] = [
+      { studentId: 'student-1', name: '张三' },
+      { studentId: 'student-2', name: '李四' },
+      { studentId: 'student-3', name: '王五' },
+      { studentId: 'student-4', name: '赵六' }
+    ]
+
+    moveStudentToSequence(students, 'student-4', 2)
+
+    expect(students.map((student) => student.studentId)).toEqual([
+      'student-1',
+      'student-4',
+      'student-2',
+      'student-3'
+    ])
   })
 })

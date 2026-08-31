@@ -3,9 +3,10 @@
  * 数据导入导出页：提供 .dexie 全量备份导出/恢复、Excel 学生初始化/增量成绩导入，
  * 以及清空全部数据的能力，并展示最近备份状态。
  */
-import { computed, ref } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 
 import { storeToRefs } from 'pinia'
+import { useRoute } from 'vue-router'
 import { ElMessageBox, dayjs } from 'element-plus'
 
 import router from '@/router'
@@ -19,8 +20,11 @@ import ImportActionMenu from '@/views/setting/components/import/ImportActionMenu
 import InitialImportDialog from '@/views/setting/components/import/InitialImportDialog.vue'
 import ImportProgress from './ImportProgress.vue'
 
+const route = useRoute()
+
 const exporting = ref(false) // 导出进行中
 const importingBackup = ref(false) // 备份导入进行中
+const backupFileInputRef = ref<HTMLInputElement | null>(null) // .dexie 恢复专用文件入口
 const progressVisible = ref(false) // 进度弹窗显隐
 const progressTitle = ref('') // 进度弹窗标题
 const progressPercent = ref(0) // 进度百分比（0-100）
@@ -42,6 +46,13 @@ const backupOverdue = computed(
 const backupTimeText = computed(() => {
   if (!lastBackupAt.value) return '从未备份'
   return dayjs(lastBackupAt.value).format('YYYY-MM-DD HH:mm')
+})
+
+// 从学生信息页进入时定位到 Excel 导入区域。
+onMounted(async () => {
+  if (route.query.section !== 'excel-import') return
+  await nextTick()
+  document.getElementById('excel-import')?.scrollIntoView({ block: 'center' })
 })
 
 // 从学生导入 hook 解构 Excel 导入流程相关的状态与方法
@@ -73,37 +84,15 @@ const updateProgress = (percent: number) => {
   progressPercent.value = percent
 }
 
-/** 导出 .dexie 备份：先询问是否包含试卷排版数据，再执行导出 */
+/** 导出包含所有数据库表的完整 .dexie 系统备份。 */
 const handleExport = async () => {
-  let includePaperLayout = true
-
-  try {
-    await ElMessageBox.confirm(
-      '本次导出是否包含试卷排版数据（附件、草稿、工具参数）？',
-      '导出备份',
-      {
-        confirmButtonText: '包含',
-        cancelButtonText: '不包含',
-        type: 'info',
-        distinguishCancelAndClose: true
-      }
-    )
-  } catch (action) {
-    // 取消导出时不包含排版数据，关闭弹窗则直接中止
-    if (action === 'cancel') {
-      includePaperLayout = false
-    } else {
-      return
-    }
-  }
-
   exporting.value = true
   progressTitle.value = '正在导出数据'
   progressPercent.value = 0
   progressVisible.value = true
 
   try {
-    await exportDatabase(updateProgress, includePaperLayout)
+    await exportDatabase(updateProgress)
     progressPercent.value = 100
   } finally {
     // 延迟 500ms 再关闭弹窗，便于用户看到 100% 的完成态
@@ -113,6 +102,9 @@ const handleExport = async () => {
     exporting.value = false
   }
 }
+
+/** 打开完整系统备份文件选择器。 */
+const triggerBackupImport = () => backupFileInputRef.value?.click()
 
 /** 导入 .dexie 备份：确认覆盖后执行全量恢复，完成后跳转总览页 */
 const handleBackupImport = async (file: File) => {
@@ -141,20 +133,14 @@ const handleBackupImport = async (file: File) => {
 }
 
 /**
- * Excel 与 Dexie 共用文件入口；文件后缀决定进入业务导入还是全量恢复。
+ * 处理完整系统备份文件；该入口只接受 .dexie，避免与业务 Excel 混淆。
  */
-const handleImportFileChange = async (event: Event) => {
+const handleBackupFileChange = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
-
-  if (file.name.toLowerCase().endsWith('.dexie')) {
-    input.value = ''
-    await handleBackupImport(file)
-    return
-  }
-
-  await handleExcelFileChange(event)
+  input.value = ''
+  await handleBackupImport(file)
 }
 
 /** 清空全部数据：二次确认后执行，完成后跳转工具页 */
@@ -183,7 +169,7 @@ const handleClear = async () => {
     <el-card>
       <div class="import-export-title">数据导入导出</div>
       <p class="import-export-desc">
-        Excel 可初始化学生名单或按姓名添加成绩；.dexie 用于全量备份与恢复。
+        .dexie 用于完整备份和恢复全部系统数据；Excel 仅用于批量建立学生名单或追加成绩。
       </p>
 
       <div class="import-export-actions">
@@ -193,9 +179,9 @@ const handleClear = async () => {
             <font-awesome-icon :icon="['solid', 'file-export']" />
           </div>
           <div class="action-info">
-            <div class="action-label">导出数据</div>
+            <div class="action-label">导出完整系统备份</div>
             <div class="action-desc">
-              将学生、配置、标签、错题本等数据导出为 .dexie 备份，可选试卷排版
+              包含学生、成绩、标签、值日表、座位表、错题本、配置、附件和排版数据
             </div>
             <div class="backup-status" :class="{ 'is-overdue': backupOverdue }">
               <font-awesome-icon
@@ -214,18 +200,47 @@ const handleClear = async () => {
 
         <el-divider />
 
-        <!-- 导入数据：无学生数据走初始化，有数据则增量添加成绩 -->
+        <!-- 恢复完整系统备份：只接受 .dexie，恢复时覆盖当前全部数据 -->
         <div class="action-item">
           <div class="action-icon action-icon-import">
             <font-awesome-icon :icon="['solid', 'file-import']" />
           </div>
           <div class="action-info">
-            <div class="action-label">导入数据</div>
+            <div class="action-label">恢复完整系统备份</div>
+            <div class="action-desc">从 .dexie 恢复全部系统数据，并覆盖当前内容</div>
+          </div>
+          <el-button
+            type="warning"
+            size="large"
+            :loading="importingBackup"
+            @click="triggerBackupImport"
+          >
+            <template #icon><font-awesome-icon :icon="['solid', 'rotate-left']" /></template>
+            选择备份
+          </el-button>
+          <input
+            ref="backupFileInputRef"
+            type="file"
+            accept=".dexie"
+            hidden
+            @change="handleBackupFileChange"
+          />
+        </div>
+
+        <el-divider />
+
+        <!-- 业务 Excel 导入：无学生数据走初始化，有数据则增量添加成绩 -->
+        <div id="excel-import" class="action-item">
+          <div class="action-icon action-icon-import">
+            <font-awesome-icon :icon="['solid', 'file-excel']" />
+          </div>
+          <div class="action-info">
+            <div class="action-label">Excel 数据导入</div>
             <div class="action-desc">
               {{
                 hasStudentData
-                  ? '按姓名添加成绩，也可以使用 .dexie 恢复全量备份'
-                  : '从 Excel 创建学生，可同时选择成绩列和评语列'
+                  ? '按姓名匹配现有学生并追加成绩，不新增系统学生'
+                  : '批量建立系统学生名单，可同时选择成绩列和评语列'
               }}
             </div>
           </div>
@@ -238,9 +253,9 @@ const handleClear = async () => {
           <input
             ref="excelFileInputRef"
             type="file"
-            accept=".dexie,.xls,.xlsx"
+            accept=".xls,.xlsx"
             hidden
-            @change="handleImportFileChange"
+            @change="handleExcelFileChange"
           />
         </div>
 
@@ -264,7 +279,9 @@ const handleClear = async () => {
 
       <div class="backup-tip">
         <font-awesome-icon :icon="['solid', 'circle-info']" />
-        <span>.dexie 恢复会覆盖当前数据；评语 Excel 请在“工具 → 评语处理”中使用</span>
+        <span>
+          .dexie 可完整恢复系统；Excel 不是备份文件，值日表和座位表成果 Excel 也不能在此恢复
+        </span>
       </div>
     </el-card>
 

@@ -1,6 +1,6 @@
 /**
  * 路由守卫（createDataGuard）测试
- * 覆盖：工具页与设置页跳过数据检查、无数据时首页/学生信息页重定向到工具页、
+ * 覆盖：工具页、学生信息页与设置页跳过数据检查、无数据时首页重定向到工具页、
  * 评语工具在没有系统学生数据时仍可访问。
  */
 
@@ -52,7 +52,7 @@ describe('router guard', () => {
     expect(next).toHaveBeenCalledWith('/tools')
   })
 
-  it('should redirect student info route to tools when no data', async () => {
+  it('should allow student info route for creating the first student', async () => {
     const store = {
       waitForInitReady: vi.fn().mockResolvedValue(true),
       enabledData: []
@@ -62,8 +62,8 @@ describe('router guard', () => {
 
     await guard({ path: '/student-info' } as never, { path: '/setting' } as never, next)
 
-    expect(store.waitForInitReady).toHaveBeenCalled()
-    expect(next).toHaveBeenCalledWith('/tools')
+    expect(store.waitForInitReady).not.toHaveBeenCalled()
+    expect(next).toHaveBeenCalledWith()
   })
 
   it('should allow the comment tool without system student data', async () => {
