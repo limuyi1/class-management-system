@@ -51,6 +51,48 @@ describe('useSeatingChartStore', () => {
     expect(store.editingChart?.excelSource?.fileName).toBe('名单.xlsx')
   })
 
+  it('adds and removes students from only the current Excel roster', () => {
+    const store = useSeatingChartStore()
+    const chart = store.createChart({
+      studentSource: 'excel',
+      excelSource: {
+        fileName: '名单.xlsx',
+        students: [
+          { id: 'excel:0', name: '张三' },
+          { id: 'excel:1', name: '李四' }
+        ]
+      },
+      rows: 1,
+      columns: 2
+    })
+    store.assignStudent('excel:0', 0, 0)
+    store.toggleStudentRole('excel:0', chart.roleDefinitions[0].id)
+
+    const added = store.addExcelStudent(' 王五 ')
+
+    expect(added).toMatchObject({ name: '王五' })
+    expect(added?.id).toMatch(/^manual:/)
+    expect(store.unassignedStudents.map((student) => student.name)).toEqual(['李四', '王五'])
+    expect(chart.seats[0].studentId).toBe('excel:0')
+    expect(chart.roleAssignments).toHaveLength(1)
+
+    expect(store.removeExcelStudent('excel:0')).toBe(true)
+    expect(chart.excelSource?.students.map((student) => student.name)).toEqual(['李四', '王五'])
+    expect(chart.seats[0].studentId).toBeNull()
+    expect(chart.roleAssignments).toEqual([])
+  })
+
+  it('does not edit the system student source through Excel roster actions', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '张三' }]
+    const store = useSeatingChartStore()
+    store.createChart({ studentSource: 'system' })
+
+    expect(store.addExcelStudent('李四')).toBeNull()
+    expect(store.removeExcelStudent('student-1')).toBe(false)
+    expect(dataStore.students).toEqual([{ studentId: 'student-1', name: '张三' }])
+  })
+
   it('clears assignments when switching sources and keeps the uploaded roster available', () => {
     const dataStore = useDataSourceStore()
     dataStore.students = [{ studentId: 'student-1', name: '王五' }]
