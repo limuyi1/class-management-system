@@ -17,6 +17,7 @@ function createRoster(): DutyRosterType {
         id: 'section-1',
         name: '教室',
         kind: 'indoor',
+        leaderStudentId: 'student-2',
         sortOrder: 0,
         positions: [{ id: 'position-1', name: '讲台', sortOrder: 0 }]
       }
@@ -50,7 +51,7 @@ describe('dutyRosterExcelUtil', () => {
     })
 
     expect(rows[0]).toEqual(['303 班值日表'])
-    expect(rows[3]).toEqual(['值日周期', '教室'])
+    expect(rows[3]).toEqual(['值日周期', '教室（李四）'])
     expect(rows[4]).toEqual(['', '讲台'])
     expect(rows[5]).toEqual(['星期一', '张三（组长）、李四'])
     expect(rows).toContainEqual(['备注说明'])

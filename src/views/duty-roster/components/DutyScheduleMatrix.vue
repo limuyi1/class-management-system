@@ -30,13 +30,14 @@ const props = defineProps<{
 const emit = defineEmits<{
   renamePosition: [positionId: string, name: string]
   positionContext: [positionId: string, x: number, y: number]
-  studentContext: [studentId: string, x: number, y: number]
-  dragStudentStart: [studentId: string]
+  studentContext: [studentId: string, target: DutyAssignmentTargetType, x: number, y: number]
+  dragStudentStart: [studentId: string, target: DutyAssignmentTargetType]
   dragStudentEnd: []
   dropStudent: [target: DutyAssignmentTargetType]
   reorderPosition: [sectionId: string, sourceId: string, targetId: string]
   addWeeklyRow: []
   removeWeeklyRow: [rowId: string]
+  editSectionLeader: [sectionId: string]
 }>()
 
 // 矩阵容器引用与岗位重命名状态
@@ -51,6 +52,9 @@ const sections = computed(() =>
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((section) => ({
       ...section,
+      leaderName: section.leaderStudentId
+        ? props.studentNames[section.leaderStudentId] || ''
+        : '',
       positions: [...section.positions].sort((left, right) => left.sortOrder - right.sortOrder)
     }))
 )
@@ -91,10 +95,7 @@ function getStudentIds(target: DutyAssignmentTargetType): string[] {
   )
 }
 
-/**
- * 判断学生是否为组长。
- * @param studentId - 学生 ID
- */
+/** 按原有规则判断学生是否为组长。 */
 function isLeader(studentId: string): boolean {
   return props.roster.leaders.some((leader) => leader.studentId === studentId)
 }
@@ -161,10 +162,14 @@ function handlePositionAction(event: MouseEvent, positionId: string): void {
  * @param event - 鼠标事件
  * @param studentId - 学生 ID
  */
-function handleStudentContext(event: MouseEvent, studentId: string): void {
+function handleStudentContext(
+  event: MouseEvent,
+  studentId: string,
+  target: DutyAssignmentTargetType
+): void {
   event.preventDefault()
   event.stopPropagation()
-  emit('studentContext', studentId, event.clientX, event.clientY)
+  emit('studentContext', studentId, target, event.clientX, event.clientY)
 }
 
 /** 生成分配单元格的稳定标识，用于拖拽反馈 */
@@ -255,7 +260,21 @@ defineExpose({ editPosition })
             :colspan="section.positions.length"
             scope="colgroup"
           >
-            {{ section.name }}
+            <span>{{ section.name }}</span>
+            <template v-if="section.leaderName">
+              <span>（</span>
+              <span class="duty-matrix__section-leader-name">{{ section.leaderName }}</span>
+              <span>）</span>
+            </template>
+            <button
+              class="duty-matrix__section-action"
+              type="button"
+              :aria-label="`设置${section.name}大组长`"
+              title="设置大组长"
+              @click.stop="emit('editSectionLeader', section.id)"
+            >
+              <font-awesome-icon :icon="['solid', 'user-pen']" />
+            </button>
           </th>
           <th v-if="!isDaily" class="duty-matrix__row-action-head" rowspan="2">
             <span class="sr-only">行操作</span>
@@ -351,12 +370,22 @@ defineExpose({ editPosition })
                   :aria-label="`${studentNames[studentId] || '未知学生'}${
                     isLeader(studentId) ? '，组长' : ''
                   }`"
-                  :title="`${studentNames[studentId] || '未知学生'}${
-                    isLeader(studentId) ? '（组长）' : ''
-                  }｜拖动调整岗位，右键查看更多操作`"
-                  @dragstart.stop="emit('dragStudentStart', studentId)"
+                  :title="`${studentNames[studentId] || '未知学生'}｜拖动调整岗位，右键查看更多操作`"
+                  @dragstart.stop="
+                    emit('dragStudentStart', studentId, {
+                      period: row.period,
+                      rowId: row.rowId,
+                      positionId: position.id
+                    })
+                  "
                   @dragend="handleStudentDragEnd"
-                  @contextmenu="handleStudentContext($event, studentId)"
+                  @contextmenu="
+                    handleStudentContext($event, studentId, {
+                      period: row.period,
+                      rowId: row.rowId,
+                      positionId: position.id
+                    })
+                  "
                 >
                   <span
                     v-if="isLeader(studentId)"
@@ -565,6 +594,27 @@ defineExpose({ editPosition })
   color: #315c4c;
   background: var(--duty-cleaning-tint);
   box-shadow: inset 0 3px 0 var(--duty-cleaning-accent);
+}
+
+.duty-matrix__section-leader-name {
+  color: #c9303b;
+}
+
+.duty-matrix__section-action {
+  margin-left: 8px;
+  padding: 3px 5px;
+  color: currentcolor;
+  background: transparent;
+  border: 0;
+  border-radius: 5px;
+  opacity: 0.55;
+  cursor: pointer;
+}
+
+.duty-matrix__section-action:hover,
+.duty-matrix__section-action:focus-visible {
+  background: rgba(255, 255, 255, 0.65);
+  opacity: 1;
 }
 
 .duty-matrix__position-head {

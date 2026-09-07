@@ -29,6 +29,7 @@ function createRoster(): DutyRosterType {
         id: 'section-1',
         name: '室内岗位',
         kind: 'indoor',
+        leaderStudentId: 'student-big',
         sortOrder: 0,
         positions: [{ id: 'position-1', name: '讲台', sortOrder: 0 }]
       }
@@ -64,7 +65,7 @@ describe('DutyRosterExportPreview', () => {
     const wrapper = mount(DutyRosterExportPreview, {
       props: {
         roster: createRoster(),
-        studentNames: { 'student-1': '张三' },
+        studentNames: { 'student-1': '张三', 'student-big': '李四' },
         pageType: PagesEnum.A4
       }
     })
@@ -74,11 +75,34 @@ describe('DutyRosterExportPreview', () => {
     expect(wrapper.find('.duty-content-viewport').exists()).toBe(true)
     expect(wrapper.text()).toContain('303班清洁值日表')
     expect(wrapper.text()).toContain('张三')
+    expect(wrapper.get('.duty-print-table__section-row th:last-child').text()).toBe(
+      '室内岗位（李四）'
+    )
+    const sectionLeaderName = wrapper.get('.duty-print-table__section-leader-name')
+    expect(sectionLeaderName.text()).toBe('李四')
+    expect(sectionLeaderName.element.previousElementSibling?.textContent).toBe('（')
+    expect(sectionLeaderName.element.nextElementSibling?.textContent).toBe('）')
+    expect(wrapper.find('.duty-print-table__section-leader').exists()).toBe(false)
+    expect(wrapper.get('.duty-print-table__student.is-leader').text()).toBe('张三')
     expect(wrapper.text()).toContain('组长负责检查卫生')
     expect(wrapper.text()).not.toContain('周次')
     expect(wrapper.text()).not.toContain('日期范围')
     expect(wrapper.find('button').exists()).toBe(false)
     expect(wrapper.text()).not.toContain('拖入学生')
+  })
+
+  it('keeps saved leaders red without rebuilding their original records', () => {
+    const roster = createRoster()
+    roster.leaders[0].period = DutyPeriodEnum.Tuesday
+
+    const wrapper = mount(DutyRosterExportPreview, {
+      props: {
+        roster,
+        studentNames: { 'student-1': '张三', 'student-big': '李四' }
+      }
+    })
+
+    expect(wrapper.get('.duty-print-table__student.is-leader').text()).toBe('张三')
   })
 
   it('renders every weekly row without editor anchors', () => {

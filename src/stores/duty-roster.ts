@@ -16,7 +16,9 @@ import {
   createDutyWeeklyRow,
   findDutySectionByPosition,
   getDutyAssignment,
+  getDutyPendingStudentCount,
   getDutyPositionStudentCount,
+  getDutyStudentCardCount,
   getDutyStudentIds,
   normalizeDutyRoster,
   removeDutyStudent
@@ -94,14 +96,28 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
     assignedStudentIds(): string[] {
       return this.editingRoster ? getDutyStudentIds(this.editingRoster) : []
     },
-    /** 尚未分配的学生列表 */
+    /** 当前仍有卡片留在右侧待选区的学生列表 */
     unassignedStudents(): ReturnType<typeof resolveDutyRosterStudents> {
-      const assignedIds = new Set(this.assignedStudentIds)
-      return this.activeStudents.filter((student) => !assignedIds.has(student.id))
+      const roster = this.editingRoster
+      if (!roster) return []
+      return this.activeStudents.filter(
+        (student) => getDutyPendingStudentCount(roster, student.id) > 0
+      )
     },
-    /** 已分配学生数量 */
+    /** 右侧待选区中每名学生的卡片数量 */
+    pendingStudentCounts(): Record<string, number> {
+      const roster = this.editingRoster
+      if (!roster) return {}
+      return Object.fromEntries(
+        this.activeStudents.map((student) => [
+          student.id,
+          getDutyPendingStudentCount(roster, student.id)
+        ])
+      )
+    },
+    /** 已分配学生数量（同一学生安排多个岗位时只计一次） */
     assignedCount(): number {
-      return this.assignedStudentIds.length
+      return new Set(this.assignedStudentIds).size
     }
   },
   actions: {
@@ -186,6 +202,9 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
           studentIds: [...assignment.studentIds]
         })),
         leaders: roster.leaders.map((leader) => ({ ...leader })),
+        studentCardCounts: roster.studentCardCounts
+          ? { ...roster.studentCardCounts }
+          : undefined,
         createdAt: timestamp,
         updatedAt: timestamp
       }
@@ -213,7 +232,7 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       if (!this.editingRoster.weeklyRows?.length) {
         this.editingRoster.weeklyRows = createDefaultDutyWeeklyRows()
       }
-      // 切换模式后原有分配与组长不再适用，统一清空
+      // 切换模式后原有岗位分配与组长不再适用，卡片自动全部回到右侧
       this.editingRoster.assignments = []
       this.editingRoster.leaders = []
       touch(this.editingRoster)
@@ -231,6 +250,8 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       if (excelSource) roster.excelSource = cloneExcelSource(excelSource)
       roster.assignments = []
       roster.leaders = []
+      roster.studentCardCounts = undefined
+      roster.sections.forEach((section) => delete section.leaderStudentId)
       touch(roster)
     },
     /**
@@ -270,6 +291,10 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       const result = removeDutyStudent(roster.assignments, roster.leaders, studentId)
       roster.assignments = result.assignments
       roster.leaders = result.leaders
+      delete roster.studentCardCounts?.[studentId]
+      roster.sections.forEach((section) => {
+        if (section.leaderStudentId === studentId) delete section.leaderStudentId
+      })
       touch(roster)
       return true
     },
@@ -311,6 +336,16 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       section.name = name.trim()
       touch(roster)
     },
+    /** 设置区域标题处的大组长，不改变每日值日组长。 */
+    setSectionLeader(sectionId: string, studentId?: string): void {
+      const roster = this.editingRoster
+      const section = roster?.sections.find((item) => item.id === sectionId)
+      if (!roster || !section) return
+      if (studentId && !this.activeStudents.some((student) => student.id === studentId)) return
+      if (studentId) section.leaderStudentId = studentId
+      else delete section.leaderStudentId
+      touch(roster)
+    },
     /**
      * 按给定顺序重排分组
      * @param sectionIds - 排序后的分组 ID 顺序
@@ -343,21 +378,13 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       const section = roster?.sections.find((item) => item.id === sectionId)
       if (!roster || !section || roster.sections.length <= 1) return
       const positionIds = new Set(section.positions.map((position) => position.id))
-      // 收集该分组下被移除岗位上的学生，用于同步清理组长记录
-      const removedStudentIds = new Set(
-        roster.assignments
-          .filter((assignment) => positionIds.has(assignment.positionId))
-          .flatMap((assignment) => assignment.studentIds)
-      )
       roster.sections = roster.sections
         .filter((item) => item.id !== sectionId)
         .map((item, index) => ({ ...item, sortOrder: index }))
       roster.assignments = roster.assignments.filter(
         (assignment) => !positionIds.has(assignment.positionId)
       )
-      roster.leaders = roster.leaders.filter(
-        (leader) => leader.sectionId !== sectionId && !removedStudentIds.has(leader.studentId)
-      )
+      roster.leaders = roster.leaders.filter((leader) => leader.sectionId !== sectionId)
       touch(roster)
     },
     /**
@@ -406,18 +433,24 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       const roster = this.editingRoster
       const section = roster ? findDutySectionByPosition(roster, positionId) : undefined
       if (!roster || !section || section.positions.length <= 1) return
-      const removedStudentIds = new Set(
-        roster.assignments
-          .filter((assignment) => assignment.positionId === positionId)
-          .flatMap((assignment) => assignment.studentIds)
-      )
       section.positions = section.positions
         .filter((position) => position.id !== positionId)
         .map((position, index) => ({ ...position, sortOrder: index }))
       roster.assignments = roster.assignments.filter(
         (assignment) => assignment.positionId !== positionId
       )
-      roster.leaders = roster.leaders.filter((leader) => !removedStudentIds.has(leader.studentId))
+      const remainingPositionIds = new Set(section.positions.map((position) => position.id))
+      roster.leaders = roster.leaders.filter(
+        (leader) =>
+          leader.sectionId !== section.id ||
+          roster.assignments.some(
+            (assignment) =>
+              assignment.period === leader.period &&
+              assignment.rowId === leader.rowId &&
+              remainingPositionIds.has(assignment.positionId) &&
+              assignment.studentIds.includes(leader.studentId)
+          )
+      )
       touch(roster)
     },
     /**
@@ -487,18 +520,11 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       ) {
         return
       }
-      const removedStudentIds = new Set(
-        roster.assignments
-          .filter((assignment) => assignment.rowId === rowId)
-          .flatMap((assignment) => assignment.studentIds)
-      )
       roster.weeklyRows = roster.weeklyRows
         .filter((row) => row.id !== rowId)
         .map((row, index) => ({ ...row, sortOrder: index }))
       roster.assignments = roster.assignments.filter((assignment) => assignment.rowId !== rowId)
-      roster.leaders = roster.leaders.filter(
-        (leader) => leader.rowId !== rowId && !removedStudentIds.has(leader.studentId)
-      )
+      roster.leaders = roster.leaders.filter((leader) => leader.rowId !== rowId)
       touch(roster)
     },
     /**
@@ -510,43 +536,146 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       return this.editingRoster ? getDutyPositionStudentCount(this.editingRoster, positionId) : 0
     },
     /**
-     * 将学生分配到指定岗位
-     * 先移除该学生已有分配，再写入新岗位
+     * 将右侧的一张待选卡片安排到指定岗位。
      * @param studentId - 学生 ID
      * @param target - 分配目标（时段/岗位/周行）
      */
     assignStudent(studentId: string, target: DutyAssignmentTargetType): void {
       const roster = this.editingRoster
-      const targetSection = roster
-        ? findDutySectionByPosition(roster, target.positionId)
-        : undefined
+      const targetSection = roster ? findDutySectionByPosition(roster, target.positionId) : undefined
       if (!roster || !targetSection) return
-      const shouldKeepLeader = roster.leaders.some((leader) => leader.studentId === studentId)
-      // 先移除该学生原有分配，避免重复分配
-      const removed = removeDutyStudent(roster.assignments, roster.leaders, studentId)
-      roster.assignments = removed.assignments
-      roster.leaders = removed.leaders
+      if (getDutyPendingStudentCount(roster, studentId) <= 0) return
       const assignment = getDutyAssignment(
         roster.assignments,
         target.period,
         target.positionId,
         target.rowId
       )
+      if (assignment?.studentIds.includes(studentId)) return
       if (assignment) assignment.studentIds.push(studentId)
       else roster.assignments.push({ ...target, studentIds: [studentId] })
-      if (shouldKeepLeader) {
-        // 拖动组长时仅迁移本人身份，目标分组已有的组长保持不变
+      touch(roster)
+    },
+    /**
+     * 移动表格中的一张学生卡片，不改变该学生的卡片总数。
+     * @param studentId - 学生 ID
+     * @param source - 原岗位
+     * @param target - 目标岗位
+     */
+    moveStudent(
+      studentId: string,
+      source: DutyAssignmentTargetType,
+      target: DutyAssignmentTargetType
+    ): void {
+      const roster = this.editingRoster
+      if (!roster || !findDutySectionByPosition(roster, target.positionId)) return
+      const sourceAssignment = getDutyAssignment(
+        roster.assignments,
+        source.period,
+        source.positionId,
+        source.rowId
+      )
+      const targetAssignment = getDutyAssignment(
+        roster.assignments,
+        target.period,
+        target.positionId,
+        target.rowId
+      )
+      if (!sourceAssignment?.studentIds.includes(studentId)) return
+      if (targetAssignment?.studentIds.includes(studentId)) return
+
+      const sourceSection = findDutySectionByPosition(roster, source.positionId)
+      const targetSection = findDutySectionByPosition(roster, target.positionId)
+      const leader = roster.leaders.find(
+        (item) =>
+          item.studentId === studentId &&
+          item.period === source.period &&
+          item.rowId === source.rowId &&
+          item.sectionId === sourceSection?.id
+      )
+
+      sourceAssignment.studentIds = sourceAssignment.studentIds.filter((id) => id !== studentId)
+      if (!sourceAssignment.studentIds.length) {
+        roster.assignments = roster.assignments.filter((item) => item !== sourceAssignment)
+      }
+      if (targetAssignment) targetAssignment.studentIds.push(studentId)
+      else roster.assignments.push({ ...target, studentIds: [studentId] })
+      if (leader && targetSection) {
+        leader.period = target.period
+        leader.rowId = target.rowId
+        leader.sectionId = targetSection.id
+      }
+      touch(roster)
+    },
+    /**
+     * 将当前位置的一张学生卡片移回右侧待选区。
+     * @param studentId - 学生 ID
+     * @param target - 当前岗位
+     */
+    removeStudentAssignment(studentId: string, target: DutyAssignmentTargetType): void {
+      const roster = this.editingRoster
+      if (!roster) return
+      const assignment = getDutyAssignment(
+        roster.assignments,
+        target.period,
+        target.positionId,
+        target.rowId
+      )
+      if (!assignment?.studentIds.includes(studentId)) return
+      assignment.studentIds = assignment.studentIds.filter((id) => id !== studentId)
+      if (!assignment.studentIds.length) {
+        roster.assignments = roster.assignments.filter((item) => item !== assignment)
+      }
+      const section = findDutySectionByPosition(roster, target.positionId)
+      const remainsInLeaderGroup = roster.assignments.some(
+        (item) =>
+          item.period === target.period &&
+          item.rowId === target.rowId &&
+          item.studentIds.includes(studentId) &&
+          section?.positions.some((position) => position.id === item.positionId)
+      )
+      roster.leaders = roster.leaders.filter(
+        (leader) =>
+          remainsInLeaderGroup ||
+          leader.studentId !== studentId ||
+          leader.period !== target.period ||
+          leader.rowId !== target.rowId ||
+          leader.sectionId !== section?.id
+      )
+      touch(roster)
+    },
+    /**
+     * 设置或取消当前岗位学生的组长身份。
+     * @param studentId - 学生 ID
+     * @param target - 当前岗位
+     */
+    toggleLeader(studentId: string, target: DutyAssignmentTargetType): void {
+      const roster = this.editingRoster
+      const assignment = roster
+        ? getDutyAssignment(roster.assignments, target.period, target.positionId, target.rowId)
+        : undefined
+      const section = roster ? findDutySectionByPosition(roster, target.positionId) : undefined
+      if (!roster || !assignment?.studentIds.includes(studentId) || !section) return
+      const existingIndex = roster.leaders.findIndex(
+        (leader) =>
+          leader.studentId === studentId &&
+          leader.period === target.period &&
+          leader.rowId === target.rowId &&
+          leader.sectionId === section.id
+      )
+      if (existingIndex >= 0) roster.leaders.splice(existingIndex, 1)
+      else {
         roster.leaders.push({
           period: target.period,
           rowId: target.rowId,
-          sectionId: targetSection.id,
+          sectionId: section.id,
           studentId
         })
       }
       touch(roster)
     },
     /**
-     * 取消学生的所有分配
+     * 取消学生的全部分配，兼容批量回收场景。
      * @param studentId - 学生 ID
      */
     unassignStudent(studentId: string): void {
@@ -557,28 +686,21 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
       roster.leaders = result.leaders
       touch(roster)
     },
-    /**
-     * 切换学生的组长身份
-     * @param studentId - 学生 ID
-     */
-    toggleLeader(studentId: string): void {
+    /** 复制一张学生卡片，新卡片出现在右侧待选区。 */
+    copyStudentCard(studentId: string): void {
       const roster = this.editingRoster
-      if (!roster) return
-      const assignment = roster.assignments.find((item) => item.studentIds.includes(studentId))
-      const section = assignment
-        ? findDutySectionByPosition(roster, assignment.positionId)
-        : undefined
-      if (!assignment || !section) return
-      const existingIndex = roster.leaders.findIndex((leader) => leader.studentId === studentId)
-      if (existingIndex >= 0) roster.leaders.splice(existingIndex, 1)
-      else {
-        roster.leaders.push({
-          period: assignment.period,
-          rowId: assignment.rowId,
-          sectionId: section.id,
-          studentId
-        })
-      }
+      if (!roster || !this.activeStudents.some((student) => student.id === studentId)) return
+      const totalCount = getDutyStudentCardCount(roster, studentId)
+      roster.studentCardCounts = { ...roster.studentCardCounts, [studentId]: totalCount + 1 }
+      touch(roster)
+    },
+    /** 删除右侧的一张待选卡片，学生全部卡片合计至少保留一张。 */
+    deletePendingStudentCard(studentId: string): void {
+      const roster = this.editingRoster
+      if (!roster || getDutyPendingStudentCount(roster, studentId) <= 0) return
+      const totalCount = getDutyStudentCardCount(roster, studentId)
+      if (totalCount <= 1) return
+      roster.studentCardCounts = { ...roster.studentCardCounts, [studentId]: totalCount - 1 }
       touch(roster)
     },
     /**
