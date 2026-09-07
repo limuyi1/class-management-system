@@ -9,7 +9,10 @@ import { describe, expect, it } from 'vitest'
 import { DutyPeriodEnum, DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
 import {
   createDefaultDutySections,
+  getDutyPendingStudentCount,
   getDutyPeriods,
+  getDutySectionTitle,
+  getDutyStudentCardCount,
   normalizeDutyRoster
 } from '@/utils/duty-roster/dutyRosterUtil'
 
@@ -43,14 +46,14 @@ describe('dutyRosterUtil', () => {
     expect(getDutyPeriods(DutyRosterModeEnum.Weekly)).toEqual([DutyPeriodEnum.Weekly])
   })
 
-  it('removes invalid and duplicate students while preserving the first assignment', () => {
+  it('removes invalid students and only deduplicates within the same duty', () => {
     const roster = createRoster()
     const [firstPosition, secondPosition] = roster.sections[0].positions
     roster.assignments = [
       {
         period: DutyPeriodEnum.Monday,
         positionId: firstPosition.id,
-        studentIds: ['student-1', 'missing']
+        studentIds: ['student-1', 'student-1', 'missing']
       },
       {
         period: DutyPeriodEnum.Tuesday,
@@ -62,10 +65,13 @@ describe('dutyRosterUtil', () => {
     const normalized = normalizeDutyRoster(roster, new Set(['student-1', 'student-2']))
 
     expect(normalized.assignments[0].studentIds).toEqual(['student-1'])
-    expect(normalized.assignments[1].studentIds).toEqual(['student-2'])
+    expect(normalized.assignments[1].studentIds).toEqual(['student-1', 'student-2'])
+    expect(normalized.studentCardCounts).toBeUndefined()
+    expect(getDutyStudentCardCount(normalized, 'student-1')).toBe(2)
+    expect(getDutyPendingStudentCount(normalized, 'student-1')).toBe(0)
   })
 
-  it('removes a leader when the student is no longer assigned in that section', () => {
+  it('preserves existing leader data during automatic normalization', () => {
     const roster = createRoster()
     roster.leaders = [
       {
@@ -75,12 +81,13 @@ describe('dutyRosterUtil', () => {
       }
     ]
 
-    const normalized = normalizeDutyRoster(roster, new Set(['student-1']))
+    const normalized = normalizeDutyRoster(roster, new Set())
 
-    expect(normalized.leaders).toEqual([])
+    expect(normalized.leaders).toEqual(roster.leaders)
+    expect(normalized.leaders).not.toBe(roster.leaders)
   })
 
-  it('keeps multiple leaders assigned to the same period and section', () => {
+  it('keeps existing leaders assigned to the same period and section', () => {
     const roster = createRoster()
     const section = roster.sections[0]
     roster.assignments = [
@@ -106,6 +113,49 @@ describe('dutyRosterUtil', () => {
     const normalized = normalizeDutyRoster(roster, new Set(['student-1', 'student-2']))
 
     expect(normalized.leaders.map((leader) => leader.studentId)).toEqual(['student-1', 'student-2'])
+  })
+
+  it('keeps the same student as leader in different periods', () => {
+    const roster = createRoster()
+    const section = roster.sections[0]
+    roster.assignments = [
+      {
+        period: DutyPeriodEnum.Monday,
+        positionId: section.positions[0].id,
+        studentIds: ['student-1']
+      },
+      {
+        period: DutyPeriodEnum.Tuesday,
+        positionId: section.positions[0].id,
+        studentIds: ['student-1']
+      }
+    ]
+    roster.leaders = [
+      {
+        period: DutyPeriodEnum.Monday,
+        sectionId: section.id,
+        studentId: 'student-1'
+      },
+      {
+        period: DutyPeriodEnum.Tuesday,
+        sectionId: section.id,
+        studentId: 'student-1'
+      }
+    ]
+
+    const normalized = normalizeDutyRoster(roster, new Set(['student-1']))
+
+    expect(normalized.leaders).toHaveLength(2)
+  })
+
+  it('builds the top section title from its independent leader', () => {
+    const roster = createRoster()
+    roster.sections[0].leaderStudentId = 'student-2'
+
+    expect(
+      getDutySectionTitle(roster, roster.sections[0].id, { 'student-2': '李四' })
+    ).toBe('室内岗位（李四）')
+    expect(roster.leaders).toEqual([])
   })
 
   it('migrates the old crown wording in saved notes', () => {

@@ -26,6 +26,7 @@ function createRoster(mode: DutyRosterModeEnum = DutyRosterModeEnum.Daily): Duty
         id: 'section-1',
         name: '室内岗位',
         kind: 'indoor',
+        leaderStudentId: 'student-2',
         sortOrder: 0,
         positions: [
           { id: 'position-1', name: '一组+讲台', sortOrder: 0 },
@@ -69,6 +70,12 @@ describe('DutyScheduleMatrix', () => {
     expect(wrapper.findAll('tbody tr')).toHaveLength(5)
     expect(wrapper.text()).toContain('星期一')
     expect(wrapper.text()).toContain('星期五')
+    expect(wrapper.get('.duty-matrix__section-head').text()).toContain('室内岗位（李四）')
+    const sectionLeaderName = wrapper.get('.duty-matrix__section-leader-name')
+    expect(sectionLeaderName.text()).toBe('李四')
+    expect(sectionLeaderName.element.previousElementSibling?.textContent).toBe('（')
+    expect(sectionLeaderName.element.nextElementSibling?.textContent).toBe('）')
+    expect(wrapper.find('.duty-matrix__section-leader').exists()).toBe(false)
     expect(wrapper.findAll('.duty-matrix__student')).toHaveLength(2)
     expect(wrapper.find('.duty-matrix__leader-dot').exists()).toBe(true)
     expect(wrapper.find('.duty-matrix__leader-dot').text()).toBe('组')
@@ -76,9 +83,40 @@ describe('DutyScheduleMatrix', () => {
       '张三，组长'
     )
     expect(wrapper.find('.duty-matrix__student.is-leader').attributes('title')).toContain(
-      '张三（组长）'
+      '张三'
     )
     expect(wrapper.find('.duty-matrix__crown').exists()).toBe(false)
+  })
+
+  it('opens the independent top section leader setting', async () => {
+    const wrapper = mount(DutyScheduleMatrix, {
+      props: {
+        roster: createRoster(),
+        studentNames: { 'student-1': '张三', 'student-2': '李四' }
+      }
+    })
+
+    await wrapper.get('.duty-matrix__section-action').trigger('click')
+
+    expect(wrapper.emitted('editSectionLeader')?.[0]).toEqual(['section-1'])
+  })
+
+  it('keeps every occurrence of a saved leader visually marked', () => {
+    const roster = createRoster()
+    roster.assignments.push({
+      period: DutyPeriodEnum.Tuesday,
+      positionId: 'position-2',
+      studentIds: ['student-1']
+    })
+
+    const wrapper = mount(DutyScheduleMatrix, {
+      props: {
+        roster,
+        studentNames: { 'student-1': '张三', 'student-2': '李四' }
+      }
+    })
+
+    expect(wrapper.findAll('.duty-matrix__student.is-leader')).toHaveLength(2)
   })
 
   it('renders editable weekly rows without showing week labels', async () => {
@@ -138,6 +176,36 @@ describe('DutyScheduleMatrix', () => {
         period: DutyPeriodEnum.Monday,
         rowId: undefined,
         positionId: 'position-2'
+      }
+    ])
+  })
+
+  it('emits the exact source target for assigned student operations', async () => {
+    const wrapper = mount(DutyScheduleMatrix, {
+      props: {
+        roster: createRoster(),
+        studentNames: { 'student-1': '张三', 'student-2': '李四' }
+      }
+    })
+    const student = wrapper.findAll('.duty-matrix__student')[0]
+
+    await student.trigger('dragstart')
+    expect(wrapper.emitted('dragStudentStart')?.[0]).toEqual([
+      'student-1',
+      {
+        period: DutyPeriodEnum.Monday,
+        rowId: undefined,
+        positionId: 'position-1'
+      }
+    ])
+
+    await student.trigger('contextmenu', { clientX: 80, clientY: 120 })
+    expect(wrapper.emitted('studentContext')?.[0]?.slice(0, 2)).toEqual([
+      'student-1',
+      {
+        period: DutyPeriodEnum.Monday,
+        rowId: undefined,
+        positionId: 'position-1'
       }
     ])
   })

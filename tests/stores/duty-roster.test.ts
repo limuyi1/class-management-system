@@ -8,7 +8,7 @@ import { DutyPeriodEnum, DutyRosterModeEnum } from '@/types/DutyRoster'
 /**
  * useDutyRosterStore store 测试
  * 测试目标：值日安排 store
- * 覆盖功能：学生分配与岗位复用、多组长设置、删除岗位/周行后的学生回收、每日/每周模式切换、区域与周行排序
+ * 覆盖功能：卡片复制/删除/移动、区域组长、岗位回收、模式切换与区域/周行排序
  */
 describe('useDutyRosterStore', () => {
   // 每个用例前创建全新的 Pinia 实例，隔离 store 状态
@@ -48,7 +48,7 @@ describe('useDutyRosterStore', () => {
     })
     const positionId = roster.sections[0].positions[0].id
     store.assignStudent('excel:0', { period: DutyPeriodEnum.Monday, positionId })
-    store.toggleLeader('excel:0')
+    store.toggleLeader('excel:0', { period: DutyPeriodEnum.Monday, positionId })
 
     const added = store.addExcelStudent(' 王五 ')
 
@@ -75,7 +75,7 @@ describe('useDutyRosterStore', () => {
     expect(dataStore.students).toEqual([{ studentId: 'student-1', name: '张三' }])
   })
 
-  it('moves a student instead of duplicating the student', () => {
+  it('allows a student in different duties while preventing duplicates in one duty', () => {
     const dataStore = useDataSourceStore()
     dataStore.students = [{ studentId: 'student-1', name: '张三' }]
     const store = useDutyRosterStore()
@@ -86,13 +86,24 @@ describe('useDutyRosterStore', () => {
       period: DutyPeriodEnum.Monday,
       positionId: firstPosition.id
     })
+    store.copyStudentCard('student-1')
+    store.assignStudent('student-1', {
+      period: DutyPeriodEnum.Tuesday,
+      positionId: secondPosition.id
+    })
     store.assignStudent('student-1', {
       period: DutyPeriodEnum.Tuesday,
       positionId: secondPosition.id
     })
 
-    expect(store.assignedStudentIds).toEqual(['student-1'])
+    expect(store.assignedStudentIds).toEqual(['student-1', 'student-1'])
+    expect(store.assignedCount).toBe(1)
     expect(roster.assignments).toEqual([
+      {
+        period: DutyPeriodEnum.Monday,
+        positionId: firstPosition.id,
+        studentIds: ['student-1']
+      },
       {
         period: DutyPeriodEnum.Tuesday,
         positionId: secondPosition.id,
@@ -101,7 +112,57 @@ describe('useDutyRosterStore', () => {
     ])
   })
 
-  it('moves the leader role with the student and keeps existing target group leaders', () => {
+  it('copies and deletes pending cards while always keeping one total card', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '张三' }]
+    const store = useDutyRosterStore()
+    const roster = store.createRoster({ studentSource: 'system' })
+
+    store.deletePendingStudentCard('student-1')
+    expect(store.pendingStudentCounts['student-1']).toBe(1)
+
+    store.copyStudentCard('student-1')
+    store.copyStudentCard('student-1')
+    expect(store.pendingStudentCounts['student-1']).toBe(3)
+
+    store.deletePendingStudentCard('student-1')
+    expect(roster.studentCardCounts?.['student-1']).toBe(2)
+    expect(store.pendingStudentCounts['student-1']).toBe(2)
+  })
+
+  it('moves and removes only the selected assigned card', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '张三' }]
+    const store = useDutyRosterStore()
+    const roster = store.createRoster({ studentSource: 'system' })
+    const [firstPosition, secondPosition, thirdPosition] = roster.sections[0].positions
+    const firstTarget = { period: DutyPeriodEnum.Monday, positionId: firstPosition.id }
+    const secondTarget = { period: DutyPeriodEnum.Tuesday, positionId: secondPosition.id }
+    const thirdTarget = { period: DutyPeriodEnum.Wednesday, positionId: thirdPosition.id }
+
+    store.assignStudent('student-1', firstTarget)
+    store.copyStudentCard('student-1')
+    store.assignStudent('student-1', secondTarget)
+    store.toggleLeader('student-1', secondTarget)
+    store.moveStudent('student-1', secondTarget, thirdTarget)
+
+    expect(roster.assignments.map((assignment) => assignment.positionId)).toEqual([
+      firstPosition.id,
+      thirdPosition.id
+    ])
+    expect(roster.leaders[0]).toMatchObject({
+      period: DutyPeriodEnum.Wednesday,
+      sectionId: roster.sections[0].id,
+      studentId: 'student-1'
+    })
+
+    store.removeStudentAssignment('student-1', thirdTarget)
+    expect(roster.assignments).toHaveLength(1)
+    expect(roster.leaders).toEqual([])
+    expect(store.pendingStudentCounts['student-1']).toBe(1)
+  })
+
+  it('sets daily leaders independently in each section', () => {
     const dataStore = useDataSourceStore()
     dataStore.students = [
       { studentId: 'student-1', name: '张三' },
@@ -111,40 +172,36 @@ describe('useDutyRosterStore', () => {
     const roster = store.createRoster({ studentSource: 'system' })
     const indoorSection = roster.sections[0]
     const cleaningSection = roster.sections[1]
-    const indoorPositionId = indoorSection.positions[0].id
-    const cleaningPositionId = cleaningSection.positions[0].id
-
-    store.assignStudent('student-1', {
+    const indoorTarget = {
       period: DutyPeriodEnum.Monday,
-      positionId: indoorPositionId
-    })
-    store.toggleLeader('student-1')
-    store.assignStudent('student-2', {
-      period: DutyPeriodEnum.Tuesday,
-      positionId: cleaningPositionId
-    })
-    store.toggleLeader('student-2')
-
-    store.assignStudent('student-1', {
-      period: DutyPeriodEnum.Tuesday,
-      positionId: cleaningPositionId
-    })
+      positionId: indoorSection.positions[0].id
+    }
+    const cleaningTarget = {
+      period: DutyPeriodEnum.Monday,
+      positionId: cleaningSection.positions[0].id
+    }
+    store.assignStudent('student-1', indoorTarget)
+    store.assignStudent('student-2', cleaningTarget)
+    store.toggleLeader('student-1', indoorTarget)
+    store.toggleLeader('student-2', cleaningTarget)
 
     expect(roster.leaders).toEqual([
       {
-        period: DutyPeriodEnum.Tuesday,
-        sectionId: cleaningSection.id,
-        studentId: 'student-2'
+        period: DutyPeriodEnum.Monday,
+        rowId: undefined,
+        sectionId: indoorSection.id,
+        studentId: 'student-1'
       },
       {
-        period: DutyPeriodEnum.Tuesday,
+        period: DutyPeriodEnum.Monday,
+        rowId: undefined,
         sectionId: cleaningSection.id,
-        studentId: 'student-1'
+        studentId: 'student-2'
       }
     ])
   })
 
-  it('allows multiple leaders in the same period and section', () => {
+  it('sets a top section leader without changing daily leaders', () => {
     const dataStore = useDataSourceStore()
     dataStore.students = [
       { studentId: 'student-1', name: '张三' },
@@ -152,20 +209,19 @@ describe('useDutyRosterStore', () => {
     ]
     const store = useDutyRosterStore()
     const roster = store.createRoster({ studentSource: 'system' })
-    const [firstPosition, secondPosition] = roster.sections[0].positions
-    store.assignStudent('student-1', {
+    const section = roster.sections[0]
+    const target = {
       period: DutyPeriodEnum.Monday,
-      positionId: firstPosition.id
-    })
-    store.assignStudent('student-2', {
-      period: DutyPeriodEnum.Monday,
-      positionId: secondPosition.id
-    })
+      positionId: section.positions[0].id
+    }
+    store.assignStudent('student-1', target)
+    store.toggleLeader('student-1', target)
 
-    store.toggleLeader('student-1')
-    store.toggleLeader('student-2')
+    store.setSectionLeader(section.id, 'student-2')
 
-    expect(roster.leaders.map((leader) => leader.studentId)).toEqual(['student-1', 'student-2'])
+    expect(section.leaderStudentId).toBe('student-2')
+    expect(roster.leaders).toHaveLength(1)
+    expect(roster.leaders[0].studentId).toBe('student-1')
   })
 
   it('returns students to the unassigned list after deleting a position', () => {
@@ -175,7 +231,7 @@ describe('useDutyRosterStore', () => {
     const roster = store.createRoster({ studentSource: 'system' })
     const positionId = roster.sections[0].positions[0].id
     store.assignStudent('student-1', { period: DutyPeriodEnum.Monday, positionId })
-    store.toggleLeader('student-1')
+    store.toggleLeader('student-1', { period: DutyPeriodEnum.Monday, positionId })
 
     store.removePosition(positionId)
 
@@ -198,6 +254,23 @@ describe('useDutyRosterStore', () => {
 
     expect(roster.mode).toBe(DutyRosterModeEnum.Weekly)
     expect(roster.assignments).toEqual([])
+  })
+
+  it('does not rewrite existing leaders when reconciling students', () => {
+    const dataStore = useDataSourceStore()
+    dataStore.students = [{ studentId: 'student-1', name: '张三' }]
+    const store = useDutyRosterStore()
+    const roster = store.createRoster({ studentSource: 'system' })
+    const leader = {
+      period: DutyPeriodEnum.Monday,
+      sectionId: roster.sections[0].id,
+      studentId: 'student-1'
+    }
+    roster.leaders = [leader]
+
+    store.reconcileStudents()
+
+    expect(store.editingRoster?.leaders).toEqual([leader])
   })
 
   it('reorders whole duty sections independently from their positions', () => {
@@ -232,12 +305,10 @@ describe('useDutyRosterStore', () => {
       rowId: secondRowId!,
       positionId: roster.sections[0].positions[0].id
     })
-    store.toggleLeader('student-1')
     store.removeWeeklyRow(secondRowId!)
 
     expect(roster.weeklyRows).toHaveLength(1)
     expect(store.assignedCount).toBe(0)
-    expect(roster.leaders).toEqual([])
     expect(store.unassignedStudents.map((student) => student.id)).toEqual(['student-1'])
   })
 

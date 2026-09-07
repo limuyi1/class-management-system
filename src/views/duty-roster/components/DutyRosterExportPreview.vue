@@ -5,7 +5,11 @@ import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 import { PagesEnum } from '@/types/Common'
 import { DutyPeriodEnum, DutyRosterModeEnum, type DutyRosterType } from '@/types/DutyRoster'
 import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLayoutUtil'
-import { DUTY_PERIOD_LABELS, getDutyAssignment, getDutyPeriods } from '@/utils/duty-roster/dutyRosterUtil'
+import {
+  DUTY_PERIOD_LABELS,
+  getDutyAssignment,
+  getDutyPeriods
+} from '@/utils/duty-roster/dutyRosterUtil'
 
 import type { CSSProperties } from 'vue'
 
@@ -94,6 +98,9 @@ const sections = computed(() =>
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((section) => ({
       ...section,
+      leaderName: section.leaderStudentId
+        ? props.studentNames[section.leaderStudentId] || ''
+        : '',
       positions: [...section.positions].sort((left, right) => left.sortOrder - right.sortOrder)
     }))
 )
@@ -168,10 +175,7 @@ function getPositionColumnStyle(positionId: string): CSSProperties {
   return { width: `${positionWidths.value[positionId] || 94}px` }
 }
 
-/**
- * 判断学生是否为组长。
- * @param studentId - 学生 ID
- */
+/** 按原有规则判断学生是否为组长。 */
 function isLeader(studentId: string): boolean {
   return props.roster.leaders.some((leader) => leader.studentId === studentId)
 }
@@ -247,7 +251,14 @@ defineExpose({ getElement })
                       :key="section.id"
                       :colspan="section.positions.length"
                     >
-                      {{ section.name }}
+                      <span>{{ section.name }}</span>
+                      <template v-if="section.leaderName">
+                        <span>（</span>
+                        <span class="duty-print-table__section-leader-name">
+                          {{ section.leaderName }}
+                        </span>
+                        <span>）</span>
+                      </template>
                     </th>
                   </tr>
                   <tr class="duty-print-table__position-row">
@@ -478,6 +489,11 @@ defineExpose({ getElement })
 }
 
 .duty-print-table__student.is-leader {
+  color: #d93643;
+  font-weight: 750;
+}
+
+.duty-print-table__section-leader-name {
   color: #d93643;
   font-weight: 750;
 }

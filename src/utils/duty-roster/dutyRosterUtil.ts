@@ -146,9 +146,46 @@ export function getDutyPositionStudentCount(roster: DutyRosterType, positionId: 
     .reduce((count, assignment) => count + assignment.studentIds.length, 0)
 }
 
+/** 统计学生当前已经占用的岗位卡片数量。 */
+export function getDutyStudentAssignmentCount(roster: DutyRosterType, studentId: string): number {
+  return roster.assignments.reduce(
+    (count, assignment) => count + Number(assignment.studentIds.includes(studentId)),
+    0
+  )
+}
+
+/** 获取学生拥有的卡片总数，兼容没有卡片数量字段的既有值日表。 */
+export function getDutyStudentCardCount(roster: DutyRosterType, studentId: string): number {
+  return Math.max(
+    1,
+    getDutyStudentAssignmentCount(roster, studentId),
+    roster.studentCardCounts?.[studentId] ?? 0
+  )
+}
+
+/** 获取学生当前仍在右侧待选区的卡片数量。 */
+export function getDutyPendingStudentCount(roster: DutyRosterType, studentId: string): number {
+  const totalCount = getDutyStudentCardCount(roster, studentId)
+  return Math.max(0, totalCount - getDutyStudentAssignmentCount(roster, studentId))
+}
+
+/** 获取区域标题；设置大组长后展示为“区域（姓名）”。 */
+export function getDutySectionTitle(
+  roster: DutyRosterType,
+  sectionId: string,
+  studentNames: Record<string, string>
+): string {
+  const section = roster.sections.find((item) => item.id === sectionId)
+  if (!section) return ''
+  const leaderName = section.leaderStudentId
+    ? studentNames[section.leaderStudentId]
+    : undefined
+  return leaderName ? `${section.name}（${leaderName}）` : section.name
+}
+
 /**
- * 将值日表数据规范化为当前结构：排序并重编序号、清理无效分配/组长，
- * 并修正旧版"皇冠图标"说明文本。
+ * 将值日表数据规范化为当前结构：排序并重编序号、清理无效分配，
+ * 原样保留既有组长记录，并修正旧版"皇冠图标"说明文本。
  * @param roster - 原始值日表
  * @param validStudentIds - 当前有效的学生 ID 集合
  * @returns 规范化后的值日表
@@ -178,7 +215,6 @@ export function normalizeDutyRoster(
   const positionIds = new Set(
     sections.flatMap((section) => section.positions.map((position) => position.id))
   )
-  const assignedStudentIds = new Set<string>()
   const assignments: DutyAssignmentType[] = roster.assignments.flatMap((assignment) => {
     if (!periods.has(assignment.period) || !positionIds.has(assignment.positionId)) return []
     const rowId =
@@ -187,57 +223,22 @@ export function normalizeDutyRoster(
           ? assignment.rowId
           : fallbackWeeklyRowId
         : undefined
-    const studentIds = assignment.studentIds.filter((studentId) => {
-      if (!validStudentIds.has(studentId) || assignedStudentIds.has(studentId)) return false
-      assignedStudentIds.add(studentId)
-      return true
-    })
+    // 仅在同一岗位内去重，不同岗位允许安排同一名学生
+    const studentIds = [...new Set(assignment.studentIds)].filter((studentId) =>
+      validStudentIds.has(studentId)
+    )
     if (!studentIds.length) return []
     return roster.mode === DutyRosterModeEnum.Weekly
       ? [{ ...assignment, rowId, studentIds }]
       : [{ period: assignment.period, positionId: assignment.positionId, studentIds }]
   })
-  const leaders = roster.leaders.filter((leader, index, items) => {
-    if (!periods.has(leader.period) || !validStudentIds.has(leader.studentId)) return false
-    const rowId =
-      roster.mode === DutyRosterModeEnum.Weekly
-        ? leader.rowId && weeklyRowIds.has(leader.rowId)
-          ? leader.rowId
-          : fallbackWeeklyRowId
-        : undefined
-    const section = sections.find((item) => item.id === leader.sectionId)
-    if (!section) return false
-    const studentAssignment = assignments.find(
-      (assignment) =>
-        assignment.period === leader.period &&
-        assignment.rowId === rowId &&
-        assignment.studentIds.includes(leader.studentId)
-    )
-    if (!studentAssignment) return false
-    if (!section.positions.some((position) => position.id === studentAssignment.positionId)) {
-      return false
-    }
-    return items.findIndex((item) => item.studentId === leader.studentId) === index
-  })
-
   return {
     ...roster,
     sections,
     weeklyRows,
     assignments,
-    leaders: leaders.map((leader) =>
-      roster.mode === DutyRosterModeEnum.Weekly
-        ? {
-            ...leader,
-            rowId:
-              leader.rowId && weeklyRowIds.has(leader.rowId) ? leader.rowId : fallbackWeeklyRowId
-          }
-        : {
-            period: leader.period,
-            sectionId: leader.sectionId,
-            studentId: leader.studentId
-          }
-    ),
+    // leaders 是既有值日表的重要数据，不在自动同步过程中校验、去重或重建
+    leaders: (roster.leaders || []).map((leader) => ({ ...leader })),
     notes: (roster.notes || createDefaultDutyNotes())
       .split('皇冠图标及红色姓名')
       .join('红色圆点及红色姓名')

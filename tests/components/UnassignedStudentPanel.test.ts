@@ -49,7 +49,8 @@ describe('UnassignedStudentPanel', () => {
           { id: '2', name: '李四' }
         ],
         totalStudentCount: 2,
-        selectedStudentId: '2'
+        selectedStudentId: '2',
+        studentCounts: { '1': 2, '2': 1 }
       },
       global
     })
@@ -57,9 +58,17 @@ describe('UnassignedStudentPanel', () => {
     expect(wrapper.findAll('.student-card')).toHaveLength(2)
     expect(wrapper.get('.unassigned-panel__count').text()).toContain('2 人')
     expect(wrapper.findAll('.student-card')[1].classes()).toContain('is-selected')
+    expect(wrapper.findAll('.student-card__name')[0].text()).toContain('张三')
+    expect(wrapper.findAll('.student-card__name')[0].text()).toContain('×2')
 
     await wrapper.findAll('.student-card')[0].trigger('click')
     expect(wrapper.emitted('selectStudent')).toEqual([['1']])
+
+    await wrapper.findAll('.student-card')[0].trigger('contextmenu', {
+      clientX: 80,
+      clientY: 120
+    })
+    expect(wrapper.emitted('studentContext')?.[0]).toEqual(['1', 80, 120])
   })
 
   it('shows the completed state when every student is assigned', () => {

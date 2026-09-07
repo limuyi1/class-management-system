@@ -10,6 +10,8 @@ interface UnassignedStudentPanelPropsType {
   students: StudentSourceStudentType[]
   /** 学生总数（含已安排） */
   totalStudentCount: number
+  /** 每名学生在当前面板中的卡片数量 */
+  studentCounts?: Record<string, number>
   /** 当前选中的学生 ID */
   selectedStudentId?: string | null
   /** 拖拽/点击交互提示文案 */
@@ -22,6 +24,7 @@ interface UnassignedStudentPanelPropsType {
 type EmptyStateType = 'search' | 'complete' | 'no-students'
 
 const props = withDefaults(defineProps<UnassignedStudentPanelPropsType>(), {
+  studentCounts: () => ({}),
   selectedStudentId: null,
   interactionTip: '拖拽或点击学生进行安排',
   completeDescription: '所有学生都已放入座位'
@@ -35,6 +38,7 @@ const emit = defineEmits<{
   dragStart: [studentId: string]
   dragEnd: []
   selectStudent: [studentId: string]
+  studentContext: [studentId: string, x: number, y: number]
   dropToUnassigned: []
 }>()
 
@@ -84,6 +88,13 @@ const emptyIcon = computed(() => {
  */
 function getStudentInitial(name: string): string {
   return name.trim().slice(0, 1) || '生'
+}
+
+/** 上报学生卡片右键位置，由业务页面决定菜单内容。 */
+function handleStudentContext(event: MouseEvent, studentId: string): void {
+  event.preventDefault()
+  event.stopPropagation()
+  emit('studentContext', studentId, event.clientX, event.clientY)
 }
 </script>
 
@@ -139,9 +150,15 @@ function getStudentInitial(name: string): string {
         @dragstart="emit('dragStart', student.id)"
         @dragend="emit('dragEnd')"
         @click="emit('selectStudent', student.id)"
+        @contextmenu="handleStudentContext($event, student.id)"
       >
         <span class="student-card__avatar">{{ getStudentInitial(student.name) }}</span>
-        <span class="student-card__name">{{ student.name }}</span>
+        <span class="student-card__name">
+          {{ student.name }}
+          <small v-if="(studentCounts[student.id] || 1) > 1">
+            ×{{ studentCounts[student.id] }}
+          </small>
+        </span>
         <font-awesome-icon class="student-card__grip" :icon="['solid', 'grip-vertical']" />
       </button>
     </div>
@@ -334,6 +351,11 @@ function getStudentInitial(name: string): string {
   text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.student-card__name small {
+  color: #76559d;
+  font-size: 10px;
 }
 
 .student-card__grip {

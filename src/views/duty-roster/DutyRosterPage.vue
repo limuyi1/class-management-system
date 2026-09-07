@@ -12,7 +12,10 @@ import UnassignedStudentPanel from '@/views/seating-chart/components/UnassignedS
 import { useDataSourceStore } from '@/stores/data-source'
 import { useDutyRosterStore } from '@/stores/duty-roster'
 import { DutyRosterModeEnum } from '@/types/DutyRoster'
-import { findDutySectionByPosition } from '@/utils/duty-roster/dutyRosterUtil'
+import {
+  findDutySectionByPosition,
+  getDutyStudentCardCount
+} from '@/utils/duty-roster/dutyRosterUtil'
 import DutyNotesPanel from '@/views/duty-roster/components/DutyNotesPanel.vue'
 import DutyPositionContextMenu from '@/views/duty-roster/components/DutyPositionContextMenu.vue'
 import DutyRosterEmptyState from '@/views/duty-roster/components/DutyRosterEmptyState.vue'
@@ -21,6 +24,7 @@ import DutyRosterSidebar from '@/views/duty-roster/components/DutyRosterSidebar.
 import DutyRosterToolbar from '@/views/duty-roster/components/DutyRosterToolbar.vue'
 import DutyScheduleMatrix from '@/views/duty-roster/components/DutyScheduleMatrix.vue'
 import DutySectionDialog from '@/views/duty-roster/components/DutySectionDialog.vue'
+import DutySectionLeaderDialog from '@/views/duty-roster/components/DutySectionLeaderDialog.vue'
 import DutyStudentContextMenu from '@/views/duty-roster/components/DutyStudentContextMenu.vue'
 import DutyStudentImportDialog from '@/views/duty-roster/components/DutyStudentImportDialog.vue'
 
@@ -45,22 +49,32 @@ interface PositionMenuType extends MenuPositionType {
 /** 学生右键菜单状态 */
 interface StudentMenuType extends MenuPositionType {
   studentId: string
+  location: 'pending' | 'assigned'
+  target?: DutyAssignmentTargetType
+}
+
+/** 当前拖拽的学生卡片及其来源岗位；无来源岗位表示来自右侧待选区 */
+interface DraggedStudentType {
+  studentId: string
+  source?: DutyAssignmentTargetType
 }
 
 const router = useRouter()
 const dataSourceStore = useDataSourceStore()
 const dutyStore = useDutyRosterStore()
-const { activeStudents, assignedCount, editingRoster, unassignedStudents } = storeToRefs(dutyStore)
+const { activeStudents, assignedCount, editingRoster, pendingStudentCounts, unassignedStudents } =
+  storeToRefs(dutyStore)
 
 // 页面 UI 状态：矩阵引用、全屏、拖拽、弹窗与右键菜单等
 const matrixRef = shallowRef<InstanceType<typeof DutyScheduleMatrix> | null>(null)
 const fullscreen = shallowRef(false)
-const draggedStudentId = shallowRef<string | null>(null)
+const draggedStudent = shallowRef<DraggedStudentType | null>(null)
 const exportVisible = shallowRef(false)
 const importVisible = shallowRef(false)
 const studentRosterVisible = shallowRef(false)
 const importTarget = shallowRef<'create' | 'replace'>('create')
 const sectionsVisible = shallowRef(false)
+const leaderSectionId = shallowRef<string | null>(null)
 const notesVisible = shallowRef(false)
 const notesDraft = shallowRef('')
 const positionMenu = shallowRef<PositionMenuType | null>(null)
@@ -85,13 +99,28 @@ const currentPositionSection = computed(() => {
 const canRemovePosition = computed(() =>
   Boolean(currentPositionSection.value && currentPositionSection.value.positions.length > 1)
 )
-/** 右键菜单指向的学生是否为组长 */
-const menuStudentIsLeader = computed(() =>
-  Boolean(
-    editingRoster.value?.leaders.some((leader) => leader.studentId === studentMenu.value?.studentId)
+/** 表格菜单指向的学生是否为当前时段、当前区域的组长 */
+const menuStudentIsLeader = computed(() => {
+  const menu = studentMenu.value
+  if (!editingRoster.value || menu?.location !== 'assigned' || !menu.target) return false
+  const section = findDutySectionByPosition(editingRoster.value, menu.target.positionId)
+  return editingRoster.value.leaders.some(
+    (leader) =>
+      leader.studentId === menu.studentId &&
+      leader.period === menu.target?.period &&
+      leader.rowId === menu.target?.rowId &&
+      leader.sectionId === section?.id
   )
+})
+/** 右侧菜单中的学生是否还允许删除一张卡片 */
+const canDeletePendingCard = computed(() => {
+  if (!editingRoster.value || studentMenu.value?.location !== 'pending') return false
+  return getDutyStudentCardCount(editingRoster.value, studentMenu.value.studentId) > 1
+})
+/** 当前正在设置大组长的区域。 */
+const leaderSection = computed(() =>
+  editingRoster.value?.sections.find((section) => section.id === leaderSectionId.value)
 )
-
 // 学生数据源变化时重新校准名单，并同步“新建值日表”的默认来源
 watch(
   () => dataSourceStore.enabledData.map((student) => student.studentId).join(','),
@@ -288,15 +317,21 @@ async function removeExcelStudent(student: StudentSourceStudentType): Promise<vo
   ElMessage.success(`已从当前值日表删除“${student.name}”`)
 }
 
-/** 开始拖拽学生，并关闭右键菜单 */
-function dragStudent(studentId: string): void {
-  draggedStudentId.value = studentId
+/** 从右侧待选区开始拖拽学生。 */
+function dragPendingStudent(studentId: string): void {
+  draggedStudent.value = { studentId }
+  closeContextMenus()
+}
+
+/** 从表格岗位开始拖拽一张学生卡片。 */
+function dragAssignedStudent(studentId: string, source: DutyAssignmentTargetType): void {
+  draggedStudent.value = { studentId, source }
   closeContextMenus()
 }
 
 /** 结束学生拖拽 */
 function endStudentDrag(): void {
-  draggedStudentId.value = null
+  draggedStudent.value = null
 }
 
 /**
@@ -304,15 +339,21 @@ function endStudentDrag(): void {
  * @param target - 值日分配目标
  */
 function dropStudent(target: DutyAssignmentTargetType): void {
-  if (!draggedStudentId.value) return
-  dutyStore.assignStudent(draggedStudentId.value, target)
-  draggedStudentId.value = null
+  if (!draggedStudent.value) return
+  if (draggedStudent.value.source) {
+    dutyStore.moveStudent(draggedStudent.value.studentId, draggedStudent.value.source, target)
+  } else {
+    dutyStore.assignStudent(draggedStudent.value.studentId, target)
+  }
+  draggedStudent.value = null
 }
 
-/** 将拖拽中的学生移回未安排区域 */
+/** 将表格中的当前学生卡片拖回待选区。 */
 function dropToUnassigned(): void {
-  if (draggedStudentId.value) dutyStore.unassignStudent(draggedStudentId.value)
-  draggedStudentId.value = null
+  if (draggedStudent.value?.source) {
+    dutyStore.removeStudentAssignment(draggedStudent.value.studentId, draggedStudent.value.source)
+  }
+  draggedStudent.value = null
 }
 
 /**
@@ -332,9 +373,20 @@ function openPositionMenu(positionId: string, x: number, y: number): void {
  * @param x - 菜单横坐标
  * @param y - 菜单纵坐标
  */
-function openStudentMenu(studentId: string, x: number, y: number): void {
+function openAssignedStudentMenu(
+  studentId: string,
+  target: DutyAssignmentTargetType,
+  x: number,
+  y: number
+): void {
   positionMenu.value = null
-  studentMenu.value = { studentId, x, y }
+  studentMenu.value = { studentId, location: 'assigned', target, x, y }
+}
+
+/** 打开右侧待选学生菜单。 */
+function openPendingStudentMenu(studentId: string, x: number, y: number): void {
+  positionMenu.value = null
+  studentMenu.value = { studentId, location: 'pending', x, y }
 }
 
 /** 在右键菜单指向的岗位后新增一列，并进入重命名状态 */
@@ -394,16 +446,45 @@ async function removeWeeklyRow(rowId: string): Promise<void> {
   dutyStore.removeWeeklyRow(rowId)
 }
 
-/** 切换右键菜单学生的组长状态 */
-function toggleMenuStudentLeader(): void {
-  if (studentMenu.value) dutyStore.toggleLeader(studentMenu.value.studentId)
+/** 复制菜单指向的学生卡片，新卡片进入右侧待选区。 */
+function copyMenuStudent(): void {
+  if (studentMenu.value) dutyStore.copyStudentCard(studentMenu.value.studentId)
   closeContextMenus()
 }
 
-/** 将右键菜单学生移出值日表 */
-function removeMenuStudent(): void {
-  if (studentMenu.value) dutyStore.unassignStudent(studentMenu.value.studentId)
+/** 删除右侧菜单指向的一张待选卡片。 */
+function deleteMenuStudent(): void {
+  if (studentMenu.value?.location === 'pending') {
+    dutyStore.deletePendingStudentCard(studentMenu.value.studentId)
+  }
   closeContextMenus()
+}
+
+/** 将表格菜单指向的当前卡片移回右侧待选区。 */
+function removeMenuStudent(): void {
+  if (studentMenu.value?.location === 'assigned' && studentMenu.value.target) {
+    dutyStore.removeStudentAssignment(studentMenu.value.studentId, studentMenu.value.target)
+  }
+  closeContextMenus()
+}
+
+/** 设置或取消表格菜单指向学生的组长身份。 */
+function toggleMenuStudentLeader(): void {
+  if (studentMenu.value?.location === 'assigned' && studentMenu.value.target) {
+    dutyStore.toggleLeader(studentMenu.value.studentId, studentMenu.value.target)
+  }
+  closeContextMenus()
+}
+
+/** 打开区域顶部大组长设置。 */
+function editSectionLeader(sectionId: string): void {
+  leaderSectionId.value = sectionId
+}
+
+/** 保存区域顶部大组长，不影响下方每日组长。 */
+function saveSectionLeader(studentId?: string): void {
+  if (leaderSectionId.value) dutyStore.setSectionLeader(leaderSectionId.value, studentId)
+  leaderSectionId.value = null
 }
 
 /** 弹窗新增清洁区域 */
@@ -485,13 +566,14 @@ function saveNotes(): void {
               :student-names="studentNames"
               @rename-position="dutyStore.renamePosition"
               @position-context="openPositionMenu"
-              @student-context="openStudentMenu"
-              @drag-student-start="dragStudent"
+              @student-context="openAssignedStudentMenu"
+              @drag-student-start="dragAssignedStudent"
               @drag-student-end="endStudentDrag"
               @drop-student="dropStudent"
               @reorder-position="dutyStore.reorderPosition"
               @add-weekly-row="addWeeklyRow"
               @remove-weekly-row="removeWeeklyRow"
+              @edit-section-leader="editSectionLeader"
             />
             <DutyNotesPanel :notes="editingRoster.notes" @edit="editNotes" />
           </div>
@@ -519,16 +601,18 @@ function saveNotes(): void {
         </template>
       </main>
 
-      <!-- 未安排学生面板：拖拽学生到值日岗位 -->
+      <!-- 待选学生面板：右键复制/删除卡片，拖拽卡片到值日岗位 -->
       <UnassignedStudentPanel
         v-if="editingRoster"
         :students="unassignedStudents"
         :total-student-count="activeStudents.length"
         :selected-student-id="null"
-        interaction-tip="拖拽学生到对应值日岗位"
+        :student-counts="pendingStudentCounts"
+        interaction-tip="拖拽安排，右键复制或删除"
         complete-description="所有学生都已安排到值日岗位"
-        @drag-start="dragStudent"
+        @drag-start="dragPendingStudent"
         @drag-end="endStudentDrag"
+        @student-context="openPendingStudentMenu"
         @drop-to-unassigned="dropToUnassigned"
       >
         <template #source>
@@ -570,7 +654,11 @@ function saveNotes(): void {
       v-if="studentMenu"
       :x="studentMenu.x"
       :y="studentMenu.y"
+      :location="studentMenu.location"
+      :can-delete="canDeletePendingCard"
       :is-leader="menuStudentIsLeader"
+      @copy="copyMenuStudent"
+      @delete="deleteMenuStudent"
       @toggle-leader="toggleMenuStudentLeader"
       @remove="removeMenuStudent"
     />
@@ -584,6 +672,15 @@ function saveNotes(): void {
       @reorder="dutyStore.reorderSections"
       @remove="dutyStore.removeSection"
       @add="addSection"
+    />
+    <DutySectionLeaderDialog
+      v-if="editingRoster && leaderSection"
+      :model-value="Boolean(leaderSectionId)"
+      :section-name="leaderSection.name"
+      :students="activeStudents"
+      :leader-student-id="leaderSection.leaderStudentId"
+      @update:model-value="leaderSectionId = $event ? leaderSectionId : null"
+      @confirm="saveSectionLeader"
     />
     <DutyStudentImportDialog
       :model-value="importVisible"

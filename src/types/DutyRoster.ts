@@ -46,6 +46,8 @@ export interface DutySectionType {
   name: string
   /** 区域类型：室内 / 清洁 */
   kind: DutySectionKindType
+  /** 顶部区域标题展示的大组长学生 ID，与每日值日组长相互独立 */
+  leaderStudentId?: string
   /** 区域排序权重（数值越小越靠前） */
   sortOrder: number
   /** 该区域下的岗位列表 */
@@ -102,8 +104,10 @@ export interface DutyRosterType {
   weeklyRows: DutyWeeklyRowType[]
   /** 值日分配记录列表 */
   assignments: DutyAssignmentType[]
-  /** 值日组长记录列表 */
+  /** 按时段和区域设置的值日组长记录 */
   leaders: DutyLeaderType[]
+  /** 复制后覆盖的学生卡片总数；缺省时根据现有安排自动推导 */
+  studentCardCounts?: Record<string, number>
   /** 备注 */
   notes: string
   /** 创建时间（ISO 格式） */

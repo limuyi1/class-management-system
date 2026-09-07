@@ -5,7 +5,8 @@ import { DutyRosterModeEnum } from '@/types/DutyRoster'
 import { exportExcel } from '@/utils/xlsxUtil'
 import {
   DUTY_PERIOD_LABELS,
-  getDutyPeriods
+  getDutyPeriods,
+  getDutySectionTitle
 } from '@/utils/duty-roster/dutyRosterUtil'
 import {
   formatDutyRosterExportDate,
@@ -29,14 +30,17 @@ function buildAssignmentText(
     (item) =>
       item.period === period && item.rowId === rowId && item.positionId === positionId
   )
-  const leaderId = roster.leaders.find(
-    (item) => item.period === period && item.rowId === rowId && item.sectionId === sectionId
-  )?.studentId
-
+  const leaderIds = new Set(
+    roster.leaders
+      .filter(
+        (item) => item.period === period && item.rowId === rowId && item.sectionId === sectionId
+      )
+      .map((item) => item.studentId)
+  )
   return (assignment?.studentIds ?? [])
     .map((studentId) => {
       const name = studentNames[studentId] || '未知学生'
-      return studentId === leaderId ? `${name}（组长）` : name
+      return leaderIds.has(studentId) ? `${name}（组长）` : name
     })
     .join('、')
 }
@@ -56,7 +60,10 @@ export function buildDutyRosterExcelRows(
     [roster.name],
     ['安排方式', roster.mode === DutyRosterModeEnum.Daily ? '每组一天' : '每组一周'],
     [],
-    ['值日周期', ...positions.map(({ section }) => section.name)],
+    [
+      '值日周期',
+      ...positions.map(({ section }) => getDutySectionTitle(roster, section.id, studentNames))
+    ],
     ['', ...positions.map(({ position }) => position.name)]
   ]
 
