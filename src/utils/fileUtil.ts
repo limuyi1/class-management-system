@@ -186,6 +186,7 @@ const compressDataUrlByRatio = async (
   ratio: number | null,
   quality = 0.85
 ): Promise<{ base64: string; size: number; width: number; height: number }> => {
+  // 不压缩时直接返回原图 Base64 与体积，宽高不参与计算
   if (!ratio) {
     const base64 = dataUrlToBase64(dataUrl)
     return {
@@ -197,6 +198,7 @@ const compressDataUrlByRatio = async (
   }
 
   const image = await loadImage(dataUrl)
+  // 目标尺寸按比例缩放，且至少保留 1px
   const width = Math.max(Math.round(image.naturalWidth * ratio), 1)
   const height = Math.max(Math.round(image.naturalHeight * ratio), 1)
   const canvas = document.createElement('canvas')
@@ -208,6 +210,7 @@ const compressDataUrlByRatio = async (
 
   canvas.width = width
   canvas.height = height
+  // 先铺白色底色，避免透明区域导出为黑色
   context.fillStyle = '#fff'
   context.fillRect(0, 0, width, height)
   context.drawImage(image, 0, 0, width, height)

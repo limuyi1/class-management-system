@@ -1,3 +1,4 @@
+/** AI 批量生成与润色期末评语的组合式函数与纯工具函数 */
 import { ref, type Ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { startLoading, stopLoading, updateLoadingText } from '@/hooks/useLoading'
@@ -224,7 +225,9 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       const failedBatches: number[] = []
       const classicExpressionUsageMap = new Map<string, number>()
 
+      // 按批次循环调用 AI，单批失败仅记录序号并继续后续批次
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        // 截取当前批次的学生切片
         const start = batchIndex * batchSize
         const end = Math.min(start + batchSize, studentsData.length)
         const batchData = studentsData.slice(start, end)
@@ -330,7 +333,9 @@ export function useEvaluationBatchComments(options: UseEvaluationBatchCommentsOp
       const failedBatches: number[] = []
       const classicExpressionUsageMap = new Map<string, number>()
 
+      // 与生成流程一致：按批次循环润色，单批失败不中断整体流程
       for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+        // 截取当前批次的学生切片
         const start = batchIndex * batchSize
         const end = Math.min(start + batchSize, polishTargets.length)
         const batchData = polishTargets.slice(start, end)

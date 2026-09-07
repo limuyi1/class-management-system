@@ -359,6 +359,7 @@ async function exportPdf(): Promise<void> {
 
       <el-divider direction="vertical" />
 
+      <!-- 选中项操作：每次按 0.9 / 1.1 倍缩放或删除当前选中图片 -->
       <el-button
         class="selected-item-action"
         size="small"
@@ -440,6 +441,7 @@ async function exportPdf(): Promise<void> {
             class="page-thumb__paper"
             :style="{ aspectRatio: `${pageSize.width} / ${pageSize.height}` }"
           >
+            <!-- 毫米坐标换算为纸张宽高百分比，等比例绘制缩略图 -->
             <span
               v-for="item in page.items"
               :key="item.id"
@@ -509,6 +511,7 @@ async function exportPdf(): Promise<void> {
                   }"
                   @pointerdown.self="clearSelection"
                 >
+                  <!-- 坐标与尺寸以毫米存储，渲染时统一换算为像素定位 -->
                   <div
                     v-for="item in page.items"
                     :key="item.id"

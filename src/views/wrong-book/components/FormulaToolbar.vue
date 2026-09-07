@@ -6,6 +6,7 @@ import 'katex/dist/katex.min.css'
 
 /** 插入公式事件 */
 interface Emits {
+  /** 向编辑器插入行内公式 */
   (e: 'insert', formula: string): void
 }
 

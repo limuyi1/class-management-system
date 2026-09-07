@@ -21,6 +21,7 @@ export const sanitizeFileName = (value: string): string => {
  * 导出前临时注入手写字体，确保图片与页面预览一致；SVG 生成完毕后立即清除样式，避免污染全局 DOM。
  */
 export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Promise<Blob> => {
+  // 等待页面字体加载完成，避免截图缺字
   await document.fonts?.ready
   const width = element.offsetWidth
   const height = element.offsetHeight
@@ -40,6 +41,7 @@ export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Pr
     fontStyle.remove()
   }
 
+  // 将 SVG 加载为位图，再绘制到高分辨率 canvas 上
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const nextImage = new Image()
     nextImage.onload = () => resolve(nextImage)
@@ -47,6 +49,7 @@ export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Pr
     nextImage.src = svgDataUrl
   })
   const canvas = document.createElement('canvas')
+  // 按 scale 放大画布，提升导出清晰度
   canvas.width = Math.round(width * scale)
   canvas.height = Math.round(height * scale)
   const context = canvas.getContext('2d')

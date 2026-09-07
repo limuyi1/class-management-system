@@ -8,14 +8,16 @@ import ImageCropper from '@/components/ImageCropper.vue'
 
 /** 原始图片列表 */
 interface Props {
+  /** 原始图片 base64 数据列表（最多一张） */
   images: string[]
 }
 
 const props = defineProps<Props>()
 
-/** 图片列表更新与插入图片事件 */
 const emit = defineEmits<{
+  /** 图片列表更新 */
   'update:images': [value: string[]]
+  /** 向编辑器插入图片（未在本组件消费时抛出） */
   'insert-image': [base64: string]
 }>()
 

@@ -9,6 +9,7 @@
 
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, extname, join, resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 // 旧版数据库名称
 const LEGACY_DATABASE_NAME = 'scs-database'
@@ -280,7 +281,7 @@ const createOutputPath = (inputPath) => {
 }
 
 /** 将整个备份转换为当前数据库结构 */
-const convertBackup = (backup) => {
+export const convertBackup = (backup) => {
   // 校验输入必须是 dexie-export-import v1 备份
   if (backup?.formatName !== 'dexie' || backup?.formatVersion !== 1 || !backup?.data) {
     throw new Error('Input file is not a dexie-export-import v1 backup')
@@ -360,8 +361,10 @@ const main = async () => {
   console.log(`Converted backup written to ${outputPath}`)
 }
 
-// 直接执行入口：捕获并打印错误后以非零码退出
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error)
-  process.exit(1)
-})
+// 直接执行入口：仅在作为脚本执行时运行，被测试导入时跳过
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error)
+    process.exit(1)
+  })
+}

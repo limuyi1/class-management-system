@@ -18,14 +18,19 @@ import ExpandEditorDialog from './ExpandEditorDialog.vue'
 
 /** 弹窗可见性、待编辑题目与所属文件夹 */
 interface Props {
+  /** 弹窗可见性 */
   visible: boolean
+  /** 待编辑题目；为 null 时是新增场景 */
   question: WrongQuestion | null
+  /** 所属文件夹 id（新增场景写入表单） */
   folderId: string
 }
 
 /** 可见性更新与保存事件 */
 interface Emits {
+  /** 更新弹窗可见性 */
   (e: 'update:visible', value: boolean): void
+  /** 保存题目（不含 id 与时间戳字段） */
   (e: 'save', question: Omit<WrongQuestion, 'id' | 'createdAt' | 'updatedAt'>): void
 }
 

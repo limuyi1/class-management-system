@@ -15,15 +15,21 @@ import type { WrongQuestion } from '@/types/WrongBook'
 
 /** 题目列表与外部传入的已选 id */
 interface Props {
+  /** 当前文件夹下的题目列表 */
   questions: WrongQuestion[]
+  /** 外部传入的已选题目 id，用于双向同步 */
   selectedIds?: string[]
 }
 
 /** 编辑、删除、收藏切换与选中变化事件 */
 interface Emits {
+  /** 请求编辑某道题目 */
   (e: 'edit', question: WrongQuestion): void
+  /** 请求删除某道题目 */
   (e: 'delete', id: string): void
+  /** 切换某道题目的收藏状态 */
   (e: 'toggle-favorite', id: string): void
+  /** 选中集合变化 */
   (e: 'selection-change', ids: string[]): void
 }
 

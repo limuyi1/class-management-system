@@ -6,12 +6,15 @@ import type { ToolItemType } from '@/views/tools/constants/tools'
 
 /** 组件属性：工具项与解析后的链接地址 */
 interface PropsType {
+  /** 展示的工具项配置 */
   tool: ToolItemType
+  /** 新页签打开时使用的完整地址 */
   href: string
 }
 
 /** 组件事件：打开工具 */
 interface EmitsType {
+  /** 打开工具（携带目标工具项） */
   open: [tool: ToolItemType]
 }
 

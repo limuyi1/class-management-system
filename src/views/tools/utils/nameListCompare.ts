@@ -1,3 +1,4 @@
+/** 名单对比工具函数：解析粘贴文本、构建名单条目并生成两名单的逐行对比结果 */
 import type {
   NameListCompareEntryType,
   NameListCompareResultType,

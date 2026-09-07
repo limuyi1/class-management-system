@@ -29,14 +29,20 @@ const props = defineProps<{
   roleAssignments: SeatingRoleAssignmentType[]
 }>()
 
-/** 事件：拖拽开始/结束、落座/点选普通座位与雅座 */
 const emit = defineEmits<{
+  /** 开始拖拽某个座位上的学生（参数为其学生 ID，空座位为 null） */
   dragStart: [studentId: string | null]
+  /** 拖拽结束 */
   dragEnd: []
+  /** 学生被拖放到普通座位 */
   dropSeat: [seat: SeatPositionType]
+  /** 点选普通座位 */
   selectSeat: [seat: SeatPositionType]
+  /** 学生被拖放到雅座 */
   dropSpecialSeat: [position: SeatingSpecialSeatPositionEnum]
+  /** 点选雅座 */
   selectSpecialSeat: [seat: SeatingSpecialSeatType]
+  /** 打开学生职务右键菜单（携带屏幕坐标） */
   openStudentMenu: [studentId: string, x: number, y: number]
 }>()
 

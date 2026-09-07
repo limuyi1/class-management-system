@@ -56,8 +56,10 @@ export const getTagSortScore = (
 
   switch (tagKey) {
     case 'abnormal':
+      // 取降幅本身（latestDelta 为负表示下降，取反后越大越优先）
       return Number(Math.max(0, metric.latestDelta * -1).toFixed(2))
     case 'persistentLowScore':
+      // 低分次数 × 10 + 距及格线的差距，次数与差距叠加后越大越优先
       return Number(
         (
           metric.recentThreeScores.filter((score) => score < config.tagRules.passLine).length * 10 +
@@ -65,10 +67,13 @@ export const getTagSortScore = (
         ).toFixed(2)
       )
     case 'declining':
+      // 取“较上次降幅”与“近期累计降幅”中的较大者
       return Number(Math.max(metric.latestDrop, Math.max(0, recentChange * -1)).toFixed(2))
     case 'critical':
+      // 距满分越远越危险，直接以与 100 的差距计分
       return Number((100 - (metric.latestScore || 0)).toFixed(2))
     case 'lowRecovery':
+      // 近期回升幅度 + 历史低分次数 × 2（扣除最近两次，只算“前期”低分）
       return Number(
         (
           Math.max(0, recentChange) +
@@ -76,12 +81,16 @@ export const getTagSortScore = (
         ).toFixed(2)
       )
     case 'improving':
+      // 取“近期累计提升”与“较历史均分提升”中的较大者
       return Number(Math.max(Math.max(0, recentChange), Math.max(0, metric.latestDelta)).toFixed(2))
     case 'middleFalling':
+      // 下探幅度越大越优先
       return Number(Math.max(0, recentChange * -1).toFixed(2))
     case 'middleRising':
+      // 上升幅度越大越优先
       return Number(Math.max(0, recentChange).toFixed(2))
     case 'volatility':
+      // 波动程度（标准差 × 10 + 极差）为主，方向加分：下行 +8 > 上行 +4 > 无方向 0
       return Number(
         (
           metric.recentStdDev * 10 +
@@ -94,6 +103,7 @@ export const getTagSortScore = (
         ).toFixed(2)
       )
     case 'stableTop':
+      // 前列次数 × 20 + 最新成绩，兼顾频率与水平
       return Number((metric.stableTopRecentCount * 20 + (metric.latestScore || 0)).toFixed(2))
     default:
       return 0
@@ -280,22 +290,27 @@ export const getAttentionRecommendScore = (
   const weights = config.recommendation.attentionWeights
   let score = 0
 
+  // 异常下滑：按降幅 × 权重计分
   if (metric.matchedTags.some((tag) => tag.key === 'abnormal')) {
     score += Math.max(0, metric.latestDelta * -1) * (weights.abnormalDrop || 0)
   }
 
+  // 持续低分：低分次数 × 权重 × 10
   if (metric.matchedTags.some((tag) => tag.key === 'persistentLowScore')) {
     score += metric.recentThreeScores.filter((item) => item < config.tagRules.passLine).length * (weights.lowScoreHit || 0) * 10
   }
 
+  // 持续下滑：取“较上次降幅”与“近期累计降幅”较大者 × 权重
   if (metric.matchedTags.some((tag) => tag.key === 'declining')) {
     score += Math.max(metric.latestDrop, Math.max(0, metric.recentThreeScores[0] - metric.recentThreeScores.slice(-1)[0])) * (weights.declineDelta || 0)
   }
 
+  // 临界状态：距及格线的差距直接加分
   if (metric.matchedTags.some((tag) => tag.key === 'critical') && metric.latestScore !== null) {
     score += Math.max(0, config.tagRules.passLine - metric.latestScore)
   }
 
+  // 多标签叠加：每多命中一个“立即关注”组标签额外加分
   score += Math.max(0, metric.matchedTags.filter((tag) => tag.group === 'attention').length - 1) * (weights.multiTagBonus || 0) * 10
 
   return Number(score.toFixed(2))
@@ -314,20 +329,24 @@ export const getEncouragementRecommendScore = (
   config: HomeDashboardConfigType
 ): number => {
   const weights = config.recommendation.encouragementWeights
+  // 基础分：最近一次较最早一次的上升幅度 × 权重
   const recentRise =
     metric.recentThreeScores.length >= 2
       ? Math.max(0, metric.recentThreeScores[metric.recentThreeScores.length - 1] - metric.recentThreeScores[0])
       : 0
   let score = recentRise * (weights.riseDelta || 0)
 
+  // 低位回升：固定加分 × 12
   if (metric.matchedTags.some((tag) => tag.key === 'lowRecovery')) {
     score += (weights.recoveryBonus || 0) * 12
   }
 
+  // 明显进步：较历史均分的提升 × 1.5
   if (metric.matchedTags.some((tag) => tag.key === 'improving')) {
     score += Math.max(0, metric.latestDelta) * 1.5
   }
 
+  // 稳定前列：进入前五次数 × 权重 × 8
   if (metric.matchedTags.some((tag) => tag.key === 'stableTop')) {
     score += metric.stableTopRecentCount * (weights.stableTopBonus || 0) * 8
   }
@@ -348,20 +367,24 @@ export const getMiddleChangeRecommendScore = (
   config: HomeDashboardConfigType
 ): number => {
   const weights = config.recommendation.middleChangeWeights
+  // 带符号的近期变化（正为上升、负为下滑）
   const recentChange =
     metric.recentThreeScores.length >= 2
       ? metric.recentThreeScores[metric.recentThreeScores.length - 1] - metric.recentThreeScores[0]
       : 0
   let score = 0
 
+  // 中段下滑：下探幅度 × 权重
   if (metric.matchedTags.some((tag) => tag.key === 'middleFalling')) {
     score += Math.max(0, recentChange * -1) * (weights.fallingDelta || 0)
   }
 
+  // 波动程度：标准差 × 权重
   if (metric.matchedTags.some((tag) => tag.key === 'volatility')) {
     score += metric.recentStdDev * (weights.volatility || 0)
   }
 
+  // 中段上升：上升幅度 × 权重
   if (metric.matchedTags.some((tag) => tag.key === 'middleRising')) {
     score += Math.max(0, recentChange) * (weights.risingDelta || 0)
   }
@@ -385,6 +408,7 @@ export const getVolatilityWatchRecommendScore = (
   let score = 0
 
   if (metric.matchedTags.some((tag) => tag.key === 'volatility')) {
+    // 波动程度（标准差 × 权重）叠加方向加分：下行 +12 高于上行 +6
     score += metric.recentStdDev * (weights.volatility || 0)
     score += isDownwardDirection(metric.volatilityDirection) ? 12 : 6
   }

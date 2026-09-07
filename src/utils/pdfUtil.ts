@@ -33,10 +33,12 @@ const exportPDF = async (
     const pdfDoc = await PDFDocument.create()
     const { width: pageWidth, height: pageHeight } = pageSizeInPixels(pageType)
 
+    // 过滤出真正的 HTMLElement，忽略无法渲染的节点
     const elements = Array.from(refs).filter(
       (ref): ref is HTMLElement => ref instanceof HTMLElement
     )
     for (const elm of elements) {
+      // 将每个元素渲染为 JPEG 图片（放大 scale 倍提升清晰度）
       const imageUrl = await domtoimage.toJpeg(elm, {
         quality: 0.8,
         width: elm?.offsetWidth * scale,
@@ -49,11 +51,14 @@ const exportPDF = async (
       })
       const imageBytes = await fetch(imageUrl).then((response) => response.arrayBuffer())
       const embeddedImage = await pdfDoc.embedJpg(imageBytes)
+      // 以页面宽度为基准等比缩放图片，超出页面宽度时压缩适配
       const imageScale = pageWidth / embeddedImage.width
       const imageWidth = pageWidth
       const imageHeight = embeddedImage.height * imageScale
+      // 每个元素单独生成一页
       const page = pdfDoc.addPage([pageWidth, pageHeight])
 
+      // PDF 坐标系原点在左下角，图片从页面顶部向下绘制
       page.drawImage(embeddedImage, {
         x: 0,
         y: pageHeight - imageHeight,
@@ -66,6 +71,7 @@ const exportPDF = async (
     const blobBytes = new Uint8Array(bytes)
     const blob = new Blob([blobBytes], { type: 'application/pdf' })
     const url = URL.createObjectURL(blob)
+    // 通过临时下载链接触发浏览器保存
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download = fileName

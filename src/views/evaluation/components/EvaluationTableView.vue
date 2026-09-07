@@ -18,9 +18,13 @@ import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
+  /** 需要高亮显示的学生 ID，未选中时为空 */
   activeStudentId?: string
+  /** 是否禁用卡片的高亮选中态（导出预览等场景使用） */
   suppressActiveState?: boolean
+  /** 预览缩放模式：百分比数值或 fit 适应宽度 */
   previewMode?: PreviewModeType
+  /** 传入的学生列表，未传时使用系统启用学生 */
   students?: StudentDataType[]
 }
 
@@ -29,6 +33,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
+  /** 点击评语卡片时触发，透传学生数据 */
   cardClick: [row: StudentDataType]
 }>()
 
@@ -74,6 +79,7 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
 })
 
+/** 表格数据或布局相关配置变化时重新初始化预览 */
 watch(
   () => [
     tableData.value,
@@ -156,6 +162,7 @@ const bindResizeObserver = () => {
  */
 const scroll = (studentId: string) => {
   if (!scrollbarRef.value || !pageInfo.cellLevel || !pageInfo.columnCount) return
+  // 索引 +1 跳过表格首行表头，再按每行列数换算所在行
   const index = tableData.value.findIndex((student) => student.studentId === studentId) + 1
   if (index < 1) return
 

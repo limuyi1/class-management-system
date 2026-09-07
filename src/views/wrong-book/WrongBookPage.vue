@@ -92,6 +92,7 @@ const handleUploadImage = () => {
 
     try {
       const base64 = await fileToBase64(file)
+      // 统一按 PNG 前缀构造 data URL，裁剪器按图片数据解码不受原格式影响
       cropperImageSrc.value = `data:image/png;base64,${base64}`
       cropperVisible.value = true
     } catch (error) {
@@ -128,6 +129,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
       answer: result.answer || '',
       explanation: result.explanation || '',
       questionType: result.questionType || '其他',
+      // AI 识别出的新题默认中等难度，稍后可在编辑器中调整
       difficulty: 3,
       isFavorite: false,
       createdAt: '',

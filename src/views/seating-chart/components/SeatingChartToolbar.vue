@@ -22,12 +22,19 @@ defineProps<SeatingChartToolbarPropsType>()
  * 页面通过明确的事件处理布局弹窗、随机排座和导出等具体业务。
  */
 const emit = defineEmits<{
+  /** 打开行列与列号设置 */
   openLayout: []
+  /** 打开过道设置 */
   openAisles: []
+  /** 打开雅座设置 */
   openSpecialSeats: []
+  /** 打开职务管理 */
   manageRoles: []
+  /** 打开随机排座模式选择 */
   randomize: []
+  /** 打开导出弹窗 */
   export: []
+  /** 切换全屏状态 */
   toggleFullscreen: []
 }>()
 

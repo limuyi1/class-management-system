@@ -58,6 +58,7 @@ watch(
     form.scores = {}
     props.scoreColumns.forEach((column) => {
       const rawValue = props.student?.[column.prop]
+      // 回填评分列草稿：非法值（如对象类型的脏数据）按空值处理，解析失败同样置 null
       const score = parseScoreValue(typeof rawValue === 'object' ? null : rawValue)
       form.scores[column.prop] = score.invalid ? null : score.value
     })

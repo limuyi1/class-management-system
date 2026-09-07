@@ -3,15 +3,22 @@
 import type { SeatingRoleDefinitionType } from '@/types/SeatingChart'
 
 defineProps<{
+  /** 菜单屏幕横坐标（像素） */
   x: number
+  /** 菜单屏幕纵坐标（像素） */
   y: number
+  /** 学生姓名 */
   studentName: string
+  /** 全部职务定义，用于渲染可勾选项 */
   roles: SeatingRoleDefinitionType[]
+  /** 该学生已分配的职务 ID */
   assignedRoleIds: string[]
 }>()
 
 const emit = defineEmits<{
+  /** 切换学生是否拥有某个职务 */
   toggleRole: [roleId: string]
+  /** 打开完整职务管理弹窗 */
   manage: []
 }>()
 </script>

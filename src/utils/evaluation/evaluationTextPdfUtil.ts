@@ -185,13 +185,16 @@ const getAdaptiveDashArray = (lengthPt: number) => {
 
 /** 绘制评语格的四边虚线边框 */
 const drawCellBorder = (page: PDFPage, cell: EvaluationPdfCellType, pageHeightMm: number) => {
+  // 四边端点坐标：左上角毫米坐标统一换算为左下角 pt 坐标
   const leftX = mmToPt(cell.x)
   const rightX = mmToPt(cell.x + cell.width)
   const topY = getPdfY(pageHeightMm, cell.y)
   const bottomY = getPdfY(pageHeightMm, cell.y + cell.height)
+  // 横/竖边分别按各自边长计算自适应虚线，保持疏密均匀
   const horizontalDash = getAdaptiveDashArray(Math.abs(rightX - leftX))
   const verticalDash = getAdaptiveDashArray(Math.abs(topY - bottomY))
 
+  // 上边
   page.drawLine({
     start: { x: leftX, y: topY },
     end: { x: rightX, y: topY },
@@ -199,6 +202,7 @@ const drawCellBorder = (page: PDFPage, cell: EvaluationPdfCellType, pageHeightMm
     color: rgb(0, 0, 0),
     dashArray: horizontalDash
   })
+  // 下边
   page.drawLine({
     start: { x: leftX, y: bottomY },
     end: { x: rightX, y: bottomY },
@@ -206,6 +210,7 @@ const drawCellBorder = (page: PDFPage, cell: EvaluationPdfCellType, pageHeightMm
     color: rgb(0, 0, 0),
     dashArray: horizontalDash
   })
+  // 左边
   page.drawLine({
     start: { x: leftX, y: topY },
     end: { x: leftX, y: bottomY },
@@ -213,6 +218,7 @@ const drawCellBorder = (page: PDFPage, cell: EvaluationPdfCellType, pageHeightMm
     color: rgb(0, 0, 0),
     dashArray: verticalDash
   })
+  // 右边
   page.drawLine({
     start: { x: rightX, y: topY },
     end: { x: rightX, y: bottomY },
@@ -401,9 +407,11 @@ const drawEvaluationPage = (
     )
     const bodyTopY = cursorTopY + HEADER_GAP
 
+    // 页脚区域从格子底部向上倒推定位
     const footerBlockHeight = pxToMm(getFooterBlockHeightPx(configuration))
     const footerTopY = cell.y + cell.height - INNER_PADDING_Y - footerBlockHeight
     const bodyWidth = cell.width - INNER_PADDING_X * 2
+    // 正文可用高度为称呼与页脚之间的剩余空间，下限 4mm 防止出现负值
     const bodyHeight = Math.max(4, footerTopY - FOOTER_GAP - BODY_GAP - bodyTopY)
 
     const isTruncated = drawCellComment(

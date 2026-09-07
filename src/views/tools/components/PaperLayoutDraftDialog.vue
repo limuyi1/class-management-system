@@ -12,6 +12,7 @@ import type { PaperLayoutDraftRecordType, PaperLayoutModeType } from '@/types/To
 const visible = defineModel<boolean>('visible', { required: true })
 /** 对外事件：打开指定草稿 */
 const emit = defineEmits<{
+  /** 打开指定草稿 */
   open: [draft: PaperLayoutDraftRecordType]
 }>()
 

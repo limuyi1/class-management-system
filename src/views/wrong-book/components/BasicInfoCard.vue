@@ -11,23 +11,30 @@ interface QuestionType {
 
 /** 基本信息表单数据结构 */
 interface FormData {
+  /** 所属文件夹 id */
   folderId: string
+  /** 题型 */
   questionType: string
+  /** 题目来源 */
   source: string
+  /** 难度等级（1-5） */
   difficulty: number
 }
 
 interface Props {
+  /** 基本信息表单数据 */
   form: FormData
+  /** 可选文件夹列表 */
   folders: WrongFolder[]
+  /** 可选题型列表 */
   questionTypes: QuestionType[]
 }
 
 /** 表单数据、文件夹列表与题型选项 */
 const props = defineProps<Props>()
 
-/** 表单字段更新事件 */
 const emit = defineEmits<{
+  /** 表单字段更新 */
   'update:form': [value: FormData]
 }>()
 

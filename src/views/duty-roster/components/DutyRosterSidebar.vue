@@ -3,17 +3,26 @@
 import type { DutyRosterType } from '@/types/DutyRoster'
 
 defineProps<{
+  /** 全部值日表方案 */
   rosters: DutyRosterType[]
+  /** 当前正在编辑的值日表 ID */
   editingRosterId: string | null
+  /** 侧边栏是否折叠为窄栏 */
   collapsed: boolean
 }>()
 
 const emit = defineEmits<{
+  /** 选中某个方案 */
   select: [rosterId: string]
+  /** 新建值日表 */
   create: []
+  /** 复制某个方案 */
   copy: [rosterId: string]
+  /** 重命名某个方案 */
   rename: [rosterId: string]
+  /** 删除某个方案 */
   remove: [rosterId: string]
+  /** 切换折叠状态 */
   toggleCollapse: []
 }>()
 

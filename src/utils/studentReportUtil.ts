@@ -138,6 +138,7 @@ const resolveTrendLabel = (scoreItems: StudentReportScoreItemType[]): string => 
   const validScoreItems = getValidScoreItems(scoreItems)
   if (validScoreItems.length <= 1) return '整体稳定'
 
+  // 收集相邻变化的非零值，忽略未变化（delta 为 0）的阶段
   const deltas = validScoreItems
     .slice(1)
     .map((item) => item.delta || 0)
@@ -145,6 +146,7 @@ const resolveTrendLabel = (scoreItems: StudentReportScoreItemType[]): string => 
 
   if (!deltas.length) return '整体稳定'
 
+  // 统计变化方向的数量，结合首末差值判定整体趋势
   const positiveCount = deltas.filter((item) => item > 0).length
   const negativeCount = deltas.filter((item) => item < 0).length
   const totalDelta = validScoreItems[validScoreItems.length - 1].score - validScoreItems[0].score
@@ -166,14 +168,17 @@ const buildStrengths = (
   const result: string[] = []
   const validScoreItems = getValidScoreItems(scoreItems)
 
+  // 优势一：最好成绩达到 90 分视为亮眼发挥
   if (summary.bestScore && summary.bestScore.score >= 90) {
     result.push(`${summary.bestScore.label}发挥亮眼，单次成绩达到 ${summary.bestScore.score} 分`)
   }
 
+  // 优势二：总变化提升 8 分以上视为明显进步
   if (summary.totalDelta >= 8) {
     result.push('最近几个阶段成绩有明显提升，学习状态正在走稳')
   }
 
+  // 优势三：半数及以上阶段高于班平均，视为整体处于班级前列
   if (
     validScoreItems.length &&
     validScoreItems.filter((item) => item.score >= item.average).length >= Math.ceil(validScoreItems.length / 2)
@@ -181,6 +186,7 @@ const buildStrengths = (
     result.push('大部分阶段成绩高于班级平均水平，整体处于班级前列')
   }
 
+  // 优势四：存在积极标签时选取前两个展示
   if (tags.length > 0) {
     result.push(`学习表现中呈现出${tags.slice(0, 2).join('、')}等积极特点`)
   }
@@ -196,19 +202,23 @@ const buildConcerns = (
   const result: string[] = []
   const validScoreItems = getValidScoreItems(scoreItems)
 
+  // 关注点一：找出第一个低于班平均的科目
   const firstBelowAverage = validScoreItems.find((item) => item.score < item.average)
   if (firstBelowAverage) {
     result.push(`${firstBelowAverage.label}成绩相对较低，和班平均还有一定差距`)
   }
 
+  // 关注点二：进步次数不足且整体未上升时，提示稳定性欠缺
   if (summary.progressCount < Math.max(validScoreItems.length - 2, 1) && summary.totalDelta <= 0) {
     result.push('几个阶段中单元波动较大，稳定性仍需加强')
   }
 
+  // 关注点三：最高最低分差达到 10 分视为波动明显
   if (summary.highestScore - summary.lowestScore >= 10) {
     result.push('多次考试分差较明显，粗心或发挥波动仍需注意')
   }
 
+  // 兜底：无任何短板时给出中性描述
   if (!result.length) {
     result.push('当前阶段整体较稳，后续可继续关注持续性表现')
   }
@@ -297,6 +307,7 @@ export function buildStudentReportData(options: {
 }): StudentReportDataType {
   const { student, students, scoreColumns, selectedProps, tagCategories, classLabel = '本班' } = options
   const selectedColumns = scoreColumns.filter((item) => selectedProps.includes(item.prop))
+  // 上一个非空成绩，用于计算相邻两次成绩的变化值 delta（成绩缺失时不打断连续变化）
   let previousScore: number | null = null
   const scoreItems: StudentReportScoreItemType[] = selectedColumns
     .map((column) => {
@@ -336,11 +347,13 @@ export function buildStudentReportData(options: {
       .map((column) => toScoreValue(studentItem[column.prop]))
       .filter((score): score is number => score !== null)
   )
+  // 进步次数：相邻变化为正的次数；总变化：末次有效成绩与首次有效成绩之差
   const progressCount = validScoreItems.filter((item) => (item.delta || 0) > 0).length
   const totalDelta =
     validScoreItems.length > 1
       ? validScoreItems[validScoreItems.length - 1].score - validScoreItems[0].score
       : 0
+  // 通过 reduce 在有效成绩项中挑选最好/最差成绩与最好/最差名次
   const bestScore = validScoreItems.length
     ? validScoreItems.reduce((best, item) => (item.score > best.score ? item : best), validScoreItems[0])
     : null

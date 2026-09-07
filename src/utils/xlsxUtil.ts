@@ -51,6 +51,7 @@ const xlsxToImage = async (
 ): Promise<OperationResultType> => {
   const element = document.createElement('div')
   element.id = 'sheet'
+  // 将工作表渲染在页面外，仅用于截图导出
   element.setAttribute('style', 'position: absolute;top: 0;z-index: -1000;')
   document.body.appendChild(element)
 
@@ -237,10 +238,13 @@ const rowContainsNameHeader = (row: ExcelCellValueType[]): boolean => {
  * @returns 猜测出的表头行下标
  */
 const guessHeaderRowIndex = (rows: ExcelCellValueType[][]): number => {
+  // 只扫描前 8 行，避免被大量正文数据干扰
   const previewRows = rows.slice(0, EXCEL_PREVIEW_ROW_COUNT)
+  // 优先：包含姓名类字段的第一行
   const nameRowIndex = previewRows.findIndex(rowContainsNameHeader)
   if (nameRowIndex >= 0) return nameRowIndex
 
+  // 回退：非空单元格最多的一行
   return previewRows.reduce(
     (bestIndex, row, index) => {
       const currentCount = getNonEmptyCellCount(row)
@@ -282,14 +286,17 @@ const buildExcelDataFromHeaderRow = (
   headerRowIndex: number
 ): { header: string[]; data: ExcelRowType[] } => {
   const headerRow = rows[headerRowIndex] || []
+  // 空表头单元格使用占位名称，避免对应数据列丢失
   const header = headerRow.map((cell, index) => {
     const value = normalizeCellValue(cell)
     return value === null || value === undefined ? createFallbackHeader(index) : String(value)
   })
 
   const data = rows
+    // 只取表头行之后的行，并过滤全空行
     .slice(headerRowIndex + 1)
     .filter((row) => getNonEmptyCellCount(row) > 0)
+    // 按表头字段组装数据对象，缺失单元格归一为 null
     .map((row) =>
       header.reduce((acc, column, index) => {
         acc[column] = normalizeCellValue(row[index] ?? null)

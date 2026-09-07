@@ -8,18 +8,27 @@ import type { ScoreStudentType } from '@/hooks/useScoreStatistics'
 
 /** 组件属性：阈值、阈值模式、平均分、低分名单与分数读取函数 */
 interface Props {
+  /** 自定义阈值输入值 */
   threshold: number
+  /** 实际生效的阈值（平均分模式时为平均分） */
   effectiveThreshold: number
+  /** 阈值模式：平均分 / 自定义 */
   thresholdMode: 'average' | 'custom'
+  /** 当前科目平均分 */
   avgScore: number
+  /** 低于阈值的学生名单 */
   students: ScoreStudentType[]
+  /** 读取学生分数的函数 */
   getScore: (item: ScoreStudentType) => number | null
 }
 
 /** 组件事件：阈值/阈值模式调整与名单下载 */
 interface Emits {
+  /** 更新自定义阈值 */
   (event: 'update:threshold', value: number): void
+  /** 切换阈值模式 */
   (event: 'update:threshold-mode', value: 'average' | 'custom'): void
+  /** 下载低分名单（含分数 / 仅姓名） */
   (event: 'download', mode: 'withScore' | 'nameOnly'): void
 }
 

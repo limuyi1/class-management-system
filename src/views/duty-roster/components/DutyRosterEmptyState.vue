@@ -5,13 +5,18 @@ import { DutyRosterModeEnum } from '@/types/DutyRoster'
 import type { StudentSourceType } from '@/types/StudentSource'
 
 defineProps<{
+  /** 当前选择的安排方式（每日/每周） */
   mode: DutyRosterModeEnum
+  /** 名单来源（excel 或其他） */
   source: StudentSourceType
+  /** 是否已存在 Excel 名单来源 */
   hasExcelSource: boolean
 }>()
 
 const emit = defineEmits<{
+  /** 更新安排方式 */
   updateMode: [mode: DutyRosterModeEnum]
+  /** 创建值日表（无 Excel 来源时先触发导入） */
   create: []
 }>()
 </script>

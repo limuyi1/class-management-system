@@ -26,6 +26,7 @@ const store = useDataSourceStore()
 
 /** 重试数据初始化：直接刷新页面重新加载数据 */
 const retryLoad = () => {
+  // 整页刷新会重新触发 Dexie 初始化与 store 加载流程，保证状态从零开始
   window.location.reload()
 }
 </script>

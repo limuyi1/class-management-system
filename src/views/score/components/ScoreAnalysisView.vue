@@ -14,7 +14,9 @@ import type { ScorePageStageType } from '@/types/Score'
 
 /** 组件属性：是否可导出、页面阶段 */
 interface Props {
+  /** 是否允许导出统计结果 */
   canExport?: boolean
+  /** 页面阶段，用于切换空状态与统计内容 */
   stage: ScorePageStageType
 }
 

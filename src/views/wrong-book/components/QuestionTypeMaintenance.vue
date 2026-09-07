@@ -40,6 +40,7 @@ const edit = (item: { value: string; label: string }) => {
     inputValue: item.label
   })
     .then(({ value }) => {
+      // 排除自身后与其他题型比对，避免未改名时误判重名
       if (list.value.some((t) => t.value !== item.value && t.value === value)) {
         ElMessageBox.alert('该题型已存在', '提示')
         return

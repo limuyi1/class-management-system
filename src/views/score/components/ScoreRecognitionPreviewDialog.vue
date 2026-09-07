@@ -9,7 +9,9 @@ import type { ElTable } from 'element-plus'
 import type { ScoreRecognitionPreviewRowType } from '@/utils/scoreRecognitionUtil'
 
 interface Props {
+  /** 弹窗显隐状态（双向绑定） */
   visible: boolean
+  /** AI 识别的成绩预览行数据 */
   rows: ScoreRecognitionPreviewRowType[]
 }
 

@@ -20,13 +20,17 @@ import type { WrongQuestion } from '@/types/WrongBook'
 
 /** 弹窗可见性、已选题目 id 与可选题目列表 */
 interface Props {
+  /** 弹窗可见性 */
   visible: boolean
+  /** 外部传入的已选题目 id */
   questionIds: string[]
+  /** 可选题目列表；缺省时回退为收藏题目 */
   allQuestions?: WrongQuestion[]
 }
 
 /** 可见性更新事件 */
 interface Emits {
+  /** 更新弹窗可见性 */
   (e: 'update:visible', value: boolean): void
 }
 

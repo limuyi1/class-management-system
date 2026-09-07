@@ -12,9 +12,10 @@ defineProps<{
   studentNames: Record<string, string>
 }>()
 
-/** 事件：更新显隐 / 切换雅座开关 */
 const emit = defineEmits<{
+  /** 更新弹窗显隐状态 */
   'update:modelValue': [value: boolean]
+  /** 切换雅座开关 */
   toggle: [position: SeatingSpecialSeatPositionEnum, enabled: boolean]
 }>()
 

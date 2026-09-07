@@ -627,6 +627,8 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
         roster.assignments = roster.assignments.filter((item) => item !== assignment)
       }
       const section = findDutySectionByPosition(roster, target.positionId)
+      // 该学生移回待选区后，若在同时段/周行的其他岗位仍被分配，则保留其组长身份
+      // 过滤对象为原组长记录：同一学生、同一时段/周行、同一区域，且原岗位属于该区域
       const remainsInLeaderGroup = roster.assignments.some(
         (item) =>
           item.period === target.period &&
@@ -634,6 +636,7 @@ export const useDutyRosterStore = defineStore('dutyRoster', {
           item.studentIds.includes(studentId) &&
           section?.positions.some((position) => position.id === item.positionId)
       )
+      // 删除学生已不在该区域任何岗位的组长记录，避免残留无效组长
       roster.leaders = roster.leaders.filter(
         (leader) =>
           remainsInLeaderGroup ||

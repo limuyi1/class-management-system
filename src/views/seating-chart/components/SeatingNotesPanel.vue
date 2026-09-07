@@ -2,9 +2,16 @@
 /** 座位表备注面板 — 展示整表说明并触发编辑 */
 import { computed } from 'vue'
 
-const props = defineProps<{ notes: string }>()
-const emit = defineEmits<{ edit: [] }>()
+const props = defineProps<{
+  /** 备注说明文本（换行分隔） */
+  notes: string
+}>()
+const emit = defineEmits<{
+  /** 请求编辑备注 */
+  edit: []
+}>()
 
+/** 过滤空行后的备注行 */
 const noteLines = computed(() => props.notes.split('\n').filter((line) => line.trim()))
 </script>
 

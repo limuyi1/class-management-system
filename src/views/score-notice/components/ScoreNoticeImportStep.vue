@@ -8,13 +8,16 @@ import { computed } from 'vue'
 import { useScoreNoticeStore } from '@/stores/score-notice'
 
 interface Props {
+  /** 步骤是否展开 */
   expanded: boolean
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 切换展开状态 */
   toggle: []
+  /** 打开导入弹窗 */
   openImport: []
 }>()
 

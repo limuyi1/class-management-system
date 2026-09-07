@@ -4,19 +4,26 @@ import { ElDialog, ElSelect, ElOption, ElRadioGroup, ElRadioButton, ElButton } f
 
 /** 弹窗可见性、缩放比例、对齐方式与原始图片宽度 */
 interface Props {
+  /** 弹窗可见性 */
   visible: boolean
+  /** 缩放百分比 */
   imageScale: number
+  /** 对齐方式 */
   imageAlign: 'left' | 'center' | 'right'
+  /** 原始图片宽度（像素），用于换算预览宽度 */
   originalImageWidth: number
 }
 
 const props = defineProps<Props>()
 
-/** 可见性、缩放、对齐的更新事件与确认事件 */
 const emit = defineEmits<{
+  /** 更新弹窗可见性 */
   'update:visible': [value: boolean]
+  /** 缩放比例更新 */
   'update:imageScale': [value: number]
+  /** 对齐方式更新 */
   'update:imageAlign': [value: 'left' | 'center' | 'right']
+  /** 确认当前缩放与对齐设置 */
   confirm: [scale: number, align: 'left' | 'center' | 'right']
 }>()
 

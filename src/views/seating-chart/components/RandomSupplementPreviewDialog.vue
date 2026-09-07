@@ -17,10 +17,12 @@ const props = defineProps<{
   studentNames: Record<string, string>
 }>()
 
-/** 事件：更新显隐 / 换一批方案 / 确认应用 */
 const emit = defineEmits<{
+  /** 更新弹窗显隐状态 */
   'update:modelValue': [value: boolean]
+  /** 换一批随机方案 */
   regenerate: []
+  /** 确认应用当前方案 */
   confirm: []
 }>()
 

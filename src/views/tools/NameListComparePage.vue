@@ -158,6 +158,7 @@ function openPasteDialog(key: NameListCompareSourceKeyType): void {
 async function handleFileChange(event: Event): Promise<void> {
   const target = event.target as HTMLInputElement
   const file = target.files?.[0]
+  // 清空 value，使再次选择同一文件时也能触发 change 事件
   target.value = ''
   if (!file) return
 
@@ -288,6 +289,7 @@ async function handleResultAction(payload: {
   }
 
   const header = buildExportHeader(payload.group)
+  // 名单转成单列表格导出，表头使用分组对应的来源标签
   const result = exportExcel(
     [header],
     names.map((name) => [name]),
@@ -347,6 +349,7 @@ function formatTimestamp(): string {
         </el-radio-group>
 
         <div class="source-card__actions">
+          <!-- 当前模式下任一来源已有数据时显示清空按钮 -->
           <el-button
             v-if="mode === 'system' ? !!importedSources.comparison : !!importedSources.sourceA || !!importedSources.sourceB"
             @click="clearCurrentImports"

@@ -214,6 +214,7 @@ const handleGenerateSingle = async (): Promise<void> => {
  * @param mode overwrite 覆盖全部，skip 仅处理空评语
  */
 const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> => {
+  // 候选学生排除“数据缺失”与“正在生成中”两类
   const candidates = store.students.filter(
     (student) =>
       ![ScoreNoticeCommentStatusEnum.Missing, ScoreNoticeCommentStatusEnum.Generating].includes(
@@ -240,6 +241,7 @@ const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> =
       return
     }
   }
+  // skip 模式下只处理空评语学生，overwrite 模式处理全部
   const targets = candidates.filter((student) => mode === 'overwrite' || !student.comment.trim())
   if (!targets.length) {
     ElMessage.info('没有待处理的评语')
@@ -250,6 +252,7 @@ const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> =
   stopBatchRequested.value = false
   batchProcessed.value = 0
   batchTotal.value = targets.length
+  // 记录生成前的状态，供用户中途停止时回滚“生成中”的学生
   const originalStatuses = new Map(targets.map((student) => [student.id, student.commentStatus]))
   // 每批最多生成 5 名学生评语，控制单次请求规模
   const batchSize = 5
@@ -257,12 +260,14 @@ const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> =
     for (let index = 0; index < targets.length; index += batchSize) {
       if (stopBatchRequested.value) break
       const batch = targets.slice(index, index + batchSize)
+      // 先标记为“生成中”再请求，保证界面可感知每批进度
       batch.forEach((student) =>
         store.updateCommentStatus(student.id, ScoreNoticeCommentStatusEnum.Generating)
       )
       try {
         await generateForStudents(batch)
       } catch (error) {
+        // 单批失败不中断整体流程，仅将该批学生标记为失败
         console.error('批量生成成绩通知评语失败:', error)
         batch.forEach((student) =>
           store.updateCommentStatus(
@@ -275,6 +280,7 @@ const handleGenerateBatch = async (mode: BatchGenerateModeType): Promise<void> =
       batchProcessed.value += batch.length
     }
     if (stopBatchRequested.value) {
+      // 停止时把仍处于“生成中”的学生回滚到批处理前的状态
       store.students
         .filter((student) => student.commentStatus === ScoreNoticeCommentStatusEnum.Generating)
         .forEach((student) =>
@@ -381,6 +387,7 @@ const handleExportZip = async (): Promise<void> => {
   const failedNames: string[] = []
   try {
     for (const [index, student] of exportableStudents.entries()) {
+      // 切换到当前学生，离屏预览据此渲染对应报告后再截图
       exportStudent.value = student
       updateLoadingText(`正在生成 ${index + 1}/${exportableStudents.length}：${student.name}`)
       await waitForRender()
@@ -393,6 +400,7 @@ const handleExportZip = async (): Promise<void> => {
           data: blob
         })
       } catch (error) {
+        // 单个学生失败不中断导出，记录名字最后统一提示
         console.error(`生成 ${student.name} 成绩通知失败:`, error)
         failedNames.push(student.name)
       }
@@ -423,10 +431,12 @@ const updatePreviewScale = (): void => {
   const viewport = previewViewportRef.value
   if (!viewport) return
   const report = previewRef.value?.getElement()
+  // 可用尺寸扣除容器内边距；报告未渲染时回退为设计稿基准尺寸（1448×1086）
   const availableWidth = Math.max(viewport.clientWidth - 42, 320)
   const availableHeight = Math.max(viewport.clientHeight - 36, 320)
   const reportWidth = report?.offsetWidth || 1448
   const reportHeight = report?.offsetHeight || 1086
+  // 取宽高两个方向中更紧的缩放比例，且最大不超过 1（不放大）
   previewScale.value = Math.min(availableWidth / reportWidth, availableHeight / reportHeight, 1)
 }
 

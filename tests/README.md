@@ -74,6 +74,11 @@ tests/
 | `useProgress.test.ts` | `src/hooks/useProgress` | 完成进度百分比与计数（空数据、全填、部分填、空字符串/undefined 视为未完成、0 视为已完成） |
 | `useScoreStatistics.test.ts` | `src/hooks/useScoreStatistics` | 分数统计、分数段区间划分与最高分排除、低于阈值筛选、阈值联动、并列计数、字符串分数 |
 | `useTabQuerySync.test.ts` | `src/hooks/useTabQuerySync` | 标签页与路由 query 双向同步、忽略遗留 edit-tags 参数、合法标签集合响应式更新 |
+| `useEnterUp.test.ts` | `src/hooks/useEnterUp` | 全局回车监听（name 匹配、输入法组合过滤、节流/防抖、回调异常不影响后续触发、卸载移除监听） |
+| `useExcelPreviewImport.test.ts` | `src/hooks/useExcelPreviewImport` | Excel 预览状态层（el-upload/原生 File 双入口、空文件与解析失败提示、表头行切换派生数据、状态重置） |
+| `useLoading.test.ts` | `src/hooks/useLoading` | 全局加载遮罩（创建/关闭/文本更新、runWithLoading 自动启停与异常兜底、单例重置） |
+| `useScoreDistributionActions.test.ts` | `src/hooks/useScoreDistributionActions` | 成绩分布复制与导出（剪贴板文本组装、复制失败提示、空列表提示、含分数/仅姓名导出模板、遮罩与离屏容器清理） |
+| `useStudentDataImport.test.ts` | `src/hooks/useStudentDataImport` | 三类 Excel 导入编排（首次导入写 store、成绩列冲突检测与跳过、增量成绩/评语导入、覆盖二次确认与取消、导入后路由跳转） |
 
 ### plugins/
 
@@ -92,6 +97,7 @@ tests/
 | 测试文件 | 被测模块 | 主要覆盖点 |
 | --- | --- | --- |
 | `add-student-ids-to-dexie-backup.test.ts` | `scripts/add-student-ids-to-dexie-backup.mjs` | 迁移脚本：为缺失 studentId 的学生补 ID、保留已有 ID、同步 app_preferences 引用、重复 ID 抛错 |
+| `convert-dexie-backup.test.ts` | `scripts/convert-dexie-backup.mjs` | 迁移脚本：备份格式校验、dataSource→student_dataset 与 setting→score_settings 字段迁移、元数据清理与 updatedAt 补充、未知表跳过、键值对行兼容、tables 元信息 |
 
 ### stores/
 
@@ -102,6 +108,12 @@ tests/
 | `duty-roster.test.ts` | `useDutyRosterStore` | 值日表分配（移动不复制、负责人唯一、删除岗位回退未分配、日/周模式切换、区块排序、周行管理） |
 | `seating-chart.test.ts` | `useSeatingChartStore` | 座位表数据源（系统/Excel 名单）、切换来源清空分配、首列方向、创建态 |
 | `setting.test.ts` | `useSettingStore` | 预设标签分类与标签初始化、每个实例使用全新预设数组 |
+| `configuration.test.ts` | `useConfigurationStore` | 24 个默认配置字段、字体大小批量同步（不影响其他字段）、页面类型列表顺序 |
+| `overview-analysis.test.ts` | `useOverviewAnalysisStore` | 分析文本与 ISO 时间戳写入/覆盖/清空、初始空状态 |
+| `score-notice.test.ts` | `useScoreNoticeStore` | 默认状态与导入应用、学生选中、评语校验三分支（通过/需复核）、状态计数 getter、科目规则重算、重置通知 |
+| `theme.test.ts` | `useThemeStore` | 默认主题初始化（watcher 立即应用）、themeConfig 查表、setTheme 后 CSS 变量写入、resetTheme 恢复默认 |
+| `tools.test.ts` | `useToolsStore` | 纸张布局默认设置、不同实例之间状态隔离 |
+| `wrong-book.test.ts` | `useWrongBookStore` | 文件夹/题目增删改查、default 删除保护与递归级联、收藏回迁、folderTree 递归排序、initFolders 兜底、题目类型管理 |
 
 ### utils/
 
@@ -208,6 +220,13 @@ utils 下文件最多，按功能分类如下。
 | `tools/ToolsPage.test.ts` | `ToolsPage` | 工具按教学场景分组、从卡片打开工具 |
 | `tools/usePaperLayoutDraft.test.ts` | `usePaperLayoutDraft` | 纸张布局草稿（空画布保存警告、序列化与元数据、打开时排序与字段归一化） |
 | `tools/usePaperLayoutCanvas.test.ts` | `usePaperLayoutCanvas` | 纸张画布交互（像素转毫米、添加附件、移动/缩放、删除选中项、缩放范围） |
+| `evaluation/useEvaluationCommentSource.test.ts` | `useEvaluationCommentSource` | 评语数据源切换（默认系统源、Excel 载入/导出、未导出修改拦截源切换、浏览器刷新拦截与路由离开守卫） |
+| `overview/useOverviewAnalysis.test.ts` | `useOverviewAnalysis` | AI 学情分析生成（未配置短路、提示词载荷组装、成功写入 store、失败提示、loading 状态） |
+| `overview/useOverviewDashboard.test.ts` | `useOverviewDashboard` | 总览页状态（初始化自动选中、失效回退、对比人数截断、单人聚焦、超限警告、看板数据构建） |
+| `seating-chart/useSeatingChartViewport.test.ts` | `useSeatingChartViewport` | 座位表视口缩放（自然尺寸公式、0.95 可读性下限钳制、空视口/零行列回退、手动刷新、ResizeObserver 清理） |
+| `tools/attachmentService.test.ts` | `attachmentService` | 素材服务（排序读取、图片过滤与 PNG 直通、重名时间戳、sortOrder 续接、裁剪/旋转写回、object URL） |
+| `tools/paperLayoutDraftService.test.ts` | `paperLayoutDraftService` | 试卷草稿存取（倒序读取、新建 ID/时间戳/设置浅拷贝、更新保留创建时间、删除） |
+| `tools/paperLayoutExportService.test.ts` | `paperLayoutExportService` | 试卷 PDF 导出（毫米转 pt 尺寸换算、同 ID 图片只拉取一次、空页面列表输出空白 PDF） |
 
 ## 测试编写约定
 

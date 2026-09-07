@@ -7,6 +7,7 @@ import type { ScoreStatisticsType } from '@/hooks/useScoreStatistics'
 
 /** 组件属性：分数统计结果 */
 interface Props {
+  /** 分数统计结果，包含最高/最低/平均分与对应学生名单 */
   scoreStats: ScoreStatisticsType
 }
 

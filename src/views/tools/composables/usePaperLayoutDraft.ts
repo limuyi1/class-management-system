@@ -1,3 +1,4 @@
+/** 试卷排版草稿管理组合式函数：保存/打开草稿并维护草稿数量与当前草稿标识 */
 import { ref, type ComputedRef, type Ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
@@ -140,6 +141,7 @@ export function usePaperLayoutDraft(options: UsePaperLayoutDraftOptions) {
           (draftItem.pageIndex ?? 0) * options.pageSize.value.height + (draftItem.y ?? item.y),
         width: draftItem.width ?? item.width,
         height: draftItem.height ?? item.height,
+        // 旧草稿缺少 zIndex 时按渲染顺序从 1 开始兜底
         zIndex: draftItem.zIndex ?? index + 1
       }
     })
