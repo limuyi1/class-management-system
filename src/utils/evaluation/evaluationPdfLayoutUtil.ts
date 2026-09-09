@@ -50,8 +50,10 @@ export const buildEvaluationPdfLayout = (
   const marginY = input.marginY
 
   const availableWidth = Math.max(pageWidth - marginX * 2, cellWidth)
+  // 每行列数 = 可用宽度向下取整 ÷ 卡片宽度，至少 1 列
   const columnCount = Math.max(1, Math.floor(availableWidth / cellWidth))
   const tableWidth = cellWidth * columnCount
+  // 三种对齐方式下表格左上角的 X 坐标
   const centeredOffset = Math.max(pageWidth - tableWidth, 0) / 2
   const leftAlignedOffset = Math.min(Math.max(marginX, 0), Math.max(pageWidth - tableWidth, 0))
   const rightAlignedOffset = Math.max(pageWidth - marginX - tableWidth, 0)
@@ -66,7 +68,9 @@ export const buildEvaluationPdfLayout = (
   }
 
   const availableHeight = Math.max(pageHeight - marginY * 2, cellHeight)
+  // 每页行数 = 可用高度向下取整 ÷ 卡片高度，至少 1 行
   const rowCount = Math.max(1, Math.floor(availableHeight / cellHeight))
+  // 每页可容纳的评语卡总数
   const pageCapacity = rowCount * columnCount
 
   return {
@@ -99,8 +103,10 @@ export const paginateEvaluationStudents = (
 
   return pages.map((pageStudents, pageIndex) => {
     const cells: EvaluationPdfCellType[] = pageStudents.map((student, index) => {
+      // 由页内线性序号换算行列位置
       const rowIndex = Math.floor(index / layout.columnCount)
       const columnIndex = index % layout.columnCount
+      // 评语格左上角坐标 = 表格偏移 + 行列位置 × 卡片尺寸
       const x = layout.tableOffsetX + columnIndex * layout.cellWidth
       const y = layout.marginY + rowIndex * layout.cellHeight
 

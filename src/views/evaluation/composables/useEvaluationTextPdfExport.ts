@@ -1,3 +1,4 @@
+/** 管理文字版评语 PDF / Excel 导出的组合式函数 */
 import { ref, type Ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { startLoading, stopLoading } from '@/hooks/useLoading'

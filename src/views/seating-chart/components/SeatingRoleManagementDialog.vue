@@ -8,14 +8,20 @@ import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogH
 import type { SeatingRoleAssignmentType, SeatingRoleDefinitionType } from '@/types/SeatingChart'
 
 const props = defineProps<{
+  /** 弹窗显隐状态（v-model 双向绑定） */
   modelValue: boolean
+  /** 全部职务定义 */
   definitions: SeatingRoleDefinitionType[]
+  /** 学生职务分配 */
   assignments: SeatingRoleAssignmentType[]
+  /** 可选学生列表 */
   students: Array<{ id: string; name: string }>
 }>()
 
 const emit = defineEmits<{
+  /** 更新弹窗显隐状态 */
   'update:modelValue': [value: boolean]
+  /** 保存职务定义与分配 */
   save: [definitions: SeatingRoleDefinitionType[], assignments: SeatingRoleAssignmentType[]]
 }>()
 

@@ -7,15 +7,22 @@ import draggable from 'vuedraggable'
 import type { DutySectionType } from '@/types/DutyRoster'
 
 const props = defineProps<{
+  /** 弹窗显隐状态（v-model 双向绑定） */
   modelValue: boolean
+  /** 全部清洁区域 */
   sections: DutySectionType[]
 }>()
 
 const emit = defineEmits<{
+  /** 更新弹窗显隐状态 */
   'update:modelValue': [value: boolean]
+  /** 重命名某个区域 */
   rename: [sectionId: string, name: string]
+  /** 删除某个区域 */
   remove: [sectionId: string]
+  /** 新增清洁区域 */
   add: []
+  /** 拖拽排序完成，提交新的区域 ID 顺序 */
   reorder: [sectionIds: string[]]
 }>()
 

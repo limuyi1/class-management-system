@@ -129,6 +129,7 @@ watch(selectedScoreColumns, (columns) => {
  * 评语列是可选单选：点击其他列时切换，重复点击当前列时取消选择。
  */
 const handleCommentColumnChange = (columns: Array<string | number>) => {
+  // 取最后一次点击的列作为评语列，实现“最多一列”的单选语义
   selectedCommentColumn.value = columns.length ? String(columns[columns.length - 1]) : ''
 }
 
@@ -140,6 +141,7 @@ const handleConfirm = () => {
   }
 
   emit('confirm', {
+    // 无预览数据时表头由父组件确定，不回传表头行索引
     headerRowIndex: hasHeaderPreview.value ? selectedHeaderRowIndex.value : undefined,
     nameColumn: selectedNameColumn.value,
     scoreColumns: [...selectedScoreColumns.value],

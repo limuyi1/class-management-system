@@ -13,7 +13,9 @@ interface AttachmentViewType extends AttachmentRecordType {
 const visible = defineModel<boolean>('visible', { required: true })
 /** 对外事件：确认加入排版、前往素材库添加 */
 const emit = defineEmits<{
+  /** 确认加入排版，携带选中的素材记录 */
   confirm: [attachments: AttachmentRecordType[]]
+  /** 前往素材库添加素材 */
   addAttachments: []
 }>()
 

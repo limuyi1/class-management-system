@@ -1,3 +1,4 @@
+/** 管理期末评语数据源切换（系统学生 / Excel 临时数据）的组合式函数 */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'

@@ -95,6 +95,7 @@ async function loadAttachments(): Promise<void> {
   loading.value = true
   try {
     const records = await getAttachments()
+    // 重建视图记录前先释放旧 object URL，避免内存泄漏
     revokeAttachmentUrls()
     attachments.value = records.map(toViewRecord)
   } finally {
@@ -124,6 +125,7 @@ function clearSelection(): void {
 /** 拖拽排序结束后持久化新顺序 */
 async function handleSortEnd(): Promise<void> {
   try {
+    // 拖拽结束时 v-model 已更新为新顺序，按当前列表顺序重写 sortOrder 落库
     await updateAttachmentOrder(attachments.value.map((attachment) => attachment.id))
   } catch (error) {
     console.error('保存附件顺序失败:', error)
@@ -215,6 +217,7 @@ async function handleBatchDelete(): Promise<void> {
       cancelButtonText: '取消',
       type: 'warning'
     })
+    // 逐条删除选中素材，成功后统一刷新列表
     for (const id of selectedIds.value) {
       await deleteAttachment(id)
     }

@@ -14,6 +14,8 @@ interface SeatingChartViewportOptionsType {
   aisleCount: ComputedRef<number>
   /** 布局键，行列或方向变化时触发重新缩放 */
   layoutKey: ComputedRef<string>
+  /** 列头是否包含在滚动内容中 */
+  hasInlineColumnHeader?: boolean
 }
 
 /** 单个座位（课桌）宽度 */
@@ -62,12 +64,13 @@ export function useSeatingChartViewport(options: SeatingChartViewportOptionsType
 
   const naturalHeight = computed(() => {
     if (options.rows.value === 0) return 0
-    // 网格高 = 座位行高 + 行间距 + 列表头 + 间距
+    // 网格高 = 座位行高 + 行间距；列头独立渲染时不计入滚动内容。
+    const columnHeaderHeight =
+      options.hasInlineColumnHeader === false ? 0 : COLUMN_HEADER_HEIGHT + COLUMN_HEADER_GAP
     return (
       options.rows.value * DESK_HEIGHT +
       Math.max(0, options.rows.value - 1) * DESK_GAP +
-      COLUMN_HEADER_HEIGHT +
-      COLUMN_HEADER_GAP
+      columnHeaderHeight
     )
   })
 

@@ -15,10 +15,15 @@ import type { TagCategoryType } from '@/types/Setting'
 
 /** 评语录入卡片的 Props */
 interface Props {
+  /** 提交后是否自动切换到下一个学生 */
   autoNextOnSubmit?: boolean
+  /** 切换学生时是否提示未保存的修改 */
   promptUnsavedOnSwitch?: boolean
+  /** 外部传入的学生列表，未传时使用全局数据源 */
   students?: StudentDataType[]
+  /** 外部传入的标签分类，未传时使用全局配置 */
   tagCategoryList?: TagCategoryType[]
+  /** 是否允许编辑标签 */
   allowTagEditing?: boolean
 }
 
@@ -29,7 +34,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 /** 录入卡片事件：滚动定位与激活学生变化 */
 const emit = defineEmits<{
+  /** 请求滚动定位到指定学生 */
   scroll: [studentId: string]
+  /** 当前激活学生变化，携带学生数据或 null */
   activeStudentChange: [data: StudentDataType | null]
 }>()
 

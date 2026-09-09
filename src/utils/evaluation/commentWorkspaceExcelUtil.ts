@@ -61,6 +61,7 @@ export function buildExcelCommentWorkspace(options: BuildExcelCommentWorkspaceOp
   skippedEmptyNameCount: number
 } {
   const header = buildHeader(options.rows[options.headerRowIndex] || [])
+  // 在表头中定位姓名/评语/标签列，未指定或未找到时为 -1
   const nameColumnIndex = header.indexOf(options.nameColumn)
   const commentColumnIndex = options.commentColumn ? header.indexOf(options.commentColumn) : -1
   const tagColumnIndex = options.tagColumn ? header.indexOf(options.tagColumn) : -1
@@ -68,9 +69,11 @@ export function buildExcelCommentWorkspace(options: BuildExcelCommentWorkspaceOp
   const students: StudentDataType[] = []
 
   options.rows.slice(options.headerRowIndex + 1).forEach((row, offset) => {
+    // 原始行号 = 表头行 + 1 + 数据偏移，回写时用它定位单元格
     const rowIndex = options.headerRowIndex + 1 + offset
     const name = normalizeCellText(row[nameColumnIndex])
     if (!name) {
+      // 仅统计“有内容但缺姓名”的行，完全空行忽略
       if (row.some((cell) => normalizeCellText(cell))) skippedEmptyNameCount++
       return
     }
@@ -103,10 +106,12 @@ export function buildExcelCommentCellUpdates(options: {
 }): ExcelCommentCellUpdateType[] {
   const header = buildHeader(options.rows[options.headerRowIndex] || [])
   const selectedColumnIndex = options.commentColumn ? header.indexOf(options.commentColumn) : -1
+  // 无评语列时在表尾追加新列
   const columnIndex = selectedColumnIndex >= 0 ? selectedColumnIndex : header.length
   const updates: ExcelCommentCellUpdateType[] = []
 
   if (selectedColumnIndex < 0) {
+    // 新增列时先写入表头“评语”
     updates.push({ rowIndex: options.headerRowIndex, columnIndex, value: '评语' })
   }
 

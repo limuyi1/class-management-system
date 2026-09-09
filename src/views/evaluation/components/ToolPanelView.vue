@@ -13,15 +13,20 @@ import type { TagCategoryType } from '@/types/Setting'
 
 /** 工具面板的 Props */
 interface Props {
+  /** 学生数据列表 */
   students?: StudentDataType[]
+  /** 标签分类列表 */
   tagCategoryList?: TagCategoryType[]
+  /** 是否允许编辑标签 */
   allowTagEditing?: boolean
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 滚动到指定学生 */
   scroll: [studentId: string]
+  /** 激活学生变化 */
   'active-student-change': [student: StudentDataType | null]
 }>()
 

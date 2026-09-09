@@ -8,16 +8,22 @@ import { computed } from 'vue'
 import { useScoreNoticeStore } from '@/stores/score-notice'
 
 interface Props {
+  /** 是否正在导出 */
   exporting: boolean
+  /** 已导出的图片数 */
   exportProcessed: number
+  /** 是否正在生成评语 */
   processing: boolean
+  /** 是否存在未保存的评语修改 */
   hasUnsavedComment: boolean
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 复制当前图片 */
   copyImage: []
+  /** 导出全部图片 ZIP */
   exportZip: []
 }>()
 

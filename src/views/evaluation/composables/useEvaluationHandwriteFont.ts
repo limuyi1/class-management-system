@@ -1,3 +1,4 @@
+/** 管理评语手写字体加载、切换与默认字体监控的组合式函数 */
 import { computed, ref, type Ref } from 'vue'
 import { ElMessage } from 'element-plus'
 

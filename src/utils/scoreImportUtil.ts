@@ -84,25 +84,30 @@ const createHeader = (label: string): SettingType => ({
  * @returns value 为解析后的数字（无效或空为 null），invalid 标识是否为非法数据
  */
 export const parseScoreValue = (value: ExcelCellValueType): ScoreValueResultType => {
+  // 空值视为无成绩而非非法数据
   if (value === null || value === undefined || value === '') {
     return { value: null, invalid: false }
   }
 
+  // 数字类型直接校验是否有限（排除 NaN/Infinity）
   if (typeof value === 'number') {
     return Number.isFinite(value) ? { value, invalid: false } : { value: null, invalid: true }
   }
 
   if (typeof value === 'string') {
     const trimmedValue = value.trim()
+    // 纯空白字符串同样视为空
     if (!trimmedValue) {
       return { value: null, invalid: false }
     }
+    // 字符串转数字失败视为非法数据
     const parsedValue = Number(trimmedValue)
     return Number.isFinite(parsedValue)
       ? { value: parsedValue, invalid: false }
       : { value: null, invalid: true }
   }
 
+  // 其余类型（如布尔值）视为非法数据
   return { value: null, invalid: true }
 }
 
@@ -172,12 +177,14 @@ export const buildInitialScoreImport = (options: {
   const students = options.rows
     .map((row) => {
       const name = normalizeName(row[options.nameColumn])
+      // 空名与重名行直接跳过并计数
       if (!name) return null
       if (duplicateNames.has(name)) {
         duplicateStudentCount += 1
         return null
       }
 
+      // 按表头逐一解析该行各列成绩，非法成绩累加计数并置空
       const student = headers.reduce(
         (acc, header) => {
           const scoreResult = parseScoreValue(row[header.label])
@@ -250,11 +257,13 @@ export const buildIncrementalScoreImport = (options: {
 
   const duplicateSystemNames = getDuplicateNameSet(options.existingStudents, NAME_PROP)
   const duplicateExcelNames = getDuplicateNameSet(options.rows, options.nameColumn)
+  // 构建系统内唯一姓名的集合，排除系统数据中本身重名的学生
   const existingNames = new Set(
     options.existingStudents
       .map((student) => normalizeName(student[NAME_PROP] as ExcelCellValueType))
       .filter((name) => Boolean(name) && !duplicateSystemNames.has(name))
   )
+  // 建立姓名到 Excel 行的映射，供后续按学生回填成绩
   const excelRowsByName = new Map<string, ExcelRowType>()
 
   // 按姓名匹配系统已有学生，重名或未匹配的 Excel 行计入统计并跳过
@@ -272,9 +281,11 @@ export const buildIncrementalScoreImport = (options: {
     excelRowsByName.set(name, row)
   })
 
+  // 遍历现有学生，按姓名匹配 Excel 行并回填选中列的成绩
   const students = options.existingStudents.map((student) => {
     const name = normalizeName(student[NAME_PROP] as ExcelCellValueType)
     const excelRow = excelRowsByName.get(name)
+    // 无匹配行时原样保留该学生
     if (!excelRow) return { ...student }
 
     const nextStudent: StudentDataType = { ...student }

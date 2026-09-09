@@ -16,17 +16,25 @@ import type { TagCategoryType } from '@/types/Setting'
 
 /** 评语输入表单的 Props */
 interface Props {
+  /** v-model 双向绑定的评语文本 */
   modelValue: string | null
+  /** 是否禁用评语输入 */
   disabled: boolean
+  /** 当前学生的标签映射，未选择学生时为 null */
   currentStudentTags: Record<string, string[]> | null
+  /** 当前学生是否存在标签 */
   hasAnyTags: boolean
+  /** 标签分类列表 */
   tagCategoryList: TagCategoryType[]
+  /** 是否允许编辑标签 */
   allowTagEditing?: boolean
 }
 
 /** 评语输入表单的 Emits */
 interface Emits {
+  /** 评语文本变更事件（v-model） */
   (event: 'update:modelValue', value: string | null): void
+  /** 请求跳转到标签编辑页 */
   (event: 'go-edit-tags'): void
 }
 

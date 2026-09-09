@@ -18,16 +18,23 @@ import type { StudentDataType } from '@/types/StudentData'
 
 /** 组件属性：科目列、当前录入科目、页面阶段 */
 interface Props {
+  /** 成绩科目列配置 */
   scoreColumns: SettingType[]
+  /** 当前录入科目（受控展示，实际逻辑以全局配置为准） */
   scoreTab?: string | null
+  /** 页面阶段：无单元阶段时隐藏科目操作 */
   stage: ScorePageStageType
 }
 
 /** 组件事件：切换科目、重置成绩、编辑行、查看学生趋势 */
 const emit = defineEmits<{
+  /** 切换当前录入科目 */
   'update:scoreTab': [value: string]
+  /** 请求重置当前科目成绩 */
   resetScore: []
+  /** 请求编辑学生行 */
   edit: [row: StudentDataType]
+  /** 请求查看学生趋势分析 */
   inspectStudent: [row: StudentDataType]
 }>()
 
@@ -46,6 +53,7 @@ const activeStudentId = ref<string | null>(null)
 
 /** 当前分数列的展示名称，无科目时回退为“当前分数” */
 const currentColumnLabel = computed(() => {
+  // 录入科目以全局配置为准，scoreTab prop 仅用于受控展示
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return '当前分数'
   return props.scoreColumns.find((item) => item.prop === scoreTab)?.label || scoreTab
@@ -117,6 +125,7 @@ const scroll = (studentId: string) => {
   if (rowIndex === -1) return
 
   tableRef.value?.setCurrentRow(rowData)
+  // 读取行高失败时按样式固定行高 50px 兜底
   const rowHeight = tableRef.value?.$el?.querySelector('.el-table__row')?.offsetHeight || 50
   tableRef.value?.scrollTo(0, rowHeight * rowIndex)
   rowBlink(rowIndex + 1)
@@ -143,6 +152,7 @@ const rowBlink = async (index: number) => {
   if (classList.length > 1) {
     const backupClass = classList[1]
 
+    // 类名来回增删 4 次形成闪烁，每次间隔 260ms
     for (let i = 0; i < 4; i++) {
       if (backupClass === classList[1]) {
         classList.remove(backupClass)
@@ -152,6 +162,7 @@ const rowBlink = async (index: number) => {
       await delay(260)
     }
   } else {
+    // 交替切换背景色 4 次形成闪烁，每次间隔 260ms
     for (let i = 0; i < 4; i++) {
       ele.style.backgroundColor = i % 2 === 0 ? '#e0f2fe' : originalColor
       await delay(260)

@@ -1,13 +1,18 @@
 <script setup lang="ts">
 /** 岗位右键菜单 — 在当前位置新增或删除岗位列 */
 defineProps<{
+  /** 菜单屏幕横坐标（像素） */
   x: number
+  /** 菜单屏幕纵坐标（像素） */
   y: number
+  /** 当前列是否允许删除 */
   canRemove: boolean
 }>()
 
 const emit = defineEmits<{
+  /** 在当前位置新增岗位列 */
   add: []
+  /** 删除当前岗位列 */
   remove: []
 }>()
 </script>

@@ -9,18 +9,26 @@ import { useScoreNoticeStore } from '@/stores/score-notice'
 import { ScoreNoticeModeEnum } from '@/types/ScoreNotice'
 
 interface Props {
+  /** 步骤是否展开 */
   expanded: boolean
+  /** 是否禁用（未导入成绩时） */
   disabled: boolean
+  /** 手写字体展示名称 */
   handwriteFontName: string
+  /** 是否应用了自定义手写字体 */
   hasCustomHandwriteFont: boolean
+  /** 手写字体是否正在应用 */
   handwriteFontApplying: boolean
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 展开/收起步骤 */
   toggle: []
+  /** 选择手写字体文件 */
   chooseHandwriteFont: []
+  /** 清除自定义手写字体 */
   clearHandwriteFont: []
 }>()
 

@@ -11,9 +11,14 @@ import ExcelHeaderRowPicker from '@/views/setting/components/import/ExcelHeaderR
 import type { UploadFile } from 'element-plus'
 import type { ExcelStudentSourceType } from '@/types/StudentSource'
 
-const props = defineProps<{ modelValue: boolean }>()
+const props = defineProps<{
+  /** 弹窗显隐状态（v-model 双向绑定） */
+  modelValue: boolean
+}>()
 const emit = defineEmits<{
+  /** 更新弹窗显隐状态 */
   'update:modelValue': [value: boolean]
+  /** 确认导入，携带生成的 Excel 学生来源 */
   confirm: [source: ExcelStudentSourceType]
 }>()
 

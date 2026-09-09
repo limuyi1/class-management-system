@@ -38,6 +38,7 @@ const tagColorVars = [
  */
 const getTagColor = (category: string) => {
   const catIndex = categories.value.findIndex((c) => c.label === category)
+  // 未找到分类时回退第 0 色；分类超过色板数量时循环取色
   return tagColorVars[Math.max(catIndex, 0) % tagColorVars.length]
 }
 
@@ -111,6 +112,7 @@ const saveCurrentTags = () => {
       if (catTags.includes(tag)) {
         if (!tags[cat.prop]) tags[cat.prop] = []
         tags[cat.prop].push(tag)
+        // 每个标签只属于一个分类，找到所属分类后即可终止查找
         break
       }
     }

@@ -24,23 +24,32 @@ import type { ScoreNoticeGradeRuleType, ScoreNoticeImportResultType } from '@/ty
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
+  /** 弹窗可见性（v-model） */
   modelValue: boolean
+  /** 系统学生数据，导入时用于姓名匹配 */
   systemStudents: StudentDataType[]
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
+  /** 更新弹窗可见性（v-model） */
   'update:modelValue': [value: boolean]
+  /** 确认导入，携带构建结果与文件名 */
   confirm: [result: ScoreNoticeImportResultType, fileName: string]
 }>()
 
 // 公共层维护文件解析状态；科目选择、成绩模式与等级规则属于成绩通知业务。
 const { fileName, headerRowIndex, loading, parsedData, preview, parseFile, reset } =
   useExcelPreviewImport({ errorLogLabel: '读取成绩通知 Excel' })
+/** 识别出的姓名列 */
 const nameColumn = shallowRef('')
+/** 选中的科目列 */
 const subjectColumns = ref<string[]>([])
+/** 当前等级/分数模式 */
 const sourceMode = shallowRef(ScoreNoticeModeEnum.Grade)
+/** 用户是否手动修正过等级/分数模式 */
 const modeTouched = shallowRef(false)
+/** 各科目的等级换算规则 */
 const rules = ref<Record<string, ScoreNoticeGradeRuleType>>({})
 
 /** 受控弹窗可见性，双向绑定父组件的 modelValue */
@@ -66,6 +75,7 @@ const hasInvalidScoreRule = computed(
     })
 )
 
+/** 是否满足确认导入条件：已解析文件、已选姓名列与科目且规则合法 */
 const canConfirm = computed(
   () =>
     !loading.value &&
@@ -75,6 +85,7 @@ const canConfirm = computed(
     !hasInvalidScoreRule.value
 )
 
+/** 解析完成后按表头自动识别姓名列与科目列，并初始化各科目默认规则 */
 const resetSelections = (): void => {
   const headers = parsedData.value.header
   nameColumn.value =
@@ -163,6 +174,7 @@ const handleConfirm = (): void => {
     systemStudents: props.systemStudents
   })
   if (sourceMode.value === ScoreNoticeModeEnum.Score) {
+    // 应用用户配置的换算规则，缺失时回退为识别出的默认规则
     result.subjects = result.subjects.map((subject) => ({
       ...subject,
       rule: { ...(rules.value[subject.label] || subject.rule) }
@@ -176,6 +188,7 @@ const handleConfirm = (): void => {
   visible.value = false
 }
 
+/** 更换表头行后按新表头重新识别列与规则 */
 watch(headerRowIndex, () => {
   if (preview.value) resetSelections()
 })
@@ -192,6 +205,7 @@ watch(subjectColumns, (columns) => {
   sourceMode.value = detectScoreNoticeMode(values)
 })
 
+/** 每次打开对话框时重置全部导入状态 */
 watch(
   () => props.modelValue,
   (value) => {

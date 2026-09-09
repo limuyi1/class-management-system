@@ -20,7 +20,12 @@ interface UseScoreDistributionActionsOptions {
   getScore: (item: ScoreStudentType) => number | null
 }
 
-/** 将 DOM 元素渲染为 PNG DataURL */
+/**
+ * 将 DOM 元素渲染为 PNG DataURL
+ * @param element - 待渲染的 DOM 元素
+ * @param scale - 导出缩放倍数（默认 2 倍以获得更高清晰度）
+ * @returns PNG 图片的 DataURL
+ */
 const toPng = async (element: HTMLElement, scale = 2): Promise<string> => {
   const width = element.scrollWidth
   const height = element.scrollHeight
@@ -82,6 +87,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
    * @param mode - 导出模式（含分数 / 仅姓名）
    */
   const downloadImage = async (mode: 'withScore' | 'nameOnly') => {
+    // 按分数从高到低排序，空分数按 0 处理
     const students = [...belowThresholdStudents.value].sort(
       (a, b) => (getScore(b) || 0) - (getScore(a) || 0)
     )
@@ -119,6 +125,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
     container.innerHTML = html
     container.style.padding = '20px'
     container.style.background = '#fff'
+    // 将容器置于屏幕外且不可交互，仅用于离屏渲染截图
     container.style.position = 'fixed'
     container.style.top = '0'
     container.style.left = '0'
@@ -130,6 +137,7 @@ export function useScoreDistributionActions(options: UseScoreDistributionActions
     startLoading('正在导出图片，请稍后...')
 
     try {
+      // 等待下一帧渲染完成，确保容器布局就绪后再截图
       await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
       const dataUrl = await toPng(container)
       const link = document.createElement('a')

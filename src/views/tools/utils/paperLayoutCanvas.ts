@@ -1,3 +1,4 @@
+/** 试卷排版画布工具函数：页面尺寸计算、条目构建、分页渲染与自动排版 */
 import { getPdfPageSize } from '@/utils/evaluation/evaluationPdfLayoutUtil'
 
 import type {
@@ -146,6 +147,7 @@ export const buildPaperLayoutPages = (
   pageSize: PaperLayoutPageSizeType
 ): PaperLayoutPageType[] => {
   if (items.length === 0) return []
+  // 总页数由各图片底部所在页的最大值决定
   const pageCount = Math.max(
     ...items.map((item) =>
       Math.max(
@@ -260,6 +262,7 @@ export const arrangePaperItems = (
     const width = metrics.fitMode === 'slot' ? metrics.columnWidth : metrics.columnWidth * fitScale
     const height = metrics.fitMode === 'slot' ? metrics.contentHeight : imageHeight * fitScale
 
+    // 一行已满则换行，行高取本行图片的最大高度
     if (rowItemCount >= metrics.columns) {
       rowItemCount = 0
       cursorX = metrics.margin
@@ -267,6 +270,7 @@ export const arrangePaperItems = (
       rowHeight = 0
     }
 
+    // 本页已有内容且放不下当前图片时才分页，避免仅首图超高时出现空白页
     if (currentY > metrics.margin && currentY + height > metrics.pageSize.height - metrics.margin) {
       pageIndex += 1
       rowItemCount = 0

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 文件夹树 — 展示树形文件夹结构，支持切换、新建、重命名与删除 */
 import { ref, computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import { ElTree, ElButton, ElInput, ElMessageBox, ElMessage } from 'element-plus'

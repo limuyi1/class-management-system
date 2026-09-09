@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatingChartType
 } from '@/types/SeatingChart'
@@ -28,6 +29,7 @@ const chart = (rows = 2, columns = 2): SeatingChartType => ({
   aisleAfterColumns: [],
   studentSource: 'system',
   firstColumnSide: SeatingFirstColumnSideEnum.Left,
+  platformPosition: SeatingPlatformPositionEnum.Top,
   seats: createSeats(rows, columns),
   specialSeats: createSpecialSeats(),
   roleDefinitions: [],
@@ -68,6 +70,23 @@ describe('seatingChartUtil', () => {
     expect(getVisibleSeats(source).map((seat) => seat.column)).toEqual([1, 0])
   })
 
+  it('mirrors rows for a bottom platform without changing columns or seat data', () => {
+    const source = chart(2, 2)
+    source.seats.forEach((seat, index) => {
+      seat.studentId = `student-${index}`
+    })
+    const seatsBeforeMirror = source.seats.map((seat) => ({ ...seat }))
+    source.platformPosition = SeatingPlatformPositionEnum.Bottom
+
+    expect(getVisibleSeats(source).map((seat) => [seat.row, seat.column])).toEqual([
+      [1, 0],
+      [1, 1],
+      [0, 0],
+      [0, 1]
+    ])
+    expect(source.seats).toEqual(seatsBeforeMirror)
+  })
+
   // 旧版 viewDirection 字段迁移为 firstColumnSide 朝向
   it('migrates the legacy view direction to the matching first-column side', () => {
     const source = chart()
@@ -77,7 +96,17 @@ describe('seatingChartUtil', () => {
     const result = normalizeChart(legacyChart as SeatingChartType, new Set())
 
     expect(result.firstColumnSide).toBe(SeatingFirstColumnSideEnum.Right)
+    expect(result.platformPosition).toBe(SeatingPlatformPositionEnum.Top)
     expect('viewDirection' in result).toBe(false)
+  })
+
+  it('defaults a missing or invalid platform position to the top', () => {
+    const legacyChart = chart()
+    delete (legacyChart as Partial<SeatingChartType>).platformPosition
+
+    expect(normalizeChart(legacyChart, new Set()).platformPosition).toBe(
+      SeatingPlatformPositionEnum.Top
+    )
   })
 
   it('adds default roles to legacy charts while preserving an intentionally empty role list', () => {

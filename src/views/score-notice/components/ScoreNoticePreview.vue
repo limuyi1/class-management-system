@@ -29,10 +29,15 @@ import { formatScoreValue } from '@/utils/score-notice/scoreNoticeGradeUtil'
 import type { ScoreNoticeStudentType, ScoreNoticeSubjectType } from '@/types/ScoreNotice'
 
 interface Props {
+  /** 通知单标题 */
   title: string
+  /** 通知日期 */
   noticeDate: string
+  /** 展示模式：分数或等级 */
   mode: ScoreNoticeModeEnum
+  /** 科目列表 */
   subjects: ScoreNoticeSubjectType[]
+  /** 当前预览的学生，未选择时为 null */
   student: ScoreNoticeStudentType | null
 }
 

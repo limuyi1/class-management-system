@@ -9,16 +9,22 @@ import type { CommentWorkspaceSourceType } from '@/types/CommentWorkspace'
 
 /** 数据源选择栏的 Props */
 interface Props {
+  /** 当前数据源类型：系统学生或临时 Excel */
   source: CommentWorkspaceSourceType
+  /** 系统学生人数 */
   systemStudentCount: number
+  /** 已导入的 Excel 文件名 */
   excelFileName?: string
+  /** Excel 中的学生人数 */
   excelStudentCount?: number
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 切换数据源 */
   change: [source: CommentWorkspaceSourceType]
+  /** 上传 Excel 文件 */
   upload: []
 }>()
 

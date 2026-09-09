@@ -16,8 +16,8 @@ import { NAME_PROP } from '@/constants'
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
 
-/** 组件属性：页面阶段 */
 interface Props {
+  /** 页面阶段：无单元时展示空状态引导 */
   stage: ScorePageStageType
 }
 
@@ -33,9 +33,13 @@ const scoreInputCardRef = ref<InstanceType<typeof ScoreInputCard>>()
 
 /** 组件事件：定位学生、AI 识图、清除选中、跳转单元配置 */
 const emit = defineEmits<{
+  /** 请求滚动定位到指定学生 */
   scroll: [studentId: string]
+  /** 发起 AI 识图 */
   uploadImage: []
+  /** 清除表格选中与高亮 */
   clearSelection: []
+  /** 跳转到单元配置页 */
   goUnitSetting: []
 }>()
 
@@ -124,6 +128,7 @@ defineExpose({
           </div>
         </template>
         <div class="unfinished-list">
+          <!-- 名单过长时最多展示前 20 人，其余折叠为“还有 N 人”提示 -->
           <el-tag
             v-for="item in hasNullScoreList.slice(0, 20)"
             :key="item.studentId"

@@ -58,6 +58,7 @@ export const buildFocusGroups = (
   config: HomeDashboardConfigType
 ): DashboardFocusGroupType[] => {
   const tagGroups = config.tagRules.tagGroups
+  // 展平启用的标签并按 priority 升序排列，保证后续区块的生成顺序稳定
   const enabledTags = Object.entries(config.tagRules.tags)
     .filter(([, tagConfig]) => tagConfig.enabled)
     .map(([key, tagConfig]) => ({
@@ -68,6 +69,7 @@ export const buildFocusGroups = (
 
   const sectionsByGroup = enabledTags.reduce<Record<DashboardFocusGroupKeyType, DashboardFocusSectionType[]>>(
     (result, tag) => {
+      // 以区块 key 分组收集命中该标签的学生；波动标签会按走势方向拆成两个区块（见 getSectionMeta）
       const sectionMap = new Map<
         DashboardFocusSectionKeyType,
         { label: string; description: string; entries: Array<{ item: DashboardStudentListItemType; tagSortScore: number }> }
@@ -95,6 +97,7 @@ export const buildFocusGroups = (
 
           currentSection.entries.push({
             item,
+            // 附带该学生在此标签下的排序分数，供下方统一排序
             tagSortScore: getTagSortScore(metric, tag.key, config)
           })
           sectionMap.set(sectionMeta.key, currentSection)
@@ -102,6 +105,7 @@ export const buildFocusGroups = (
 
       sectionMap.forEach((section, sectionKey) => {
         const items = section.entries
+          // 排序优先级：标签排序分降序 → 该标签是主标签者靠前 → 主标签 priority 升序 → 姓名拼音
           .sort((a, b) => {
             if (a.tagSortScore !== b.tagSortScore) {
               return b.tagSortScore - a.tagSortScore
@@ -298,6 +302,7 @@ export const buildKeyStudentLists = (
     }
   }
 
+  // 波动观察组内按中段变化展示顺序排序（下滑关注 → 回升关注 → 波动下行 → 波动上行 → …）
   const middleChangeOrder: Record<DashboardFocusSectionKeyType, number> = {
     middleFalling: 0,
     middleRising: 1,
@@ -334,6 +339,7 @@ export const buildKeyStudentLists = (
           } => entry.item !== null
         )
         .sort((a, b) => {
+          // 排序优先级：推荐分降序 → 波动组的区块顺序 → 主标签 priority 升序 → 姓名拼音
           if (a.recommendScore !== b.recommendScore) {
             return b.recommendScore - a.recommendScore
           }
@@ -378,6 +384,7 @@ export const buildTeachingInsights = (unitMetrics: UnitMetricType[]): DashboardT
   const lowestAverage = [...unitMetrics].sort((a, b) => a.averageScore - b.averageScore)[0]
   const mostLowScores = [...unitMetrics].sort((a, b) => b.lowScoreCount - a.lowScoreCount)[0]
   const largestGap = [...unitMetrics].sort((a, b) => b.standardDeviation - a.standardDeviation)[0]
+  // 与前一单元的均分差（相邻差值）最大的单元即为“波动最明显”
   const mostVolatile =
     unitMetrics
       .slice(1)
@@ -450,6 +457,7 @@ export const buildStudentTrend = (
   if (selectedMetrics.length === 1) {
     const metric = selectedMetrics[0]
 
+    // 按显著下降 → 显著回升 → 高波动 → 平稳 的顺序生成单生走势摘要
     if (metric.latestDelta <= -config.studentTrend.significantDrop) {
       summaries.push(
         `近期成绩下降明显，最近一次较历史均分低 ${Math.abs(metric.latestDelta).toFixed(1)} 分`
@@ -468,6 +476,7 @@ export const buildStudentTrend = (
 
     summaries.push(`当前已录入 ${metric.points.length} 个单元，均分 ${metric.averageScore.toFixed(1)} 分`)
   } else {
+    // 多人对比模式：分别找出均分最高与波动最大的学生生成摘要
     const highestAverage = [...selectedMetrics].sort((a, b) => b.averageScore - a.averageScore)[0]
     const largestFluctuation = [...selectedMetrics].sort((a, b) => b.scoreRange - a.scoreRange)[0]
 
@@ -485,6 +494,7 @@ export const buildStudentTrend = (
         typeof metric.student.comment === 'string' && metric.student.comment.trim()
           ? metric.student.comment.trim()
           : ''
+      // 按单元 prop 快速索引成绩点，再按表头顺序映射为趋势折线数据（缺失单元置 null）
       const pointMap = new Map(metric.points.map((point) => [point.prop, point.score]))
 
       return {
@@ -586,6 +596,7 @@ export const buildDashboardKpi = (
   const attentionStudentCount = metrics.filter((metric) =>
     metric.matchedTags.some((tag) => tag.group === 'attention')
   ).length
+  // 均分偏离总体均分（取绝对值）最大的单元
   const unitWithLargestAverageRange = [...unitMetrics].sort(
     (a, b) => Math.abs(b.averageScore - averageScore) - Math.abs(a.averageScore - averageScore)
   )[0]

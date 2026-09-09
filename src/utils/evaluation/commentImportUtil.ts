@@ -48,12 +48,14 @@ const getDuplicateNames = (values: string[]): Set<string> => {
  * @returns 将被覆盖的评语数量
  */
 export const countOverwrittenComments = (options: CommentImportOptionsType): number => {
+  // 排除系统数据与 Excel 中本身重名的姓名，这些学生无法安全匹配
   const duplicateSystemNames = getDuplicateNames(
     options.existingStudents.map((student) => normalizeText(student[NAME_PROP]))
   )
   const duplicateExcelNames = getDuplicateNames(
     options.rows.map((row) => normalizeText(row[options.nameColumn]))
   )
+  // 建立“唯一姓名 -> 学生”映射，便于逐行匹配
   const existingByName = new Map(
     options.existingStudents
       .filter((student) => !duplicateSystemNames.has(normalizeText(student[NAME_PROP])))
@@ -62,9 +64,11 @@ export const countOverwrittenComments = (options: CommentImportOptionsType): num
 
   return options.rows.reduce((count, row) => {
     const name = normalizeText(row[options.nameColumn])
+    // Excel 中重名的行跳过，避免覆盖错人
     if (duplicateExcelNames.has(name)) return count
     const comment = normalizeText(row[options.commentColumn])
     const existingStudent = existingByName.get(name)
+    // 仅当学生已有评语且 Excel 提供非空评语时才计为覆盖
     return existingStudent?.comment?.trim() && comment ? count + 1 : count
   }, 0)
 }
@@ -93,6 +97,7 @@ export const buildIncrementalCommentImport = (
   let ignoredStudentCount = 0
   let duplicateStudentCount = 0
 
+  // 过滤出可安全匹配的姓名并建立映射，重名/未匹配行计入统计并跳过
   options.rows.forEach((row) => {
     const name = normalizeText(row[options.nameColumn])
     if (!name) return
@@ -120,20 +125,24 @@ export const buildIncrementalCommentImport = (
   const students = options.existingStudents.map((student) => {
     const name = normalizeText(student[NAME_PROP])
     const row = rowsByName.get(name)
+    // 无匹配行时原样保留该学生
     if (!row) return { ...student }
 
     const incomingComment = normalizeText(row[options.commentColumn])
     const existingComment = student.comment?.trim() || ''
+    // Excel 空白评语不覆盖原评语，计入跳过
     if (!incomingComment) {
       stats.skippedCommentCount += 1
       return { ...student }
     }
 
+    // fill-empty 策略下已有评语时跳过
     if (existingComment && options.strategy === 'fill-empty') {
       stats.skippedCommentCount += 1
       return { ...student }
     }
 
+    // 有原评语记覆盖，无原评语记新增
     if (existingComment) {
       stats.overwrittenCommentCount += 1
     } else {

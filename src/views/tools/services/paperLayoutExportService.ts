@@ -1,3 +1,4 @@
+/** 试卷排版导出服务：将分页排版数据按 cover 模式绘制并导出为 PDF */
 import {
   PDFDocument,
   clip,
@@ -61,6 +62,7 @@ const drawCoverImage = (
   pdfHeight: number
 ): void => {
   const targetX = item.x * pointPerMm
+  // PDF 坐标原点在左下角，按页面高度翻转 Y 轴后才是画布（左上角原点）的对应位置
   const targetY = pdfHeight - (item.localY + item.height) * pointPerMm
   const targetWidth = item.width * pointPerMm
   const targetHeight = item.height * pointPerMm

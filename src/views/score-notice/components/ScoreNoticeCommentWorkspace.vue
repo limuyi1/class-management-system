@@ -15,26 +15,41 @@ import type { InputInstance } from 'element-plus'
 import type { ScoreNoticeStudentType } from '@/types/ScoreNotice'
 
 interface Props {
+  /** 步骤是否展开 */
   expanded: boolean
+  /** 是否禁用（通知设置未完成时） */
   disabled: boolean
+  /** AI 是否已配置 */
   aiConfigured: boolean
+  /** 是否正在批量生成 */
   batchGenerating: boolean
+  /** 批量生成已处理人数 */
   batchProcessed: number
+  /** 批量生成总人数 */
   batchTotal: number
+  /** 是否正在单条生成 */
   singleGenerating: boolean
 }
 
+/** 学生状态筛选项 */
 type StudentFilterType = 'pending' | 'review' | 'completed' | 'missing' | 'all'
+/** 批量生成模式：仅填充空白或覆盖全部 */
 type BatchGenerateModeType = 'skip' | 'overwrite'
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 展开/收起步骤 */
   toggle: []
+  /** 未保存修改状态变化 */
   dirtyChange: [dirty: boolean]
+  /** 发起批量生成，携带覆盖模式 */
   generateBatch: [mode: BatchGenerateModeType]
+  /** 停止批量生成 */
   stopBatch: []
+  /** 单条生成当前学生评语 */
   generateSingle: []
+  /** 复制当前评语图片 */
   copyImage: []
 }>()
 
@@ -46,10 +61,13 @@ const savedComment = shallowRef('')
 const commentInputRef = ref<InputInstance>()
 
 const selectedStudent = computed(() => store.selectedStudent)
+/** 草稿与已保存内容不一致时视为存在未保存修改 */
 const hasUnsavedComment = computed(() => commentDraft.value !== savedComment.value)
+/** 当前草稿的校验问题列表 */
 const commentValidationReasons = computed(() =>
   getScoreNoticeCommentValidationReasons(commentDraft.value)
 )
+/** 生成进度：批量生成中按批次实时计算，平时按已完成学生占比计算 */
 const progressPercentage = computed(() => {
   if (props.batchGenerating && props.batchTotal) {
     return Math.round((props.batchProcessed / props.batchTotal) * 100)
@@ -90,6 +108,7 @@ const filters = computed<Array<{ key: StudentFilterType; label: string; count: n
 const matchesFilter = (student: ScoreNoticeStudentType): boolean => {
   if (activeFilter.value === 'all') return true
   if (activeFilter.value === 'pending') {
+    // “待处理”涵盖待生成、生成中与生成失败三种状态
     return [
       ScoreNoticeCommentStatusEnum.Pending,
       ScoreNoticeCommentStatusEnum.Generating,
@@ -206,6 +225,7 @@ watch(
   { immediate: true, flush: 'sync' }
 )
 
+/** 外部更新（如 AI 生成）当前学生评语时同步草稿内容 */
 watch(
   () => selectedStudent.value?.comment,
   (nextComment) => {
@@ -216,6 +236,7 @@ watch(
   { flush: 'sync' }
 )
 
+/** 未保存修改状态变化时通知父组件，用于导出前拦截提示 */
 watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: true })
 </script>
 

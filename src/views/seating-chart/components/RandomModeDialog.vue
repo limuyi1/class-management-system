@@ -11,10 +11,12 @@ defineProps<{
   unassignedCount: number
 }>()
 
-/** 事件：更新显隐 / 全部重新安排 / 补充空座位 */
 const emit = defineEmits<{
+  /** 更新弹窗显隐状态 */
   'update:modelValue': [value: boolean]
+  /** 全部重新安排 */
   'randomize-all': []
+  /** 补充空座位 */
   supplement: []
 }>()
 </script>

@@ -101,17 +101,21 @@ export function createPersistedStateDexie() {
     const patchStateFromRecord = (record: PersistableRecordType) => {
       const stateRecord = record as unknown as Record<string, unknown>
       const { id, updatedAt, ...state } = stateRecord
+      // 显式标记 id/updatedAt 为有意剥离的字段，避免未使用变量告警
       void id
       void updatedAt
       if (storeId === 'aiConfig' && state.prompts && typeof state.prompts === 'object') {
+        // 与默认提示词合并，补齐新增的默认项（用户自定义项优先）
         state.prompts = { ...DefaultAIPrompts, ...(state.prompts as Record<string, unknown>) }
       }
       if (storeId === 'setting' && Array.isArray(state.scoreColumns)) {
+        // 兼容旧数据：将持久化的成绩列表头归一化为最新结构
         state.scoreColumns = normalizeScoreColumns(
           state.scoreColumns as Parameters<typeof normalizeScoreColumns>[0]
         )
       }
       if (storeId === 'configuration') {
+        // 兼容旧数据：将持久化的最近成绩记录转换为标准格式
         state.recentScoreEntries = normalizeRecentScoreEntries(state.recentScoreEntries)
       }
       store.$patch(state as _DeepPartial<StateTree>)

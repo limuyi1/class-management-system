@@ -43,16 +43,19 @@ export const buildScoreNoticeImport = (options: {
   requestedMode?: ScoreNoticeModeEnum
   systemStudents?: StudentDataType[]
 }): ScoreNoticeImportResultType => {
+  // 取前 20 行的样本值推断导入模式（等级制/分数制）
   const sampledValues = options.subjectColumns.flatMap((column) =>
     options.rows.slice(0, 20).map((row) => row[column])
   )
   const sourceMode = options.requestedMode ?? detectScoreNoticeMode(sampledValues)
+  // 为每个科目生成独立结构并挂载默认等级规则
   const subjects: ScoreNoticeSubjectType[] = options.subjectColumns.map((label, index) => ({
     id: createSubjectId(label, index),
     label,
     sourceColumn: label,
     rule: getDefaultGradeRule(label)
   }))
+  // 统计 Excel 中的重名学生，重名行无法可靠关联历史表现，直接跳过
   const nameCounts = new Map<string, number>()
   options.rows.forEach((row) => {
     const name = normalizeName(row[options.nameColumn])
@@ -62,6 +65,7 @@ export const buildScoreNoticeImport = (options: {
     .filter(([, count]) => count > 1)
     .map(([name]) => name)
   const duplicateSet = new Set(duplicateNames)
+  // 建立“姓名 -> 系统学生”映射，用于关联 studentId 与历史表现
   const systemStudentByName = new Map(
     (options.systemStudents ?? []).map((student) => [
       String(student.xing4_ming2 || '').trim(),
@@ -74,6 +78,7 @@ export const buildScoreNoticeImport = (options: {
   const students = options.rows
     .map((row, rowIndex) => {
       const name = normalizeName(row[options.nameColumn])
+      // 空名与重名行跳过
       if (!name || duplicateSet.has(name)) return null
       const rawValues: Record<string, string | number | null> = {}
       const gradeValues: Record<string, string | null> = {}
@@ -83,15 +88,18 @@ export const buildScoreNoticeImport = (options: {
         const normalizedRaw =
           typeof rawValue === 'number' || typeof rawValue === 'string' ? rawValue : null
         rawValues[subject.id] = normalizedRaw
+        // 等级制直接归一化，分数制按科目规则换算等级
         const grade =
           sourceMode === ScoreNoticeModeEnum.Grade
             ? normalizeGradeValue(rawValue)
             : convertScoreToGrade(rawValue, subject.rule)
         gradeValues[subject.id] = grade
         const hasValue = rawValue !== null && rawValue !== undefined && rawValue !== ''
+        // 有原始值但换算不出等级时计入非法单元格
         if (hasValue && !grade) invalidCellCount += 1
       })
 
+      // 匹配系统学生以复用 studentId，未匹配时生成临时 ID
       const systemStudent = systemStudentByName.get(name)
       const hasAnyGrade = Object.values(gradeValues).some(Boolean)
       return {
@@ -120,6 +128,7 @@ export const recalculateNoticeGrades = (options: {
   subjects: ScoreNoticeSubjectType[]
   students: ScoreNoticeImportResultType['students']
 }): ScoreNoticeImportResultType['students'] => {
+  // 按最新科目规则重算每个学生的等级，保持学生数组原始顺序
   return options.students.map((student) => ({
     ...student,
     gradeValues: options.subjects.reduce<Record<string, string | null>>((result, subject) => {

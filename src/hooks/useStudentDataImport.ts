@@ -136,6 +136,7 @@ export const useStudentDataImport = () => {
   const handleExcelFileChange = async (event: Event) => {
     const input = event.target as HTMLInputElement
     const file = input.files?.[0]
+    // 清空 input 值，允许下次选择同一个文件时仍能触发 change 事件
     input.value = ''
     if (!file) return
 
@@ -147,6 +148,7 @@ export const useStudentDataImport = () => {
    * 保证初始导入、成绩导入、评语导入使用同一套 Excel 行解析规则。
    */
   const applyHeaderRowSelection = (headerRowIndex?: number): boolean => {
+    // 无预览数据时无需解析，直接放行
     if (!excelPreviewRows.value.length) return true
 
     const { header, data } = buildExcelDataFromHeaderRow(
@@ -219,6 +221,7 @@ export const useStudentDataImport = () => {
 
     scoreColumns.value = result.headers
     students.value = result.students
+    // 定位第一个实际导入（非跳过）的列，将其设为成绩页当前激活的标签
     const firstAppliedColumn = pendingScoreColumns.value.find(
       (column) => conflictActions[column] !== 'skip'
     )
@@ -301,6 +304,7 @@ export const useStudentDataImport = () => {
             }
           )
         } catch {
+          // 用户取消确认时直接中止本次导入
           return
         }
       }

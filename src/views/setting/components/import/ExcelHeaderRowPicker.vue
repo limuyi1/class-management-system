@@ -93,9 +93,11 @@ const getCellSpan = ({
   columnIndex: number
 }) => {
   if (columnIndex === 0) {
+    // 首列是行号占位列，不参与合并还原
     return { rowspan: 1, colspan: 1 }
   }
 
+  // 表格数据列比 Excel 列多一个行号列，减 1 后才是真实列索引
   const excelColumnIndex = columnIndex - 1
   const merge = findMergeAtCell(rowIndex, excelColumnIndex)
   if (!merge) {
@@ -108,6 +110,7 @@ const getCellSpan = ({
   }
 
   return {
+    // 跨度裁剪到预览范围内，超出部分不再渲染
     rowspan: Math.min(merge.endRow, PREVIEW_ROW_COUNT - 1) - merge.startRow + 1,
     colspan:
       Math.min(merge.endColumn, previewColumnIndexes.value.length - 1) - merge.startColumn + 1

@@ -1,10 +1,12 @@
 <script setup lang="ts">
 /** 座位图画布 — 渲染讲台、雅座与座位网格，并处理座位拖拽/点击交互 */
-import { computed, shallowRef } from 'vue'
+import { computed, nextTick, onMounted, shallowRef, watch } from 'vue'
+import { ElScrollbar } from 'element-plus'
 
 import { useSeatingChartViewport } from '@/views/seating-chart/composables/useSeatingChartViewport'
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatPositionType,
   type SeatingRoleAssignmentType,
@@ -13,6 +15,8 @@ import {
   type SeatingSpecialSeatType
 } from '@/types/SeatingChart'
 import { getSeatKey } from '@/utils/seating-chart/seatingChartUtil'
+
+import type { CSSProperties } from 'vue'
 
 const props = defineProps<{
   /** 当前座位表 */
@@ -29,25 +33,35 @@ const props = defineProps<{
   roleAssignments: SeatingRoleAssignmentType[]
 }>()
 
-/** 事件：拖拽开始/结束、落座/点选普通座位与雅座 */
 const emit = defineEmits<{
+  /** 开始拖拽某个座位上的学生（参数为其学生 ID，空座位为 null） */
   dragStart: [studentId: string | null]
+  /** 拖拽结束 */
   dragEnd: []
+  /** 学生被拖放到普通座位 */
   dropSeat: [seat: SeatPositionType]
+  /** 点选普通座位 */
   selectSeat: [seat: SeatPositionType]
+  /** 学生被拖放到雅座 */
   dropSpecialSeat: [position: SeatingSpecialSeatPositionEnum]
+  /** 点选雅座 */
   selectSpecialSeat: [seat: SeatingSpecialSeatType]
+  /** 打开学生职务右键菜单（携带屏幕坐标） */
   openStudentMenu: [studentId: string, x: number, y: number]
 }>()
 
 // 座位网格视口元素，供缩放计算测量
 const seatViewportRef = shallowRef<HTMLElement | null>(null)
+// Element Plus 滚动容器实例，用于切换视角后定位到讲台一侧
+const seatScrollbarRef = shallowRef<InstanceType<typeof ElScrollbar> | null>(null)
+// 座位区的横向滚动距离，用于同步独立列头轨道
+const seatScrollLeft = shallowRef(0)
 // 行列数与过道数等视口缩放依赖的响应式输入
 const rows = computed(() => props.chart.rows)
 const columns = computed(() => props.chart.columns)
 const aisleCount = computed(() => props.chart.aisleAfterColumns.length)
 // 布局键用于在行列或方向变化时触发视口重新缩放
-const layoutKey = computed(() => props.chart.firstColumnSide)
+const layoutKey = computed(() => `${props.chart.firstColumnSide}-${props.chart.platformPosition}`)
 // 第一行的可见座位，用于渲染列头
 const visibleColumnSeats = computed(() => props.visibleSeatRows[0] || [])
 // 是否存在启用的雅座
@@ -55,6 +69,10 @@ const hasSpecialSeats = computed(() => props.chart.specialSeats.some((seat) => s
 // 第一列是否位于右侧
 const firstColumnOnRight = computed(
   () => props.chart.firstColumnSide === SeatingFirstColumnSideEnum.Right
+)
+// 讲台是否位于座位网格下方
+const platformOnBottom = computed(
+  () => props.chart.platformPosition === SeatingPlatformPositionEnum.Bottom
 )
 /** 职务 ID 到定义的映射 */
 const roleDefinitionMap = computed(
@@ -75,13 +93,58 @@ const studentRoles = computed(
 )
 
 // 根据画布可用空间自动缩放座位网格
-const { stageStyle, contentStyle } = useSeatingChartViewport({
+const { scale, stageStyle, contentStyle, refresh } = useSeatingChartViewport({
   viewportRef: seatViewportRef,
   rows,
   columns,
   aisleCount,
-  layoutKey
+  layoutKey,
+  hasInlineColumnHeader: false
 })
+
+/** 独立列头轨道的缩放舞台，与座位舞台保持相同宽度和横向偏移。 */
+const columnHeaderStageStyle = computed<CSSProperties>(() => ({
+  width: stageStyle.value.width,
+  height: `${Math.ceil(42 * scale.value)}px`,
+  transform: `translateX(${-seatScrollLeft.value}px)`
+}))
+/** 列头内容使用与座位相同的缩放比例。 */
+const columnHeaderContentStyle = computed<CSSProperties>(() => ({
+  width: contentStyle.value.width,
+  height: '42px',
+  transform: `scale(${scale.value})`
+}))
+
+/** 同步 Element Plus 滚动位置到独立列头轨道。 */
+function handleSeatScroll(position: { scrollLeft: number }): void {
+  seatScrollLeft.value = position.scrollLeft
+}
+
+/**
+ * 切换视角后将纵向滚动位置定位到讲台一侧，横向位置保持不变。
+ * 先等待布局和缩放刷新，避免使用切换前的滚动高度。
+ */
+async function alignScrollWithPlatform(): Promise<void> {
+  await refresh()
+  await nextTick()
+  const scrollbar = seatScrollbarRef.value
+  const wrap = scrollbar?.wrapRef
+  if (!scrollbar || !wrap) return
+  scrollbar.update()
+  seatScrollLeft.value = wrap.scrollLeft
+  scrollbar.scrollTo({
+    left: wrap.scrollLeft,
+    top: platformOnBottom.value ? wrap.scrollHeight : 0
+  })
+}
+
+watch(
+  () => props.chart.platformPosition,
+  () => void alignScrollWithPlatform(),
+  { flush: 'post' }
+)
+
+onMounted(() => void alignScrollWithPlatform())
 
 /**
  * 判断座位后是否需要渲染过道。
@@ -113,7 +176,7 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
 </script>
 
 <template>
-  <div class="classroom">
+  <div class="classroom" :class="{ 'platform-on-bottom': platformOnBottom }">
     <!-- 讲台与两侧雅座 -->
     <div class="platform-shell">
       <div class="platform-row" :class="{ 'has-special-seats': hasSpecialSeats }">
@@ -167,10 +230,11 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
     </div>
 
     <!-- 座位网格视口：列头、行头与座位 -->
-    <div ref="seatViewportRef" class="seat-viewport">
-      <div class="seat-stage" :style="stageStyle">
-        <div class="seat-content" :style="contentStyle">
-          <div class="seat-layout">
+    <div class="seat-viewport" :class="{ 'platform-on-bottom': platformOnBottom }">
+      <!-- 独立列头轨道始终占位，纵向滚动时不会覆盖学生卡片 -->
+      <div class="seat-column-header-rail">
+        <div class="seat-column-header-stage" :style="columnHeaderStageStyle">
+          <div class="seat-column-header-content" :style="columnHeaderContentStyle">
             <div class="seat-column-headers">
               <span class="seat-axis-corner" aria-hidden="true"></span>
               <template v-for="seat in visibleColumnSeats" :key="`column-${seat.column}`">
@@ -185,62 +249,75 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
                 ></span>
               </template>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div class="seat-rows">
-              <div v-for="(row, rowIndex) in visibleSeatRows" :key="row[0].row" class="seat-row">
-                <span class="seat-row-header">
-                  <strong class="seat-axis-number">{{ row[0].row + 1 }}</strong>
-                  <small class="seat-axis-unit">排</small>
-                </span>
-                <template v-for="seat in row" :key="getSeatKey(seat.row, seat.column)">
-                  <button
-                    class="seat"
-                    :class="{
-                      occupied: seat.studentId,
-                      selected: seat.studentId === selectedStudentId
-                    }"
-                    draggable="true"
-                    @dragstart="emit('dragStart', seat.studentId)"
-                    @dragend="emit('dragEnd')"
-                    @dragover.prevent
-                    @drop="emit('dropSeat', seat)"
-                    @click="emit('selectSeat', seat)"
-                    @contextmenu.prevent="openStudentMenu($event, seat.studentId)"
-                  >
-                    <span v-if="seat.studentId" class="seat__name">
-                      {{ studentNames.get(seat.studentId) }}
-                    </span>
-                    <span v-else class="seat__empty">＋ 空座位</span>
-                    <span v-if="getStudentRoles(seat.studentId).length" class="seat__roles">
-                      <span
-                        v-for="role in getStudentRoles(seat.studentId).slice(0, 2)"
-                        :key="role.id"
-                        class="seat__role"
-                        :title="
-                          [role.subject, role.groupName, role.title].filter(Boolean).join(' · ')
-                        "
-                        :style="{ color: role.color, borderColor: role.color }"
-                        >{{ role.shortLabel }}</span
-                      >
-                      <span
-                        v-if="getStudentRoles(seat.studentId).length > 2"
-                        class="seat__role-more"
-                      >
-                        +{{ getStudentRoles(seat.studentId).length - 2 }}
+      <div ref="seatViewportRef" class="seat-scroll-area">
+        <ElScrollbar
+          ref="seatScrollbarRef"
+          class="seat-scrollbar"
+          always
+          @scroll="handleSeatScroll"
+        >
+          <div class="seat-stage" :style="stageStyle">
+            <div class="seat-content" :style="contentStyle">
+              <div class="seat-rows">
+                <div v-for="(row, rowIndex) in visibleSeatRows" :key="row[0].row" class="seat-row">
+                  <span class="seat-row-header">
+                    <strong class="seat-axis-number">{{ row[0].row + 1 }}</strong>
+                    <small class="seat-axis-unit">排</small>
+                  </span>
+                  <template v-for="seat in row" :key="getSeatKey(seat.row, seat.column)">
+                    <button
+                      class="seat"
+                      :class="{
+                        occupied: seat.studentId,
+                        selected: seat.studentId === selectedStudentId
+                      }"
+                      draggable="true"
+                      @dragstart="emit('dragStart', seat.studentId)"
+                      @dragend="emit('dragEnd')"
+                      @dragover.prevent
+                      @drop="emit('dropSeat', seat)"
+                      @click="emit('selectSeat', seat)"
+                      @contextmenu.prevent="openStudentMenu($event, seat.studentId)"
+                    >
+                      <span v-if="seat.studentId" class="seat__name">
+                        {{ studentNames.get(seat.studentId) }}
                       </span>
-                    </span>
-                  </button>
-                  <span
-                    v-if="hasAisleAfterSeat(seat)"
-                    class="aisle"
-                    :class="{ 'aisle--last': rowIndex === visibleSeatRows.length - 1 }"
-                    aria-hidden="true"
-                  ></span>
-                </template>
+                      <span v-else class="seat__empty">＋ 空座位</span>
+                      <span v-if="getStudentRoles(seat.studentId).length" class="seat__roles">
+                        <span
+                          v-for="role in getStudentRoles(seat.studentId).slice(0, 2)"
+                          :key="role.id"
+                          class="seat__role"
+                          :title="
+                            [role.subject, role.groupName, role.title].filter(Boolean).join(' · ')
+                          "
+                          :style="{ color: role.color, borderColor: role.color }"
+                          >{{ role.shortLabel }}</span
+                        >
+                        <span
+                          v-if="getStudentRoles(seat.studentId).length > 2"
+                          class="seat__role-more"
+                        >
+                          +{{ getStudentRoles(seat.studentId).length - 2 }}
+                        </span>
+                      </span>
+                    </button>
+                    <span
+                      v-if="hasAisleAfterSeat(seat)"
+                      class="aisle"
+                      :class="{ 'aisle--last': rowIndex === visibleSeatRows.length - 1 }"
+                      aria-hidden="true"
+                    ></span>
+                  </template>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </ElScrollbar>
       </div>
     </div>
   </div>
@@ -255,6 +332,14 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
   min-height: 0;
   overflow: hidden;
   background: radial-gradient(circle at 1px 1px, #e8e3ec 1px, transparent 0) 0 0/18px 18px #fbfafc;
+}
+
+.classroom.platform-on-bottom {
+  flex-direction: column-reverse;
+}
+
+.classroom.platform-on-bottom .platform-shell {
+  padding: 8px 20px 14px;
 }
 
 .platform-shell {
@@ -425,13 +510,48 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
 
 .seat-viewport {
   position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.seat-viewport.platform-on-bottom {
+  flex-direction: column-reverse;
+}
+
+.seat-scroll-area {
   flex: 1;
   min-width: 0;
   min-height: 0;
-  padding: 18px 20px 22px;
-  overflow: auto;
+}
+
+.seat-scrollbar {
+  width: 100%;
+  height: 100%;
+}
+
+.seat-scrollbar :deep(.el-scrollbar__wrap) {
+  box-sizing: border-box;
+  padding: 12px 20px;
   overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+}
+
+.seat-scrollbar :deep(.el-scrollbar__view) {
+  display: flex;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.seat-scrollbar :deep(.el-scrollbar__bar) {
+  z-index: 8;
+}
+
+.seat-scrollbar :deep(.el-scrollbar__thumb) {
+  background-color: rgba(104, 75, 142, 0.42);
 }
 
 .seat-stage {
@@ -440,18 +560,41 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
   margin: auto;
 }
 
-.seat-content {
+.seat-column-header-rail {
+  position: sticky;
+  top: 0;
+  z-index: 7;
+  flex: 0 0 54px;
+  box-sizing: border-box;
+  padding: 6px 20px;
+  overflow: hidden;
+  background: #fbfafc;
+}
+
+.seat-viewport.platform-on-bottom .seat-column-header-rail {
+  top: auto;
+  bottom: 0;
+}
+
+.seat-column-header-stage {
+  position: relative;
+  min-width: 0;
+  margin: auto;
+  transform-origin: top left;
+}
+
+.seat-column-header-content {
   position: absolute;
   top: 0;
   left: 0;
   transform-origin: top left;
 }
 
-.seat-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: max-content;
+.seat-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
 }
 
 .seat-column-headers,
@@ -462,13 +605,8 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
 }
 
 .seat-column-headers {
-  position: sticky;
-  top: 0;
-  z-index: 4;
   height: 42px;
   background: #fbfafc;
-  box-shadow: 0 12px 0 #fbfafc;
-  backdrop-filter: blur(8px);
   isolation: isolate;
 }
 
@@ -582,7 +720,8 @@ function openStudentMenu(event: MouseEvent, studentId: string | null): void {
     min-width: 84px;
   }
 
-  .seat-viewport {
+  .seat-scrollbar :deep(.el-scrollbar__wrap),
+  .seat-column-header-rail {
     padding-inline: 12px;
   }
 }

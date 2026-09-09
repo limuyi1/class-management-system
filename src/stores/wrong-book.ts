@@ -84,10 +84,12 @@ export const useWrongBookStore = defineStore('wrongBook', {
     folderTree: (state): WrongFolderTree[] => {
       const buildTree = (parentId?: string): WrongFolderTree[] => {
         return state.folders
+          // 取出当前层级的子文件夹（顶层节点 parentId 为 undefined），并按 order 升序排列
           .filter((f) => f.parentId === parentId)
           .sort((a, b) => a.order - b.order)
           .map((f) => ({
             ...f,
+            // 递归构建每个文件夹的子级树
             children: buildTree(f.id)
           }))
       }
@@ -134,6 +136,7 @@ export const useWrongBookStore = defineStore('wrongBook', {
      * @returns 新创建的文件夹对象
      */
     addFolder(name: string, parentId?: string) {
+      // 取同级文件夹的最大排序值，新文件夹追加到末尾
       const maxOrder = this.folders
         .filter((f) => f.parentId === parentId)
         .reduce((max, f) => Math.max(max, f.order), -1)
@@ -166,10 +169,13 @@ export const useWrongBookStore = defineStore('wrongBook', {
     deleteFolder(id: string) {
       if (id === 'default') return
       const deleteRecursively = (folderId: string) => {
+        // 深度优先：先递归删除所有子文件夹
         const children = this.folders.filter((f) => f.parentId === folderId)
         children.forEach((c) => deleteRecursively(c.id))
+        // 再删除该文件夹下的所有题目
         const folderQuestions = this.questions.filter((q) => q.folderId === folderId)
         folderQuestions.forEach((q) => this.deleteQuestion(q.id))
+        // 最后删除文件夹自身
         const index = this.folders.findIndex((f) => f.id === folderId)
         if (index !== -1) {
           this.folders.splice(index, 1)
@@ -177,6 +183,7 @@ export const useWrongBookStore = defineStore('wrongBook', {
       }
       deleteRecursively(id)
 
+      // 若删除的是当前选中文件夹，回退选中默认文件夹
       if (this.selectedFolderId === id) {
         this.selectedFolderId = 'default'
       }

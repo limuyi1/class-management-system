@@ -9,30 +9,50 @@ import type { CommentWorkspaceSourceType } from '@/types/CommentWorkspace'
 
 /** 评语工作区工具栏的 Props */
 interface Props {
+  /** 数据源类型：系统学生或临时 Excel */
   source: CommentWorkspaceSourceType
+  /** 系统学生人数 */
   systemStudentCount: number
+  /** 已导入的 Excel 文件名 */
   excelFileName?: string
+  /** Excel 中的学生人数 */
   excelStudentCount?: number
+  /** 已完成的评语数 */
   completedCount: number
+  /** 评语总数 */
   totalCount: number
+  /** 完成百分比（0-100） */
   percentage: number
+  /** 是否存在可处理的评语数据 */
   hasData: boolean
+  /** 是否正在批量处理 */
   batchProcessing: boolean
+  /** 是否正在导出 */
   exporting: boolean
+  /** 当前手写字体名 */
   handwriteFontName?: string
+  /** 手写字体的展示名称 */
   displayHandwriteFontName: string
+  /** 是否正在应用手写字体 */
   handwriteFontApplying: boolean
 }
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 切换数据源 */
   sourceChange: [source: CommentWorkspaceSourceType]
+  /** 上传 Excel */
   upload: []
+  /** 批量处理命令 */
   batchAction: [command: string | number | object]
+  /** 导出命令 */
   exportAction: [command: string | number | object]
+  /** 重置评语 */
   reset: []
+  /** 选择手写字体 */
   chooseFont: []
+  /** 恢复默认手写字体 */
   clearFont: []
 }>()
 

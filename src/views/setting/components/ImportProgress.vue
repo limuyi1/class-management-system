@@ -7,8 +7,11 @@ import { ref, watch } from 'vue'
 
 /** 组件入参：弹窗显隐、标题与进度百分比 */
 interface Props {
+  /** 弹窗是否可见（v-model:visible 双向绑定） */
   visible: boolean
+  /** 弹窗标题 */
   title?: string
+  /** 进度百分比 */
   percent?: number
 }
 
@@ -18,6 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
+  /** 弹窗显隐状态变化（v-model:visible 双向绑定） */
   'update:visible': [value: boolean]
 }>()
 

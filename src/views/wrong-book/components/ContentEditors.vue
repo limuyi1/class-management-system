@@ -5,19 +5,26 @@ import MarkdownEditor from '@/components/MarkdownEditor.vue'
 
 /** 题目、答案与解析的文本内容 */
 interface Props {
+  /** 题目内容 */
   questionText: string
+  /** 答案内容 */
   answer: string
+  /** 解析内容 */
   explanation: string
 }
 
 defineProps<Props>()
 
-/** 文本更新、插入图片与激活编辑器事件 */
 const emit = defineEmits<{
+  /** 题目内容更新 */
   'update:questionText': [value: string]
+  /** 答案内容更新 */
   'update:answer': [value: string]
+  /** 解析内容更新 */
   'update:explanation': [value: string]
+  /** 请求在编辑器内插入图片 */
   'insert-image': []
+  /** 记录当前激活的编辑器字段 */
   'set-active-editor': [field: 'question' | 'answer' | 'explanation']
 }>()
 

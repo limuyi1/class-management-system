@@ -1,3 +1,4 @@
+/** 素材库服务：图片归一化、素材记录的增删改查、排序、旋转与裁剪写回 */
 import { db } from '@/db'
 import { base64ToBlob, blobToDataUrl, fileToBlob } from '@/utils/fileUtil'
 import type { AttachmentRecordType } from '@/types/Tools'
@@ -76,11 +77,13 @@ const normalizeImageBlob = async (file: File): Promise<Blob> => {
   const context = canvas.getContext('2d')
   if (!context) return blob
 
+  // 先铺白色背景再绘制原图，消除透明像素对排版预览的影响
   context.fillStyle = '#ffffff'
   context.fillRect(0, 0, canvas.width, canvas.height)
   context.drawImage(image, 0, 0)
 
   return new Promise((resolve) => {
+    // 0.92 为 JPEG 压缩质量，兼顾清晰度与体积
     canvas.toBlob((nextBlob) => resolve(nextBlob || blob), 'image/jpeg', 0.92)
   })
 }

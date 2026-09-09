@@ -1,23 +1,31 @@
 <script setup lang="ts">
+/** 全屏展开编辑弹窗 — 以更大版面编辑错题的题目、答案与解析 */
 import { ref, watch } from 'vue'
 import { ElDialog, ElButton } from 'element-plus'
 import MarkdownEditor from '@/components/MarkdownEditor.vue'
 
 /** 弹窗可见性与三个编辑器的初始内容 */
 interface Props {
+  /** 弹窗可见性 */
   visible: boolean
+  /** 题目初始内容 */
   questionText: string
+  /** 答案初始内容 */
   answer: string
+  /** 解析初始内容 */
   explanation: string
 }
 
 const props = defineProps<Props>()
 
-/** 可见性与三个字段内容的更新事件 */
 const emit = defineEmits<{
+  /** 更新弹窗可见性 */
   'update:visible': [value: boolean]
+  /** 题目内容更新 */
   'update:questionText': [value: string]
+  /** 答案内容更新 */
   'update:answer': [value: string]
+  /** 解析内容更新 */
   'update:explanation': [value: string]
 }>()
 

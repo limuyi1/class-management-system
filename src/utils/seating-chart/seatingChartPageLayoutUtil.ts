@@ -83,28 +83,35 @@ export function buildSeatingChartPageLayout(
   showTitle = true
 ): SeatingChartPageLayoutType {
   const { width: pageWidth, height: pageHeight } = getSeatingChartPageSize(pageType, orientation)
+  // 大幅面纸张（A3/B3）留白更大
   const margin = pageType === PagesEnum.A3 || pageType === PagesEnum.B3 ? 24 : 18
   const availableWidth = pageWidth - margin * 2
   const availableHeight = pageHeight - margin * 2
+  // 自然内容宽度 = 行标 + 座位区（座位 + 间距 + 过道）
   const naturalGridWidth =
     BASE_ROW_HEADER_WIDTH +
     BASE_SEAT_GAP +
     chart.columns * BASE_SEAT_WIDTH +
     Math.max(0, chart.columns - 1) * BASE_SEAT_GAP +
     chart.aisleAfterColumns.length * BASE_AISLE_WIDTH
+  // 自然内容高度 = 列标 + 座位区
   const naturalGridHeight =
     BASE_COLUMN_HEADER_HEIGHT +
     BASE_SEAT_GAP +
     chart.rows * BASE_SEAT_HEIGHT +
     Math.max(0, chart.rows - 1) * BASE_SEAT_GAP
   const enabledSpecialSeatCount = chart.specialSeats.filter((seat) => seat.enabled).length
+  // 讲台宽度按启用的特殊座位数量向外扩展
   const naturalPlatformWidth =
     BASE_PLATFORM_WIDTH +
     enabledSpecialSeatCount * (BASE_SPECIAL_SEAT_WIDTH + BASE_SPECIAL_SEAT_GAP)
+  // 内容宽度取座位网格与讲台两者的较大值
   const naturalContentWidth = Math.max(naturalGridWidth, naturalPlatformWidth)
+  // 标题块高度仅在显示标题时计入
   const naturalHeaderHeight = showTitle
     ? BASE_TITLE_HEIGHT + BASE_TITLE_DIVIDER_GAP + BASE_DIVIDER_CLASSROOM_GAP
     : 0
+  // 内容总高度 = 标题 + 网格 + 讲台 + 页脚
   const naturalContentHeight =
     naturalHeaderHeight +
     naturalGridHeight +
@@ -112,10 +119,12 @@ export function buildSeatingChartPageLayout(
     BASE_PLATFORM_HEIGHT +
     BASE_FOOTER_GAP +
     BASE_FOOTER_HEIGHT
+  // 适配比例取宽、高两个方向中的较小值，保证内容完整不裁切
   const fitScale = Math.min(
     availableWidth / naturalContentWidth,
     availableHeight / naturalContentHeight
   )
+  // 用户字体缩放系数限制在 [0.1, 1.5] 区间内
   const occupancy = Math.min(1.5, Math.max(0.1, scaleRatio))
 
   return {
@@ -123,6 +132,7 @@ export function buildSeatingChartPageLayout(
     pageHeight,
     margin,
     fitScale,
+    // 实际字号缩放 = 页面适配比例 × 用户字体缩放
     fontScale: fitScale * occupancy
   }
 }

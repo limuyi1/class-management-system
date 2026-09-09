@@ -17,8 +17,8 @@ import { startLoading, stopLoading } from '@/hooks/useLoading'
 import { NAME_PROP } from '@/constants'
 import type { StudentDataType } from '@/types/StudentData'
 
-/** 组件属性：是否禁用导出 */
 interface Props {
+  /** 是否禁用导出 */
   disabled?: boolean
 }
 
@@ -100,6 +100,7 @@ const buildSheetWithStats = (
     ...buildScoreRow(e)
   ])
 
+  // 页脚每行前两列合并为一段统计标签，跨“序号/姓名”两列
   const merges = footerRows.map((_, i) => ({
     s: { r: body.length + 1 + i, c: 0 },
     e: { r: body.length + 1 + i, c: 1 }
@@ -116,6 +117,7 @@ const exportExcelFun = () => {
   const workbook = XLSX.utils.book_new()
   const filename = `成绩_${dayjs().format('YYYY-MM-DD_HH:mm:ss')}.xlsx`
 
+  // 统计值转为数字，便于 Excel 排序与计算
   const footer: CellValueType[][] = [
     ['平均分', null, Number(store.average.toFixed(2))],
     ['及格率', null, `${store.passRate.toFixed(2)}%`],
@@ -126,6 +128,7 @@ const exportExcelFun = () => {
     const score = getScore(e)
     return [String(i + 1), e[NAME_PROP], score !== null ? Number(score) : '']
   })
+  // 页脚每行前两列合并为一段统计标签，跨“序号/姓名”两列
   const merges = footer.map((_, i) => ({
     s: { r: body.length + 1 + i, c: 0 },
     e: { r: body.length + 1 + i, c: 1 }

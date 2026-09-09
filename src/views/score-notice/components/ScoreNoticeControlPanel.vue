@@ -12,38 +12,58 @@ import ScoreNoticeSettingsStep from '@/views/score-notice/components/ScoreNotice
 import { useScoreNoticeStore } from '@/stores/score-notice'
 
 interface Props {
+  /** AI 是否已配置 */
   aiConfigured: boolean
+  /** 是否正在批量生成 */
   batchGenerating: boolean
+  /** 批量生成已处理人数 */
   batchProcessed: number
+  /** 批量生成总人数 */
   batchTotal: number
+  /** 是否正在单条生成 */
   singleGenerating: boolean
+  /** 手写字体展示名称 */
   handwriteFontName: string
+  /** 是否应用了自定义手写字体 */
   hasCustomHandwriteFont: boolean
+  /** 手写字体是否正在应用 */
   handwriteFontApplying: boolean
+  /** 是否正在导出 ZIP */
   exporting: boolean
+  /** 导出已处理人数 */
   exportProcessed: number
 }
 
 /** 制作流程步骤编号：1 导入、2 设置、3 评语 */
 type StepType = 1 | 2 | 3
+/** 批量生成模式：仅填充空白或覆盖全部 */
 type BatchGenerateModeType = 'skip' | 'overwrite'
 
 defineProps<Props>()
 
 const emit = defineEmits<{
+  /** 打开导入对话框 */
   openImport: []
+  /** 发起批量生成，携带覆盖模式 */
   generateBatch: [mode: BatchGenerateModeType]
+  /** 停止批量生成 */
   stopBatch: []
+  /** 单条生成当前学生评语 */
   generateSingle: []
+  /** 选择手写字体文件 */
   chooseHandwriteFont: []
+  /** 清除自定义手写字体 */
   clearHandwriteFont: []
+  /** 复制当前学生评语图片 */
   copyImage: []
+  /** 导出全部通知 ZIP */
   exportZip: []
 }>()
 
 const store = useScoreNoticeStore()
 // 已导入数据时默认展开设置步骤，否则只展开导入步骤
 const expandedSteps = ref<Array<StepType>>(store.students.length ? [2] : [1])
+/** 评语工作区是否存在未保存修改，用于导出栏提示 */
 const hasUnsavedComment = shallowRef(false)
 const commentWorkspaceRef = ref<InstanceType<typeof ScoreNoticeCommentWorkspace> | null>(null)
 

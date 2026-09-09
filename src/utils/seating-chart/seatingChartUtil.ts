@@ -5,6 +5,7 @@
 import {
   SeatingSpecialSeatPositionEnum,
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   type SeatingRoleAssignmentType,
   type SeatingRoleDefinitionType,
   type SeatPositionType,
@@ -48,6 +49,7 @@ function normalizeRoleDefinitions(chart: SeatingChartType): SeatingRoleDefinitio
   if (!Array.isArray(chart.roleDefinitions)) return createDefaultSeatingRoles()
   const seen = new Set<string>()
   return chart.roleDefinitions.flatMap((role, index) => {
+    // 跳过无 id 或重复 id 的条目，其余字段逐项容错兜底
     if (!role?.id || seen.has(role.id)) return []
     seen.add(role.id)
     return [
@@ -72,6 +74,7 @@ function normalizeRoleAssignments(
 ): SeatingRoleAssignmentType[] {
   if (!Array.isArray(chart.roleAssignments)) return []
   const roleIds = new Set(roles.map((role) => role.id))
+  // 按学生聚合职务并去重，过滤无效学生与无效职务
   const assignments = new Map<string, Set<string>>()
   chart.roleAssignments.forEach((assignment) => {
     if (!studentIds.has(assignment?.studentId) || !Array.isArray(assignment.roleIds)) return
@@ -88,8 +91,10 @@ function normalizeRoleAssignments(
 }
 
 /** 旧版座位表结构：firstColumnSide 可能缺失，viewDirection 为旧字段 */
-interface LegacySeatingChartType extends Omit<SeatingChartType, 'firstColumnSide'> {
+interface LegacySeatingChartType
+  extends Omit<SeatingChartType, 'firstColumnSide' | 'platformPosition'> {
   firstColumnSide?: SeatingFirstColumnSideEnum
+  platformPosition?: SeatingPlatformPositionEnum
   viewDirection?: 'facing-platform' | 'facing-students'
 }
 
@@ -173,6 +178,11 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     legacyChart.viewDirection === 'facing-students'
       ? SeatingFirstColumnSideEnum.Right
       : SeatingFirstColumnSideEnum.Left
+  const platformPosition =
+    legacyChart.platformPosition === SeatingPlatformPositionEnum.Bottom
+      ? SeatingPlatformPositionEnum.Bottom
+      : SeatingPlatformPositionEnum.Top
+  // 行列数取整并限制在 [1, 20] 区间内
   const rows = Math.min(
     SEATING_CHART_MAX_SIZE,
     Math.max(SEATING_CHART_MIN_SIZE, Math.floor(chart.rows))
@@ -181,6 +191,7 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     SEATING_CHART_MAX_SIZE,
     Math.max(SEATING_CHART_MIN_SIZE, Math.floor(chart.columns))
   )
+  // seen 记录已占用学生的 ID，防止同一学生出现在多个座位
   const seen = new Set<string>()
   const stored = new Map(
     chart.seats.map((seat) => [getSeatKey(seat.row, seat.column), seat.studentId])
@@ -193,6 +204,7 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     return { ...seat, studentId }
   })
   const storedSpecialSeats = Array.isArray(chart.specialSeats) ? chart.specialSeats : []
+  // 特殊座位保留启用状态，学生无效或已占用时仅清空学生
   const specialSeats = createSpecialSeats().map((defaultSeat) => {
     const storedSeat = storedSpecialSeats.find((seat) => seat.position === defaultSeat.position)
     const studentId = storedSeat?.studentId
@@ -203,6 +215,7 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     return { ...defaultSeat, enabled: true, studentId }
   })
   const normalizedChart = { ...legacyChart }
+  // 删除旧版字段 viewDirection，避免继续持久化
   delete normalizedChart.viewDirection
   const roleDefinitions = normalizeRoleDefinitions(chart)
   return {
@@ -210,6 +223,7 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     rows,
     columns,
     firstColumnSide,
+    platformPosition,
     seats,
     specialSeats,
     roleDefinitions,
@@ -247,20 +261,24 @@ export function createRandomSeats(
   const seats = supplement
     ? chart.seats.map((seat) => ({ ...seat }))
     : createSeats(chart.rows, chart.columns)
+  // 汇总普通座位与特殊座位中已占用学生的 ID
   const assigned = new Set([
     ...seats.map((seat) => seat.studentId).filter(Boolean),
     ...chart.specialSeats.map((seat) => seat.studentId).filter(Boolean)
   ] as string[])
+  // 候选学生只包含尚未被安排的学生
   const candidates = studentIds.filter((id) => !assigned.has(id))
   /**
    * 随机排座只打乱学生，不打乱座位位置。
    * 按排、列从前往后填充，人数不足时空座会稳定集中在最后一排。
    * 补充模式沿用同一顺序，但不会移动已经安排好的学生。
    */
+  // 空座位按行、列升序排列，保证填充顺序稳定可预期
   const emptySeats = seats
     .filter((seat) => !seat.studentId)
     .sort((left, right) => left.row - right.row || left.column - right.column)
   const shuffledCandidates = shuffled(candidates)
+  // 依次填入打乱后的候选学生，超出空座数的学生进入未分配列表
   const randomizedStudentIds = shuffledCandidates.slice(0, emptySeats.length)
   const unassignedStudentIds = shuffledCandidates.slice(emptySeats.length)
   emptySeats.forEach((seat, index) => {
@@ -277,10 +295,13 @@ export function createRandomSeats(
 /**
  * 按第一列朝向返回展示顺序的座位列表。
  * @param chart - 座位表
- * @returns 排序后的座位数组（先按行，再按列，朝向右侧时列倒序）
+ * @returns 排序后的座位数组（讲台在下时排倒序；列顺序由第一列朝向决定）
  */
 export function getVisibleSeats(chart: SeatingChartType): SeatPositionType[] {
   const seats = [...chart.seats]
+  const rowOrder = chart.platformPosition === SeatingPlatformPositionEnum.Bottom ? -1 : 1
   const columnOrder = chart.firstColumnSide === SeatingFirstColumnSideEnum.Right ? -1 : 1
-  return seats.sort((a, b) => a.row - b.row || (a.column - b.column) * columnOrder)
+  return seats.sort(
+    (a, b) => (a.row - b.row) * rowOrder || (a.column - b.column) * columnOrder
+  )
 }

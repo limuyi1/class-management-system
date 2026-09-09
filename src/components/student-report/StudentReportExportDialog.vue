@@ -1,4 +1,5 @@
 <script setup lang="ts">
+/** 学习报告导出弹窗：组织报告数据、管理正文状态流转并提供模板/AI 生成与 PNG 导出 */
 import { computed, nextTick, ref, watch } from 'vue'
 
 import { storeToRefs } from 'pinia'
@@ -157,6 +158,7 @@ const generateContent = async (): Promise<void> => {
       }
     )
 
+    // AI 返回空内容时回退模板文本，保证正文始终可用
     content.value = nextContent.trim() || buildStudentReportTemplateText(report.value)
     contentStatus.value = 'ready'
   } catch (error) {

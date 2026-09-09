@@ -3,7 +3,11 @@ import { createPinia, setActivePinia } from 'pinia'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSeatingChartStore } from '@/stores/seating-chart'
-import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
+import {
+  SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
+  type SeatingChartType
+} from '@/types/SeatingChart'
 
 /**
  * useSeatingChartStore store 测试
@@ -150,6 +154,20 @@ describe('useSeatingChartStore', () => {
     store.setFirstColumnSide(SeatingFirstColumnSideEnum.Left)
 
     expect(store.editingChart?.firstColumnSide).toBe(SeatingFirstColumnSideEnum.Left)
+  })
+
+  it('switches the platform position without changing seat assignments', () => {
+    const store = useSeatingChartStore()
+    const chart = store.createChart({ studentSource: 'system', rows: 2, columns: 2 })
+    chart.seats[0].studentId = 'student-1'
+    const seatsBeforeSwitch = chart.seats.map((seat) => ({ ...seat }))
+
+    expect(chart.platformPosition).toBe(SeatingPlatformPositionEnum.Top)
+
+    store.setPlatformPosition(SeatingPlatformPositionEnum.Bottom)
+
+    expect(chart.platformPosition).toBe(SeatingPlatformPositionEnum.Bottom)
+    expect(chart.seats).toEqual(seatsBeforeSwitch)
   })
 
   it('supports multiple configurable roles per student and keeps them during reseating', () => {

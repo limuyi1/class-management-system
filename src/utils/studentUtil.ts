@@ -24,6 +24,7 @@ export function hasValidStudentIds(students: unknown): students is StudentDataTy
   if (!Array.isArray(students)) return false
 
   const studentIds = new Set<string>()
+  // 逐条校验：对象类型、非空且不重复的字符串 studentId
   for (const student of students) {
     if (!student || typeof student !== 'object' || Array.isArray(student)) return false
 
@@ -54,13 +55,15 @@ export function normalizeStoredStudents(students: unknown): StudentDataType[] {
 export function normalizeRecentScoreEntries(
   value: unknown
 ): Record<string, RecentScoreEntryType[]> {
+  // 非对象（或数组）数据视为无记录
   if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
 
   return Object.fromEntries(
     Object.entries(value).map(([scoreProp, entries]) => [
       scoreProp,
       Array.isArray(entries)
-        ? entries.filter(
+        ? // 仅保留已迁移为合法 studentId 的记录，旧版数组下标记录被过滤掉
+          entries.filter(
             (entry): entry is RecentScoreEntryType =>
               Boolean(
                 entry &&
