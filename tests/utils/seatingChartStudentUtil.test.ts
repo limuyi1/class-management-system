@@ -10,7 +10,11 @@ import {
   buildSystemSeatingStudents,
   resolveSeatingChartStudents
 } from '@/utils/seating-chart/seatingChartStudentUtil'
-import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
+import {
+  SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
+  type SeatingChartType
+} from '@/types/SeatingChart'
 import { createSeats, createSpecialSeats } from '@/utils/seating-chart/seatingChartUtil'
 
 // 构造以 Excel 名单为数据源、包含两名重名学生的测试座位表
@@ -29,6 +33,7 @@ const createChart = (): SeatingChartType => ({
   columns: 2,
   aisleAfterColumns: [],
   firstColumnSide: SeatingFirstColumnSideEnum.Left,
+  platformPosition: SeatingPlatformPositionEnum.Top,
   seats: createSeats(2, 2),
   specialSeats: createSpecialSeats(),
   roleDefinitions: [],

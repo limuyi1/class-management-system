@@ -5,6 +5,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, shallowRef } from 'vue'
 import { PagesEnum } from '@/types/Common'
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatPositionType,
   type SeatingRoleDefinitionType,
@@ -111,6 +112,10 @@ const contentStyle = computed<CSSProperties>(() => ({
 /** 第一列是否位于右侧 */
 const firstColumnOnRight = computed(
   () => props.chart.firstColumnSide === SeatingFirstColumnSideEnum.Right
+)
+/** 讲台是否位于座位网格下方 */
+const platformOnBottom = computed(
+  () => props.chart.platformPosition === SeatingPlatformPositionEnum.Bottom
 )
 /** 将可见座位按行分组渲染 */
 const visibleSeatRows = computed(() => {
@@ -252,7 +257,7 @@ defineExpose({ getElement })
               </header>
 
               <!-- 教室平面图：讲台区 + 座位网格 -->
-              <div class="classroom-plan">
+              <div class="classroom-plan" :class="{ 'platform-on-bottom': platformOnBottom }">
                 <div class="platform-area">
                   <div
                     v-if="isSpecialSeatEnabled(SeatingSpecialSeatPositionEnum.PlatformLeft)"
@@ -345,7 +350,7 @@ defineExpose({ getElement })
                   </div>
                 </div>
 
-                <div class="seat-layout">
+                <div class="seat-layout" :class="{ 'platform-on-bottom': platformOnBottom }">
                   <div class="column-headers">
                     <span class="axis-corner"></span>
                     <template
@@ -518,6 +523,14 @@ defineExpose({ getElement })
   flex-direction: column;
   gap: 26px;
   padding: 28px 4px 24px;
+}
+
+.classroom-plan.platform-on-bottom {
+  flex-direction: column-reverse;
+}
+
+.seat-layout.platform-on-bottom {
+  flex-direction: column-reverse;
 }
 
 .platform-area {

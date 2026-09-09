@@ -5,6 +5,7 @@ import SeatingChartExportPreview from '@/views/seating-chart/components/SeatingC
 import { PagesEnum } from '@/types/Common'
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatingChartType
 } from '@/types/SeatingChart'
@@ -35,6 +36,7 @@ function createChart(): SeatingChartType {
     columns: 2,
     aisleAfterColumns: [0],
     firstColumnSide: SeatingFirstColumnSideEnum.Left,
+    platformPosition: SeatingPlatformPositionEnum.Top,
     seats,
     specialSeats,
     roleDefinitions: [],
@@ -90,6 +92,23 @@ describe('SeatingChartExportPreview', () => {
     expect(wrapper.findAll('.column-header').map((item) => item.text())).toEqual(['2列', '1列'])
     expect(wrapper.findAll('.export-seat')).toHaveLength(4)
     expect(wrapper.findAll('.export-seat').some((item) => item.text() === '空座位')).toBe(false)
+  })
+
+  it('places the platform below the seat grid and mirrors only row order', () => {
+    const chart = createChart()
+    chart.platformPosition = SeatingPlatformPositionEnum.Bottom
+    const wrapper = mount(SeatingChartExportPreview, {
+      props: {
+        chart,
+        studentNames: { 'student-1': '张三', 'student-2': '李四' },
+        showEmptyLabels: true
+      }
+    })
+
+    expect(wrapper.get('.classroom-plan').classes()).toContain('platform-on-bottom')
+    expect(wrapper.get('.seat-layout').classes()).toContain('platform-on-bottom')
+    expect(wrapper.findAll('.row-header').map((item) => item.text())).toEqual(['2排', '1排'])
+    expect(wrapper.findAll('.column-header').map((item) => item.text())).toEqual(['1列', '2列'])
   })
 
   it('renders a paper canvas using the selected page orientation', () => {

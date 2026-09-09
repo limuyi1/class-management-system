@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { useDataSourceStore } from '@/stores/data-source'
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   type SeatingChartStateType,
   type SeatingChartType,
   type SeatPositionType
@@ -151,6 +152,7 @@ export const useSeatingChartStore = defineStore('seatingChart', {
         columns,
         aisleAfterColumns: [],
         firstColumnSide: options.firstColumnSide ?? SeatingFirstColumnSideEnum.Left,
+        platformPosition: SeatingPlatformPositionEnum.Top,
         seats: createSeats(rows, columns),
         specialSeats: createSpecialSeats(),
         roleDefinitions: createDefaultSeatingRoles(),
@@ -305,6 +307,15 @@ export const useSeatingChartStore = defineStore('seatingChart', {
     setFirstColumnSide(side: SeatingFirstColumnSideEnum): void {
       if (!this.editingChart) return
       this.editingChart.firstColumnSide = side
+      this.editingChart.updatedAt = now()
+    },
+    /**
+     * 设置讲台在座位画布中的展示位置，不改变任何座位坐标或学生安排。
+     * @param position - 讲台位置
+     */
+    setPlatformPosition(position: SeatingPlatformPositionEnum): void {
+      if (!this.editingChart) return
+      this.editingChart.platformPosition = position
       this.editingChart.updatedAt = now()
     },
     /**

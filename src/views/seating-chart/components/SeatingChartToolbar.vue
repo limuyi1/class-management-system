@@ -1,5 +1,7 @@
 <script setup lang="ts">
 /** 座位表工具栏 — 展示已安排状态并编排布局、随机排座与导出等操作 */
+import { SeatingPlatformPositionEnum } from '@/types/SeatingChart'
+
 /** 座位表工具栏 props：图表名称、安排统计与全屏状态 */
 interface SeatingChartToolbarPropsType {
   /** 座位表名称 */
@@ -8,6 +10,8 @@ interface SeatingChartToolbarPropsType {
   assignedCount: number
   /** 座位总容量 */
   seatCapacity: number
+  /** 讲台在画布中的位置 */
+  platformPosition: SeatingPlatformPositionEnum
   /** 是否全屏显示 */
   fullscreen: boolean
 }
@@ -30,6 +34,8 @@ const emit = defineEmits<{
   openSpecialSeats: []
   /** 打开职务管理 */
   manageRoles: []
+  /** 切换讲台在画布中的位置 */
+  changePlatformPosition: [position: SeatingPlatformPositionEnum]
   /** 打开随机排座模式选择 */
   randomize: []
   /** 打开导出弹窗 */
@@ -43,6 +49,13 @@ function handleLayoutCommand(command: LayoutCommandType): void {
   if (command === 'layout') emit('openLayout')
   if (command === 'aisles') emit('openAisles')
   if (command === 'special-seats') emit('openSpecialSeats')
+}
+
+/** 将 Element Plus 的单选值收窄为讲台位置枚举并上报。 */
+function changePlatformPosition(value: string | number | boolean | undefined): void {
+  if (value === SeatingPlatformPositionEnum.Top || value === SeatingPlatformPositionEnum.Bottom) {
+    emit('changePlatformPosition', value)
+  }
 }
 </script>
 
@@ -73,6 +86,19 @@ function handleLayoutCommand(command: LayoutCommandType): void {
           </el-dropdown-menu>
         </template>
       </el-dropdown>
+
+      <span class="seating-toolbar__divider" aria-hidden="true"></span>
+
+      <el-radio-group
+        :model-value="platformPosition"
+        class="platform-position-options"
+        size="small"
+        aria-label="讲台位置"
+        @update:model-value="changePlatformPosition"
+      >
+        <el-radio-button :value="SeatingPlatformPositionEnum.Top">讲台在上</el-radio-button>
+        <el-radio-button :value="SeatingPlatformPositionEnum.Bottom">讲台在下</el-radio-button>
+      </el-radio-group>
 
       <span class="seating-toolbar__divider" aria-hidden="true"></span>
 
@@ -160,6 +186,10 @@ function handleLayoutCommand(command: LayoutCommandType): void {
 .seating-toolbar__actions :deep(.el-button) {
   flex-shrink: 0;
   margin-left: 0;
+}
+
+.platform-position-options {
+  flex: 0 0 auto;
 }
 
 .seating-toolbar__chevron {

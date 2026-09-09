@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   SeatingSpecialSeatPositionEnum
 } from '@/types/SeatingChart'
 import { buildSeatingChartExcelRows } from '@/utils/seating-chart/seatingChartExcelUtil'
@@ -18,6 +19,7 @@ function createChart(): SeatingChartType {
     columns: 3,
     aisleAfterColumns: [1],
     firstColumnSide: SeatingFirstColumnSideEnum.Right,
+    platformPosition: SeatingPlatformPositionEnum.Top,
     seats: [
       { row: 0, column: 0, studentId: 'student-1' },
       { row: 0, column: 1, studentId: null },
@@ -67,5 +69,33 @@ describe('seatingChartExcelUtil', () => {
     expect(rows[4]).toEqual(['第 1 排', '李四\n数组', null, '空座位', '张三'])
     expect(rows).toContainEqual(['备注说明'])
     expect(rows).toContainEqual(['每周轮换'])
+  })
+
+  it('places the platform after rows and mirrors only row order in the bottom view', () => {
+    const chart = createChart()
+    chart.platformPosition = SeatingPlatformPositionEnum.Bottom
+    chart.rows = 2
+    chart.seats.push(
+      { row: 1, column: 0, studentId: null },
+      { row: 1, column: 1, studentId: null },
+      { row: 1, column: 2, studentId: 'student-1' }
+    )
+
+    const rows = buildSeatingChartExcelRows(chart, {
+      'student-1': '张三',
+      'student-2': '李四',
+      'student-3': '王五'
+    })
+
+    expect(rows[1]).toEqual(['第 2 排', '张三', null, '空座位', '空座位'])
+    expect(rows[2][0]).toBe('第 1 排')
+    expect(rows[3]).toEqual(['排/列', '第 3 列', '过道', '第 2 列', '第 1 列'])
+    expect(rows[5]).toEqual([
+      '讲台左侧特殊座位',
+      '王五',
+      '讲台',
+      '讲台右侧特殊座位',
+      '未启用'
+    ])
   })
 })

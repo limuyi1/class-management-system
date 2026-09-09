@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx'
 
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   SeatingSpecialSeatPositionEnum
 } from '@/types/SeatingChart'
 import { exportExcel } from '@/utils/xlsxUtil'
@@ -60,21 +61,19 @@ export function buildSeatingChartExcelRows(
   const specialSeatMap = new Map(chart.specialSeats.map((seat) => [seat.position, seat]))
   const leftSeat = specialSeatMap.get(SeatingSpecialSeatPositionEnum.PlatformLeft)
   const rightSeat = specialSeatMap.get(SeatingSpecialSeatPositionEnum.PlatformRight)
-  const rows: SeatingExcelCellType[][] = [
-    [chart.name],
-    [
-      '讲台左侧特殊座位',
-      leftSeat?.enabled ? buildSeatText(chart, studentNames, leftSeat.studentId) : '未启用',
-      '讲台',
-      '讲台右侧特殊座位',
-      rightSeat?.enabled ? buildSeatText(chart, studentNames, rightSeat.studentId) : '未启用'
-    ],
-    [],
-    ['排/列', ...displayColumns.map((column) => (column === null ? '过道' : `第 ${column + 1} 列`))]
+  const platformRow: SeatingExcelCellType[] = [
+    '讲台左侧特殊座位',
+    leftSeat?.enabled ? buildSeatText(chart, studentNames, leftSeat.studentId) : '未启用',
+    '讲台',
+    '讲台右侧特殊座位',
+    rightSeat?.enabled ? buildSeatText(chart, studentNames, rightSeat.studentId) : '未启用'
   ]
+  const seatRows: SeatingExcelCellType[][] = []
+  const rowIndexes = Array.from({ length: chart.rows }, (_, index) => index)
+  if (chart.platformPosition === SeatingPlatformPositionEnum.Bottom) rowIndexes.reverse()
 
-  for (let row = 0; row < chart.rows; row += 1) {
-    rows.push([
+  rowIndexes.forEach((row) => {
+    seatRows.push([
       `第 ${row + 1} 排`,
       ...displayColumns.map((column) => {
         if (column === null) return null
@@ -82,7 +81,16 @@ export function buildSeatingChartExcelRows(
         return buildSeatText(chart, studentNames, seat?.studentId ?? null)
       })
     ])
-  }
+  })
+
+  const columnHeader: SeatingExcelCellType[] = [
+    '排/列',
+    ...displayColumns.map((column) => (column === null ? '过道' : `第 ${column + 1} 列`))
+  ]
+  const rows: SeatingExcelCellType[][] =
+    chart.platformPosition === SeatingPlatformPositionEnum.Bottom
+      ? [[chart.name], ...seatRows, columnHeader, [], platformRow]
+      : [[chart.name], platformRow, [], columnHeader, ...seatRows]
 
   if (chart.notes.trim()) {
     rows.push([], ['备注说明'], ...chart.notes.split('\n').map((line) => [line]))

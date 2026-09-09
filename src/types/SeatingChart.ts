@@ -9,6 +9,14 @@ export enum SeatingFirstColumnSideEnum {
   Right = 'right'
 }
 
+/** 座位表讲台位置：画布上方 / 画布下方 */
+export enum SeatingPlatformPositionEnum {
+  /** 讲台位于座位上方 */
+  Top = 'top',
+  /** 讲台位于座位下方 */
+  Bottom = 'bottom'
+}
+
 /** 单个座位位置 */
 export interface SeatPositionType {
   /** 行号 */
@@ -81,6 +89,8 @@ export interface SeatingChartType {
   aisleAfterColumns: number[]
   /** 第一列朝向（左侧/右侧靠墙） */
   firstColumnSide: SeatingFirstColumnSideEnum
+  /** 讲台在画布中的展示位置 */
+  platformPosition: SeatingPlatformPositionEnum
   /** 普通座位列表 */
   seats: SeatPositionType[]
   /** 特殊座位配置列表 */

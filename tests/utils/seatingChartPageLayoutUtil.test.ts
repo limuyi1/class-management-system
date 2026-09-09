@@ -6,7 +6,11 @@
 import { describe, expect, it } from 'vitest'
 
 import { PagesEnum } from '@/types/Common'
-import { SeatingFirstColumnSideEnum, type SeatingChartType } from '@/types/SeatingChart'
+import {
+  SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
+  type SeatingChartType
+} from '@/types/SeatingChart'
 import {
   buildSeatingChartPageLayout,
   resolveSeatingChartPageOrientation
@@ -23,6 +27,7 @@ function createChart(rows: number, columns: number): SeatingChartType {
     columns,
     aisleAfterColumns: columns > 2 ? [1] : [],
     firstColumnSide: SeatingFirstColumnSideEnum.Left,
+    platformPosition: SeatingPlatformPositionEnum.Top,
     seats: createSeats(rows, columns),
     specialSeats: createSpecialSeats(),
     roleDefinitions: [],

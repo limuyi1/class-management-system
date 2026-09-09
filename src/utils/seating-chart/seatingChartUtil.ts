@@ -5,6 +5,7 @@
 import {
   SeatingSpecialSeatPositionEnum,
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   type SeatingRoleAssignmentType,
   type SeatingRoleDefinitionType,
   type SeatPositionType,
@@ -90,8 +91,10 @@ function normalizeRoleAssignments(
 }
 
 /** 旧版座位表结构：firstColumnSide 可能缺失，viewDirection 为旧字段 */
-interface LegacySeatingChartType extends Omit<SeatingChartType, 'firstColumnSide'> {
+interface LegacySeatingChartType
+  extends Omit<SeatingChartType, 'firstColumnSide' | 'platformPosition'> {
   firstColumnSide?: SeatingFirstColumnSideEnum
+  platformPosition?: SeatingPlatformPositionEnum
   viewDirection?: 'facing-platform' | 'facing-students'
 }
 
@@ -175,6 +178,10 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     legacyChart.viewDirection === 'facing-students'
       ? SeatingFirstColumnSideEnum.Right
       : SeatingFirstColumnSideEnum.Left
+  const platformPosition =
+    legacyChart.platformPosition === SeatingPlatformPositionEnum.Bottom
+      ? SeatingPlatformPositionEnum.Bottom
+      : SeatingPlatformPositionEnum.Top
   // 行列数取整并限制在 [1, 20] 区间内
   const rows = Math.min(
     SEATING_CHART_MAX_SIZE,
@@ -216,6 +223,7 @@ export function normalizeChart(chart: SeatingChartType, studentIds: Set<string>)
     rows,
     columns,
     firstColumnSide,
+    platformPosition,
     seats,
     specialSeats,
     roleDefinitions,
@@ -287,10 +295,13 @@ export function createRandomSeats(
 /**
  * 按第一列朝向返回展示顺序的座位列表。
  * @param chart - 座位表
- * @returns 排序后的座位数组（先按行，再按列，朝向右侧时列倒序）
+ * @returns 排序后的座位数组（讲台在下时排倒序；列顺序由第一列朝向决定）
  */
 export function getVisibleSeats(chart: SeatingChartType): SeatPositionType[] {
   const seats = [...chart.seats]
+  const rowOrder = chart.platformPosition === SeatingPlatformPositionEnum.Bottom ? -1 : 1
   const columnOrder = chart.firstColumnSide === SeatingFirstColumnSideEnum.Right ? -1 : 1
-  return seats.sort((a, b) => a.row - b.row || (a.column - b.column) * columnOrder)
+  return seats.sort(
+    (a, b) => (a.row - b.row) * rowOrder || (a.column - b.column) * columnOrder
+  )
 }

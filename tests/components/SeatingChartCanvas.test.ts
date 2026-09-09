@@ -1,9 +1,12 @@
+import { nextTick } from 'vue'
+import { ElScrollbar } from 'element-plus'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 
 import SeatingChartCanvas from '@/views/seating-chart/components/SeatingChartCanvas.vue'
 import {
   SeatingFirstColumnSideEnum,
+  SeatingPlatformPositionEnum,
   SeatingSpecialSeatPositionEnum,
   type SeatingChartType
 } from '@/types/SeatingChart'
@@ -40,6 +43,7 @@ function createChart(): SeatingChartType {
     columns: 2,
     aisleAfterColumns: [0],
     firstColumnSide: SeatingFirstColumnSideEnum.Left,
+    platformPosition: SeatingPlatformPositionEnum.Top,
     seats,
     specialSeats,
     roleDefinitions: [],
@@ -79,6 +83,9 @@ describe('SeatingChartCanvas', () => {
 
     expect(wrapper.find('.platform-shell').exists()).toBe(true)
     expect(wrapper.find('.seat-viewport .platform').exists()).toBe(false)
+    expect(wrapper.find('.seat-scrollbar.el-scrollbar').exists()).toBe(true)
+    expect(wrapper.find('.seat-column-header-rail').exists()).toBe(true)
+    expect(wrapper.find('.seat-scroll-area .seat-column-header-rail').exists()).toBe(false)
     expect(wrapper.text()).toContain('1列')
     expect(wrapper.text()).toContain('1排')
     expect(wrapper.findAll('.seat-axis-number')).toHaveLength(4)
@@ -86,6 +93,27 @@ describe('SeatingChartCanvas', () => {
     expect(wrapper.text()).toContain('左')
     expect(wrapper.text()).not.toContain('雅座')
     expect(wrapper.text()).not.toContain('讲台左侧')
+  })
+
+  it('keeps the independent column-header rail synchronized with horizontal scrolling', async () => {
+    const chart = createChart()
+    const wrapper = mount(SeatingChartCanvas, {
+      props: {
+        chart,
+        visibleSeatRows: [chart.seats.slice(0, 2), chart.seats.slice(2, 4)],
+        studentNames: new Map(),
+        selectedStudentId: null,
+        roleDefinitions: [],
+        roleAssignments: []
+      }
+    })
+
+    wrapper.findComponent(ElScrollbar).vm.$emit('scroll', { scrollLeft: 120, scrollTop: 0 })
+    await nextTick()
+
+    expect(wrapper.get('.seat-column-header-stage').attributes('style')).toContain(
+      'translateX(-120px)'
+    )
   })
 
   it('reverses only columns while keeping the platform above the first row', async () => {
@@ -117,6 +145,32 @@ describe('SeatingChartCanvas', () => {
 
     await wrapper.find('.seat-row .seat').trigger('click')
     expect(wrapper.emitted('selectSeat')?.[0]).toEqual([chart.seats[1]])
+  })
+
+  it('places the platform below mirrored rows without changing seat targets', async () => {
+    const chart = createChart()
+    chart.platformPosition = SeatingPlatformPositionEnum.Bottom
+    const visibleSeatRows = [
+      [chart.seats[2], chart.seats[3]],
+      [chart.seats[0], chart.seats[1]]
+    ]
+    const wrapper = mount(SeatingChartCanvas, {
+      props: {
+        chart,
+        visibleSeatRows,
+        studentNames: new Map([['student-1', '张三']]),
+        selectedStudentId: null,
+        roleDefinitions: [],
+        roleAssignments: []
+      }
+    })
+
+    expect(wrapper.get('.classroom').classes()).toContain('platform-on-bottom')
+    expect(wrapper.get('.seat-viewport').classes()).toContain('platform-on-bottom')
+    expect(wrapper.findAll('.seat-row-header').map((item) => item.text())).toEqual(['2排', '1排'])
+
+    await wrapper.find('.seat-row .seat').trigger('click')
+    expect(wrapper.emitted('selectSeat')?.[0]).toEqual([chart.seats[2]])
   })
 
   it('renders multiple role labels and opens the student context menu', async () => {

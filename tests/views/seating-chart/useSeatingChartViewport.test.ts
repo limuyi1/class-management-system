@@ -24,9 +24,7 @@ class ResizeObserverMock {
 }
 
 /** 挂载宿主组件并暴露组合式函数的返回值 */
-const mountViewport = (
-  options: Parameters<typeof useSeatingChartViewport>[0]
-) => {
+const mountViewport = (options: Parameters<typeof useSeatingChartViewport>[0]) => {
   let exposed: ReturnType<typeof useSeatingChartViewport> | undefined
   const Component = defineComponent({
     setup() {
@@ -72,6 +70,16 @@ describe('useSeatingChartViewport', () => {
     expect(getState().stageStyle.value.width).toBe(`${Math.ceil(932 * getState().scale.value)}px`)
     // 自然高 = 行高6*58 + 行间距5*10 + 列表头42 + 间距12
     expect(getState().contentStyle.value.height).toBe('452px')
+  })
+
+  it('excludes the column header height when it uses an independent rail', async () => {
+    const { getState } = mountViewport({
+      ...createOptions(),
+      hasInlineColumnHeader: false
+    })
+    await nextTick()
+
+    expect(getState().contentStyle.value.height).toBe('398px')
   })
 
   it('clamps the scale to the readable minimum of 0.95 for small viewports', async () => {
