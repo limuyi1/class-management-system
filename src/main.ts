@@ -25,6 +25,8 @@ import { far } from '@fortawesome/free-regular-svg-icons'
 library.add(fas, far)
 
 import { createPersistedStateDexie, preloadAllStores } from './plugins/persistDexie'
+import { repairOrphanedSystemStudents } from './utils/studentLifecycleUtil'
+import { useDataSourceStore } from './stores/data-source'
 
 import App from './App.vue'
 import router from './router'
@@ -53,3 +55,9 @@ app.mount('#app')
 
 // 预加载所有 store（不阻塞渲染，提前完成持久化加载）
 preloadAllStores()
+
+// 数据库加载完成后修复旧版本删除学生时留下的跨模块引用。
+void useDataSourceStore()
+  .waitForInitReady()
+  .then(() => repairOrphanedSystemStudents())
+  .catch((error) => console.error('清理已删除学生的遗留数据失败:', error))

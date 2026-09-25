@@ -10,6 +10,7 @@ import {
   computeOptimumRate,
   computePassRate
 } from '@/utils/scoreStatisticsUtil'
+import { getValidScore } from '@/utils/scoreValueUtil'
 import type { StudentDataType } from '@/types/StudentData'
 
 /**
@@ -43,8 +44,8 @@ export const useDataSourceStore = defineStore('dataSource', {
       const scoreTab = configuration.inputScoreTab
       if (!scoreTab) return []
       return this.enabledData
-        .map((item) => item[scoreTab])
-        .filter((score): score is number => typeof score === 'number' && Number.isFinite(score))
+        .map((item) => getValidScore(item[scoreTab]))
+        .filter((score): score is number => score !== null)
     },
     /**
      * 学生总数（启用状态）
@@ -118,8 +119,7 @@ export const useDataSourceStore = defineStore('dataSource', {
       const configuration = useConfigurationStore()
       const scoreTab = configuration.inputScoreTab
       if (!scoreTab) return null
-      const value = item[scoreTab]
-      return typeof value === 'number' && Number.isFinite(value) ? value : null
+      return getValidScore(item[scoreTab])
     },
 
     /**

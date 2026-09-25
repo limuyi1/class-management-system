@@ -35,15 +35,19 @@ vi.mock('element-plus', () => ({
 
 /** 构造成绩统计 fixture */
 const createScoreStats = (): ScoreStatisticsType => ({
-  maxScore: 98,
+  maxScore: 99,
   maxScoreCount: 1,
   topStudents: ['张三'],
   minScore: 45,
   minScoreCount: 1,
   bottomStudents: ['王五'],
   avgScore: '72.5',
-  ranges: [{ label: '90-100分', min: 90, max: 100, color: '#67c23a', count: 1 }],
-  lowScoreRanges: [{ label: '40-49分', min: 40, max: 49, color: '#f56c6c', count: 1 }],
+  ranges: [
+    { label: '90-98分', min: 90, max: 98, color: '#67c23a', count: 1, students: ['李四'] }
+  ],
+  lowScoreRanges: [
+    { label: '40-49分', min: 40, max: 49, color: '#f56c6c', count: 1, students: ['王五'] }
+  ],
   lowScoreTotal: 1,
   allLowScoreStudents: ['王五'],
   maxCount: 1,
@@ -112,9 +116,9 @@ describe('useScoreDistributionActions', () => {
     expect(writeText).toHaveBeenCalledTimes(1)
     const text = writeText.mock.calls[0][0]
     expect(text).toContain('成绩分布统计（共3人）')
-    expect(text).toContain('最高分：98分（1人）张三')
+    expect(text).toContain('最高分：99分（1人）张三')
     expect(text).toContain('平均分：72.5分')
-    expect(text).toContain('90-100分：1人')
+    expect(text).toContain('90-98分：1人')
     expect(text).toContain('40-49分：1人')
     expect(messageMocks.success).toHaveBeenCalledWith('复制成功！')
   })

@@ -211,7 +211,7 @@ describe('useDataSourceStore', () => {
     expect(rating).toBeLessThan(100)
   })
 
-  it('should ignore non-number scores in statistics', () => {
+  it('should accept numeric strings and ignore invalid scores in statistics', () => {
     const configurationStore = useConfigurationStore()
     configurationStore.inputScoreTab = 'yu3_wen2'
 
@@ -223,8 +223,8 @@ describe('useDataSourceStore', () => {
       { name: '王五', yu3_wen2: null }
     ] as StudentDataType[]
 
-    expect(store.validScores).toEqual([80])
-    expect(store.average).toBe(80)
+    expect(store.validScores).toEqual([80, 90])
+    expect(store.average).toBe(85)
   })
 
   it('should resolve waitForInitReady immediately when already initialized', async () => {

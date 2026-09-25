@@ -21,8 +21,8 @@ const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 
-// 全部学生与启用的成绩科目列
-const { students: originList } = storeToRefs(store)
+// 启用学生与启用的成绩科目列
+const { enabledData } = storeToRefs(store)
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
 // 当前录入科目 prop，作为统计的分数来源
@@ -36,7 +36,7 @@ const scoreTitle = computed(() => {
 
 // 分数统计、低分名单、阈值与分数读取函数
 const { scoreStats, belowThresholdStudents, threshold, getScore } = useScoreStatistics({
-  students: computed(() => originList.value),
+  students: computed(() => enabledData.value),
   scoreProp: scorePropRef
 })
 

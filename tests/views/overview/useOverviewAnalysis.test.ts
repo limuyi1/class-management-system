@@ -25,7 +25,8 @@ vi.mock('@/ai/aiService', () => aiServiceMocks)
 
 const messageMocks = vi.hoisted(() => ({
   success: vi.fn(),
-  error: vi.fn()
+  error: vi.fn(),
+  warning: vi.fn()
 }))
 vi.mock('element-plus', () => ({
   ElMessage: messageMocks
@@ -56,6 +57,7 @@ describe('useOverviewAnalysis', () => {
     aiServiceMocks.generateLearningAnalysis.mockReset()
     messageMocks.success.mockClear()
     messageMocks.error.mockClear()
+    messageMocks.warning.mockClear()
   })
 
   it('returns false without calling AI when AI is not configured', async () => {
@@ -133,5 +135,38 @@ describe('useOverviewAnalysis', () => {
 
     expect(hook.analysisText.value).toBe('新分析')
     expect(hook.generatedAt.value).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+  })
+
+  it('marks a saved analysis stale after dashboard data changes', async () => {
+    const aiConfigStore = useAIConfigStore()
+    aiConfigStore.apiKey = 'sk-test'
+    aiServiceMocks.generateLearningAnalysis.mockResolvedValue('原分析')
+    const dashboard = ref(buildFixtureData())
+    const hook = useOverviewAnalysis(dashboard)
+
+    await hook.generateAnalysis()
+    expect(hook.isStale.value).toBe(false)
+    dashboard.value.kpi.averageScore = 70
+    expect(hook.isStale.value).toBe(true)
+    expect(hook.analysisText.value).toBe('原分析')
+  })
+
+  it('does not save an AI response if the source data changes while generating', async () => {
+    const aiConfigStore = useAIConfigStore()
+    aiConfigStore.apiKey = 'sk-test'
+    let resolveRequest: (value: string) => void = () => {}
+    aiServiceMocks.generateLearningAnalysis.mockImplementation(
+      () => new Promise<string>((resolve) => (resolveRequest = resolve))
+    )
+    const dashboard = ref(buildFixtureData())
+    const hook = useOverviewAnalysis(dashboard)
+
+    const pending = hook.generateAnalysis()
+    dashboard.value.kpi.averageScore = 70
+    resolveRequest('已过期分析')
+
+    expect(await pending).toBe(false)
+    expect(hook.analysisText.value).toBe('')
+    expect(messageMocks.warning).toHaveBeenCalled()
   })
 })

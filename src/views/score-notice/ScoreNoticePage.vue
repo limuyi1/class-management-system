@@ -93,9 +93,10 @@ const backToTools = (): void => {
 
 /** 优先按系统 ID 关联，旧导入数据缺少 ID 时才回退为姓名匹配。 */
 const findSourceStudent = (student: ScoreNoticeStudentType): StudentDataType | undefined => {
-  return dataStore.students.find(
-    (item) => item.studentId === student.sourceStudentId || item.xing4_ming2 === student.name
-  )
+  if (student.sourceStudentId) {
+    return dataStore.enabledData.find((item) => item.studentId === student.sourceStudentId)
+  }
+  return undefined
 }
 
 /** 依据历史成绩变化归纳出趋势描述 */
@@ -527,7 +528,7 @@ onBeforeUnmount(() => {
 
     <score-notice-import-dialog
       v-model="importDialogVisible"
-      :system-students="dataStore.students"
+      :system-students="dataStore.enabledData"
       @confirm="handleImportConfirm"
     />
 

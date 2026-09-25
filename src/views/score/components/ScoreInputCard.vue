@@ -11,6 +11,7 @@ import { dayjs, ElMessage } from 'element-plus'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { NAME_PROP } from '@/constants'
+import { getValidScore } from '@/utils/scoreValueUtil'
 import type { StudentDataType } from '@/types/StudentData'
 import type { RecentScoreEntryType } from '@/types/Configuration'
 
@@ -31,7 +32,7 @@ const emit = defineEmits<{
 // 学生数据与应用配置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
-const { students: originList } = storeToRefs(store)
+const { enabledData: originList } = storeToRefs(store)
 
 // 搜索关键词、当前选中学生、待保存分数与最近录入记录
 const searchKeyword = ref('')
@@ -60,13 +61,7 @@ const getStudentName = (student: StudentDataType): string => {
  */
 const getStudentScore = (student: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
-  const raw = student[configuration.inputScoreTab]
-  if (typeof raw === 'number' && Number.isFinite(raw)) return raw
-  if (typeof raw === 'string') {
-    const parsed = parseFloat(raw)
-    return Number.isNaN(parsed) ? null : parsed
-  }
-  return null
+  return getValidScore(student[configuration.inputScoreTab])
 }
 
 /**
@@ -102,7 +97,10 @@ const syncRecentEntriesByTab = () => {
     recentEntries.value = []
     return
   }
-  recentEntries.value = [...(configuration.recentScoreEntries[scoreTab] || [])]
+  const enabledIds = new Set(originList.value.map((student) => student.studentId))
+  recentEntries.value = (configuration.recentScoreEntries[scoreTab] || []).filter((entry) =>
+    enabledIds.has(entry.studentId)
+  )
 }
 
 /** 清除当前选中学生 */
@@ -134,7 +132,7 @@ const blurScoreInput = () => {
  */
 const selectStudentById = (studentId: string, shouldFocusScore: boolean = true) => {
   const item = store.getStudentById(studentId)
-  if (!item) return
+  if (!item || item.disabled === true) return
 
   selectedStudentId.value = studentId
   searchKeyword.value = getStudentName(item)
@@ -183,7 +181,7 @@ const addRecentEntry = (studentId: string, score: number) => {
   if (!scoreTab) return
 
   const student = store.getStudentById(studentId)
-  if (!student) return
+  if (!student || student.disabled === true) return
   const name = getStudentName(student)
   const time = dayjs().format('HH:mm:ss')
 
@@ -234,7 +232,10 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
   }
 
   const student = store.getStudentById(selectedStudentId.value)
-  if (!student) return
+  if (!student || student.disabled === true) {
+    clearSelectedStudent()
+    return
+  }
 
   const savedScore = scoreValue.value
   student[configuration.inputScoreTab] = savedScore
@@ -303,6 +304,17 @@ watch(searchKeyword, (value) => {
   if (value.trim()) return
   if (!selectedStudentId.value) return
   clearSelectedStudent()
+})
+
+watch(originList, (students) => {
+  if (
+    selectedStudentId.value &&
+    !students.some((item) => item.studentId === selectedStudentId.value)
+  ) {
+    clearSelectedStudent()
+    searchKeyword.value = ''
+  }
+  syncRecentEntriesByTab()
 })
 
 /** 切换录入科目时同步该科目的最近录入记录 */

@@ -4,10 +4,11 @@
  * 支持导出当前科目总表（含统计）与所有科目成绩汇总。
  */
 import * as XLSX from 'xlsx'
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 
 import { exportExcel } from '@/utils/xlsxUtil'
-import { passingScoreRanges } from '@/config/score'
+import { useScoreStatistics } from '@/hooks/useScoreStatistics'
 
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -15,6 +16,7 @@ import { useSettingStore } from '@/stores/setting'
 import { dayjs, ElMessage } from 'element-plus'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
 import { NAME_PROP } from '@/constants'
+import { getValidScore } from '@/utils/scoreValueUtil'
 import type { StudentDataType } from '@/types/StudentData'
 
 interface Props {
@@ -31,12 +33,14 @@ const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 
-// 全部学生与启用的成绩科目列
-const { students: originList } = storeToRefs(store)
+// 启用学生与启用的成绩科目列
+const { enabledData: originList } = storeToRefs(store)
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 
-// 分数段：及格区间追加“60分以下”
-const scoreRanges = [...passingScoreRanges, { label: '60分以下', min: 0, max: 59 }]
+const { scoreStats } = useScoreStatistics({
+  students: computed(() => originList.value),
+  scoreProp: computed(() => configuration.inputScoreTab)
+})
 // 表格单元格值类型
 type CellValueType = string | number | null
 
@@ -63,16 +67,15 @@ const exportWorkbook = (fileName: string, workbook: XLSX.WorkBook) => {
 /** 获取学生当前录入科目的有效分数，未选择科目或分数非法时返回 null */
 const getScore = (item: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
-  const score = item[configuration.inputScoreTab]
-  return typeof score === 'number' && Number.isFinite(score) ? score : null
+  return getValidScore(item[configuration.inputScoreTab])
 }
 
-/** 按分数区间筛选学生并按分数降序排列 */
-const filterByRange = (range: { min: number; max: number }) => {
+/** 按分数区间筛选学生并按分数降序排列；最高分在独立工作表中。 */
+const filterByRange = (range: { min: number; max: number }, maxScore: number) => {
   return originList.value
     .filter((e) => {
       const score = getScore(e)
-      return score !== null && score >= range.min && score <= range.max
+      return score !== null && score !== maxScore && score >= range.min && score < range.max + 1
     })
     .sort((a, b) => (getScore(b) || 0) - (getScore(a) || 0))
 }
@@ -137,14 +140,27 @@ const exportExcelFun = () => {
   mainSheet['!merges'] = merges
   XLSX.utils.book_append_sheet(workbook, mainSheet, '总表')
 
-  scoreRanges.forEach((range) => {
-    const data = filterByRange(range)
+  const stats = scoreStats.value
+  const groups = stats
+    ? [
+        {
+          label: `最高分${stats.maxScore}分`,
+          data: originList.value.filter((student) => getScore(student) === stats.maxScore)
+        },
+        ...[...stats.ranges, ...stats.lowScoreRanges].map((range) => ({
+          label: range.label,
+          data: filterByRange(range, stats.maxScore)
+        }))
+      ]
+    : []
+
+  groups.forEach(({ label, data }) => {
     const rangeBody = data.map((e, i: number) => {
       const score = getScore(e)
       return [String(i + 1), e[NAME_PROP], score !== null ? Number(score) : '']
     })
     const sheet = XLSX.utils.aoa_to_sheet([['序号', '姓名', '分数'], ...rangeBody])
-    XLSX.utils.book_append_sheet(workbook, sheet, range.label)
+    XLSX.utils.book_append_sheet(workbook, sheet, label)
   })
 
   exportWorkbook(filename, workbook)
@@ -157,8 +173,8 @@ const exportAllExcelFun = () => {
 
   const unitAverages = unitHeaders.map((h) => {
     const scores = originList.value
-      .map((e) => e[h.prop])
-      .filter((s) => s !== null && s !== undefined) as number[]
+      .map((e) => getValidScore(e[h.prop]))
+      .filter((s): s is number => s !== null)
     if (scores.length === 0) return ''
     return (scores.reduce((acc, cur) => acc + cur, 0) / scores.length).toFixed(2)
   })
@@ -171,7 +187,7 @@ const exportAllExcelFun = () => {
     scoreLabels,
     (item) =>
       unitHeaders.map((h) =>
-        item[h.prop] !== null && item[h.prop] !== undefined ? Number(item[h.prop]) : ''
+        getValidScore(item[h.prop]) ?? ''
       ),
     footer
   )

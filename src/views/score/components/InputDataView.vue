@@ -13,6 +13,7 @@ import { useProgress } from '@/hooks/useProgress'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { NAME_PROP } from '@/constants'
+import { getValidScore } from '@/utils/scoreValueUtil'
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -26,7 +27,7 @@ defineProps<Props>()
 // 学生数据与应用配置 store
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
-const { students: originList } = storeToRefs(store)
+const { enabledData: originList } = storeToRefs(store)
 
 // 分数录入卡片实例引用，用于聚焦与编辑
 const scoreInputCardRef = ref<InstanceType<typeof ScoreInputCard>>()
@@ -47,23 +48,14 @@ const emit = defineEmits<{
 const { percentage, notCompletedCount: notCompletedCountValue } = useProgress({
   data: originList,
   getValue: (item: StudentDataType) =>
-    configuration.inputScoreTab ? item[configuration.inputScoreTab] : null
+    configuration.inputScoreTab ? getValidScore(item[configuration.inputScoreTab]) : null
 })
 
 /** 当前科目下分数为空或非法的学生列表 */
 const hasNullScoreList = computed(() => {
   const scoreTab = configuration.inputScoreTab
   if (!scoreTab) return []
-  return originList.value.filter((student) => {
-    const value = student[scoreTab]
-    if (value === null || value === undefined || value === '') return true
-    if (typeof value === 'number') return Number.isNaN(value)
-    if (typeof value === 'string') {
-      const parsed = Number(value)
-      return Number.isNaN(parsed)
-    }
-    return true
-  })
+  return originList.value.filter((student) => getValidScore(student[scoreTab]) === null)
 })
 
 // 未录入名单浮层显隐

@@ -147,6 +147,8 @@ export interface OverviewAnalysisRecord {
   analysisText: string
   /** 生成时间（ISO 格式） */
   generatedAt: string
+  /** 生成报告时所依据的数据快照；旧记录可能没有此字段 */
+  inputFingerprint?: string
 }
 
 /** 概览分析缓存持久化记录 */

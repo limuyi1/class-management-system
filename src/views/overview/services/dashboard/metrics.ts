@@ -339,7 +339,7 @@ export const buildUnitMetrics = (
         // 分数段分布：90-100、80-89、70-79、60-69、60以下 各有多少人
         scoreBands: config.unitOverview.scoreBands.map((band) => ({
           ...band,
-          count: scores.filter((score) => score >= band.min && score <= band.max).length
+          count: scores.filter((score) => score >= band.min && score < band.max + 1).length
         }))
       }
     })

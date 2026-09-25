@@ -67,6 +67,19 @@ const updateScore = (row: ScoreRecognitionPreviewRowType): void => {
   }
 }
 
+/** 单行复选框使用布尔值，选中的学生 ID 仍统一保存在数组中。 */
+const setSelected = (studentId: string, checked: boolean): void => {
+  if (!checked) {
+    selectedStudentIds.value = selectedStudentIds.value.filter((id) => id !== studentId)
+    return
+  }
+  const row = tableData.value.find((item) => item.studentId === studentId)
+  if (!row?.valid || row.score === null) return
+  if (!selectedStudentIds.value.includes(studentId)) {
+    selectedStudentIds.value = [...selectedStudentIds.value, studentId]
+  }
+}
+
 /** 分数展示格式化，无分数时显示“-” */
 const formatScore = (score: number | null) => (score === null ? '-' : String(score))
 
@@ -127,9 +140,9 @@ const handleConfirm = () => {
         <el-table-column label="写入" width="58" align="center">
           <template #default="{ row }">
             <el-checkbox
-              v-model="selectedStudentIds"
-              :label="row.studentId"
+              :model-value="selectedStudentIds.includes(row.studentId)"
               :disabled="!row.valid || row.score === null"
+              @update:model-value="(value) => setSelected(row.studentId, value === true)"
             ><span class="sr-only">写入 {{ row.name }}</span></el-checkbox>
           </template>
         </el-table-column>

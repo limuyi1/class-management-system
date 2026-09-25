@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue'
 import type { ComputedRef } from 'vue'
 
 import { NAME_PROP } from '@/constants'
+import { getValidScore } from '@/utils/scoreValueUtil'
 import type { StudentDataType } from '@/types/StudentData'
 
 /** 分数段统计 */
@@ -36,7 +37,7 @@ export interface ScoreStatisticsType {
   bottomStudents: string[]
   /** 平均分（保留两位小数的字符串） */
   avgScore: string
-  /** 常规分数段统计（如 90-100、80-89 等） */
+  /** 常规分数段统计（最高分单列，如 90-98、80-89 等） */
   ranges: ScoreRangeType[]
   /** 低分分数段统计（0-59 分，每 10 分一档） */
   lowScoreRanges: ScoreRangeType[]
@@ -77,13 +78,7 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
   /** 从学生数据中提取数值型分数 */
   const getScore = (item: StudentDataType): number | null => {
     if (!scoreProp.value) return null
-    const score = item[scoreProp.value]
-    if (typeof score === 'number') return score
-    if (typeof score === 'string') {
-      const parsed = parseFloat(score)
-      return Number.isNaN(parsed) ? null : parsed
-    }
-    return null
+    return getValidScore(item[scoreProp.value])
   }
 
   /** 获取学生显示名称，缺失时返回「未命名」 */
@@ -106,40 +101,46 @@ export function useScoreStatistics(options: UseScoreStatisticsOptions) {
     const minScore = Math.min(...allScores)
     const avgScore = allScores.reduce((a, b) => a + b, 0) / allScores.length
 
-    // 常规分数段（90-100、80-89、70-79、60-69）
+    // 最高分单列；其所在分数段的标签止于最高分之前。
+    const getRangeLabel = (min: number, max: number): string => {
+      const hasFractionalScore = allScores.some(
+        (score) => score !== maxScore && score >= min && score < max + 1 && !Number.isInteger(score)
+      )
+      if (maxScore >= min && maxScore < max + 1) {
+        return Number.isInteger(maxScore) && !hasFractionalScore
+          ? `${min}-${maxScore - 1}分`
+          : `${min}-低于${maxScore}分`
+      }
+      if (hasFractionalScore) return `${min}-低于${max + 1}分`
+      return `${min}-${max}分`
+    }
+
     const ranges = [
-      { min: 90, max: 100, color: '#22c55e' },
+      { min: 90, max: Infinity, color: '#22c55e' },
       { min: 80, max: 89, color: '#3b82f6' },
       { min: 70, max: 79, color: '#eab308' },
       { min: 60, max: 69, color: '#f97316' }
-    ]
-      .map((range) => {
-        const max = Math.min(range.max, maxScore - 1)
-        return {
-          ...range,
-          max,
-          label: `${range.min}-${max}分`
-        }
-      })
-      .filter((range) => range.max >= range.min)
+    ].map((range) => ({ ...range, label: getRangeLabel(range.min, range.max) }))
 
     // 低分分数段（0-59 分，每 10 分一档）
     const lowScoreRanges = [
-      { label: '50-59分', min: 50, max: 59, color: '#ef4444' },
-      { label: '40-49分', min: 40, max: 49, color: '#dc2626' },
-      { label: '30-39分', min: 30, max: 39, color: '#b91c1c' },
-      { label: '20-29分', min: 20, max: 29, color: '#991b1b' },
-      { label: '10-19分', min: 10, max: 19, color: '#7f1d1d' },
-      { label: '0-9分', min: 0, max: 9, color: '#450a0a' }
-    ]
+      { min: 50, max: 59, color: '#ef4444' },
+      { min: 40, max: 49, color: '#dc2626' },
+      { min: 30, max: 39, color: '#b91c1c' },
+      { min: 20, max: 29, color: '#991b1b' },
+      { min: 10, max: 19, color: '#7f1d1d' },
+      { min: 0, max: 9, color: '#450a0a' }
+    ].map((range) => ({ ...range, label: getRangeLabel(range.min, range.max) }))
 
     /** 统计指定分数区间内的人数和学生名单（按分数降序） */
     const getRangeData = (range: { min: number; max: number }) => {
-      const count = allScores.filter((s) => s >= range.min && s <= range.max).length
+      const isInRange = (score: number) =>
+        score >= range.min && score < range.max + 1 && score !== maxScore
+      const count = allScores.filter(isInRange).length
       const studentList = students.value
         .filter((e) => {
           const score = getScore(e)
-          return score !== null && score >= range.min && score <= range.max
+          return score !== null && isInRange(score)
         })
         .sort((a, b) => (getScore(b) || 0) - (getScore(a) || 0))
         .map((e) => getStudentName(e))

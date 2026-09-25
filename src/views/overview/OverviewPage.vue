@@ -53,6 +53,7 @@ const overviewStage = computed<OverviewDashboardStageType>(() => {
 const {
   analysisText: learningAnalysisText,
   generatedAt: learningAnalysisGeneratedAt,
+  isStale: learningAnalysisIsStale,
   loading: learningAnalysisLoading,
   generateAnalysis
 } = useOverviewAnalysis(dashboardData)
@@ -191,6 +192,7 @@ const handleGenerateLearningAnalysis = async () => {
           :evaluation-overview="dashboardData.evaluationOverview"
           :analysis-text="learningAnalysisText"
           :analysis-generated-at="learningAnalysisGeneratedAt"
+          :analysis-stale="learningAnalysisIsStale"
           :analysis-loading="learningAnalysisLoading"
           :stage="overviewStage"
           @generate-analysis="handleGenerateLearningAnalysis"

@@ -51,6 +51,6 @@ export const lowScoreRanges: ScoreRange[] = scoreRanges.slice(4)
  * const color = getScoreColor(85) // 返回 '#3b82f6'
  */
 export const getScoreColor = (score: number): string | undefined => {
-  const range = scoreRanges.find((r) => score >= r.min && score <= r.max)
+  const range = scoreRanges.find((r) => score >= r.min && score < r.max + 1)
   return range?.color
 }

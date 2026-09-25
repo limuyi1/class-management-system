@@ -4,7 +4,9 @@ import { ElMessage } from 'element-plus'
 
 import { generateLearningAnalysis } from '@/ai/aiService'
 import { useAIConfigStore } from '@/stores/ai-config'
+import { useDataSourceStore } from '@/stores/data-source'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
+import { useSettingStore } from '@/stores/setting'
 import { DefaultAIPrompts } from '@/types/AIConfig'
 import type { DashboardDataType } from '@/types/HomeDashboard'
 
@@ -16,7 +18,9 @@ import type { DashboardDataType } from '@/types/HomeDashboard'
  */
 export function useOverviewAnalysis(dashboardData: { value: DashboardDataType }) {
   const aiConfigStore = useAIConfigStore()
+  const dataStore = useDataSourceStore()
   const overviewAnalysisStore = useOverviewAnalysisStore()
+  const settingStore = useSettingStore()
   const { analysisText, generatedAt } = storeToRefs(overviewAnalysisStore)
   const loading = ref(false)
 
@@ -85,6 +89,19 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
       }))
     }
   })
+  const currentFingerprint = computed(() =>
+    JSON.stringify({
+      payload: payload.value,
+      students: dataStore.enabledData,
+      unitHeaders: settingStore.enabledScoreColumns,
+      prompt: aiConfigStore.prompts.learningAnalysis
+    })
+  )
+  const isStale = computed(
+    () =>
+      Boolean(analysisText.value) &&
+      overviewAnalysisStore.inputFingerprint !== currentFingerprint.value
+  )
 
   /**
    * 调用 AI 生成学情分析并写入 store。
@@ -99,8 +116,10 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
 
     loading.value = true
     try {
+      const requestPayload = payload.value
+      const requestFingerprint = currentFingerprint.value
       const result = await generateLearningAnalysis(
-        payload.value,
+        requestPayload,
         aiConfigStore.prompts.learningAnalysis || DefaultAIPrompts.learningAnalysis,
         {
           modelType: aiConfigStore.modelType,
@@ -110,7 +129,11 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
         }
       )
 
-      overviewAnalysisStore.setAnalysis(result.trim())
+      if (requestFingerprint !== currentFingerprint.value) {
+        ElMessage.warning('分析期间数据已变化，请重新生成')
+        return false
+      }
+      overviewAnalysisStore.setAnalysis(result.trim(), requestFingerprint)
       ElMessage.success('AI 学情分析已生成')
       return true
     } catch (error) {
@@ -125,6 +148,7 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
   return {
     analysisText,
     generatedAt,
+    isStale,
     loading,
     generateAnalysis
   }

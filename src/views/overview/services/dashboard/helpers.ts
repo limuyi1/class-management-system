@@ -1,4 +1,5 @@
 import { NAME_PROP } from '@/constants'
+import { getValidScore } from '@/utils/scoreValueUtil'
 import type {
   DashboardStudentTagType,
   DashboardTagKeyType,
@@ -30,14 +31,7 @@ export const getStudentName = (student: StudentDataType): string => {
  * @returns 数值分数，无法解析时返回 null
  */
 export const getNumericScore = (student: StudentDataType, prop: string): number | null => {
-  const value = student[prop]
-  if (typeof value === 'number' && Number.isFinite(value)) return value
-  if (typeof value === 'string') {
-    const parsed = Number(value)
-    return Number.isFinite(parsed) ? parsed : null
-  }
-
-  return null
+  return getValidScore(student[prop])
 }
 
 /**

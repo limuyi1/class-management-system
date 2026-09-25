@@ -20,6 +20,7 @@ import { useScoreNoticeStore } from '@/stores/score-notice'
 import { setDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUtil'
+import { repairOrphanedSystemStudents } from '@/utils/studentLifecycleUtil'
 
 /** 可选导出的工具类数据表，仅在选择包含工具数据时一并导出 */
 const TOOL_TABLES = new Set<string>([
@@ -280,6 +281,7 @@ export async function importDatabase(
     // 先恢复全部 Store 默认值，旧备份缺失的模块因此保持空状态而不会残留旧内存数据。
     resetRuntimeStores()
     await hydrateRuntimeStores()
+    await repairOrphanedSystemStudents()
     ElMessage.success('导入成功')
     complete?.()
   } catch (error) {

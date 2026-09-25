@@ -15,6 +15,7 @@ import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { createStudentId } from '@/utils/studentUtil'
+import { deleteSystemStudent } from '@/utils/studentLifecycleUtil'
 import {
   buildStudentInfoTagSummaryMap,
   getStudentInfoTagSummary,
@@ -67,10 +68,7 @@ const virtualYConfig = { enabled: true, gt: 40, oSize: 5 } // 虚拟滚动：超
  * @param row - 待删除的学生行
  */
 const deleteStudent = (row: EditableStudentType) => {
-  const index = tableData.value.findIndex((student) => student.studentId === row.studentId)
-  if (index > -1) {
-    tableData.value.splice(index, 1)
-  }
+  deleteSystemStudent(row.studentId)
 }
 
 const studentFormVisible = ref(false)

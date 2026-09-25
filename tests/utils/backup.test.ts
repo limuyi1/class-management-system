@@ -61,6 +61,10 @@ vi.mock('../../src/utils/persistDexieImportState', () => ({
   setDatabaseImporting: setDatabaseImportingMock
 }))
 
+vi.mock('../../src/utils/studentLifecycleUtil', () => ({
+  repairOrphanedSystemStudents: vi.fn(async () => undefined)
+}))
+
 vi.mock('../../src/stores/data-source', () => ({
   useDataSourceStore: vi.fn(() => stores.dataSource)
 }))

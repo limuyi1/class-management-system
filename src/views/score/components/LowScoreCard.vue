@@ -17,7 +17,7 @@ import ThresholdStudents from '@/views/score/components/statistics/ThresholdStud
 const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
-const { students: originList } = storeToRefs(store)
+const { enabledData } = storeToRefs(store)
 
 // 当前录入科目 prop，作为统计的分数来源
 const scorePropRef = computed(() => configuration.inputScoreTab)
@@ -31,7 +31,7 @@ const {
   scoreStats,
   getScore
 } = useScoreStatistics({
-  students: computed(() => originList.value),
+  students: computed(() => enabledData.value),
   scoreProp: scorePropRef
 })
 

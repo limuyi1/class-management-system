@@ -8,6 +8,7 @@ import type { ScoreRecognitionPreviewRowType } from '../../src/utils/scoreRecogn
 interface DialogStateType {
   tableData: ScoreRecognitionPreviewRowType[]
   selectedStudentIds: string[]
+  setSelected: (studentId: string, checked: boolean) => void
   updateScore: (row: ScoreRecognitionPreviewRowType) => void
   handleConfirm: () => void
 }
@@ -61,7 +62,7 @@ describe('ScoreRecognitionPreviewDialog', () => {
     expect(missing.willOverwrite).toBe(true)
     expect(state.selectedStudentIds).toEqual(['student-1'])
 
-    state.selectedStudentIds.push('student-2')
+    state.setSelected('student-2', true)
     state.handleConfirm()
     expect(wrapper.emitted('confirm')?.[0]?.[0]).toMatchObject([
       { studentId: 'student-1', score: 90 },
@@ -79,6 +80,21 @@ describe('ScoreRecognitionPreviewDialog', () => {
     expect(state.selectedStudentIds).toEqual([])
     state.handleConfirm()
     expect(wrapper.emitted('confirm')?.[0]?.[0]).toEqual([])
+  })
+
+  it('toggles one student without changing other checked rows', async () => {
+    const { state } = await mountDialog()
+    const missing = state.tableData[1]
+    state.setSelected('student-2', true)
+    expect(state.selectedStudentIds).toEqual(['student-1'])
+
+    missing.score = 86
+    state.updateScore(missing)
+    state.setSelected('student-2', true)
+    expect(state.selectedStudentIds).toEqual(['student-1', 'student-2'])
+
+    state.setSelected('student-1', false)
+    expect(state.selectedStudentIds).toEqual(['student-2'])
   })
 
   it('leaves roster-assisted name corrections unchecked until manually reviewed', async () => {

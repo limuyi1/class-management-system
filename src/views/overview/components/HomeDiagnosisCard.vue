@@ -15,6 +15,8 @@ interface Props {
   analysisText: string
   /** 分析文本的生成时间 */
   analysisGeneratedAt: string
+  /** 报告所依据的数据是否已变化 */
+  analysisStale?: boolean
   /** 是否正在生成分析 */
   analysisLoading: boolean
   /** 总览页当前数据阶段，用于说明诊断依据是否完整 */
@@ -38,6 +40,7 @@ const diagnosisTitle = computed(() => 'AI 学情分析')
 const diagnosisStatusLabel = computed(() => {
   if (!props.evaluationOverview.aiConfigured) return '未配置'
   if (props.analysisLoading) return '生成中'
+  if (props.analysisStale) return '待更新'
   if (props.stage !== 'ready' && !hasAnalysisText.value) return '基础诊断'
   return hasAnalysisText.value ? '已生成' : '待生成'
 })
@@ -46,6 +49,7 @@ const diagnosisStatusLabel = computed(() => {
 const diagnosisStatusType = computed(() => {
   if (!props.evaluationOverview.aiConfigured) return 'warning'
   if (props.analysisLoading) return 'primary'
+  if (props.analysisStale) return 'warning'
   return hasAnalysisText.value ? 'success' : 'info'
 })
 
@@ -61,6 +65,7 @@ const diagnosisText = computed(() => {
     return '当前暂无成绩数据，可以先基于评语和标签生成基础班级概况；录入成绩后诊断会更完整。'
   }
 
+  if (props.analysisStale) return '数据已变化，请重新生成学情分析。旧报告可在详情中查看。'
   return props.analysisText || '暂未生成学情分析，点击下方按钮即可生成。'
 })
 
@@ -108,7 +113,7 @@ const formattedAnalysisTime = computed(() => {
 
 /** 渲染为 HTML 的诊断内容，支持 Markdown 与数学公式 */
 const renderedDiagnosisHtml = computed(() => {
-  return renderMarkdown(diagnosisText.value)
+  return renderMarkdown(props.analysisText || diagnosisText.value)
 })
 
 /** 主操作按钮文案，随 AI 配置与生成状态切换 */

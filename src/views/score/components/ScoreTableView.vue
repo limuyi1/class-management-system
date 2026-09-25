@@ -12,6 +12,7 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { getScoreColor } from '@/config/score'
 import { delay } from '@/utils/commonUtil'
 import { NAME_PROP } from '@/constants'
+import { getValidScore } from '@/utils/scoreValueUtil'
 import type { ScorePageStageType } from '@/types/Score'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
@@ -66,13 +67,7 @@ const currentColumnLabel = computed(() => {
  */
 const getCurrentScore = (row: StudentDataType): number | null => {
   if (!configuration.inputScoreTab) return null
-  const score = row[configuration.inputScoreTab]
-  if (typeof score === 'number' && Number.isFinite(score)) return score
-  if (typeof score === 'string') {
-    const parsed = parseFloat(score)
-    return Number.isNaN(parsed) ? null : parsed
-  }
-  return null
+  return getValidScore(row[configuration.inputScoreTab])
 }
 
 /** 按“仅未录入”开关过滤后的表格数据 */

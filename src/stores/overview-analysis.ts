@@ -9,21 +9,25 @@ export const useOverviewAnalysisStore = defineStore('overviewAnalysis', {
     /** AI 生成的学情分析报告（Markdown 格式） */
     analysisText: '',
     /** 报告生成时间（ISO 格式） */
-    generatedAt: ''
+    generatedAt: '',
+    /** 生成报告时所依据的总览数据快照 */
+    inputFingerprint: ''
   }),
   actions: {
     /**
      * 设置分析报告并记录生成时间
      * @param text - 分析报告内容
      */
-    setAnalysis(text: string) {
+    setAnalysis(text: string, inputFingerprint = '') {
       this.analysisText = text
       this.generatedAt = new Date().toISOString()
+      this.inputFingerprint = inputFingerprint
     },
     /** 清除分析报告 */
     clearAnalysis() {
       this.analysisText = ''
       this.generatedAt = ''
+      this.inputFingerprint = ''
     }
   }
 })
