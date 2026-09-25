@@ -6,20 +6,22 @@
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { AIModelTypeEnum } from '../../src/types/AIConfig'
+import { AIModelTypeEnum, DefaultAIPrompts } from '../../src/types/AIConfig'
 
 // 用 vi.hoisted 提前创建 mock 函数，使 vi.mock 工厂与测试用例共享同一引用
-const { generateTextMock } = vi.hoisted(() => ({
-  generateTextMock: vi.fn()
+const { generateTextMock, openaiPostMock, getContentMock } = vi.hoisted(() => ({
+  generateTextMock: vi.fn(),
+  openaiPostMock: vi.fn(),
+  getContentMock: vi.fn()
 }))
 
 // 完整 mock AI providers，测试不发起真实网络请求
 vi.mock('../../src/ai/providers', () => ({
   createGeminiModel: vi.fn(),
   generateText: generateTextMock,
-  getContentFromOpenAIResponse: vi.fn(),
+  getContentFromOpenAIResponse: getContentMock,
   openaiGet: vi.fn(),
-  openaiPost: vi.fn()
+  openaiPost: openaiPostMock,
 }))
 
 // 目标：验证各生成函数渲染提示词模板与解析响应时，分数剥离、空标签、经典表达控制等规则是否生效
@@ -201,5 +203,94 @@ describe('aiService', () => {
     expect(result).toEqual(['学习习惯', '课堂表现'])
     expect(generateTextMock.mock.calls[0]?.[1]).toContain('数量：2')
     expect(generateTextMock.mock.calls[0]?.[1]).toContain('要求：覆盖日常表现')
+  })
+
+  it('sends only student names with the image and keeps raw and suggested names separate', async () => {
+    openaiPostMock.mockResolvedValueOnce({})
+    getContentMock.mockReturnValueOnce(JSON.stringify({
+      students: [{ rawName: '吴承宇', matchedName: '黄邓魁', score: 88 }]
+    }))
+
+    const { recognizeScoreFromImage } = await import('../../src/ai/aiService')
+    const result = await recognizeScoreFromImage('image-base64', '识图：{{studentNames}}', {
+      modelType: AIModelTypeEnum.OPENAI,
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1'
+    }, ['黄邓魁'])
+
+    const body = openaiPostMock.mock.calls[0]?.[2] as {
+      messages: Array<{ content: Array<{ text?: string }> }>
+    }
+    const promptText = body.messages[0].content[0].text || ''
+    expect(promptText).toContain('识图：["黄邓魁"]')
+    expect(promptText).toContain('不得')
+    expect(promptText).toContain('rawName')
+    expect(result).toEqual([{
+      name: '黄邓魁', rawName: '吴承宇', matchedName: '黄邓魁', score: 88
+    }])
+  })
+
+  it('replaces the roster placeholder in the configured default score prompt', async () => {
+    openaiPostMock.mockResolvedValueOnce({})
+    getContentMock.mockReturnValueOnce('{"students":[]}')
+
+    const { recognizeScoreFromImage } = await import('../../src/ai/aiService')
+    await recognizeScoreFromImage('image-base64', DefaultAIPrompts.imageScore, {
+      modelType: AIModelTypeEnum.OPENAI,
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1'
+    }, ['黄邓魁'])
+
+    const body = openaiPostMock.mock.calls[0]?.[2] as {
+      messages: Array<{ content: Array<{ text?: string }> }>
+    }
+    const promptText = body.messages[0].content[0].text || ''
+    expect(promptText).toContain('["黄邓魁"]')
+    expect(promptText).not.toContain('{{studentNames}}')
+    expect(promptText).toContain('matchedName')
+  })
+
+  it('supports a saved legacy score prompt and response', async () => {
+    openaiPostMock.mockResolvedValueOnce({})
+    getContentMock.mockReturnValueOnce(JSON.stringify({
+      students: [{ name: '张三', score: 92 }]
+    }))
+
+    const { recognizeScoreFromImage } = await import('../../src/ai/aiService')
+    const result = await recognizeScoreFromImage('image-base64', '旧版自定义提示词', {
+      modelType: AIModelTypeEnum.OPENAI,
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1'
+    }, ['张三'])
+
+    const body = openaiPostMock.mock.calls[0]?.[2] as {
+      messages: Array<{ content: Array<{ text?: string }> }>
+    }
+    const promptText = body.messages[0].content[0].text || ''
+    expect(promptText).toContain('旧版自定义提示词')
+    expect(promptText).toContain('["张三"]')
+    expect(result).toEqual([{ name: '张三', rawName: '张三', score: 92 }])
+  })
+
+  it('preserves an explicit null match from the model', async () => {
+    openaiPostMock.mockResolvedValueOnce({})
+    getContentMock.mockReturnValueOnce(JSON.stringify({
+      students: [{ rawName: '黄邓魁', matchedName: null, score: 88 }]
+    }))
+
+    const { recognizeScoreFromImage } = await import('../../src/ai/aiService')
+    const result = await recognizeScoreFromImage('image-base64', '识别图片', {
+      modelType: AIModelTypeEnum.OPENAI,
+      model: 'test-model',
+      apiKey: 'test-key',
+      baseUrl: 'https://example.com/v1'
+    }, ['黄邓魁'])
+
+    expect(result).toEqual([{
+      name: '黄邓魁', rawName: '黄邓魁', matchedName: null, score: 88
+    }])
   })
 })

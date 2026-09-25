@@ -5,6 +5,7 @@ import {
   AIModelDefaultBaseUrls,
   AIModelDefaultModels,
   DefaultAIPrompts,
+  LegacyImageScorePrompt,
   type AIConfigType,
   type AIPromptsType
 } from '@/types/AIConfig'
@@ -69,6 +70,9 @@ export const useAIConfigStore = defineStore('aiConfig', {
     /** 确保缺失 Prompt 使用默认值 */
     ensureDefaultPrompts() {
       this.prompts = { ...DefaultAIPrompts, ...this.prompts }
+      if (this.prompts.imageScore === LegacyImageScorePrompt) {
+        this.prompts.imageScore = DefaultAIPrompts.imageScore
+      }
     },
     /** 重置单个 Prompt 为默认值 */
     resetPrompt(promptKey: keyof AIPromptsType) {

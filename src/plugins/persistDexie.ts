@@ -31,7 +31,7 @@ import { useDutyRosterStore } from '@/stores/duty-roster'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 import { normalizeScoreColumns } from '@/utils/settingMigrationUtil'
 import { normalizeRecentScoreEntries, normalizeStoredStudents } from '@/utils/studentUtil'
-import { DefaultAIPrompts } from '@/types/AIConfig'
+import { DefaultAIPrompts, LegacyImageScorePrompt } from '@/types/AIConfig'
 
 /** 可参与持久化的数据库记录类型联合 */
 type PersistableRecordType =
@@ -107,6 +107,10 @@ export function createPersistedStateDexie() {
       if (storeId === 'aiConfig' && state.prompts && typeof state.prompts === 'object') {
         // 与默认提示词合并，补齐新增的默认项（用户自定义项优先）
         state.prompts = { ...DefaultAIPrompts, ...(state.prompts as Record<string, unknown>) }
+        const prompts = state.prompts as Record<string, unknown>
+        if (prompts.imageScore === LegacyImageScorePrompt) {
+          prompts.imageScore = DefaultAIPrompts.imageScore
+        }
       }
       if (storeId === 'setting' && Array.isArray(state.scoreColumns)) {
         // 兼容旧数据：将持久化的成绩列表头归一化为最新结构

@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   buildScoreRecognitionPreview,
+  getIgnoredScoreRecognitionNames,
   isValidScore
 } from '../../src/utils/scoreRecognitionUtil'
 import { NAME_PROP } from '../../src/constants'
@@ -75,7 +76,7 @@ describe('scoreRecognitionUtil', () => {
     })
   })
 
-  it('marks duplicate names as unmatched', () => {
+  it('leaves duplicate roster names unselected for manual review', () => {
     const students: StudentDataType[] = [
       { studentId: 'student-1', [NAME_PROP]: '张三' },
       { studentId: 'student-2', [NAME_PROP]: '张三' }
@@ -88,10 +89,12 @@ describe('scoreRecognitionUtil', () => {
       100
     )
 
-    expect(rows[0]).toMatchObject({ matched: false, studentId: null })
+    expect(rows).toHaveLength(2)
+    expect(rows[0]).toMatchObject({ source: 'missing', studentId: 'student-1' })
+    expect(rows[1]).toMatchObject({ source: 'missing', studentId: 'student-2' })
   })
 
-  it('marks unknown names as unmatched', () => {
+  it('omits names outside the roster from preview rows', () => {
     const students: StudentDataType[] = [{ studentId: 'student-2', [NAME_PROP]: '李四' }]
 
     const rows = buildScoreRecognitionPreview(
@@ -101,24 +104,114 @@ describe('scoreRecognitionUtil', () => {
       100
     )
 
-    expect(rows[0]).toMatchObject({ matched: false, studentId: null })
+    expect(rows[0]).toMatchObject({ source: 'missing', studentId: 'student-2', name: '李四' })
+    expect(rows).toHaveLength(1)
+    expect(getIgnoredScoreRecognitionNames([{ name: '王五', score: 90 }], students)).toEqual([
+      '王五'
+    ])
   })
 
-  it('marks out-of-range scores as invalid', () => {
-    const students: StudentDataType[] = [{ studentId: 'student-1', [NAME_PROP]: '张三' }]
+  it('shows unrecognized roster students and excludes disabled students', () => {
+    const students: StudentDataType[] = [
+      { studentId: 'student-1', [NAME_PROP]: '黄邓魁', shu4_xue2: 75 },
+      { studentId: 'student-2', [NAME_PROP]: '吴承宇', disabled: true }
+    ]
 
     const rows = buildScoreRecognitionPreview(
-      [
-        { name: '张三', score: 120 },
-        { name: '张三', score: -5 }
-      ],
+      [{ name: '吴承宇', score: 90 }],
       students,
       'shu4_xue2',
       100
     )
 
-    expect(rows[0].valid).toBe(false)
-    expect(rows[1].valid).toBe(false)
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({
+      source: 'missing',
+      name: '黄邓魁',
+      studentId: 'student-1',
+      score: null,
+      existingScore: 75
+    })
+    expect(getIgnoredScoreRecognitionNames([{ name: '吴承宇', score: 90 }], students)).toEqual([
+      '吴承宇'
+    ])
+  })
+
+  it('does not auto-match repeated AI names to one student', () => {
+    const students: StudentDataType[] = [{ studentId: 'student-1', [NAME_PROP]: '张三' }]
+    const rows = buildScoreRecognitionPreview(
+      [{ name: '张三', score: 90 }, { name: '张三', score: 95 }],
+      students,
+      'shu4_xue2',
+      100
+    )
+    expect(rows.map((row) => row.source)).toEqual(['missing'])
+    expect(getIgnoredScoreRecognitionNames(
+      [{ name: '张三', score: 90 }, { name: '张三', score: 95 }], students
+    )).toEqual([])
+  })
+
+  it('places a roster-assisted name correction in a review-only row', () => {
+    const students: StudentDataType[] = [
+      { studentId: 'student-1', [NAME_PROP]: '黄邓魁', shu4_xue2: 75 }
+    ]
+    const rows = buildScoreRecognitionPreview(
+      [{ name: '黄邓魁', rawName: '吴承宇', score: 88 }],
+      students,
+      'shu4_xue2',
+      100
+    )
+
+    expect(rows[0]).toMatchObject({
+      source: 'suggested',
+      matched: false,
+      rawName: '吴承宇',
+      studentId: 'student-1',
+      score: 88,
+      willOverwrite: true
+    })
+    expect(getIgnoredScoreRecognitionNames(
+      [{ name: '黄邓魁', rawName: '吴承宇', score: 88 }], students
+    )).toEqual([])
+  })
+
+  it('does not assign two suggested scores to one student', () => {
+    const students: StudentDataType[] = [{ studentId: 'student-1', [NAME_PROP]: '黄邓魁' }]
+    const rows = buildScoreRecognitionPreview(
+      [
+        { name: '黄邓魁', rawName: '吴承宇', score: 88 },
+        { name: '黄邓魁', rawName: '黄邓魁', score: 91 }
+      ],
+      students,
+      'shu4_xue2',
+      100
+    )
+    expect(rows[0]).toMatchObject({ source: 'missing', score: null })
+  })
+
+  it('does not auto-select when the model explicitly declines to match a visible name', () => {
+    const students: StudentDataType[] = [{ studentId: 'student-1', [NAME_PROP]: '黄邓魁' }]
+    const rows = buildScoreRecognitionPreview(
+      [{ name: '黄邓魁', rawName: '黄邓魁', matchedName: null, score: 88 }],
+      students,
+      'shu4_xue2',
+      100
+    )
+    expect(rows[0]).toMatchObject({ source: 'suggested', matched: false, score: 88 })
+  })
+
+  it('marks out-of-range scores as invalid', () => {
+    const students: StudentDataType[] = [{ studentId: 'student-1', [NAME_PROP]: '张三' }]
+
+    for (const score of [120, -5]) {
+      const rows = buildScoreRecognitionPreview(
+        [{ name: '张三', score }],
+        students,
+        'shu4_xue2',
+        100
+      )
+      expect(rows[0].valid).toBe(false)
+    }
   })
 
   it('handles null score and missing existing score', () => {

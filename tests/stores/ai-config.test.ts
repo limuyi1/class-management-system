@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 
 import { useAIConfigStore } from '../../src/stores/ai-config'
-import { DefaultAIPrompts } from '../../src/types/AIConfig'
+import { DefaultAIPrompts, LegacyImageScorePrompt } from '../../src/types/AIConfig'
 
 /**
  * useAIConfigStore store 测试
@@ -38,5 +38,16 @@ describe('useAIConfigStore prompt reset', () => {
 
     expect(store.prompts).toEqual(DefaultAIPrompts)
     expect(store.prompts).not.toBe(DefaultAIPrompts)
+  })
+
+  it('upgrades the old built-in score prompt without replacing a custom prompt', () => {
+    const store = useAIConfigStore()
+    store.prompts.imageScore = LegacyImageScorePrompt
+    store.ensureDefaultPrompts()
+    expect(store.prompts.imageScore).toBe(DefaultAIPrompts.imageScore)
+
+    store.prompts.imageScore = '自定义成绩识图提示词'
+    store.ensureDefaultPrompts()
+    expect(store.prompts.imageScore).toBe('自定义成绩识图提示词')
   })
 })

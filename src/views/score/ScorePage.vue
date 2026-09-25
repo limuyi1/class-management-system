@@ -25,7 +25,10 @@ import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUtil'
 import { startLoading, stopLoading } from '@/hooks/useLoading'
-import { buildScoreRecognitionPreview } from '@/utils/scoreRecognitionUtil'
+import {
+  buildScoreRecognitionPreview,
+  getIgnoredScoreRecognitionNames
+} from '@/utils/scoreRecognitionUtil'
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
 import type { ScoreRecognitionPreviewRowType } from '@/utils/scoreRecognitionUtil'
@@ -39,8 +42,8 @@ const configuration = useConfigurationStore()
 const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
 
-// 全部学生（识图匹配用）与启用学生（写入成绩用）
-const { students: originList, enabledData } = storeToRefs(dataStore)
+// 启用学生用于识图对照及成绩写入
+const { enabledData } = storeToRefs(dataStore)
 // 启用的成绩科目列
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
 // 学生趋势面板所需的选择与看板数据
@@ -66,6 +69,7 @@ const cropperImageSrc = ref('')
 // AI 识图结果预览对话框显隐与预览行
 const recognitionPreviewVisible = ref(false)
 const recognitionPreviewRows = ref<ScoreRecognitionPreviewRowType[]>([])
+const ignoredRecognitionNames = ref<string[]>([])
 // 学生趋势抽屉与报告导出对话框显隐
 const trendDrawerVisible = ref(false)
 const reportDialogVisible = ref(false)
@@ -175,14 +179,19 @@ const handleCropConfirm = async (croppedBase64: string) => {
 
   try {
     // 识图只提供姓名线索；系统先解析为唯一 studentId，再写入当前录入科目。
-    const results = await recognizeScoreFromImage(croppedBase64, aiConfigStore.prompts.imageScore, {
-      modelType: aiConfigStore.modelType,
-      model: aiConfigStore.model,
-      apiKey: aiConfigStore.apiKey,
-      baseUrl: aiConfigStore.baseUrl
-    })
+    const results = await recognizeScoreFromImage(
+      croppedBase64,
+      aiConfigStore.prompts.imageScore,
+      {
+        modelType: aiConfigStore.modelType,
+        model: aiConfigStore.model,
+        apiKey: aiConfigStore.apiKey,
+        baseUrl: aiConfigStore.baseUrl
+      },
+      enabledData.value.map((student) => String(student.name || ''))
+    )
 
-    if (results.length === 0) {
+    if (results.length === 0 && enabledData.value.length === 0) {
       ElMessage.warning('未能识别到成绩信息')
       return
     }
@@ -195,10 +204,11 @@ const handleCropConfirm = async (croppedBase64: string) => {
 
     recognitionPreviewRows.value = buildScoreRecognitionPreview(
       results,
-      originList.value,
+      enabledData.value,
       scoreTab,
       configuration.scoreFullMark
     )
+    ignoredRecognitionNames.value = getIgnoredScoreRecognitionNames(results, enabledData.value)
     recognitionPreviewVisible.value = true
   } catch (error) {
     console.error('识别成绩失败:', error)
@@ -215,30 +225,15 @@ const handleRecognitionConfirm = (rows: ScoreRecognitionPreviewRowType[]) => {
 
   let writtenCount = 0
   for (const row of rows) {
-    if (!row.matched || !row.valid || row.score === null || !row.studentId) continue
+    if (!row.valid || row.score === null) continue
     const student = dataStore.getStudentById(row.studentId)
-    if (student) {
+    if (student && student.disabled !== true) {
       student[scoreTab] = row.score
       writtenCount++
     }
   }
 
-  const notMatched = recognitionPreviewRows.value
-    .filter((row) => !row.matched)
-    .map((row) => row.name)
-  const invalid = recognitionPreviewRows.value
-    .filter((row) => row.matched && !row.valid)
-    .map((row) => row.name)
-
-  const warnings: string[] = []
-  if (notMatched.length > 0) warnings.push(`未匹配：${notMatched.join('、')}`)
-  if (invalid.length > 0) warnings.push(`分数无效：${invalid.join('、')}`)
-
-  if (warnings.length > 0) {
-    ElMessage.warning(`已写入 ${writtenCount} 个成绩；${warnings.join('；')}`)
-  } else {
-    ElMessage.success(`成功写入 ${writtenCount} 个成绩`)
-  }
+  ElMessage.success(`成功写入 ${writtenCount} 个成绩`)
 }
 
 /** 取消裁剪 */
@@ -344,6 +339,8 @@ defineExpose({ autoFocus })
     <score-recognition-preview-dialog
       v-model:visible="recognitionPreviewVisible"
       :rows="recognitionPreviewRows"
+      :ignored-names="ignoredRecognitionNames"
+      :full-mark="configuration.scoreFullMark"
       @confirm="handleRecognitionConfirm"
     />
   </div>

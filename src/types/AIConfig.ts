@@ -81,6 +81,19 @@ export interface AIPromptsType {
   scoreNoticeBatchComment: string
 }
 
+/** 旧版默认成绩识图提示词，仅用于无损迁移已保存的默认配置。 */
+export const LegacyImageScorePrompt = `请识别图片中的学生成绩信息。
+图片是一张成绩表或考试成绩截图。
+
+请严格返回以下JSON格式，不要返回JSON以外的任何文字：
+{"students": [{"name": "学生姓名", "score": 分数}]}
+
+规则：
+1. score 必须为数字类型（整数或保留一位小数），不可为字符串
+2. 若学生姓名模糊或无法确认，name 设为 null
+3. 若整行无法识别，则不要返回该条记录
+4. 仅返回JSON对象，不要返回JSON以外的任何文字`
+
 /** 各业务场景的默认 AI Prompt 配置 */
 export const DefaultAIPrompts: AIPromptsType = {
   singleComment: `请根据以下学生信息生成一段小学期末评语：
@@ -188,17 +201,20 @@ export const DefaultAIPrompts: AIPromptsType = {
 8. classicExpression 必须是字符串，填写本条评语实际使用的经典表达；若确实未使用，则填空字符串，不要包含解释、出处或额外修饰
 9. 每条输入都必须原样返回 studentId 和 name；仅返回标准JSON数组，不要返回JSON以外的任何文字，不要 Markdown，不要代码块`,
 
-  imageScore: `请识别图片中的学生成绩信息。
-图片是一张成绩表或考试成绩截图。
+  imageScore: `请读取图片中的学生姓名和分数。图片可能是成绩表或考试成绩截图。
 
-请严格返回以下JSON格式，不要返回JSON以外的任何文字：
-{"students": [{"name": "学生姓名", "score": 分数}]}
+当前启用学生名单（只作辨字参考）：{{studentNames}}
+
+请严格返回以下 JSON 格式，不要返回其他文字：
+{"students":[{"rawName":"张三","matchedName":"张三","score":95}]}
 
 规则：
-1. score 必须为数字类型（整数或保留一位小数），不可为字符串
-2. 若学生姓名模糊或无法确认，name 设为 null
-3. 若整行无法识别，则不要返回该条记录
-4. 仅返回JSON对象，不要返回JSON以外的任何文字`,
+1. rawName 应忠实记录图片中的姓名；看不清时填 null，不要用名单替代图片原文
+2. matchedName 仅在图片字迹足以支持对应时从名单中选择；不能确认时填 null，不能仅凭名单猜测
+3. 图片中的人不在名单时，保留 rawName，matchedName 填 null
+4. score 为数字（整数或小数）；看不清时填 null，不要编造分数
+5. 无法确定的姓名或分数使用 JSON null（不加引号）
+6. 按图片中的实际行逐条返回，不要为名单中未出现的学生补造记录`,
 
   tagGenerate: `请生成 {{count}} 个适合小学生的四字词语学生表现标签。
 

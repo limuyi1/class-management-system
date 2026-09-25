@@ -8,17 +8,25 @@ import type { StudentDataType } from '@/types/StudentData'
 /** AI 识图返回的单条成绩识别结果 */
 export interface ScoreRecognitionResultType {
   name: string
+  /** 图片原姓名；旧格式结果不包含时，按 name 处理 */
+  rawName?: string | null
+  /** 模型明确无法对应时为 null；旧格式结果不包含 */
+  matchedName?: string | null
   score: number | null
 }
 
 /** 成绩识别预览行，供预览对话框展示与勾选 */
 export interface ScoreRecognitionPreviewRowType {
-  /** 识别到的学生姓名 */
+  /** 名册姓名 */
   name: string
-  /** 唯一匹配到的学生 ID；重名或未匹配时为 null */
-  studentId: string | null
-  /** 是否唯一匹配到系统学生 */
+  /** AI 从图片中读出的姓名；未识别到时为 null */
+  rawName: string | null
+  /** 名册中的学生 ID */
+  studentId: string
+  /** 是否由 AI 结果唯一匹配到名册学生 */
   matched: boolean
+  /** 匹配结果来源 */
+  source: 'matched' | 'suggested' | 'missing'
   /** 识别到的分数 */
   score: number | null
   /** 分数是否有效（有限数字且在 0~满分 范围内） */
@@ -44,7 +52,7 @@ export const isValidScore = (
 }
 
 /**
- * 把 AI 识别的成绩结果转换为预览行，完成姓名匹配、分数校验与覆盖标记。
+ * 按当前启用名册生成预览行，完成唯一姓名匹配、分数校验与覆盖标记。
  * @param results - AI 识别的成绩结果列表
  * @param students - 系统学生数据
  * @param scoreTab - 当前录入的成绩列 prop
@@ -57,30 +65,55 @@ export const buildScoreRecognitionPreview = (
   scoreTab: string,
   fullMark: number
 ): ScoreRecognitionPreviewRowType[] => {
-  return results.map((result) => {
-    const name = result.name
-    const matchedStudents = students.filter(
-      (student) => String(student[NAME_PROP] || '') === name
-    )
-    const matched = matchedStudents.length === 1
-    const student = matched ? matchedStudents[0] : undefined
-    const studentId = student ? student.studentId : null
+  const activeStudents = students.filter((student) => student.disabled !== true)
+  const studentNameCounts = new Map<string, number>()
+  const resultNameCounts = new Map<string, number>()
+  activeStudents.forEach((student) => {
+    const name = String(student[NAME_PROP] || '')
+    studentNameCounts.set(name, (studentNameCounts.get(name) || 0) + 1)
+  })
+  results.forEach((result) => {
+    resultNameCounts.set(result.name, (resultNameCounts.get(result.name) || 0) + 1)
+  })
 
-    const rawExisting = student && scoreTab ? student[scoreTab] : null
+  return activeStudents.map((student): ScoreRecognitionPreviewRowType => {
+    const name = String(student[NAME_PROP] || '')
+    const hasUniqueResult =
+      !!name && studentNameCounts.get(name) === 1 && resultNameCounts.get(name) === 1
+    const result = hasUniqueResult ? results.find((item) => item.name === name) : undefined
+    const rawName = result ? (result.rawName === undefined ? result.name : result.rawName) : null
+    const matched = !!result && rawName === name && result.matchedName !== null
+    const rawExisting = scoreTab ? student[scoreTab] : null
     const existingScore =
       typeof rawExisting === 'number' && Number.isFinite(rawExisting) ? rawExisting : null
-
-    const score = result.score
+    const score = result?.score ?? null
     const valid = isValidScore(score, fullMark)
 
     return {
       name,
-      studentId,
+      rawName,
+      studentId: student.studentId,
       matched,
+      source: matched ? 'matched' : result ? 'suggested' : 'missing',
       score,
       valid,
       existingScore,
-      willOverwrite: matched && existingScore !== null && existingScore !== score
+      willOverwrite: !!result && existingScore !== null && existingScore !== score
     }
   })
+}
+
+/** 返回 AI 识别到但不在当前启用名册中的姓名，用于顶部提示。 */
+export const getIgnoredScoreRecognitionNames = (
+  results: ScoreRecognitionResultType[],
+  students: StudentDataType[]
+): string[] => {
+  const rosterNames = new Set(
+    students
+      .filter((student) => student.disabled !== true)
+      .map((student) => String(student[NAME_PROP] || ''))
+  )
+  return results
+    .filter((result) => !rosterNames.has(result.name))
+    .map((result) => result.rawName || result.name || '姓名无法辨认')
 }

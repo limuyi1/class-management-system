@@ -61,7 +61,7 @@ const promptTabs: Array<{
     label: '批量润色',
     placeholder: DefaultAIPrompts.batchCommentPolish
   },
-  { key: 'imageScore', label: '图片识别', placeholder: DefaultAIPrompts.imageScore },
+  { key: 'imageScore', label: '成绩识图', placeholder: DefaultAIPrompts.imageScore },
   {
     key: 'tagCategoryGenerate',
     label: '分类生成',
@@ -360,6 +360,11 @@ const handleResetAllPrompts = async (): Promise<void> => {
                 :rows="10"
                 :placeholder="tab.placeholder"
               />
+              <div v-if="tab.key === 'imageScore'" class="prompt-image-score-tip">
+                识图时会同时发送当前启用学生姓名。可用
+                <code v-pre>{{ studentNames }}</code> 引用名单；模型需分别返回图片原姓名、建议对应姓名和分数。
+                对应关系不确定时，预览默认不勾选。
+              </div>
             </el-tab-pane>
           </el-tabs>
 
@@ -380,6 +385,9 @@ const handleResetAllPrompts = async (): Promise<void> => {
             </div>
             <div class="tip-item">
               • <code v-pre>{{ students }}</code> - 批量学生数据（JSON数组）
+            </div>
+            <div class="tip-item">
+              • <code v-pre>{{ studentNames }}</code> - 成绩识图时的当前启用学生姓名名单（JSON数组）
             </div>
             <div class="tip-item">
               • <code v-pre>{{ category }}</code> - 标签分类名称
@@ -486,6 +494,19 @@ const handleResetAllPrompts = async (): Promise<void> => {
     display: flex;
     justify-content: flex-end;
     margin-bottom: 8px;
+  }
+
+  .prompt-image-score-tip {
+    margin-top: 8px;
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.5;
+
+    code {
+      padding: 2px 6px;
+      background: #e2e8f0;
+      border-radius: 4px;
+    }
   }
 
   .prompt-tips {

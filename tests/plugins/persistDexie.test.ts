@@ -239,6 +239,28 @@ describe('createPersistedStateDexie', () => {
     expect(store.$state.prompts.tagCategoryGenerate).toBe(DefaultAIPrompts.tagCategoryGenerate)
   })
 
+  it('upgrades only the saved old built-in score prompt', async () => {
+    const { DefaultAIPrompts, LegacyImageScorePrompt } = await import('../../src/types/AIConfig')
+    mockTables.aiSettings.record = {
+      id: 'main',
+      prompts: { imageScore: LegacyImageScorePrompt, singleComment: '自定义评语' }
+    }
+    const store = {
+      $id: 'aiConfig',
+      $state: { prompts: {} as Record<string, string> },
+      $patch: (state: Record<string, unknown>) => {
+        store.$state = { ...store.$state, ...state } as typeof store.$state
+      },
+      $subscribe: vi.fn()
+    }
+
+    const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
+    await createPersistedStateDexie()({ store } as never)
+
+    expect(store.$state.prompts.imageScore).toBe(DefaultAIPrompts.imageScore)
+    expect(store.$state.prompts.singleComment).toBe('自定义评语')
+  })
+
   it('should catch and log load errors from db.get', async () => {
     mockTables.scoreSettings.get.mockRejectedValueOnce(new Error('load failed'))
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
