@@ -43,12 +43,14 @@ export function deleteSystemStudent(studentId: string): boolean {
 export async function repairOrphanedSystemStudents(): Promise<void> {
   await db.transaction(
     'rw',
-    db.studentDataset,
-    db.appPreferences,
-    db.seatingCharts,
-    db.dutyRosters,
-    db.scoreNotice,
-    db.overviewAnalysisCache,
+    [
+      db.studentDataset,
+      db.appPreferences,
+      db.seatingCharts,
+      db.dutyRosters,
+      db.scoreNotice,
+      db.overviewAnalysisCache
+    ],
     async () => {
       const [dataset, preferences, seating, duty, notice, analysis] = await Promise.all([
         db.studentDataset.get(DB_ID),

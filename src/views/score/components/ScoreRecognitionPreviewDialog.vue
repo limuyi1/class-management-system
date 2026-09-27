@@ -142,7 +142,7 @@ const handleConfirm = () => {
             <el-checkbox
               :model-value="selectedStudentIds.includes(row.studentId)"
               :disabled="!row.valid || row.score === null"
-              @update:model-value="(value) => setSelected(row.studentId, value === true)"
+              @update:model-value="(value: boolean | string | number) => setSelected(row.studentId, value === true)"
             ><span class="sr-only">写入 {{ row.name }}</span></el-checkbox>
           </template>
         </el-table-column>
