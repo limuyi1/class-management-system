@@ -2,7 +2,7 @@
 
 ## 项目概述
 
-成绩记录系统（Scores Recording System）—— 一个基于 Vue 3 + TypeScript + Vite 的桌面向 Web 应用，用于管理学生成绩与评语。使用 Element Plus、VxeTable、Tailwind CSS 和 Pinia 进行状态管理。
+班务管理系统（Class Management System）—— 一个基于 Vue 3 + TypeScript + Vite 的桌面向 Web 应用，用于管理学生成绩与评语。使用 Element Plus、VxeTable、Tailwind CSS 和 Pinia 进行状态管理。
 
 ## 构建 / 开发 / Lint 命令
 
@@ -50,8 +50,8 @@ tests/
 ## 技术栈
 
 - **框架**：Vue 3.3+（组合式 API，`<script setup lang="ts">`）
-- **构建**：Vite 5，`@vitejs/plugin-vue`，`@vitejs/plugin-vue-jsx`
-- **语言**：TypeScript 5.3，通过 `@vue/tsconfig` 开启严格模式
+- **构建**：Vite 8，`@vitejs/plugin-vue`
+- **语言**：TypeScript 6，通过 `@vue/tsconfig` 开启严格模式
 - **UI**：Element Plus、VxeTable（`vxe-table`/`vxe-pc-ui`）、FontAwesome
 - **样式**：Tailwind CSS 4 + SCSS（SFC 中的 scoped 样式）
 - **状态**：Pinia + 自定义的 `createPersistedStateDexie()` 插件，底层基于 Dexie
@@ -85,13 +85,13 @@ tests/
 
 ### 命名规范
 
-| 项目              | 规范                                | 示例                                      |
-| ----------------- | ----------------------------------- | ----------------------------------------- |
-| Pinia store       | `use<Name>Store`，文件用 kebab-case | `useSettingStore`，位于 `stores/setting.ts` |
-| 组合式函数/hook   | `use<PascalCase>`，文件在 `hooks/`  | `useEnterUp`，位于 `hooks/useEnterUp.ts`  |
-| 工具模块          | `utils/` 下的 `<name>Util.ts`       | `xlsxUtil.ts`、`pdfUtil.ts`               |
-| Vue 组件          | PascalCase 文件名                   | `ScoreTableView.vue`                      |
-| 枚举              | PascalCase + `Enum` 后缀            | `PagesEnum`、`InputEnum`                  |
+| 项目            | 规范                                                                            | 示例                                        |
+| --------------- | ------------------------------------------------------------------------------- | ------------------------------------------- |
+| Pinia store     | `use<Name>Store`，文件用 kebab-case                                             | `useSettingStore`，位于 `stores/setting.ts` |
+| 组合式函数/hook | `use<PascalCase>`，共享函数在 `hooks/`，页面专用函数在对应模块的 `composables/` | `useEnterUp`，位于 `hooks/useEnterUp.ts`    |
+| 工具模块        | `utils/` 下的 `<name>Util.ts`                                                   | `xlsxUtil.ts`、`pdfUtil.ts`                 |
+| Vue 组件        | PascalCase 文件名                                                               | `ScoreTableView.vue`                        |
+| 枚举            | PascalCase + `Enum` 后缀                                                        | `PagesEnum`、`InputEnum`                    |
 
 ### Vue SFC 模板顺序
 
@@ -173,11 +173,11 @@ tests/               # 测试文件
 
 ## 数据存储架构
 
-| Store                   | 文件                      | 用途                                   |
-| ----------------------- | ------------------------- | -------------------------------------- |
-| `useDataSourceStore`    | `stores/data-source.ts`   | 学生数据数组、统计 getter               |
-| `useSettingStore`       | `stores/setting.ts`       | 表头、标签分类、标签                     |
-| `useConfigurationStore` | `stores/configuration.ts` | 应用设置（字体大小、页面类型等）         |
-| `useThemeStore`         | `stores/theme.ts`         | 主题初始化与管理                         |
+| Store                   | 文件                      | 用途                             |
+| ----------------------- | ------------------------- | -------------------------------- |
+| `useDataSourceStore`    | `stores/data-source.ts`   | 学生数据数组、统计 getter        |
+| `useSettingStore`       | `stores/setting.ts`       | 表头、标签分类、标签             |
+| `useConfigurationStore` | `stores/configuration.ts` | 应用设置（字体大小、页面类型等） |
+| `useThemeStore`         | `stores/theme.ts`         | 主题初始化与管理                 |
 
 表头以 `scoreColumns: Array<SettingType>` 存储在 `setting.ts` 中。第一列始终是姓名列（prop 为 `name`，来自 `NAME_PROP`），且不可删除。每一行数据都有 `name`（学生姓名）、`studentId`、与表头 prop 对应的动态键，以及可选的 `comment`。

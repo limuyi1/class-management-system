@@ -1,0 +1,101 @@
+.student-info__toolbar {
+  display: flex;
+  min-height: 48px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.student-info__toolbar > div,
+.student-info__toolbar-actions,
+.student-info__empty-actions,
+.operation-icons {
+  display: flex;
+  align-items: center;
+}
+
+.student-info__toolbar > div:first-child {
+  gap: 8px;
+}
+
+.student-info__toolbar strong {
+  color: #303133;
+  font-size: 15px;
+}
+
+.student-info__toolbar span {
+  color: #909399;
+  font-size: 12px;
+}
+
+.student-info__toolbar-actions,
+.student-info__empty-actions,
+.operation-icons {
+  gap: 8px;
+}
+
+.operation-icons {
+  width: 100%;
+  justify-content: center;
+}
+
+.tags-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tags-cell {
+  display: flex;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 2px 4px;
+  gap: 4px;
+  cursor: pointer;
+  min-height: 28px;
+}
+
+.tags-cell-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.tags-cell__tag {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tags-cell__more {
+  flex-shrink: 0;
+  color: #909399;
+  font-size: 12px;
+}
+
+.tags-placeholder {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  color: #909399;
+  cursor: pointer;
+  font-size: 12px;
+  border: 1px dashed #dcdfe6;
+  border-radius: 4px;
+  transition: all 0.2s;
+
+  &:hover {
+    color: var(--el-color-primary);
+    border-color: var(--el-color-primary);
+  }
+}
+
+.operation-icon {
+  cursor: pointer;
+}

@@ -4,6 +4,7 @@
  */
 import domtoimage from 'dom-to-image'
 
+import { sanitizeExportFileName } from '@/utils/downloadUtil'
 import { getEvaluationHandwriteFontDataUrl } from '@/utils/evaluation/evaluationHandwriteFontUtil'
 
 /**
@@ -12,7 +13,7 @@ import { getEvaluationHandwriteFontDataUrl } from '@/utils/evaluation/evaluation
  * @returns 清理后的文件名
  */
 export const sanitizeFileName = (value: string): string => {
-  return value.replace(/[\\/:*?"<>|]/g, '_').trim() || '成绩通知'
+  return sanitizeExportFileName(value, '成绩通知')
 }
 
 /**
@@ -61,15 +62,8 @@ export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Pr
   return blob
 }
 
-/** 触发浏览器下载指定 Blob，并延迟释放对象 URL 避免下载被中断 */
-export const downloadBlob = (blob: Blob, fileName: string): void => {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.click()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
+/** 下载入口保持兼容，资源释放统一由公共工具管理。 */
+export { downloadBlob } from '@/utils/downloadUtil'
 
 /**
  * 将 PNG Blob 复制到系统剪贴板。

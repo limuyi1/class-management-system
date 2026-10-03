@@ -1,14 +1,13 @@
 /**
  * Vite 构建配置
- * 集成 Vue、JSX、Tailwind CSS、HTML 标题注入等插件，配置路径别名与产物分包策略
+ * 集成 Vue、Tailwind CSS、HTML 标题注入等插件，配置路径别名与产物分包策略
  */
 import { fileURLToPath, URL } from 'node:url'
-
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import vueJsx from '@vitejs/plugin-vue-jsx'
 import tailwindcss from '@tailwindcss/vite'
 import { createHtmlPlugin } from 'vite-plugin-html'
+
 import type { UserConfig } from 'vite'
 
 /** 判断模块 id 是否命中 node_modules 下的指定依赖包 */
@@ -17,15 +16,14 @@ const includeModule = (id: string, modules: string[]) =>
   modules.some((moduleName) => id.includes(`/node_modules/${moduleName}`))
 
 // Vite 配置官方文档：https://vitejs.dev/config/
-export default defineConfig(({ mode, command }): UserConfig => {
+export default defineConfig(({ mode, command, isPreview }): UserConfig => {
   const root = process.cwd()
   const env = loadEnv(mode, root)
 
   return {
-    // Vue 相关构建插件：Vue SFC、JSX 支持、HTML 标题注入与 Tailwind CSS
+    // Vue 相关构建插件：Vue SFC、HTML 标题注入与 Tailwind CSS
     plugins: [
       vue(),
-      vueJsx(),
       createHtmlPlugin({
         inject: {
           data: {
@@ -41,8 +39,8 @@ export default defineConfig(({ mode, command }): UserConfig => {
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
     },
-    // 构建时使用项目子路径作为基础路径，开发环境使用根路径
-    base: command === 'build' ? '/class-management-system/' : '/',
+    // 构建与生产预览使用相同的项目子路径，开发环境使用根路径
+    base: command === 'build' || isPreview ? '/class-management-system/' : '/',
     server: {
       watch: {
         usePolling: true // 启用轮询
@@ -80,8 +78,7 @@ export default defineConfig(({ mode, command }): UserConfig => {
               },
               {
                 name: 'editors',
-                test: (id: string) =>
-                  includeModule(id, ['md-editor-v3', '@vueup/vue-quill', 'codemirror'])
+                test: (id: string) => includeModule(id, ['md-editor-v3', 'codemirror'])
               },
               {
                 name: 'pdf-tools',

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /** 值日表导出弹窗 — 配置格式、纸张、缩放并生成 PNG/PDF 下载 */
 import { computed, nextTick, shallowRef, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
 
+import { ElMessage } from 'element-plus'
+
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
 import { PagesEnum } from '@/types/Common'
-import type { DutyRosterType } from '@/types/DutyRoster'
 import {
   createDutyRosterPdf,
   downloadDutyRosterBlob,
@@ -18,6 +18,8 @@ import { buildDutyRosterPageLayout } from '@/utils/duty-roster/dutyRosterPageLay
 import { exportDutyRosterExcel } from '@/utils/duty-roster/dutyRosterExcelUtil'
 import DutyRosterExportPreview from '@/views/duty-roster/components/DutyRosterExportPreview.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
+
+import type { DutyRosterType } from '@/types/DutyRoster'
 
 /** PDF 导出的图片渲染倍数，保证打印清晰度 */
 const PDF_IMAGE_SCALE = 3
@@ -32,12 +34,19 @@ const emit = defineEmits<{ 'update:modelValue': [value: boolean] }>()
 
 // 导出配置状态：预览引用、格式、纸张、缩放与显示开关等
 const previewRef = shallowRef<InstanceType<typeof DutyRosterExportPreview> | null>(null)
+
 const format = shallowRef<DutyRosterExportFormatType>('png')
+
 const pageType = shallowRef<PagesEnum>(PagesEnum.A4)
+
 const layoutScalePercent = shallowRef(100)
+
 const imageScale = shallowRef(2)
+
 const showTitle = shallowRef(true)
+
 const showNotes = shallowRef(true)
+
 const exporting = shallowRef(false)
 
 /** 双向绑定的弹窗显隐状态 */
@@ -45,6 +54,7 @@ const visible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value)
 })
+
 /** 根据纸张与缩放比例计算当前页面布局 */
 const selectedLayout = computed(() =>
   buildDutyRosterPageLayout(
@@ -55,6 +65,7 @@ const selectedLayout = computed(() =>
     showNotes.value
   )
 )
+
 /** 大值日表提示文案：比例超范围或字号过小时给出建议 */
 const denseRosterTip = computed(() => {
   if (format.value === 'xlsx') return ''
@@ -64,6 +75,7 @@ const denseRosterTip = computed(() => {
   if (selectedLayout.value.fontScale >= 0.72) return ''
   return '当前岗位或值日行较多，已缩放到单页；如姓名偏小，建议选择 A3。'
 })
+
 /** 当前格式对应的导出按钮文案。 */
 const exportButtonText = computed(() => {
   if (format.value === 'png') return '导出图片'
@@ -227,7 +239,9 @@ async function exportRoster(): Promise<void> {
       <div class="preview-panel">
         <div class="preview-toolbar">
           <span><i></i>实时预览</span>
-          <small>{{ format === 'xlsx' ? 'Excel 将保留岗位层级与人员安排' : '纸张预览已自动适应窗口' }}</small>
+          <small>{{
+            format === 'xlsx' ? 'Excel 将保留岗位层级与人员安排' : '纸张预览已自动适应窗口'
+          }}</small>
         </div>
         <div v-if="format === 'xlsx'" class="excel-preview-placeholder">
           <font-awesome-icon :icon="['solid', 'file-excel']" />

@@ -1,11 +1,13 @@
 /** 管理文字版评语 PDF / Excel 导出的组合式函数 */
 import { ref, type Ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
 
+import { ElMessage, ElMessageBox } from 'element-plus'
+
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
 import { exportEvaluationTextExcel } from '@/utils/evaluation/evaluationTextExcelUtil'
 import { exportEvaluationTextPDF } from '@/utils/evaluation/evaluationTextPdfUtil'
 import { hasUnsupportedEvaluationHandwriteGlyphs } from '@/utils/evaluation/evaluationHandwriteFontUtil'
+
 import type { ConfigurationType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 

@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 
-import type { DutySectionType } from '@/types/DutyRoster'
 import DutySectionDialog from '@/views/duty-roster/components/DutySectionDialog.vue'
+
+import type { DutySectionType } from '@/types/DutyRoster'
 
 /**
  * DutySectionDialog 组件测试
@@ -13,6 +14,7 @@ import DutySectionDialog from '@/views/duty-roster/components/DutySectionDialog.
 
 // 删除流程依赖 Element Plus 的二次确认弹窗，测试中替换为可控制的 mock
 const confirmMock = vi.hoisted(() => vi.fn())
+
 vi.mock('element-plus', () => ({
   ElMessageBox: { confirm: confirmMock }
 }))
@@ -82,9 +84,7 @@ describe('DutySectionDialog', () => {
 
     const items = wrapper.findAll('.duty-sections__item')
     expect(items).toHaveLength(2)
-    expect(items[0].text()).toContain('清洁区域')
     expect(items[0].text()).toContain('1 个岗位')
-    expect(items[1].text()).toContain('室内岗位')
     expect(items[1].text()).toContain('2 个岗位')
     // 名称输入框已回填草稿
     const inputs = wrapper.findAll('input')

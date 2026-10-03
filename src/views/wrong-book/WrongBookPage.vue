@@ -1,8 +1,10 @@
 <script setup lang="ts">
 /** 错题本页面 — 文件夹管理、题目编辑、图片处理、AI 答案和试卷生成 */
 import { computed, ref, onMounted } from 'vue'
-import { storeToRefs } from 'pinia'
+
 import { ElMessage } from 'element-plus'
+
+import { storeToRefs } from 'pinia'
 
 import PageHeader from '@/components/PageHeader.vue'
 import FolderTree from '@/views/wrong-book/components/FolderTree.vue'
@@ -14,11 +16,14 @@ import { useWrongBookStore } from '@/stores/wrong-book'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeQuestionFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUtil'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
+
 import type { WrongQuestion } from '@/types/WrongBook'
 
 const wrongBookStore = useWrongBookStore()
+
 const { selectedFolderId, currentFolderQuestions, questions } = storeToRefs(wrongBookStore)
+
 const aiConfigStore = useAIConfigStore()
 
 // 组件挂载时初始化文件夹列表
@@ -28,12 +33,16 @@ onMounted(() => {
 
 /** 弹窗可见性与编辑状态 */
 const editorVisible = ref(false)
+
 const examGeneratorVisible = ref(false)
+
 const editingQuestion = ref<WrongQuestion | null>(null)
 
 /** 图片裁剪器可见性、待裁剪图片源与上传中状态 */
 const cropperVisible = ref(false)
+
 const cropperImageSrc = ref('')
+
 const uploading = ref(false)
 
 /** 列表中已选题目 id（用于出题） */

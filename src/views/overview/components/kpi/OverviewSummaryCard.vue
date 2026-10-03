@@ -2,7 +2,7 @@
 /** 汇总卡片 — 展示单个关注分组的统计值或"待分析"占位 */
 import { computed } from 'vue'
 
-import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
+import type { DashboardSummaryCardType } from '@/types/OverviewDashboard'
 
 interface Props {
   /** 汇总卡片数据，包含标签、人数、详情等 */

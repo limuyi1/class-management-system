@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /** 座位表导出弹窗 — 配置格式、纸张、缩放并生成 PNG/PDF 下载 */
 import { computed, nextTick, shallowRef, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
 
+import { ElMessage } from 'element-plus'
+
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
 import { PagesEnum } from '@/types/Common'
-import type { SeatingChartType } from '@/types/SeatingChart'
 import {
   createSeatingChartPdf,
   downloadSeatingChartBlob,
@@ -22,6 +22,7 @@ import { exportSeatingChartExcel } from '@/utils/seating-chart/seatingChartExcel
 import SeatingChartExportPreview from '@/views/seating-chart/components/SeatingChartExportPreview.vue'
 import SeatingDialogHeader from '@/views/seating-chart/components/SeatingDialogHeader.vue'
 
+import type { SeatingChartType } from '@/types/SeatingChart'
 import type { SeatingChartPageOrientationType } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
 
 /** PDF 导出的图片渲染倍数，保证打印清晰度 */
@@ -43,21 +44,33 @@ const emit = defineEmits<{
 
 // 预览组件实例，用于获取待导出的 DOM 元素
 const previewRef = shallowRef<InstanceType<typeof SeatingChartExportPreview> | null>(null)
+
 // 导出配置：文件格式、纸张与方向
 const format = shallowRef<SeatingChartExportFormatType>('png')
+
 const pageType = shallowRef<PagesEnum>(PagesEnum.A4)
+
 const orientation = shallowRef<SeatingChartPageOrientationType>('landscape')
+
 // 方向模式：auto 智能跟随 / manual 手动选择
 const orientationMode = shallowRef<'auto' | 'manual'>('auto')
+
 // 版面缩放百分比与 PNG 清晰度倍数
 const layoutScalePercent = shallowRef(100)
+
 const scale = shallowRef(2)
+
 // 是否显示标题与“空座位”标签
 const showTitle = shallowRef(true)
+
 const showEmptyLabels = shallowRef(true)
+
 const showRoles = shallowRef(true)
+
 const showLegend = shallowRef(true)
+
 const showNotes = shallowRef(true)
+
 // 导出进行中状态，防止重复触发
 const exporting = shallowRef(false)
 
@@ -66,10 +79,12 @@ const dialogVisible = computed({
   get: () => props.modelValue,
   set: (value: boolean) => emit('update:modelValue', value)
 })
+
 /** 根据纸张与标题设置推荐的页面方向 */
 const recommendedOrientation = computed(() =>
   resolveSeatingChartPageOrientation(props.chart, pageType.value, showTitle.value)
 )
+
 /** 根据纸张、方向与缩放比例计算当前页面布局 */
 const selectedLayout = computed(() =>
   buildSeatingChartPageLayout(
@@ -80,8 +95,10 @@ const selectedLayout = computed(() =>
     showTitle.value
   )
 )
+
 /** 当前页面方向的中文标签 */
 const orientationLabel = computed(() => (orientation.value === 'portrait' ? '纵向' : '横向'))
+
 /** 大座位表提示文案：比例超范围或字号过小时给出建议 */
 const largeChartTip = computed(() => {
   if (format.value === 'xlsx') return ''
@@ -91,6 +108,7 @@ const largeChartTip = computed(() => {
   if (selectedLayout.value.fontScale >= 0.72) return ''
   return '当前座位较多，已缩放到单页；如姓名偏小，建议选择 A3。'
 })
+
 /** 当前格式对应的导出按钮文案。 */
 const exportButtonText = computed(() => {
   if (format.value === 'png') return '导出图片'
@@ -332,7 +350,9 @@ async function handleExport(): Promise<void> {
       <div class="preview-panel">
         <div class="preview-toolbar">
           <span><i></i>实时预览</span>
-          <small>{{ format === 'xlsx' ? 'Excel 将保留座位方向与过道' : '纸张预览已自动适应窗口' }}</small>
+          <small>{{
+            format === 'xlsx' ? 'Excel 将保留座位方向与过道' : '纸张预览已自动适应窗口'
+          }}</small>
         </div>
         <div v-if="format === 'xlsx'" class="excel-preview-placeholder">
           <font-awesome-icon :icon="['solid', 'file-excel']" />

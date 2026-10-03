@@ -3,8 +3,10 @@ import { PagesEnum } from '@/types/Common'
 
 /** 版纸方向：纵向 / 横向 */
 export type PaperLayoutOrientationType = 'portrait' | 'landscape'
+
 /** 排版模式：单栏 / 双栏 / 自由 */
 export type PaperLayoutModeType = 'single' | 'double' | 'free'
+
 /** 素材缩放模式：按宽度适配 / 按槽位适配 */
 export type PaperLayoutFitModeType = 'width' | 'slot'
 
@@ -177,4 +179,9 @@ export interface PaperLayoutDraftRecordType {
   createdAt: string
   /** 更新时间（ISO 格式） */
   updatedAt: string
+}
+
+/** 带临时预览 URL 的素材视图记录 */
+export interface AttachmentViewType extends AttachmentRecordType {
+  url: string
 }

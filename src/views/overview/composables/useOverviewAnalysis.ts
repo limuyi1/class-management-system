@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
-import { storeToRefs } from 'pinia'
+
 import { ElMessage } from 'element-plus'
+
+import { storeToRefs } from 'pinia'
 
 import { generateLearningAnalysis } from '@/ai/aiService'
 import { useAIConfigStore } from '@/stores/ai-config'
@@ -8,7 +10,8 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useSettingStore } from '@/stores/setting'
 import { DefaultAIPrompts } from '@/types/AIConfig'
-import type { DashboardDataType } from '@/types/HomeDashboard'
+
+import type { DashboardDataType } from '@/types/OverviewDashboard'
 
 /**
  * 负责总览页 AI 学情分析的生成与状态同步。

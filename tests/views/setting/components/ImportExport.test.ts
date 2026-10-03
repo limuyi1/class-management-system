@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 
+import ImportExport from '@/views/setting/components/ImportExport.vue'
+import { useConfigurationStore } from '@/stores/configuration'
+import { useDataSourceStore } from '@/stores/data-source'
+
 /**
  * ImportExport 组件测试
  * 测试目标：设置页数据导入导出面板
@@ -19,7 +23,8 @@ const backupMocks = vi.hoisted(() => ({
   importDatabase: vi.fn(),
   clearDatabase: vi.fn()
 }))
-vi.mock('@/utils/backup', () => backupMocks)
+
+vi.mock('@/utils/databaseBackupUtil', () => backupMocks)
 
 // Excel 导入 hook mock：组件只负责转发，导入编排逻辑在 hook 内（另有专门测试）
 const importHookMocks = vi.hoisted(() => ({
@@ -30,6 +35,7 @@ const importHookMocks = vi.hoisted(() => ({
   handleConflictConfirm: vi.fn(),
   resetExcelImport: vi.fn()
 }))
+
 vi.mock('@/hooks/useStudentDataImport', async () => {
   const { ref } = await import('vue')
   return {
@@ -55,6 +61,7 @@ const routerMocks = vi.hoisted(() => ({
   replace: vi.fn().mockResolvedValue(undefined),
   currentRoute: { value: { path: '/setting' } }
 }))
+
 vi.mock('@/router', () => ({
   default: {
     push: routerMocks.push,
@@ -66,20 +73,18 @@ vi.mock('@/router', () => ({
 const routeQueryMocks = vi.hoisted(() => ({
   query: {} as Record<string, string | undefined>
 }))
+
 vi.mock('vue-router', () => ({
   useRoute: () => ({ query: routeQueryMocks.query }),
   RouterView: { template: '<div />' }
 }))
 
 const messageBoxMocks = vi.hoisted(() => ({ confirm: vi.fn() }))
+
 vi.mock('element-plus', async (importOriginal) => {
   const actual = await importOriginal<typeof import('element-plus')>()
   return { ...actual, ElMessageBox: messageBoxMocks }
 })
-
-import ImportExport from '@/views/setting/components/ImportExport.vue'
-import { useConfigurationStore } from '@/stores/configuration'
-import { useDataSourceStore } from '@/stores/data-source'
 
 const mountComponent = () =>
   mount(ImportExport, {
@@ -90,10 +95,12 @@ const mountComponent = () =>
         ElDivider: true,
         // 需要断言 props 的替身显式声明对应 props
         ImportProgress: {
+          name: 'ImportProgress',
           props: ['visible', 'title', 'percent'],
           template: '<div class="import-progress-stub" />'
         },
         ImportActionMenu: {
+          name: 'ImportActionMenu',
           props: ['hasStudentData', 'loading'],
           template: '<div class="import-action-menu-stub" />'
         },
@@ -155,14 +162,12 @@ describe('ImportExport', () => {
 
   it('exports the full backup and drives the progress dialog to completion', async () => {
     let resolveExport!: () => void
-    backupMocks.exportDatabase.mockImplementationOnce(
-      (onProgress?: (percent: number) => void) => {
-        onProgress?.(40)
-        return new Promise<void>((resolve) => {
-          resolveExport = resolve
-        })
-      }
-    )
+    backupMocks.exportDatabase.mockImplementationOnce((onProgress?: (percent: number) => void) => {
+      onProgress?.(40)
+      return new Promise<void>((resolve) => {
+        resolveExport = resolve
+      })
+    })
 
     const wrapper = mountComponent()
     const exportButton = wrapper.findAll('button').find((button) => button.text() === '导出')
@@ -312,15 +317,15 @@ describe('ImportExport', () => {
 
     const emptyWrapper = mountComponent()
     expect(emptyWrapper.text()).toContain('批量建立系统学生名单，可同时选择成绩列和评语列')
-    expect(
-      emptyWrapper.getComponent({ name: 'ImportActionMenu' }).props('hasStudentData')
-    ).toBe(false)
+    expect(emptyWrapper.getComponent({ name: 'ImportActionMenu' }).props('hasStudentData')).toBe(
+      false
+    )
 
     dataSourceStore.students = [{ studentId: 's1', name: '张三' }]
     const seededWrapper = mountComponent()
     expect(seededWrapper.text()).toContain('按姓名匹配现有学生并追加成绩，不新增系统学生')
-    expect(
-      seededWrapper.getComponent({ name: 'ImportActionMenu' }).props('hasStudentData')
-    ).toBe(true)
+    expect(seededWrapper.getComponent({ name: 'ImportActionMenu' }).props('hasStudentData')).toBe(
+      true
+    )
   })
 })

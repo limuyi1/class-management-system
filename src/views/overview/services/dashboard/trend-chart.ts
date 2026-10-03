@@ -1,10 +1,11 @@
-import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
-
 import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'
-import type { DashboardStudentTrendType } from '@/types/HomeDashboard'
+
+import type { BarSeriesOption, EChartsOption, LineSeriesOption } from 'echarts'
+import type { DashboardStudentTrendType } from '@/types/OverviewDashboard'
 
 /** 各学生系列的折线/柱状配色，按学生顺序循环取用 */
 const chartColors = ['#0f766e', '#2563eb', '#f97316', '#dc2626', '#7c3aed']
+
 /** 折线系列对应的面积填充色，与 chartColors 一一对应 */
 const chartAreaColors = [
   'rgba(15, 118, 110, 0.1)',
@@ -13,6 +14,7 @@ const chartAreaColors = [
   'rgba(220, 38, 38, 0.1)',
   'rgba(124, 58, 237, 0.1)'
 ]
+
 /** 单人模式下班级均分与个人均分参考线的颜色 */
 const singleTrendReferenceLineColors = {
   classAverage: '#7c3aed',

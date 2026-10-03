@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /** 试卷生成器 — 选择题目、设置标题/班级/纸张并导出 PDF 试卷 */
 import { ref, computed, watch } from 'vue'
-import { storeToRefs } from 'pinia'
+
 import {
   ElDialog,
   ElForm,
@@ -9,13 +9,17 @@ import {
   ElInput,
   ElCheckbox,
   ElButton,
-  ElMessage,
+  ElMessage
 } from 'element-plus'
-import { runWithLoading } from '@/hooks/useLoading'
+
+import { storeToRefs } from 'pinia'
+
+import { runWithLoading } from '@/utils/loadingUtil'
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { PagesEnum } from '@/types/Common'
 import { exportPDF } from '@/utils/pdfUtil'
 import { renderKatex } from '@/utils/katexUtil'
+
 import type { WrongQuestion } from '@/types/WrongBook'
 
 /** 弹窗可见性、已选题目 id 与可选题目列表 */
@@ -35,17 +39,23 @@ interface Emits {
 }
 
 const props = defineProps<Props>()
+
 const emit = defineEmits<Emits>()
 
 const wrongBookStore = useWrongBookStore()
+
 const { favoriteQuestions } = storeToRefs(wrongBookStore)
 
 /** 已选题目 id 列表 */
 const selectedQuestions = ref<string[]>([])
+
 /** 试卷标题、班级、是否包含答案与纸张尺寸 */
 const examTitle = ref('错题练习')
+
 const className = ref('')
+
 const includeAnswer = ref(true)
+
 const pageType = ref<PagesEnum>(PagesEnum.A4)
 
 /** 预览区各题目 DOM 引用，供 PDF 导出定位 */
@@ -70,6 +80,7 @@ const availableQuestions = computed(() => {
 
 /** 可选题目列表（与 availableQuestions 等价，供模板与全选逻辑使用） */
 const favoriteQuestionsList = computed(() => availableQuestions.value)
+
 /** 按选中 id 映射出的题目对象列表，用于预览与导出 */
 const selectedQuestionList = computed(() => {
   return selectedQuestions.value

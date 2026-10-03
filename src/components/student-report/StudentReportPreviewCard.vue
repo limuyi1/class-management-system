@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { EChartsOption, LineSeriesOption } from 'echarts'
 
 import AppEChart from '@/components/AppEChart.vue'
 import studentReportReferenceStamp from '@/assets/student-report/reference-stamp.png'
+import { buildStudentReportChartOptions } from '@/utils/studentReportChartUtil'
+
 import type { StudentReportDataType } from '@/utils/studentReportUtil'
 
 /**
@@ -29,251 +30,7 @@ const articleParagraphs = computed(() => {
     .filter(Boolean)
 })
 
-/**
- * 生成均分参考线的图例名称（附带分值）
- * @param label - 图例标签
- * @param value - 均分分值
- * @returns 图例展示名称
- */
-const formatAverageLegendName = (label: string, value: number): string => `${label}（${value.toFixed(1)}分）`
-
-/**
- * 计算学生个人均分在图上的展示分数。
- * 当个人均分与班级均分过近时，做 ±0.25 的微小偏移，避免两条参考线重叠。
- * @param classAverageScore - 班级均分
- * @param studentAverageScore - 学生个人均分
- * @returns 用于绘图的学生均分展示值
- */
-const getStudentAverageDisplayScore = (classAverageScore: number, studentAverageScore: number): number => {
-  if (Math.abs(classAverageScore - studentAverageScore) >= 1) return studentAverageScore
-  if (studentAverageScore >= classAverageScore) {
-    return studentAverageScore <= 99.75 ? studentAverageScore + 0.25 : studentAverageScore - 0.25
-  }
-
-  return studentAverageScore >= 0.25 ? studentAverageScore - 0.25 : studentAverageScore + 0.25
-}
-
-/**
- * 从图例名称中提取均分分值作为 tooltip 展示文本
- * @param seriesName - 系列名称
- * @param value - 系列值
- * @returns tooltip 分值文案
- */
-const getTooltipScoreText = (seriesName: string, value: unknown): string => {
-  const averageScoreText = seriesName.match(/（([^）]+分)）$/)?.[1]
-  if (averageScoreText) return averageScoreText
-  return typeof value === 'number' ? `${value} 分` : '--'
-}
-
-/**
- * 组装成绩趋势图的 ECharts 配置，包含成绩折线、班级均分与个人均分参考线
- * @returns ECharts 配置对象
- */
-const chartOption = computed<EChartsOption>(() => {
-  const items = props.report.scoreItems
-  const validItems = items.filter(
-    (item): item is StudentReportDataType['scoreItems'][number] & { score: number } =>
-      typeof item.score === 'number'
-  )
-  if (!items.length || !validItems.length) {
-    return {}
-  }
-
-  // 结合成绩与两条参考线动态计算纵轴范围，并按 10 分档对齐
-  const referenceScores = [props.report.classAverageScore, props.report.summary.averageScore]
-  const scoreRangeValues = [...validItems.map((item) => item.score), ...referenceScores]
-  const maxScore = Math.max(...scoreRangeValues, 100)
-  const minScore = Math.min(...scoreRangeValues, 40)
-  const ceiling = Math.ceil(maxScore / 10) * 10
-  const floor = Math.max(Math.floor(minScore / 10) * 10 - 10, 0)
-  const start = Math.max(floor, 0)
-  const end = Math.max(ceiling, start + 20)
-  const xAxisLabels = items.map((item) => item.label)
-  const studentAverageDisplayScore = getStudentAverageDisplayScore(
-    props.report.classAverageScore,
-    props.report.summary.averageScore
-  )
-  // 班级均分（虚线）与个人均分（实线）两条水平参考线
-  const referenceSeries: LineSeriesOption[] = [
-    {
-      name: formatAverageLegendName('班级整体均分', props.report.classAverageScore),
-      type: 'line',
-      smooth: false,
-      symbol: 'none',
-      lineStyle: {
-        color: '#7c3aed',
-        type: 'dashed',
-        width: 2
-      },
-      itemStyle: {
-        color: '#7c3aed'
-      },
-      label: {
-        show: false
-      },
-      emphasis: {
-        disabled: true
-      },
-      data: xAxisLabels.map(() => props.report.classAverageScore),
-      z: 1
-    },
-    {
-      name: formatAverageLegendName('个人平均分', props.report.summary.averageScore),
-      type: 'line',
-      smooth: false,
-      symbol: 'none',
-      lineStyle: {
-        color: '#dc2626',
-        type: 'solid',
-        width: 1.8,
-        opacity: 0.88
-      },
-      itemStyle: {
-        color: '#dc2626'
-      },
-      label: {
-        show: false
-      },
-      emphasis: {
-        disabled: true
-      },
-      data: xAxisLabels.map(() => studentAverageDisplayScore),
-      z: 1
-    }
-  ]
-
-  return {
-    animationDuration: 700,
-    animationEasing: 'cubicOut',
-    grid: {
-      left: 10,
-      right: 12,
-      top: 42,
-      bottom: 22,
-      containLabel: true
-    },
-    legend: {
-      top: 0,
-      itemWidth: 12,
-      itemHeight: 8,
-      textStyle: {
-        color: '#6e6358',
-        fontSize: 12
-      }
-    },
-    tooltip: {
-      trigger: 'axis',
-      confine: true,
-      padding: [10, 12],
-      borderWidth: 1,
-      borderColor: '#eadbc7',
-      backgroundColor: 'rgba(255, 252, 246, 0.98)',
-      textStyle: {
-        color: '#40352c'
-      },
-      axisPointer: {
-        type: 'line',
-        lineStyle: {
-          color: '#9bbfc0',
-          type: 'dashed'
-        }
-      },
-      formatter: (params: unknown) => {
-        const rows = Array.isArray(params)
-          ? (params as Array<{ axisValueLabel?: string; marker?: string; seriesName?: string; value?: unknown }>)
-          : []
-        const title = rows[0]?.axisValueLabel || ''
-        const content = rows
-          .map((item) => {
-            const seriesName = item.seriesName || ''
-            // 图例名带分值后缀，tooltip 中去掉后缀以免重复展示
-            const tooltipName = seriesName.replace(/（[^）]+分）$/, '')
-            const scoreText = getTooltipScoreText(seriesName, item.value)
-
-            return `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:6px;">
-              <span>${item.marker || ''}${tooltipName}</span>
-              <strong>${scoreText}</strong>
-            </div>`
-          })
-          .join('')
-
-        return `<div style="min-width:120px;">
-          <div style="font-weight:600;margin-bottom:2px;">${title}</div>
-          ${content}
-        </div>`
-      }
-    },
-    xAxis: {
-      type: 'category',
-      data: xAxisLabels,
-      axisTick: { show: false },
-      axisLine: {
-        lineStyle: {
-          color: '#d8cbbb'
-        }
-      },
-      axisLabel: {
-        color: '#4f4237',
-        fontSize: 12,
-        margin: 12
-      }
-    },
-    yAxis: {
-      type: 'value',
-      min: start,
-      max: end,
-      // 纵轴约分 4 段，刻度按 10 分取整并保底 10
-      interval: Math.max(Math.round((end - start) / 4 / 10) * 10, 10),
-      axisLine: {
-        show: false
-      },
-      axisTick: {
-        show: false
-      },
-      axisLabel: {
-        color: '#6e6358',
-        fontSize: 12
-      },
-      splitLine: {
-        lineStyle: {
-          color: '#e7ddcf',
-          type: 'dashed'
-        }
-      }
-    },
-    series: [
-      {
-        name: '成绩',
-        type: 'line',
-        smooth: true,
-        symbol: 'circle',
-        symbolSize: 8,
-        showSymbol: true,
-        lineStyle: {
-          width: 3,
-          color: '#0f8a87'
-        },
-        itemStyle: {
-          color: '#0f8a87',
-          borderColor: '#ffffff',
-          borderWidth: 2
-        },
-        label: {
-          show: true,
-          position: 'top',
-          color: '#3a3128',
-          fontSize: 12,
-          fontWeight: 700
-        },
-        areaStyle: {
-          color: 'rgba(15, 138, 135, 0.08)'
-        },
-        data: items.map((item) => item.score)
-      },
-      ...referenceSeries
-    ]
-  }
-})
+const chartOption = computed(() => buildStudentReportChartOptions(props.report))
 </script>
 
 <template>
@@ -293,9 +50,7 @@ const chartOption = computed<EChartsOption>(() => {
         </div>
       </div>
 
-      <div class="student-report-card__hero-meta">
-        生成时间：{{ report.generatedAtText }}
-      </div>
+      <div class="student-report-card__hero-meta">生成时间：{{ report.generatedAtText }}</div>
     </header>
 
     <!-- 阶段成绩回顾：成绩表格与统计卡片 -->
@@ -323,7 +78,9 @@ const chartOption = computed<EChartsOption>(() => {
             class="student-report-card__table-row"
           >
             <span>{{ item.label }}</span>
-            <span class="student-report-card__score">{{ item.score === null ? '—' : item.score }}</span>
+            <span class="student-report-card__score">{{
+              item.score === null ? '—' : item.score
+            }}</span>
             <span>{{ item.rank === null ? '—' : `${item.rank} / ${report.studentCount}` }}</span>
             <span
               :class="
@@ -340,8 +97,20 @@ const chartOption = computed<EChartsOption>(() => {
                   : `${item.score >= item.average ? '高于' : '低于'} ${Math.abs(item.score - item.average).toFixed(1)} 分`
               }}
             </span>
-            <span :class="item.delta !== null && item.delta > 0 ? 'student-report-card__delta-up' : item.delta !== null && item.delta < 0 ? 'student-report-card__delta-down' : ''">
-              {{ item.delta === null ? '—' : `${item.delta > 0 ? '↑' : item.delta < 0 ? '↓' : ''} ${Math.abs(item.delta)} 分` }}
+            <span
+              :class="
+                item.delta !== null && item.delta > 0
+                  ? 'student-report-card__delta-up'
+                  : item.delta !== null && item.delta < 0
+                    ? 'student-report-card__delta-down'
+                    : ''
+              "
+            >
+              {{
+                item.delta === null
+                  ? '—'
+                  : `${item.delta > 0 ? '↑' : item.delta < 0 ? '↓' : ''} ${Math.abs(item.delta)} 分`
+              }}
             </span>
           </div>
         </div>
@@ -408,7 +177,11 @@ const chartOption = computed<EChartsOption>(() => {
           <div v-for="item in report.insights" :key="item.title">
             <div
               class="student-report-card__insight-badge"
-              :class="item.title === '优势表现' ? 'student-report-card__insight-badge--green' : 'student-report-card__insight-badge--red'"
+              :class="
+                item.title === '优势表现'
+                  ? 'student-report-card__insight-badge--green'
+                  : 'student-report-card__insight-badge--red'
+              "
             >
               {{ item.title }}
             </div>
@@ -429,316 +202,4 @@ const chartOption = computed<EChartsOption>(() => {
   </article>
 </template>
 
-<style scoped lang="scss">
-.student-report-card {
-  width: 1120px;
-  padding: 32px;
-  color: #31261d;
-  background:
-    radial-gradient(circle at top right, rgba(35, 120, 130, 0.08), transparent 18%),
-    radial-gradient(circle at bottom left, rgba(224, 120, 58, 0.08), transparent 20%),
-    linear-gradient(180deg, #fcf7ee 0%, #f6eddd 100%);
-  border: 1px solid rgba(210, 191, 162, 0.8);
-  border-radius: 24px;
-  box-shadow:
-    0 24px 70px rgba(126, 99, 57, 0.16),
-    inset 0 1px 0 rgba(255, 255, 255, 0.68);
-}
-
-.student-report-card__hero,
-.student-report-card__section,
-.student-report-card__stat-card {
-  background: rgba(255, 248, 236, 0.82);
-  border: 1px solid rgba(224, 205, 175, 0.7);
-  box-shadow: 0 10px 24px rgba(129, 97, 56, 0.08);
-}
-
-.student-report-card__hero {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 18px 22px;
-  border-radius: 18px;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-}
-
-.student-report-card__hero-left {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  min-width: 0;
-}
-
-.student-report-card__stamp {
-  flex: 0 0 auto;
-  width: 132px;
-  height: 132px;
-  object-fit: contain;
-}
-
-.student-report-card__hero-copy {
-  min-width: 0;
-  padding-top: 8px;
-}
-
-.student-report-card__title {
-  margin: 0;
-  color: #5a3a17;
-  font-size: 44px;
-  line-height: 1.1;
-  letter-spacing: 2px;
-  font-weight: 800;
-  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55);
-}
-
-.student-report-card__lead {
-  margin: 18px 0 0;
-  color: #4e4237;
-  font-size: 14px;
-  line-height: 1.85;
-}
-
-.student-report-card__hero-meta {
-  padding-top: 8px;
-  color: #6e6358;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.student-report-card__section {
-  margin-top: 14px;
-  padding: 16px;
-  border-radius: 16px;
-  background: rgba(255, 251, 245, 0.86);
-  box-shadow: 0 12px 28px rgba(129, 97, 56, 0.08);
-}
-
-.student-report-card__section--scoreboard {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 428px;
-  gap: 18px;
-}
-
-.student-report-card__section-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
-}
-
-.student-report-card__heading-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.student-report-card__heading-icon--teal {
-  color: #0f766e;
-  background: rgba(15, 118, 110, 0.12);
-}
-
-.student-report-card__heading-icon--green {
-  color: #2f855a;
-  background: rgba(47, 133, 90, 0.12);
-}
-
-.student-report-card__heading-icon--gold {
-  color: #b7791f;
-  background: rgba(183, 121, 31, 0.14);
-}
-
-.student-report-card__section-title {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.student-report-card__table {
-  overflow: hidden;
-  border: 1px solid rgba(232, 220, 203, 0.9);
-  border-radius: 12px;
-}
-
-.student-report-card__table-row {
-  display: grid;
-  grid-template-columns: 1.4fr 0.78fr 0.8fr 1fr 0.92fr;
-  gap: 10px;
-  align-items: center;
-  min-height: 46px;
-  padding: 0 18px;
-  border-top: 1px solid rgba(239, 228, 214, 0.94);
-  font-size: 13px;
-}
-
-.student-report-card__table-row--head {
-  color: #6c655e;
-  background: rgba(250, 247, 241, 0.92);
-  border-top: 0;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.student-report-card__score {
-  color: #d83b2f;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.student-report-card__delta-up {
-  color: #18794e;
-}
-
-.student-report-card__delta-down {
-  color: #dc2626;
-}
-
-.student-report-card__stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.student-report-card__stat-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  border-radius: 14px;
-  text-align: center;
-}
-
-.student-report-card__stat-card--teal {
-  background: linear-gradient(180deg, #f7fcf8 0%, #f1f8f2 100%);
-}
-
-.student-report-card__stat-card--blue {
-  background: linear-gradient(180deg, #f7faff 0%, #f1f5fd 100%);
-}
-
-.student-report-card__stat-card--orange {
-  background: linear-gradient(180deg, #fff9f4 0%, #fdf3eb 100%);
-}
-
-.student-report-card__stat-card--purple {
-  background: linear-gradient(180deg, #fbf8ff 0%, #f5effe 100%);
-}
-
-.student-report-card__stat-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-.student-report-card__stat-card--teal .student-report-card__stat-icon {
-  color: #69a864;
-}
-
-.student-report-card__stat-card--blue .student-report-card__stat-icon {
-  color: #7fa7eb;
-}
-
-.student-report-card__stat-card--orange .student-report-card__stat-icon {
-  color: #f19a87;
-}
-
-.student-report-card__stat-card--purple .student-report-card__stat-icon {
-  color: #9f82d9;
-}
-
-.student-report-card__stat-label {
-  margin-top: 12px;
-  color: #466155;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.student-report-card__stat-value {
-  margin-top: 8px;
-  color: #2f2a26;
-  font-size: 19px;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.student-report-card__stat-hint {
-  margin-top: 8px;
-  color: #665b52;
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.student-report-card__chart {
-  padding-top: 2px;
-  min-height: 188px;
-}
-
-.student-report-card__bottom-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
-  gap: 14px;
-}
-
-.student-report-card__article p {
-  margin: 0;
-  color: #41362d;
-  font-size: 14px;
-  line-height: 2;
-  text-indent: 2em;
-}
-
-.student-report-card__article p + p {
-  margin-top: 8px;
-}
-
-.student-report-card__insight-group {
-  display: grid;
-  gap: 12px;
-}
-
-.student-report-card__insight-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.student-report-card__insight-badge--green {
-  color: #2f855a;
-  background: rgba(47, 133, 90, 0.12);
-}
-
-.student-report-card__insight-badge--red {
-  color: #dc2626;
-  background: rgba(220, 38, 38, 0.1);
-}
-
-.student-report-card__insight-list {
-  margin: 10px 0 0;
-  padding-left: 18px;
-  color: #40352c;
-  font-size: 14px;
-  line-height: 1.85;
-}
-
-.student-report-card__footnote {
-  margin-top: 12px;
-  color: #756a60;
-  font-size: 12px;
-  text-align: center;
-}
-</style>
+<style scoped lang="scss" src="./styles/student-report-preview.scss"></style>

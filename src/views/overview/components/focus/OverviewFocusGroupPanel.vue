@@ -8,7 +8,7 @@ import type {
   DashboardFocusGroupKeyType,
   DashboardFocusGroupType,
   DashboardFocusSectionType
-} from '@/types/HomeDashboard'
+} from '@/types/OverviewDashboard'
 
 interface Props {
   /** 单个关注分组数据，包含多个标签区块 */

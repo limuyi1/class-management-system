@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, shallowRef } from 'vue'
 
+import DutyAssignmentCell from './DutyAssignmentCell.vue'
 import {
   DutyPeriodEnum,
   DutyRosterModeEnum,
@@ -42,8 +43,11 @@ const emit = defineEmits<{
 
 // 矩阵容器引用与岗位重命名状态
 const matrixRef = shallowRef<HTMLElement | null>(null)
+
 const editingPositionId = shallowRef<string | null>(null)
+
 const positionDraft = shallowRef('')
+
 const dragOverTargetKey = shallowRef<string | null>(null)
 
 /** 按排序整理后的区域与岗位列表 */
@@ -52,14 +56,14 @@ const sections = computed(() =>
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((section) => ({
       ...section,
-      leaderName: section.leaderStudentId
-        ? props.studentNames[section.leaderStudentId] || ''
-        : '',
+      leaderName: section.leaderStudentId ? props.studentNames[section.leaderStudentId] || '' : '',
       positions: [...section.positions].sort((left, right) => left.sortOrder - right.sortOrder)
     }))
 )
+
 /** 是否为“每组一天”模式 */
 const isDaily = computed(() => props.roster.mode === DutyRosterModeEnum.Daily)
+
 /** 矩阵数据行：每日模式按时段，周模式按自定义行 */
 const rows = computed<DutyMatrixRowType[]>(() => {
   if (isDaily.value) {
@@ -69,10 +73,12 @@ const rows = computed<DutyMatrixRowType[]>(() => {
     .sort((left, right) => left.sortOrder - right.sortOrder)
     .map((row) => ({ key: row.id, period: DutyPeriodEnum.Weekly, rowId: row.id }))
 })
+
 /** 表格总列数 = 所有岗位列 + 1（时段/行操作列） */
 const columnCount = computed(
   () => sections.value.reduce((count, section) => count + section.positions.length, 0) + 1
 )
+
 /** 根据岗位数量和类型计算矩阵最小宽度，给多人岗位留出双列排列空间 */
 const matrixMinWidth = computed(() => {
   const positionWidth = sections.value.reduce(
@@ -93,11 +99,6 @@ function getStudentIds(target: DutyAssignmentTargetType): string[] {
     getDutyAssignment(props.roster.assignments, target.period, target.positionId, target.rowId)
       ?.studentIds || []
   )
-}
-
-/** 按原有规则判断学生是否为组长。 */
-function isLeader(studentId: string): boolean {
-  return props.roster.leaders.some((leader) => leader.studentId === studentId)
 }
 
 /**
@@ -336,87 +337,27 @@ defineExpose({ editPosition })
             {{ DUTY_PERIOD_LABELS[row.period] }}
           </th>
           <template v-for="section in sections" :key="`${row.key}-${section.id}`">
-            <td
+            <DutyAssignmentCell
               v-for="position in section.positions"
               :key="`${row.key}-${position.id}`"
-              class="duty-matrix__cell"
-              :class="{
-                'is-cleaning': section.kind === 'cleaning',
-                'is-drop-target': dragOverTargetKey === getTargetKey(row.key, position.id)
-              }"
-              @dragover.prevent
-              @dragenter.prevent="handleCellDragEnter($event, getTargetKey(row.key, position.id))"
-              @dragleave="handleCellDragLeave($event, getTargetKey(row.key, position.id))"
-              @drop.prevent="
-                handleStudentDrop({
-                  period: row.period,
-                  rowId: row.rowId,
-                  positionId: position.id
-                })
+              :target="{ period: row.period, rowId: row.rowId, positionId: position.id }"
+              :student-ids="
+                getStudentIds({ period: row.period, rowId: row.rowId, positionId: position.id })
               "
-            >
-              <div class="duty-matrix__students">
-                <button
-                  v-for="studentId in getStudentIds({
-                    period: row.period,
-                    rowId: row.rowId,
-                    positionId: position.id
-                  })"
-                  :key="studentId"
-                  class="duty-matrix__student"
-                  :class="{ 'is-leader': isLeader(studentId) }"
-                  type="button"
-                  draggable="true"
-                  :aria-label="`${studentNames[studentId] || '未知学生'}${
-                    isLeader(studentId) ? '，组长' : ''
-                  }`"
-                  :title="`${studentNames[studentId] || '未知学生'}｜拖动调整岗位，右键查看更多操作`"
-                  @dragstart.stop="
-                    emit('dragStudentStart', studentId, {
-                      period: row.period,
-                      rowId: row.rowId,
-                      positionId: position.id
-                    })
-                  "
-                  @dragend="handleStudentDragEnd"
-                  @contextmenu="
-                    handleStudentContext($event, studentId, {
-                      period: row.period,
-                      rowId: row.rowId,
-                      positionId: position.id
-                    })
-                  "
-                >
-                  <span
-                    v-if="isLeader(studentId)"
-                    class="duty-matrix__leader-dot"
-                    aria-hidden="true"
-                  >
-                    组
-                  </span>
-                  <font-awesome-icon
-                    v-else
-                    class="duty-matrix__student-grip"
-                    :icon="['solid', 'grip-vertical']"
-                  />
-                  <span class="duty-matrix__student-name">
-                    {{ studentNames[studentId] || '未知学生' }}
-                  </span>
-                </button>
-                <span
-                  v-if="
-                    !getStudentIds({
-                      period: row.period,
-                      rowId: row.rowId,
-                      positionId: position.id
-                    }).length
-                  "
-                  class="duty-matrix__empty"
-                >
-                  拖入学生
-                </span>
-              </div>
-            </td>
+              :student-names="studentNames"
+              :leader-ids="roster.leaders.map((leader) => leader.studentId)"
+              :cleaning="section.kind === 'cleaning'"
+              :drop-target="dragOverTargetKey === getTargetKey(row.key, position.id)"
+              @drag-enter="handleCellDragEnter($event, getTargetKey(row.key, position.id))"
+              @drag-leave="handleCellDragLeave($event, getTargetKey(row.key, position.id))"
+              @drop-student="handleStudentDrop"
+              @drag-student-start="
+                (studentId: string, target: DutyAssignmentTargetType) =>
+                  emit('dragStudentStart', studentId, target)
+              "
+              @drag-student-end="handleStudentDragEnd"
+              @student-context="handleStudentContext"
+            />
           </template>
           <th v-if="!isDaily" class="duty-matrix__row-action-cell">
             <button
@@ -444,475 +385,4 @@ defineExpose({ editPosition })
   </div>
 </template>
 
-<style scoped lang="scss">
-.duty-matrix-scroll {
-  width: 100%;
-  overflow: auto;
-  border: 1px solid #e4dfeb;
-  border-radius: 8px;
-  scrollbar-width: thin;
-  scrollbar-color: #d8cfdf transparent;
-}
-
-.duty-matrix {
-  --duty-line: #e7e3eb;
-  --duty-text: #303a4f;
-  --duty-muted: #756f7e;
-  --duty-indoor-tint: #f6f5fa;
-  --duty-cleaning-tint: #f1f8f5;
-  --duty-cleaning-accent: #65a88e;
-  width: 100%;
-  border-spacing: 0;
-  border-collapse: separate;
-  table-layout: fixed;
-  color: var(--duty-text);
-  background: #fff;
-  font-size: 13px;
-}
-
-.duty-matrix.is-weekly {
-  min-width: 860px;
-}
-
-.duty-matrix th,
-.duty-matrix td {
-  border-right: 1px solid var(--duty-line);
-  border-bottom: 1px solid var(--duty-line);
-}
-
-.duty-matrix tr > :last-child {
-  border-right: 0;
-}
-
-.duty-matrix.is-weekly .duty-matrix__position-row > :last-child {
-  border-right: 1px solid var(--duty-line);
-}
-
-.duty-matrix tbody tr:last-child > * {
-  border-bottom: 0;
-}
-
-.duty-matrix__period-column {
-  width: 82px;
-}
-
-.duty-matrix__position-column {
-  width: 140px;
-}
-
-.duty-matrix__position-column.is-cleaning {
-  width: 188px;
-}
-
-.duty-matrix__action-column {
-  width: 34px;
-}
-
-.duty-matrix__period-head {
-  position: sticky;
-  top: 0;
-  left: 0;
-  z-index: 8;
-  width: 82px;
-  color: #35405a;
-  background: #f4f3f7;
-  font-weight: 700;
-  box-shadow: 1px 0 0 var(--duty-line);
-}
-
-.duty-matrix__row-action-head,
-.duty-matrix__row-action-cell {
-  width: 34px;
-  min-width: 34px;
-  padding: 0;
-  background: #f8f7fa;
-}
-
-.duty-matrix__row-action-head {
-  position: sticky;
-  top: 0;
-  z-index: 6;
-  border-right-color: #ddd7e4;
-}
-
-.duty-matrix__row-action-cell {
-  position: relative;
-  overflow: visible;
-}
-
-.duty-matrix__remove-row {
-  position: absolute;
-  top: 50%;
-  left: 6px;
-  z-index: 3;
-  display: grid;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  color: #82788c;
-  background: #fff;
-  border: 1px solid #ddd6e4;
-  border-radius: 50%;
-  cursor: pointer;
-  opacity: 0;
-  place-items: center;
-  transform: translateY(-50%);
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease,
-    opacity 0.15s ease,
-    transform 0.15s ease;
-}
-
-.duty-matrix__data-row:hover .duty-matrix__remove-row,
-.duty-matrix__remove-row:focus-visible {
-  opacity: 1;
-}
-
-.duty-matrix__remove-row:hover {
-  color: #df3d48;
-  border-color: #efadb2;
-}
-
-.duty-matrix__remove-row svg {
-  font-size: 9px;
-}
-
-.duty-matrix__section-head {
-  position: sticky;
-  top: 0;
-  z-index: 5;
-  height: 40px;
-  color: #273149;
-  background: var(--duty-indoor-tint);
-  font-size: 14px;
-  font-weight: 750;
-  letter-spacing: 0.04em;
-}
-
-.duty-matrix__section-head.is-cleaning {
-  color: #315c4c;
-  background: var(--duty-cleaning-tint);
-  box-shadow: inset 0 3px 0 var(--duty-cleaning-accent);
-}
-
-.duty-matrix__section-leader-name {
-  color: #c9303b;
-}
-
-.duty-matrix__section-action {
-  margin-left: 8px;
-  padding: 3px 5px;
-  color: currentcolor;
-  background: transparent;
-  border: 0;
-  border-radius: 5px;
-  opacity: 0.55;
-  cursor: pointer;
-}
-
-.duty-matrix__section-action:hover,
-.duty-matrix__section-action:focus-visible {
-  background: rgba(255, 255, 255, 0.65);
-  opacity: 1;
-}
-
-.duty-matrix__position-head {
-  position: sticky;
-  top: 40px;
-  z-index: 4;
-  height: 38px;
-  padding: 0 6px 0 10px;
-  color: #3b4660;
-  background: #fbfafc;
-  font-size: 12px;
-  font-weight: 650;
-  cursor: grab;
-}
-
-.duty-matrix__position-head.is-cleaning {
-  color: #3d5f53;
-  background: #f7fbf9;
-}
-
-.duty-matrix__position-head:hover {
-  color: #6438b7;
-  background: #f5f1fd;
-}
-
-.duty-matrix__position-head.is-cleaning:hover {
-  color: #315c4c;
-  background: #eef7f2;
-}
-
-.duty-matrix__position-content {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  width: 100%;
-}
-
-.duty-matrix__position-label {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  min-width: 0;
-  gap: 6px;
-}
-
-.duty-matrix__position-label span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.duty-matrix__position-label svg {
-  color: #aaa1b4;
-  font-size: 9px;
-}
-
-.duty-matrix__position-action {
-  display: grid;
-  flex: none;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  color: #81798c;
-  background: transparent;
-  border: 0;
-  border-radius: 6px;
-  cursor: pointer;
-  opacity: 0;
-  place-items: center;
-  transition:
-    color 0.15s ease,
-    background 0.15s ease,
-    opacity 0.15s ease;
-}
-
-.duty-matrix__position-head:hover .duty-matrix__position-action,
-.duty-matrix__position-action:focus-visible {
-  opacity: 1;
-}
-
-.duty-matrix__position-action:hover,
-.duty-matrix__position-action:focus-visible {
-  color: #5d3b89;
-  background: #eee8f7;
-  outline: 0;
-}
-
-.duty-matrix__position-input {
-  width: 100%;
-  height: 29px;
-  padding: 0 6px;
-  color: #34284a;
-  background: #fff;
-  border: 1px solid var(--theme-primary);
-  border-radius: 5px;
-  outline: 0;
-  text-align: center;
-}
-
-.duty-matrix__period-cell {
-  position: sticky;
-  left: 0;
-  z-index: 3;
-  width: 82px;
-  padding: 8px;
-  color: #33405d;
-  background: #f8f7fa;
-  font-size: 13px;
-  font-weight: 750;
-  white-space: nowrap;
-  box-shadow: 1px 0 0 var(--duty-line);
-}
-
-.duty-matrix__data-row:nth-child(even) .duty-matrix__period-cell {
-  background: #f5f4f7;
-}
-
-.duty-matrix__data-row:hover .duty-matrix__period-cell {
-  color: #5c3a88;
-  background: #f2eef8;
-}
-
-.duty-matrix__cell {
-  height: 80px;
-  padding: 6px;
-  background: #fff;
-  vertical-align: middle;
-  transition:
-    background 0.15s ease,
-    box-shadow 0.15s ease;
-}
-
-.duty-matrix__cell.is-cleaning {
-  background: #fbfefc;
-}
-
-.duty-matrix__data-row:nth-child(even) .duty-matrix__cell {
-  background: #fafbfc;
-}
-
-.duty-matrix__data-row:nth-child(even) .duty-matrix__cell.is-cleaning {
-  background: #f7fcf9;
-}
-
-.duty-matrix__data-row:hover .duty-matrix__cell {
-  background: #f7f5fb;
-}
-
-.duty-matrix__data-row:hover .duty-matrix__cell.is-cleaning {
-  background: #f1f8f5;
-}
-
-.duty-matrix__cell.is-drop-target {
-  background: #f0eafb !important;
-  box-shadow: inset 0 0 0 2px var(--theme-primary);
-}
-
-.duty-matrix__cell.is-drop-target .duty-matrix__empty {
-  color: var(--theme-primary);
-  border-color: color-mix(in srgb, var(--theme-primary) 45%, transparent);
-}
-
-.duty-matrix__add-row td {
-  height: 34px;
-  padding: 0;
-  background: #fbfafc;
-}
-
-.duty-matrix__add-row button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  width: 100%;
-  height: 34px;
-  padding: 0;
-  color: #6b5784;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.duty-matrix__add-row button:hover {
-  color: #58308f;
-  background: #f5f1fa;
-}
-
-.duty-matrix__add-row svg {
-  font-size: 10px;
-}
-
-.duty-matrix__students {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  min-height: 28px;
-  align-content: center;
-}
-
-.duty-matrix__student {
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  gap: 3px;
-  width: auto;
-  min-width: max-content;
-  max-width: 100%;
-  min-height: 28px;
-  padding: 0 4px;
-  overflow: hidden;
-  color: #34405a;
-  background: #f4f5f8;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  cursor: grab;
-  font-size: 12px;
-  font-weight: 600;
-  text-align: left;
-  transition:
-    color 0.15s ease,
-    background 0.15s ease,
-    border-color 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
-}
-
-.duty-matrix__student:hover {
-  background: #fff;
-  border-color: #bcaad5;
-  box-shadow: 0 3px 10px rgba(69, 50, 92, 0.1);
-  transform: translateY(-1px);
-}
-
-.duty-matrix__student:focus-visible {
-  border-color: var(--theme-primary);
-  outline: 2px solid color-mix(in srgb, var(--theme-primary) 24%, transparent);
-  outline-offset: 1px;
-}
-
-.duty-matrix__student.is-leader {
-  color: #c9303b;
-  background: #fff3f3;
-  border-color: #f7d9db;
-  font-weight: 750;
-}
-
-.duty-matrix__student-name {
-  white-space: nowrap;
-}
-
-.duty-matrix__leader-dot {
-  display: grid;
-  flex: none;
-  width: 16px;
-  height: 16px;
-  color: #fff;
-  background: #df3d48;
-  border-radius: 4px;
-  font-size: 9px;
-  line-height: 1;
-  place-items: center;
-}
-
-.duty-matrix__student-grip {
-  flex: none;
-  color: #aaa1b4;
-  font-size: 9px;
-}
-
-.duty-matrix__empty {
-  display: grid;
-  place-items: center;
-  min-height: 28px;
-  color: #c1bac8;
-  border: 1px dashed transparent;
-  border-radius: 6px;
-  font-size: 10px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .duty-matrix__cell,
-  .duty-matrix__position-action,
-  .duty-matrix__student {
-    transition: none;
-  }
-}
-
-@media (hover: none) {
-  .duty-matrix__position-action {
-    opacity: 1;
-  }
-}
-
-.duty-matrix__cell:hover .duty-matrix__empty {
-  color: #8c72b5;
-  border-color: #d9cceb;
-}
-</style>
+<style scoped lang="scss" src="./styles/duty-schedule-matrix.scss"></style>

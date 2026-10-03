@@ -1,9 +1,9 @@
 /**
  * Excel 解析与导出工具
- * 提供表格数据导出为 Excel/图片，以及上传 Excel 的预览与解析能力
+ * 提供表格数据导出为 Excel，以及上传 Excel 的预览与解析能力
  */
 import * as XLSX from 'xlsx'
-import domtoimage from 'dom-to-image'
+
 import type { UploadFile } from 'element-plus'
 
 /** 通用操作结果：success 标识是否成功，失败时携带 error */
@@ -14,6 +14,7 @@ interface OperationResultType {
 
 /** Excel 单元格值，允许空值以区分空单元格 */
 type ExcelCellValueType = string | number | boolean | null | undefined
+
 /** 以表头字段为 key 的 Excel 数据行 */
 type ExcelRowType = Record<string, ExcelCellValueType>
 
@@ -34,58 +35,9 @@ interface ExcelPreviewResultType {
 
 /** 预览时最多扫描的前 N 行，用于猜测表头位置 */
 const EXCEL_PREVIEW_ROW_COUNT = 8
+
 /** 用于识别表头行的姓名字段关键词 */
 const NAME_HEADER_PATTERNS = ['姓名', '学生姓名', '学生', '名字']
-
-/**
- * 将表格数据导出为图片
- * @param data - 二维数组，第一行为表头，后续为数据行
- * @param imageName - 导出图片的文件名，默认 image.png
- * @param scale - 缩放比例，默认 2（提高清晰度）
- * @returns 操作结果，success 标识是否成功，失败时携带 error
- */
-const xlsxToImage = async (
-  data: ExcelCellValueType[][],
-  imageName: string = 'image.png',
-  scale: number = 2
-): Promise<OperationResultType> => {
-  const element = document.createElement('div')
-  element.id = 'sheet'
-  // 将工作表渲染在页面外，仅用于截图导出
-  element.setAttribute('style', 'position: absolute;top: 0;z-index: -1000;')
-  document.body.appendChild(element)
-
-  try {
-    const worksheet = XLSX.utils.aoa_to_sheet(data)
-    element.innerHTML = XLSX.utils.sheet_to_html(worksheet)
-
-    const selectorTable = element.querySelector('table')
-    selectorTable?.setAttribute('border', '1')
-    selectorTable?.setAttribute('cellspacing', '0')
-
-    const dataUrl = await domtoimage.toJpeg(element, {
-      quality: 1,
-      width: element?.offsetWidth * scale,
-      height: element?.offsetHeight * scale,
-      bgcolor: '#FFFFFF',
-      style: {
-        transform: `scale(${scale})`,
-        transformOrigin: '0 0'
-      }
-    })
-    const link = document.createElement('a')
-    link.href = dataUrl
-    link.download = imageName
-    link.click()
-    return { success: true }
-  } catch (error) {
-    const resultError = error instanceof Error ? error : new Error('导出图片失败')
-    console.error('导出图片失败:', resultError)
-    return { success: false, error: resultError }
-  } finally {
-    element.remove()
-  }
-}
 
 /**
  * 导出 Excel 文件
@@ -245,14 +197,11 @@ const guessHeaderRowIndex = (rows: ExcelCellValueType[][]): number => {
   if (nameRowIndex >= 0) return nameRowIndex
 
   // 回退：非空单元格最多的一行
-  return previewRows.reduce(
-    (bestIndex, row, index) => {
-      const currentCount = getNonEmptyCellCount(row)
-      const bestCount = getNonEmptyCellCount(previewRows[bestIndex] || [])
-      return currentCount > bestCount ? index : bestIndex
-    },
-    0
-  )
+  return previewRows.reduce((bestIndex, row, index) => {
+    const currentCount = getNonEmptyCellCount(row)
+    const bestCount = getNonEmptyCellCount(previewRows[bestIndex] || [])
+    return currentCount > bestCount ? index : bestIndex
+  }, 0)
 }
 
 /**
@@ -320,5 +269,6 @@ const parseExcel = async (
   return buildExcelDataFromHeaderRow(preview.rows, preview.suggestedHeaderRowIndex)
 }
 
-export { buildExcelDataFromHeaderRow, exportExcel, parseExcel, parseExcelPreview, xlsxToImage }
+export { buildExcelDataFromHeaderRow, exportExcel, parseExcel, parseExcelPreview }
+
 export type { ExcelCellValueType, ExcelMergeRangeType, ExcelPreviewResultType, ExcelRowType }

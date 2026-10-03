@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** 班级概况卡片 — 以特殊布局展示班均分、及格率与单元完成进度 */
-import type { DashboardSummaryCardType } from '@/types/HomeDashboard'
+import type { DashboardSummaryCardType } from '@/types/OverviewDashboard'
 
 interface Props {
   /** 班级概况卡片数据（特殊布局，与其他汇总卡片不同） */

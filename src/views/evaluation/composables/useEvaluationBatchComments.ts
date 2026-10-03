@@ -1,19 +1,25 @@
 /** AI 批量生成与润色期末评语的组合式函数与纯工具函数 */
 import { ref, type Ref } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { startLoading, stopLoading, updateLoadingText } from '@/hooks/useLoading'
 
+import { ElMessage, ElMessageBox } from 'element-plus'
+
+import { startLoading, stopLoading, updateLoadingText } from '@/utils/loadingUtil'
 import { generateBatchComments, polishBatchComments } from '@/ai/aiService'
 import { extractStudentTags } from '@/utils/studentUtil'
-import { applyPolishedComments, buildCommentPolishTargets } from '@/utils/evaluation/commentPolishUtil'
+import {
+  applyPolishedComments,
+  buildCommentPolishTargets
+} from '@/utils/evaluation/commentPolishUtil'
 import { COMMENT_MIN_LENGTH, countCommentLength } from '@/utils/evaluation/commentLengthUtil'
 import { NAME_PROP } from '@/constants'
+
 import type { AIConfigType } from '@/types/AIConfig'
 import type { StudentDataType } from '@/types/StudentData'
 import type { TagCategoryType } from '@/types/Setting'
 
 /** AI 批量生成/润色时每批处理的学生数量 */
 const batchSize = 5
+
 /** 同一经典表达在批次间被允许重复使用的上限 */
 const maxClassicExpressionUsage = 2
 
@@ -31,8 +37,10 @@ interface UseEvaluationBatchCommentsOptions {
 
 /** 批量生成的覆盖策略：仅填充空白或覆盖所有 */
 export type EvaluationBatchGenerateModeType = 'skip' | 'overwrite'
+
 /** 经典表达的已使用次数统计 */
 type ClassicExpressionUsageType = { expression: string; count: number }
+
 /** AI 返回的单条评语结果 */
 type CommentAIResultType = {
   studentId: string

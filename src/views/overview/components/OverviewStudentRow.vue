@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /** 学生行组件 — 以紧凑行展示单个关注学生，点击行触发选中 */
-import type { DashboardStudentListItemType } from '@/types/HomeDashboard'
+import type { DashboardStudentListItemType } from '@/types/OverviewDashboard'
 
 interface Props {
   /** 学生列表项数据 */
@@ -63,7 +63,11 @@ const directionIconNameMap = {
 </script>
 
 <template>
-  <button class="overview-student-row" :class="[`is-${tone}`, `is-${variant}`]" @click="handleSelect">
+  <button
+    class="overview-student-row"
+    :class="[`is-${tone}`, `is-${variant}`]"
+    @click="handleSelect"
+  >
     <!-- 左侧头像区 -->
     <span class="row-leading">
       <span class="avatar-token">
@@ -81,9 +85,7 @@ const directionIconNameMap = {
           class="direction-tag"
           :class="`is-${item.volatilityDirection}`"
         >
-          <font-awesome-icon
-            :icon="['solid', directionIconNameMap[item.volatilityDirection]]"
-          />
+          <font-awesome-icon :icon="['solid', directionIconNameMap[item.volatilityDirection]]" />
           <span>{{ directionLabelMap[item.volatilityDirection] }}</span>
         </span>
       </span>

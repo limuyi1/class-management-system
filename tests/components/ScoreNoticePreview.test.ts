@@ -4,6 +4,8 @@ import { mount } from '@vue/test-utils'
 import ScoreNoticePreview from '../../src/views/score-notice/components/ScoreNoticePreview.vue'
 import { ScoreNoticeCommentStatusEnum, ScoreNoticeModeEnum } from '../../src/types/ScoreNotice'
 
+import type { ScoreNoticeStudentType, ScoreNoticeSubjectType } from '../../src/types/ScoreNotice'
+
 /**
  * ScoreNoticePreview 组件测试
  * 测试目标：成绩通知单预览（报告图样）
@@ -149,5 +151,74 @@ describe('ScoreNoticePreview', () => {
     expect(wrapper.find('.score-report__subject-grid').attributes('style')).toContain(
       '--subject-card-width: calc((100% - 50px) / 6)'
     )
+  })
+})
+
+/** 组件拆分后的额外回归检查，不替代原有展示用例。 */
+describe('通知单拆分回归', () => {
+  const student: ScoreNoticeStudentType = {
+    id: 's1',
+    name: '张三',
+    rawValues: { math: 98 },
+    gradeValues: { math: 'A' },
+    comment: '保持认真学习的好习惯。',
+    commentStatus: ScoreNoticeCommentStatusEnum.Manual
+  }
+
+  const subject: ScoreNoticeSubjectType = {
+    id: 'math',
+    label: '数学',
+    sourceColumn: '数学',
+    rule: { maxScore: 100, gradeAMin: 90, gradeBMin: 75 }
+  }
+
+  describe('成绩通知预览', () => {
+    it.each([
+      [1, 'standard'],
+      [6, 'compact'],
+      [11, 'dense']
+    ] as const)('%i 科目保留 %s 密度和完整导出节点', (count, density) => {
+      const subjects = Array.from({ length: count }, (_, index) => ({
+        ...subject,
+        id: index ? `s${index}` : 'math'
+      }))
+      const wrapper = mount(ScoreNoticePreview, {
+        props: {
+          title: '期末成绩通知',
+          noticeDate: '2026-10-03',
+          mode: ScoreNoticeModeEnum.Score,
+          subjects,
+          student
+        }
+      })
+      expect(wrapper.classes()).toContain(`score-report--subjects-${density}`)
+      expect(wrapper.findAll('.score-report__subject')).toHaveLength(count)
+      expect(wrapper.get('.score-report__header').text()).toContain('期末成绩通知')
+      expect(wrapper.get('.score-report__comment').text()).toContain(student.comment)
+      expect(wrapper.vm.getElement()).toBe(wrapper.element)
+      wrapper.unmount()
+    })
+
+    it('切换等级模式后更新卡片，长评语保留自适应样式', async () => {
+      const wrapper = mount(ScoreNoticePreview, {
+        props: {
+          title: '成绩通知',
+          noticeDate: '2026-10-03',
+          mode: ScoreNoticeModeEnum.Score,
+          subjects: [subject],
+          student
+        }
+      })
+      expect(wrapper.get('.score-report__grade-ring').text()).toContain('98')
+      await wrapper.setProps({
+        mode: ScoreNoticeModeEnum.Grade,
+        student: { ...student, comment: '好'.repeat(301) }
+      })
+      expect(wrapper.get('.score-report__grade-ring').text()).toContain('A')
+      expect(wrapper.get('.score-report__comment').classes()).toContain(
+        'score-report__comment--long'
+      )
+      wrapper.unmount()
+    })
   })
 })

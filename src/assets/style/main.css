@@ -1,7 +1,6 @@
 @import './tailwind.css';
 
 @import 'element-plus/dist/index.css';
-@import '@vueup/vue-quill/dist/vue-quill.snow.css';
 
 @import 'vxe-pc-ui/lib/style.css';
 @import 'vxe-table/lib/style.css';

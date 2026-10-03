@@ -99,24 +99,24 @@
 
 ## 功能清单
 
-| 模块 | 主要能力 | 状态 |
-| --- | --- | :---: |
-| 班级总览 | 班级指标、单元完成度、重点学生、趋势分析、AI 学情诊断 | ✅ |
-| 学生信息 | 学生名单、启用状态、动态成绩列、标签和 Excel 数据维护 | ✅ |
-| 成绩录入 | 快速定位、多列成绩、AI 识图、统计分析、Excel 导出 | ✅ |
-| 学习报告 | 成绩趋势、班级对比、标签画像、AI 正文、高清图片导出 | ✅ |
-| 期末评语 | 手动录入、Excel 导入、AI 生成与润色、PDF / Excel 导出 | ✅ |
-| 成绩通知 | 成绩或等级导入、评语编辑、实时预览、图片批量导出 | ✅ |
-| 座位表 | 多方案、拖拽排座、随机排座、过道与特殊座位、打印导出 | ✅ |
-| 值日表 | 按天/按周排班、岗位管理、拖拽分工、多组长、打印导出 | ✅ |
-| 名单核对 | 两份名单差异分析、结果复制与导出 | ✅ |
-| 试卷排版 | 多图排版、纸张配置、草稿管理、PDF 导出 | ✅ |
-| 素材管理 | 教学图片素材的导入、分类和复用 | ✅ |
-| 数据备份 | Dexie 全量备份、差异预览、恢复和迁移 | ✅ |
-| AI 配置 | 多服务商配置、模型获取、连接测试和提示词管理 | ✅ |
-| 错题本 | 文件夹、题目编辑、AI 识别/解析、组卷和 PDF 导出 | 🧪 可选 |
-| 随机点名 | 全班、小组、多人和公平模式抽取 | 📝 规划中 |
-| 云端同步 | 多设备数据同步和协作 | 📝 规划中 |
+| 模块     | 主要能力                                              |   状态    |
+| -------- | ----------------------------------------------------- | :-------: |
+| 班级总览 | 班级指标、单元完成度、重点学生、趋势分析、AI 学情诊断 |    ✅     |
+| 学生信息 | 学生名单、启用状态、动态成绩列、标签和 Excel 数据维护 |    ✅     |
+| 成绩录入 | 快速定位、多列成绩、AI 识图、统计分析、Excel 导出     |    ✅     |
+| 学习报告 | 成绩趋势、班级对比、标签画像、AI 正文、高清图片导出   |    ✅     |
+| 期末评语 | 手动录入、Excel 导入、AI 生成与润色、PDF / Excel 导出 |    ✅     |
+| 成绩通知 | 成绩或等级导入、评语编辑、实时预览、图片批量导出      |    ✅     |
+| 座位表   | 多方案、拖拽排座、随机排座、过道与特殊座位、打印导出  |    ✅     |
+| 值日表   | 按天/按周排班、岗位管理、拖拽分工、多组长、打印导出   |    ✅     |
+| 名单核对 | 两份名单差异分析、结果复制与导出                      |    ✅     |
+| 试卷排版 | 多图排版、纸张配置、草稿管理、PDF 导出                |    ✅     |
+| 素材管理 | 教学图片素材的导入、分类和复用                        |    ✅     |
+| 数据备份 | Dexie 全量备份、差异预览、恢复和迁移                  |    ✅     |
+| AI 配置  | 多服务商配置、模型获取、连接测试和提示词管理          |    ✅     |
+| 错题本   | 文件夹、题目编辑、AI 识别/解析、组卷和 PDF 导出       |  🧪 可选  |
+| 随机点名 | 全班、小组、多人和公平模式抽取                        | 📝 规划中 |
+| 云端同步 | 多设备数据同步和协作                                  | 📝 规划中 |
 
 ## 功能详情
 
@@ -221,18 +221,18 @@
 
 ## 技术栈
 
-| 类别 | 技术 |
-| --- | --- |
-| 框架 | Vue 3、Composition API、`<script setup>` |
-| 构建 | Vite 8、TypeScript 6 |
-| UI | Element Plus、VxeTable、Vxe PC UI、FontAwesome |
-| 样式 | Tailwind CSS 4、SCSS、Scoped CSS |
-| 状态管理 | Pinia |
-| 本地数据库 | Dexie、dexie-export-import |
-| 图表 | ECharts |
-| 文档处理 | xlsx、pdf-lib、dom-to-image、KaTeX |
-| 测试 | Vitest、Vue Test Utils、happy-dom |
-| AI | OpenAI 兼容接口、Gemini、Kimi、豆包、DeepSeek |
+| 类别       | 技术                                           |
+| ---------- | ---------------------------------------------- |
+| 框架       | Vue 3、Composition API、`<script setup>`       |
+| 构建       | Vite 8、TypeScript 6                           |
+| UI         | Element Plus、VxeTable、Vxe PC UI、FontAwesome |
+| 样式       | Tailwind CSS 4、SCSS、Scoped CSS               |
+| 状态管理   | Pinia                                          |
+| 本地数据库 | Dexie、dexie-export-import                     |
+| 图表       | ECharts                                        |
+| 文档处理   | xlsx、pdf-lib、dom-to-image、KaTeX             |
+| 测试       | Vitest、Vue Test Utils、happy-dom              |
+| AI         | OpenAI 兼容接口、Gemini、Kimi、豆包、DeepSeek  |
 
 ## 快速开始
 
@@ -263,19 +263,19 @@ pnpm build
 
 ## 常用命令
 
-| 命令 | 说明 |
-| --- | --- |
-| `pnpm dev` | 启动开发服务器 |
-| `pnpm build` | 类型检查并构建生产版本 |
-| `pnpm build-only` | 仅执行 Vite 构建 |
-| `pnpm preview` | 预览生产构建 |
-| `pnpm type-check` | 执行 Vue / TypeScript 类型检查 |
-| `pnpm lint` | 执行 ESLint 检查 |
-| `pnpm lint:fix` | 自动修复可修复的 ESLint 问题 |
-| `pnpm format` | 使用 Prettier 格式化源码 |
-| `pnpm test` | 运行全部 Vitest 测试 |
-| `pnpm test:watch` | 监听模式运行测试 |
-| `pnpm test:coverage` | 生成测试覆盖率报告 |
+| 命令                 | 说明                           |
+| -------------------- | ------------------------------ |
+| `pnpm dev`           | 启动开发服务器                 |
+| `pnpm build`         | 类型检查并构建生产版本         |
+| `pnpm build-only`    | 仅执行 Vite 构建               |
+| `pnpm preview`       | 预览生产构建                   |
+| `pnpm type-check`    | 执行 Vue / TypeScript 类型检查 |
+| `pnpm lint`          | 执行 ESLint 检查               |
+| `pnpm lint:fix`      | 自动修复可修复的 ESLint 问题   |
+| `pnpm format`        | 使用 Prettier 格式化源码       |
+| `pnpm test`          | 运行全部 Vitest 测试           |
+| `pnpm test:watch`    | 监听模式运行测试               |
+| `pnpm test:coverage` | 生成测试覆盖率报告             |
 
 ## 数据与隐私
 
@@ -300,6 +300,10 @@ pnpm build
   }
 }
 ```
+
+## 项目文档
+
+开发与验证记录、设计素材说明及论文资料统一从 [文档导航](./docs/README.md) 进入。
 
 ## 项目结构
 

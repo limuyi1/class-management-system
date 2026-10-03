@@ -1,20 +1,24 @@
 <script setup lang="ts">
 /** 错题编辑器 — 编辑错题基本信息、题目/答案/解析，支持图片与 AI 答题 */
 import { ref, watch, computed } from 'vue'
-import { storeToRefs } from 'pinia'
+
 import { ElDialog, ElForm, ElButton, ElMessage, ElTooltip } from 'element-plus'
+
+import { storeToRefs } from 'pinia'
+
 import { useWrongBookStore } from '@/stores/wrong-book'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { fileToBase64 } from '@/utils/fileUtil'
 import { generateAnswerFromQuestion } from '@/ai/aiService'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
 import ImageCropper from '@/components/ImageCropper.vue'
-import type { WrongQuestion } from '@/types/WrongBook'
 import BasicInfoCard from './BasicInfoCard.vue'
 import OriginalImageSection from './OriginalImageSection.vue'
 import ContentEditors from './ContentEditors.vue'
 import ImageScaleDialog from './ImageScaleDialog.vue'
 import ExpandEditorDialog from './ExpandEditorDialog.vue'
+
+import type { WrongQuestion } from '@/types/WrongBook'
 
 /** 弹窗可见性、待编辑题目与所属文件夹 */
 interface Props {
@@ -35,10 +39,13 @@ interface Emits {
 }
 
 const props = defineProps<Props>()
+
 const emit = defineEmits<Emits>()
 
 const wrongBookStore = useWrongBookStore()
+
 const aiConfigStore = useAIConfigStore()
+
 const { folders, questionTypes } = storeToRefs(wrongBookStore)
 
 /** 编辑器表单状态 */
@@ -74,13 +81,18 @@ const resetForm = (folderId?: string) => {
 
 /** 编辑器内图片裁剪器可见性与待裁剪图片源 */
 const editorCropperVisible = ref(false)
+
 const editorCropperImageSrc = ref('')
 
 /** 图片缩放设置：待插入图片、缩放比例、原始宽度与对齐方式 */
 const imageScaleVisible = ref(false)
+
 const pendingImageBase64 = ref('')
+
 const imageScale = ref(100)
+
 const originalImageWidth = ref(0)
+
 const imageAlign = ref<'left' | 'center' | 'right'>('center')
 
 /** 在编辑器内插入图片：选择文件后进入裁剪流程 */
@@ -303,6 +315,7 @@ const showExpand = () => {
 
 /** 内容编辑器引用与当前激活的编辑字段 */
 const contentEditorsRef = ref<InstanceType<typeof ContentEditors> | null>(null)
+
 const activeEditorRef = ref<'question' | 'answer' | 'explanation' | null>(null)
 </script>
 

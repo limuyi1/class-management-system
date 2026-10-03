@@ -6,23 +6,31 @@ import fontkit from '@pdf-lib/fontkit'
 
 import { useConfigurationStore } from '@/stores/configuration'
 import { NAME_PROP } from '@/constants'
+
 import type { ConfigurationType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
 /** 默认手写字体资源地址 */
-const DEFAULT_HANDWRITE_FONT_URL = new URL('../assets/font/fuyao-shoushu.ttf', import.meta.url).href
+const DEFAULT_HANDWRITE_FONT_URL = new URL('../../assets/font/fuyao-shoushu.ttf', import.meta.url)
+  .href
+
 /** 动态注册的用户手写字体 family 名称 */
 const CUSTOM_HANDWRITE_FONT_FAMILY = 'EvaluationHandwriteFont'
+
 /** 默认手写字体 family 名称 */
 const DEFAULT_HANDWRITE_FONT_FAMILY = 'FYFont'
+
 /** 字体加载超时时间（毫秒） */
 const FONT_LOAD_TIMEOUT_MS = 10000
+
 /** 字体加载偏慢时的提示阈值（毫秒） */
 const DEFAULT_FONT_SLOW_NOTICE_MS = 8000
+
 /** 允许上传的字体文件最大字节数（30MB） */
 const MAX_FONT_FILE_SIZE_BYTES = 30 * 1024 * 1024
 
 let cachedDefaultFontPromise: Promise<Uint8Array> | null = null
+
 let activeCustomFontFace: FontFace | null = null
 
 // configuration store 目前通过 JSON 持久化，字体二进制需要转成 base64 才能稳定保存。
@@ -40,7 +48,8 @@ const uint8ArrayToBase64 = (bytes: Uint8Array): string => {
 }
 
 /** ArrayBuffer 转 Base64 */
-const arrayBufferToBase64 = (buffer: ArrayBuffer): string => uint8ArrayToBase64(new Uint8Array(buffer))
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string =>
+  uint8ArrayToBase64(new Uint8Array(buffer))
 
 /** Base64 转 Uint8Array */
 const base64ToUint8Array = (value: string): Uint8Array => {

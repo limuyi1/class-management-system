@@ -6,10 +6,11 @@
 import { computed } from 'vue'
 
 import EmptyStatePanel from '@/components/EmptyStatePanel.vue'
-import DownloadBtn from '@/views/score/components/DownloadBtn.vue'
+import ScoreExportDropdown from '@/views/score/components/ScoreExportDropdown.vue'
 import StatisticsRateCard from '@/views/score/components/StatisticsRateCard.vue'
 import StatisticsNumCard from '@/views/score/components/StatisticsNumCard.vue'
 import LowScoreCard from '@/views/score/components/LowScoreCard.vue'
+
 import type { ScorePageStageType } from '@/types/Score'
 
 /** 组件属性：是否可导出、页面阶段 */
@@ -47,7 +48,7 @@ const emptyState = computed(() => {
     <!-- 统计标题与导出按钮 -->
     <div class="analysis-header">
       <div class="title">成绩统计</div>
-      <download-btn :disabled="!canExport" />
+      <score-export-dropdown :disabled="!canExport" />
     </div>
 
     <!-- 未就绪阶段展示空状态提示 -->

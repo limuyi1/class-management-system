@@ -1,24 +1,24 @@
 <script setup lang="ts">
 /** 概览仪表盘页面 — 展示 KPI、关注学生、趋势图表、单元分析和评语概览 */
 import { computed, nextTick, ref } from 'vue'
+
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
 import { StudentReportExportDialog } from '@/components/student-report'
-
-import HomeDiagnosisCard from '@/views/overview/components/HomeDiagnosisCard.vue'
-import HomeFocusCenter from '@/views/overview/components/HomeFocusCenter.vue'
-import HomeKeyStudentLists from '@/views/overview/components/HomeKeyStudentLists.vue'
-import HomeKpiStrip from '@/views/overview/components/HomeKpiStrip.vue'
-import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendPanel.vue'
-import HomeUnitOverviewChart from '@/views/overview/components/HomeUnitOverviewChart.vue'
-
+import OverviewDiagnosisCard from '@/views/overview/components/OverviewDiagnosisCard.vue'
+import OverviewFocusCenter from '@/views/overview/components/OverviewFocusCenter.vue'
+import OverviewKeyStudentLists from '@/views/overview/components/OverviewKeyStudentLists.vue'
+import OverviewKpiStrip from '@/views/overview/components/OverviewKpiStrip.vue'
+import OverviewStudentTrendPanel from '@/views/overview/components/OverviewStudentTrendPanel.vue'
+import OverviewUnitOverviewChart from '@/views/overview/components/OverviewUnitOverviewChart.vue'
 import { useOverviewAnalysis } from '@/views/overview/composables/useOverviewAnalysis'
 import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
-import type { OverviewDashboardStageType } from '@/types/HomeDashboard'
+
+import type { OverviewDashboardStageType } from '@/types/OverviewDashboard'
 import type { StudentDataType } from '@/types/StudentData'
 
 /**
@@ -26,29 +26,41 @@ import type { StudentDataType } from '@/types/StudentData'
  * 业务数据和 AI 逻辑全部下沉到 composable，减少页面脚本负担。
  */
 const { selectedStudentIds, dashboardData, focusStudent } = useOverviewDashboard()
+
 const router = useRouter()
+
 /** 控制学生趋势分析抽屉的显示与隐藏 */
 const trendDrawerVisible = ref(false)
+
 /** 控制学生报告导出弹窗的显示与隐藏 */
 const reportDialogVisible = ref(false)
+
 /** 当前要导出报告的学生，打开弹窗时填充 */
 const currentStudent = ref<StudentDataType | null>(null)
+
 const dataStore = useDataSourceStore()
+
 const settingStore = useSettingStore()
+
 /** 启用状态的学生数据列表 */
 const { enabledData } = storeToRefs(dataStore)
+
 /** 启用状态的成绩单元表头列表 */
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
+
 /** 是否已设置成绩单元 */
 const hasUnits = computed(() => scoreColumns.value.length > 0)
+
 /** 是否已录入单元成绩数据 */
 const hasScores = computed(() => dashboardData.value.unitOverview.length > 0)
+
 /** 根据单元与成绩的完整程度推导页面阶段，用于驱动各卡片的空态展示 */
 const overviewStage = computed<OverviewDashboardStageType>(() => {
   if (!hasUnits.value) return 'noUnits'
   if (!hasScores.value) return 'noScores'
   return 'ready'
 })
+
 /** AI 学情分析的状态与生成动作，来自 useOverviewAnalysis */
 const {
   analysisText: learningAnalysisText,
@@ -154,10 +166,10 @@ const handleGenerateLearningAnalysis = async () => {
       </template>
     </page-header>
 
-    <div class="home-dashboard">
+    <div class="overview-dashboard">
       <!-- 左侧栏：KPI 汇总条 + 单元成绩概览 + 关键学生列表 -->
       <div class="dashboard-left">
-        <home-kpi-strip
+        <overview-kpi-strip
           class="dashboard-kpi"
           :summary-cards="dashboardData.summaryCards"
           :stage="overviewStage"
@@ -168,7 +180,7 @@ const handleGenerateLearningAnalysis = async () => {
 
         <div class="dashboard-primary-stack">
           <div class="dashboard-primary" :class="{ 'is-empty-stage': overviewStage !== 'ready' }">
-            <home-unit-overview-chart
+            <overview-unit-overview-chart
               :unit-overview="dashboardData.unitOverview"
               :teaching-insights="dashboardData.teachingInsights"
               :stage="overviewStage"
@@ -177,7 +189,7 @@ const handleGenerateLearningAnalysis = async () => {
             />
           </div>
 
-          <home-key-student-lists
+          <overview-key-student-lists
             class="dashboard-key-lists"
             :lists="dashboardData.keyStudentLists"
             @select="openStudentTrend"
@@ -187,7 +199,7 @@ const handleGenerateLearningAnalysis = async () => {
 
       <!-- 右侧栏：AI 学情诊断卡片 + 学生观察站 -->
       <div class="dashboard-right">
-        <home-diagnosis-card
+        <overview-diagnosis-card
           class="dashboard-diagnosis"
           :evaluation-overview="dashboardData.evaluationOverview"
           :analysis-text="learningAnalysisText"
@@ -200,7 +212,7 @@ const handleGenerateLearningAnalysis = async () => {
         />
 
         <div class="dashboard-side">
-          <home-focus-center
+          <overview-focus-center
             :focus-groups="dashboardData.focusGroups"
             :completed-unit-count="dashboardData.kpi.completedUnitCount"
             :stage="overviewStage"
@@ -218,7 +230,7 @@ const handleGenerateLearningAnalysis = async () => {
       title="学生趋势分析"
       append-to-body
     >
-      <home-student-trend-panel
+      <overview-student-trend-panel
         class="drawer-trend-panel"
         v-model="selectedStudentIds"
         :student-trend="dashboardData.studentTrend"
@@ -246,7 +258,7 @@ const handleGenerateLearningAnalysis = async () => {
   overflow: hidden;
 }
 
-.home-dashboard {
+.overview-dashboard {
   flex: 1;
   min-height: 0;
   display: grid;
@@ -379,7 +391,7 @@ const handleGenerateLearningAnalysis = async () => {
 }
 
 @media (max-width: 1280px) {
-  .home-dashboard {
+  .overview-dashboard {
     grid-template-columns: 1fr;
     overflow: auto;
   }

@@ -1,11 +1,3 @@
-import type {
-  DashboardFocusSectionKeyType,
-  DashboardFocusGroupKeyType,
-  DashboardStudentListItemType,
-  DashboardTagKeyType,
-  HomeDashboardConfigType
-} from '@/types/HomeDashboard'
-
 import {
   buildTrendSegments,
   formatScore,
@@ -13,6 +5,14 @@ import {
   getRecentChange,
   getScoreDiffText
 } from '@/views/overview/services/dashboard/helpers'
+
+import type {
+  DashboardFocusSectionKeyType,
+  DashboardFocusGroupKeyType,
+  DashboardStudentListItemType,
+  DashboardTagKeyType,
+  OverviewDashboardConfigType
+} from '@/types/OverviewDashboard'
 import type { StudentMetricType } from '@/views/overview/services/dashboard/types'
 
 /** 统计低于及格线的成绩次数 */
@@ -50,7 +50,7 @@ const isUpwardDirection = (direction?: StudentMetricType['volatilityDirection'])
 export const getTagSortScore = (
   metric: StudentMetricType,
   tagKey: DashboardTagKeyType,
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 ): number => {
   const recentChange = getRecentChange(metric.recentThreeScores)
 
@@ -77,7 +77,11 @@ export const getTagSortScore = (
       return Number(
         (
           Math.max(0, recentChange) +
-          scoresToHitCount(metric.points.map((point) => point.score).slice(0, -2), config.tagRules.passLine) * 2
+          scoresToHitCount(
+            metric.points.map((point) => point.score).slice(0, -2),
+            config.tagRules.passLine
+          ) *
+            2
         ).toFixed(2)
       )
     case 'improving':
@@ -259,7 +263,9 @@ export const getSectionMeta = (
  * @param metric 学生画像
  * @returns 中段变化显示 Key
  */
-export const getMiddleChangeDisplayKey = (metric: StudentMetricType): DashboardFocusSectionKeyType => {
+export const getMiddleChangeDisplayKey = (
+  metric: StudentMetricType
+): DashboardFocusSectionKeyType => {
   if (metric.matchedTags.some((tag) => tag.key === 'middleFalling')) {
     return 'middleFalling'
   }
@@ -285,7 +291,7 @@ export const getMiddleChangeDisplayKey = (metric: StudentMetricType): DashboardF
  */
 export const getAttentionRecommendScore = (
   metric: StudentMetricType,
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 ): number => {
   const weights = config.recommendation.attentionWeights
   let score = 0
@@ -297,12 +303,19 @@ export const getAttentionRecommendScore = (
 
   // 持续低分：低分次数 × 权重 × 10
   if (metric.matchedTags.some((tag) => tag.key === 'persistentLowScore')) {
-    score += metric.recentThreeScores.filter((item) => item < config.tagRules.passLine).length * (weights.lowScoreHit || 0) * 10
+    score +=
+      metric.recentThreeScores.filter((item) => item < config.tagRules.passLine).length *
+      (weights.lowScoreHit || 0) *
+      10
   }
 
   // 持续下滑：取“较上次降幅”与“近期累计降幅”较大者 × 权重
   if (metric.matchedTags.some((tag) => tag.key === 'declining')) {
-    score += Math.max(metric.latestDrop, Math.max(0, metric.recentThreeScores[0] - metric.recentThreeScores.slice(-1)[0])) * (weights.declineDelta || 0)
+    score +=
+      Math.max(
+        metric.latestDrop,
+        Math.max(0, metric.recentThreeScores[0] - metric.recentThreeScores.slice(-1)[0])
+      ) * (weights.declineDelta || 0)
   }
 
   // 临界状态：距及格线的差距直接加分
@@ -311,7 +324,10 @@ export const getAttentionRecommendScore = (
   }
 
   // 多标签叠加：每多命中一个“立即关注”组标签额外加分
-  score += Math.max(0, metric.matchedTags.filter((tag) => tag.group === 'attention').length - 1) * (weights.multiTagBonus || 0) * 10
+  score +=
+    Math.max(0, metric.matchedTags.filter((tag) => tag.group === 'attention').length - 1) *
+    (weights.multiTagBonus || 0) *
+    10
 
   return Number(score.toFixed(2))
 }
@@ -326,13 +342,17 @@ export const getAttentionRecommendScore = (
  */
 export const getEncouragementRecommendScore = (
   metric: StudentMetricType,
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 ): number => {
   const weights = config.recommendation.encouragementWeights
   // 基础分：最近一次较最早一次的上升幅度 × 权重
   const recentRise =
     metric.recentThreeScores.length >= 2
-      ? Math.max(0, metric.recentThreeScores[metric.recentThreeScores.length - 1] - metric.recentThreeScores[0])
+      ? Math.max(
+          0,
+          metric.recentThreeScores[metric.recentThreeScores.length - 1] -
+            metric.recentThreeScores[0]
+        )
       : 0
   let score = recentRise * (weights.riseDelta || 0)
 
@@ -364,7 +384,7 @@ export const getEncouragementRecommendScore = (
  */
 export const getMiddleChangeRecommendScore = (
   metric: StudentMetricType,
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 ): number => {
   const weights = config.recommendation.middleChangeWeights
   // 带符号的近期变化（正为上升、负为下滑）
@@ -402,7 +422,7 @@ export const getMiddleChangeRecommendScore = (
  */
 export const getVolatilityWatchRecommendScore = (
   metric: StudentMetricType,
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 ): number => {
   const weights = config.recommendation.middleChangeWeights
   let score = 0
@@ -428,7 +448,7 @@ export const getVolatilityWatchRecommendScore = (
 export const getRecommendScore = (
   metric: StudentMetricType,
   groupKey: DashboardFocusGroupKeyType,
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 ): number => {
   switch (groupKey) {
     case 'attention':

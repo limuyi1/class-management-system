@@ -20,10 +20,3 @@ declare module '*.tiff'
 declare module 'element-plus/dist/locale/zh-cn.mjs'
 declare module 'dom-to-image'
 declare module 'vue-cropper'
-
-// 为 JSX/TSX 声明全局可用的自定义组件
-declare namespace JSX {
-  interface IntrinsicElements {
-    'font-awesome-icon': unknown
-  }
-}

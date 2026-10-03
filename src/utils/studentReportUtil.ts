@@ -1,92 +1,31 @@
-/**
- * 学生报告生成工具
- * 负责将学生成绩整理为报告模型、模板文本并导出为图片
- */
 import domtoimage from 'dom-to-image'
 
 import { NAME_PROP } from '@/constants'
-import type { SettingType, TagCategoryType } from '@/types/Setting'
-import type { StudentDataType } from '@/types/StudentData'
 import { extractStudentTags } from '@/utils/studentUtil'
 
-/** 通用操作结果：success 标识是否成功，失败时携带 error */
-interface OperationResultType {
-  success: boolean
-  error?: Error
-}
-
-/** 学生报告中的单科成绩项 */
-export interface StudentReportScoreItemType {
-  prop: string
-  label: string
-  score: number | null
-  average: number | null
-  rank: number | null
-  delta: number | null
-}
-
-/** 成绩、均分、名次均已有效的成绩项 */
-type StudentReportValidScoreItemType = Omit<
+import type {
+  OperationResultType,
   StudentReportScoreItemType,
-  'score' | 'average' | 'rank'
-> & {
-  score: number
-  average: number
-  rank: number
-}
+  StudentReportValidScoreItemType,
+  StudentReportSummaryStatType,
+  StudentReportSummaryType,
+  StudentReportInsightType,
+  StudentReportDataType,
+  StudentReportExportOptionsType
+} from '@/types/StudentReport'
+import type { SettingType, TagCategoryType } from '@/types/Setting'
+import type { StudentDataType } from '@/types/StudentData'
 
-/** 报告概览统计卡片 */
-export interface StudentReportSummaryStatType {
-  label: string
-  value: string
-  hint: string
-  tone: 'teal' | 'blue' | 'orange' | 'purple'
-  icon: string
-}
-
-/** 学生报告汇总信息 */
-export interface StudentReportSummaryType {
-  averageScore: number
-  highestScore: number
-  lowestScore: number
-  progressCount: number
-  trendLabel: string
-  totalDelta: number
-  bestScore: StudentReportValidScoreItemType | null
-  worstScore: StudentReportValidScoreItemType | null
-  bestRank: StudentReportValidScoreItemType | null
-  worstRank: StudentReportValidScoreItemType | null
-  statCards: StudentReportSummaryStatType[]
-}
-
-/** 学生报告洞察分组（标题 + 条目列表） */
-export interface StudentReportInsightType {
-  title: string
-  items: string[]
-}
-
-/** 学生报告的完整展示模型 */
-export interface StudentReportDataType {
-  studentName: string
-  classLabel: string
-  studentCount: number
-  classAverageScore: number
-  generatedAtText: string
-  headline: string
-  overviewLead: string
-  scoreItems: StudentReportScoreItemType[]
-  summary: StudentReportSummaryType
-  tags: string[]
-  strengths: string[]
-  concerns: string[]
-  insights: StudentReportInsightType[]
-}
-
-/** 报告图片导出选项 */
-export interface StudentReportExportOptionsType {
-  scale?: number
-  backgroundColor?: string
-}
+export type {
+  OperationResultType,
+  StudentReportScoreItemType,
+  StudentReportValidScoreItemType,
+  StudentReportSummaryStatType,
+  StudentReportSummaryType,
+  StudentReportInsightType,
+  StudentReportDataType,
+  StudentReportExportOptionsType
+} from '@/types/StudentReport'
 
 /** 将任意值解析为有限数字，无法解析时返回 null */
 const toScoreValue = (value: unknown): number | null => {
@@ -111,7 +50,9 @@ const formatRankText = (rank: number | null): string => {
 }
 
 /** 过滤出成绩、均分、名次均有效的成绩项 */
-const getValidScoreItems = (scoreItems: StudentReportScoreItemType[]): StudentReportValidScoreItemType[] =>
+const getValidScoreItems = (
+  scoreItems: StudentReportScoreItemType[]
+): StudentReportValidScoreItemType[] =>
   scoreItems.filter((item): item is StudentReportValidScoreItemType => {
     return item.score !== null && item.average !== null && item.rank !== null
   })
@@ -181,7 +122,8 @@ const buildStrengths = (
   // 优势三：半数及以上阶段高于班平均，视为整体处于班级前列
   if (
     validScoreItems.length &&
-    validScoreItems.filter((item) => item.score >= item.average).length >= Math.ceil(validScoreItems.length / 2)
+    validScoreItems.filter((item) => item.score >= item.average).length >=
+      Math.ceil(validScoreItems.length / 2)
   ) {
     result.push('大部分阶段成绩高于班级平均水平，整体处于班级前列')
   }
@@ -238,7 +180,9 @@ const buildOverviewLead = (
   const latestScore = validScoreItems[validScoreItems.length - 1]
   const latestDiff = latestScore.score - latestScore.average
   const latestDiffText =
-    latestDiff === 0 ? '与班平均持平' : `${latestDiff > 0 ? '高于' : '低于'}班平均 ${Math.abs(latestDiff).toFixed(1)} 分`
+    latestDiff === 0
+      ? '与班平均持平'
+      : `${latestDiff > 0 ? '高于' : '低于'}班平均 ${Math.abs(latestDiff).toFixed(1)} 分`
 
   return `本阶段共记录 ${scoreItems.length} 次成绩，最近一次 ${latestScore.score} 分。${latestDiffText}，整体成绩${summary.trendLabel}。`
 }
@@ -305,37 +249,44 @@ export function buildStudentReportData(options: {
   tagCategories: TagCategoryType[]
   classLabel?: string
 }): StudentReportDataType {
-  const { student, students, scoreColumns, selectedProps, tagCategories, classLabel = '本班' } = options
+  const {
+    student,
+    students,
+    scoreColumns,
+    selectedProps,
+    tagCategories,
+    classLabel = '本班'
+  } = options
   const selectedColumns = scoreColumns.filter((item) => selectedProps.includes(item.prop))
   // 上一个非空成绩，用于计算相邻两次成绩的变化值 delta（成绩缺失时不打断连续变化）
   let previousScore: number | null = null
-  const scoreItems: StudentReportScoreItemType[] = selectedColumns
-    .map((column) => {
-      const score = toScoreValue(student[column.prop])
-      const allScores = students
-        .map((item) => toScoreValue(item[column.prop]))
-        .filter((item): item is number => item !== null)
-      const average = allScores.length ? calculateAverage(allScores) : null
-      // 名次按成绩降序取第一次出现的下标，未找到时回退为末尾名次。
-      const rank =
-        score !== null && allScores.length
-          ? [...allScores].sort((a, b) => b - a).findIndex((item) => item === score) + 1 || allScores.length
-          : null
-      const delta = score === null || previousScore === null ? null : score - previousScore
+  const scoreItems: StudentReportScoreItemType[] = selectedColumns.map((column) => {
+    const score = toScoreValue(student[column.prop])
+    const allScores = students
+      .map((item) => toScoreValue(item[column.prop]))
+      .filter((item): item is number => item !== null)
+    const average = allScores.length ? calculateAverage(allScores) : null
+    // 名次按成绩降序取第一次出现的下标，未找到时回退为末尾名次。
+    const rank =
+      score !== null && allScores.length
+        ? [...allScores].sort((a, b) => b - a).findIndex((item) => item === score) + 1 ||
+          allScores.length
+        : null
+    const delta = score === null || previousScore === null ? null : score - previousScore
 
-      if (score !== null) {
-        previousScore = score
-      }
+    if (score !== null) {
+      previousScore = score
+    }
 
-      return {
-        prop: column.prop,
-        label: column.label,
-        score,
-        average,
-        rank,
-        delta
-      }
-    })
+    return {
+      prop: column.prop,
+      label: column.label,
+      score,
+      average,
+      rank,
+      delta
+    }
+  })
 
   const validScoreItems = getValidScoreItems(scoreItems)
   const scoreValues = validScoreItems.map((item) => item.score)
@@ -355,16 +306,28 @@ export function buildStudentReportData(options: {
       : 0
   // 通过 reduce 在有效成绩项中挑选最好/最差成绩与最好/最差名次
   const bestScore = validScoreItems.length
-    ? validScoreItems.reduce((best, item) => (item.score > best.score ? item : best), validScoreItems[0])
+    ? validScoreItems.reduce(
+        (best, item) => (item.score > best.score ? item : best),
+        validScoreItems[0]
+      )
     : null
   const worstScore = validScoreItems.length
-    ? validScoreItems.reduce((worst, item) => (item.score < worst.score ? item : worst), validScoreItems[0])
+    ? validScoreItems.reduce(
+        (worst, item) => (item.score < worst.score ? item : worst),
+        validScoreItems[0]
+      )
     : null
   const bestRank = validScoreItems.length
-    ? validScoreItems.reduce((best, item) => (item.rank < best.rank ? item : best), validScoreItems[0])
+    ? validScoreItems.reduce(
+        (best, item) => (item.rank < best.rank ? item : best),
+        validScoreItems[0]
+      )
     : null
   const worstRank = validScoreItems.length
-    ? validScoreItems.reduce((worst, item) => (item.rank > worst.rank ? item : worst), validScoreItems[0])
+    ? validScoreItems.reduce(
+        (worst, item) => (item.rank > worst.rank ? item : worst),
+        validScoreItems[0]
+      )
     : null
 
   const baseSummary: Omit<StudentReportSummaryType, 'statCards'> = {

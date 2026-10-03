@@ -1,7 +1,9 @@
 import { computed, ref } from 'vue'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { useScoreDistributionActions } from '../../src/hooks/useScoreDistributionActions'
+
 import type { ScoreStatisticsType } from '../../src/hooks/useScoreStatistics'
 
 /**
@@ -14,6 +16,7 @@ import type { ScoreStatisticsType } from '../../src/hooks/useScoreStatistics'
 const domtoimageMocks = vi.hoisted(() => ({
   toPng: vi.fn()
 }))
+
 vi.mock('dom-to-image', () => ({
   default: { toPng: domtoimageMocks.toPng }
 }))
@@ -22,13 +25,15 @@ const loadingMocks = vi.hoisted(() => ({
   startLoading: vi.fn(),
   stopLoading: vi.fn()
 }))
-vi.mock('@/hooks/useLoading', () => loadingMocks)
+
+vi.mock('@/utils/loadingUtil', () => loadingMocks)
 
 const messageMocks = vi.hoisted(() => ({
   success: vi.fn(),
   warning: vi.fn(),
   error: vi.fn()
 }))
+
 vi.mock('element-plus', () => ({
   ElMessage: messageMocks
 }))
@@ -42,9 +47,7 @@ const createScoreStats = (): ScoreStatisticsType => ({
   minScoreCount: 1,
   bottomStudents: ['王五'],
   avgScore: '72.5',
-  ranges: [
-    { label: '90-98分', min: 90, max: 98, color: '#67c23a', count: 1, students: ['李四'] }
-  ],
+  ranges: [{ label: '90-98分', min: 90, max: 98, color: '#67c23a', count: 1, students: ['李四'] }],
   lowScoreRanges: [
     { label: '40-49分', min: 40, max: 49, color: '#f56c6c', count: 1, students: ['王五'] }
   ],
@@ -92,7 +95,9 @@ describe('useScoreDistributionActions', () => {
     linkClickSpy.mockRestore()
   })
 
-  const createHook = (overrides: Partial<Parameters<typeof useScoreDistributionActions>[0]> = {}) => {
+  const createHook = (
+    overrides: Partial<Parameters<typeof useScoreDistributionActions>[0]> = {}
+  ) => {
     const students = ref([
       createStudent('王五', 45),
       createStudent('李四', 55),

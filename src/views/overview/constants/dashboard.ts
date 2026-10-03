@@ -1,4 +1,4 @@
-import type { HomeDashboardConfigType } from '@/types/HomeDashboard'
+import type { OverviewDashboardConfigType } from '@/types/OverviewDashboard'
 
 /**
  * 班级总览页配置。
@@ -10,7 +10,7 @@ import type { HomeDashboardConfigType } from '@/types/HomeDashboard'
  * - studentTrend：趋势分析的阈值配置
  * - recommendation：推荐权重配置
  */
-export const overviewDashboardConfig: HomeDashboardConfigType = {
+export const overviewDashboardConfig: OverviewDashboardConfigType = {
   unitOverview: {
     // 分数段定义，用于柱状图的颜色分区和人数统计
     scoreBands: [
@@ -26,9 +26,9 @@ export const overviewDashboardConfig: HomeDashboardConfigType = {
     dataZoomVisibleCount: 6
   },
   tagRules: {
-    passLine: 60,      // 及格线，低于此分数视为低分
+    passLine: 60, // 及格线，低于此分数视为低分
     middleScoreMin: 60, // 中段分数下限
-    middleScoreMax: 84,  // 中段分数上限（不含）
+    middleScoreMax: 84, // 中段分数上限（不含）
     // 单元均分较近期正常单元基线变化达到该阈值时，认为本次整体偏难/偏易
     latestUnitDifficultyShiftThreshold: 5,
     // 至少参考最近 N 个已完成单元，单元数不足时不做相对难度判断

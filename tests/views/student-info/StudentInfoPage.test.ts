@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount } from '@vue/test-utils'
 
+import StudentInfoPage from '@/views/student-info/StudentInfoPage.vue'
+
 /**
  * StudentInfoPage 组件测试
  * 测试目标：学生信息页面壳
@@ -25,7 +27,7 @@ const studentInfoMocks = vi.hoisted(() => ({
   openTagEditorById: vi.fn()
 }))
 
-vi.mock('@/views/setting/components/StudentInfo.vue', () => ({
+vi.mock('@/views/student-info/components/StudentInfoTable.vue', () => ({
   default: {
     name: 'StudentInfo',
     props: ['returnTo', 'returnStudentId'],
@@ -33,8 +35,6 @@ vi.mock('@/views/setting/components/StudentInfo.vue', () => ({
     methods: { openTagEditorById: studentInfoMocks.openTagEditorById }
   }
 }))
-
-import StudentInfoPage from '@/views/student-info/StudentInfoPage.vue'
 
 describe('StudentInfoPage', () => {
   beforeEach(() => {

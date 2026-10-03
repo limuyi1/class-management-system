@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+
 import { ElDialog, ElButton, ElMessage } from 'element-plus'
-import { runWithLoading } from '@/hooks/useLoading'
+
 import { VueCropper } from 'vue-cropper'
 import 'vue-cropper/dist/index.css'
 
+import { runWithLoading } from '@/utils/loadingUtil'
 import {
   compressDataUrlByRatio,
   dataUrlToBase64,
@@ -43,39 +45,57 @@ interface Emits {
 }
 
 const props = defineProps<Props>()
+
 const emit = defineEmits<Emits>()
 
 /** 确认操作进行中标记 */
 const loading = ref(false)
+
 /** 是否处于全屏模式 */
 const fullscreen = ref(false)
+
 /** 裁剪容器 DOM 引用 */
 const cropperWrapperRef = ref<HTMLDivElement | null>(null)
+
 /** 裁剪器组件实例引用 */
 const cropperRef = ref<InstanceType<typeof VueCropper> | null>(null)
+
 /** 裁剪器是否已就绪 */
 const cropperReady = ref(false)
+
 /** 裁剪框宽度 */
 const autoCropWidth = ref(640)
+
 /** 裁剪框高度 */
 const autoCropHeight = ref(400)
+
 /** 当前裁剪结果 Base64，用于体积估算 */
 const cropDataBase64 = ref('')
+
 /** 体积估算进行中标记 */
 const estimating = ref(false)
 
 // 裁剪框相关常量：默认尺寸、宽高比、全屏边距与最小尺寸
 const DEFAULT_CROP_WIDTH = 640
+
 const DEFAULT_CROP_HEIGHT = 400
+
 const CROP_BOX_RATIO = DEFAULT_CROP_WIDTH / DEFAULT_CROP_HEIGHT
+
 const FULLSCREEN_CROP_BOX_PADDING = 40
+
 const MIN_CROP_WIDTH = 220
+
 const MIN_CROP_HEIGHT = 140
+
 // 尺寸变化小于该阈值时跳过刷新，避免无谓重绘
 const CROP_SIZE_CHANGE_THRESHOLD = 4
+
 // 压缩输出质量与尺寸估算防抖延迟
 const COMPRESS_QUALITY = 0.85
+
 const ESTIMATE_DEBOUNCE_DELAY = 350
+
 // 「原图」选项的哨兵值，实际压缩比例用 null 表示
 const ORIGINAL_COMPRESS_VALUE = 'original'
 
@@ -100,10 +120,13 @@ const COMPRESS_RATIO_OPTIONS: Array<CompressOptionType> = [
 
 /** 容器尺寸监听器 */
 let resizeObserver: ResizeObserver | null = null
+
 /** 布局刷新帧 id，用于合并同一帧内的多次刷新请求 */
 let refreshFrameId = 0
+
 /** 是否存在待执行的强制刷新 */
 let pendingForceRefresh = false
+
 /** 压缩估算防抖定时器 id */
 let estimateTimer = 0
 
@@ -345,16 +368,22 @@ const handleOperation = (method: CropperMethodNameType, ...args: number[]) => {
 
 /** 放大裁剪框 */
 const handleZoomIn = () => handleOperation('changeScale', 0.1)
+
 /** 缩小裁剪框 */
 const handleZoomOut = () => handleOperation('changeScale', -0.1)
+
 /** 向左旋转 */
 const handleRotateLeft = () => handleOperation('rotateLeft')
+
 /** 向右旋转 */
 const handleRotateRight = () => handleOperation('rotateRight')
+
 /** 水平翻转 */
 const handleFlipHorizontal = () => handleOperation('flipX')
+
 /** 垂直翻转 */
 const handleFlipVertical = () => handleOperation('flipY')
+
 /** 重置裁剪框 */
 const handleReset = () => handleOperation('recycle')
 
@@ -375,7 +404,10 @@ const getCompressOptionLabel = (option: CompressOptionType): string => {
     return `${option.label} · 估算中`
   }
 
-  const size = estimateCompressedImageSize(cropDataBase64.value, getCompressRatioValue(option.value))
+  const size = estimateCompressedImageSize(
+    cropDataBase64.value,
+    getCompressRatioValue(option.value)
+  )
   return `${option.label} · 约${formatFileSize(size)}`
 }
 

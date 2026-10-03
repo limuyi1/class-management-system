@@ -2,9 +2,9 @@
  * 座位表导出工具
  * 负责将座位表预览渲染为高清 PNG 并导出为 PNG/PDF 文件
  */
-import domtoimage from 'dom-to-image'
-import { PDFDocument } from 'pdf-lib'
-
+import { downloadBlob, formatExportDate, sanitizeExportFileName } from '@/utils/downloadUtil'
+import { renderDomPngBlob } from '@/utils/domImageUtil'
+import { createImagePdf } from '@/utils/imagePdfUtil'
 import { PagesEnum } from '@/types/Common'
 import { getSeatingChartPageSize } from '@/utils/seating-chart/seatingChartPageLayoutUtil'
 
@@ -22,15 +22,12 @@ export interface SeatingChartPdfOptionsType {
 
 /** 清理文件名中的非法字符，空名称回退为"座位表" */
 export function sanitizeSeatingChartFileName(value: string): string {
-  return value.replace(/[\\/:*?"<>|]/g, '_').trim() || '座位表'
+  return sanitizeExportFileName(value, '座位表')
 }
 
 /** 将日期格式化为 YYYY-MM-DD，用于文件名 */
 export function formatSeatingChartExportDate(date: Date = new Date()): string {
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
+  return formatExportDate(date)
 }
 
 /**
@@ -40,24 +37,7 @@ export function formatSeatingChartExportDate(date: Date = new Date()): string {
  * @returns 生成的 PNG Blob
  */
 export async function renderSeatingChartPngBlob(element: HTMLElement, scale = 2): Promise<Blob> {
-  await document.fonts?.ready
-  const width = element.offsetWidth
-  const height = element.offsetHeight
-  if (!width || !height) throw new Error('座位表预览尚未准备完成')
-
-  const dataUrl = await domtoimage.toPng(element, {
-    quality: 1,
-    bgcolor: '#f4f0e8',
-    width: Math.round(width * scale),
-    height: Math.round(height * scale),
-    style: {
-      transform: `scale(${scale})`,
-      transformOrigin: '0 0'
-    }
-  })
-  const response = await fetch(dataUrl)
-  if (!response.ok) throw new Error('座位表图片生成失败')
-  return await response.blob()
+  return renderDomPngBlob(element, scale, '#f4f0e8', '座位表')
 }
 
 /**
@@ -66,29 +46,13 @@ export async function renderSeatingChartPngBlob(element: HTMLElement, scale = 2)
  * @returns 生成的 PDF Blob
  */
 export async function createSeatingChartPdf(options: SeatingChartPdfOptionsType): Promise<Blob> {
-  const pdfDoc = await PDFDocument.create()
-  const imageBytes = new Uint8Array(await options.imageBlob.arrayBuffer())
-  const image = await pdfDoc.embedPng(imageBytes)
-  const pageSize = getSeatingChartPageSize(options.pageType, options.orientation)
-  const page = pdfDoc.addPage([pageSize.width, pageSize.height])
-
-  page.drawImage(image, {
-    x: 0,
-    y: 0,
-    width: pageSize.width,
-    height: pageSize.height
-  })
-
-  const bytes = await pdfDoc.save()
-  return new Blob([new Uint8Array(bytes)], { type: 'application/pdf' })
+  return createImagePdf(
+    options.imageBlob,
+    getSeatingChartPageSize(options.pageType, options.orientation)
+  )
 }
 
 /** 触发浏览器下载指定 Blob，并延迟释放对象 URL 避免下载被中断 */
 export function downloadSeatingChartBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = fileName
-  link.click()
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+  downloadBlob(blob, fileName)
 }

@@ -1,12 +1,13 @@
 import { NAME_PROP } from '@/constants'
 import { getValidScore } from '@/utils/scoreValueUtil'
+
 import type {
   DashboardStudentTagType,
   DashboardTagKeyType,
   DashboardUnitDifficultyShiftType,
   DashboardVolatilityDirectionType,
-  HomeDashboardConfigType
-} from '@/types/HomeDashboard'
+  OverviewDashboardConfigType
+} from '@/types/OverviewDashboard'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -107,7 +108,8 @@ export const buildTrendSegments = (
  * @param value 分差数值
  * @returns 保留一位小数的绝对值文本
  */
-export const getScoreDiffText = (value: number): string => Number(Math.abs(value).toFixed(1)).toString()
+export const getScoreDiffText = (value: number): string =>
+  Number(Math.abs(value).toFixed(1)).toString()
 
 /**
  * 滑动窗口取值：返回数组末尾的 windowSize 个元素。
@@ -189,7 +191,7 @@ export const buildRankMapByUnit = (students: StudentDataType[], unitHeaders: Set
  */
 export const createTag = (
   key: DashboardTagKeyType,
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 ): DashboardStudentTagType => {
   const tagConfig = config.tagRules.tags[key]
   const groupConfig = config.tagRules.tagGroups[tagConfig.group]
@@ -237,7 +239,9 @@ export const getRecentChange = (scores: number[]): number => {
  * @param scores 成绩序列（按时间顺序）
  * @returns 走势方向，序列不足两次时返回 null
  */
-export const getVolatilityDirection = (scores: number[]): DashboardVolatilityDirectionType | null => {
+export const getVolatilityDirection = (
+  scores: number[]
+): DashboardVolatilityDirectionType | null => {
   if (scores.length < 2) return null
 
   if (isStrictlyAscending(scores)) return 'up'

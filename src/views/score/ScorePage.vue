@@ -4,19 +4,20 @@
  * 提供成绩录入、表格展示、统计分析三大功能模块的入口
  */
 import { computed, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
+
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
 import ImageCropper from '@/components/ImageCropper.vue'
 import { StudentReportExportDialog } from '@/components/student-report'
-
 import ScoreTableView from '@/views/score/components/ScoreTableView.vue'
-import InputDataView from '@/views/score/components/InputDataView.vue'
+import ScoreInputWorkspace from '@/views/score/components/ScoreInputWorkspace.vue'
 import ScoreAnalysisView from '@/views/score/components/ScoreAnalysisView.vue'
 import ScoreRecognitionPreviewDialog from '@/views/score/components/ScoreRecognitionPreviewDialog.vue'
-import HomeStudentTrendPanel from '@/views/overview/components/HomeStudentTrendPanel.vue'
+import OverviewStudentTrendPanel from '@/views/overview/components/OverviewStudentTrendPanel.vue'
 import { useOverviewDashboard } from '@/views/overview/composables/useOverviewDashboard'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -24,35 +25,45 @@ import { useSettingStore } from '@/stores/setting'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { recognizeScoreFromImage } from '@/ai/aiService'
 import { fileToBase64 } from '@/utils/fileUtil'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
 import {
   buildScoreRecognitionPreview,
   getIgnoredScoreRecognitionNames
 } from '@/utils/scoreRecognitionUtil'
+
 import type { ScorePageStageType } from '@/types/Score'
 import type { StudentDataType } from '@/types/StudentData'
 import type { ScoreRecognitionPreviewRowType } from '@/utils/scoreRecognitionUtil'
 
 // 表格视图与录入视图的组件实例引用
 const tableRef = ref<InstanceType<typeof ScoreTableView>>()
-const inputDataRef = ref<InstanceType<typeof InputDataView>>()
+
+const inputDataRef = ref<InstanceType<typeof ScoreInputWorkspace>>()
+
 // 数据、配置、表头与 AI 配置 store
 const dataStore = useDataSourceStore()
+
 const configuration = useConfigurationStore()
+
 const settingStore = useSettingStore()
+
 const aiConfigStore = useAIConfigStore()
 
 // 启用学生用于识图对照及成绩写入
 const { enabledData } = storeToRefs(dataStore)
+
 // 启用的成绩科目列
 const { enabledScoreColumns: scoreColumns } = storeToRefs(settingStore)
+
 // 学生趋势面板所需的选择与看板数据
 const { selectedStudentIds, dashboardData, focusStudent } = useOverviewDashboard()
 
 /** 是否已设置单元 */
 const hasUnits = computed(() => scoreColumns.value.length > 0)
+
 /** 是否已有任意成绩 */
 const hasScores = computed(() => dataStore.hasAnyScore)
+
 /**
  * 成绩页按“无单元 / 有单元无成绩 / 有成绩”降级展示。
  * 这样可以避免把缺数据误展示成 0 分、0% 等真实统计。
@@ -65,21 +76,31 @@ const scoreStage = computed<ScorePageStageType>(() => {
 
 // 图片裁剪器显隐与待裁剪图片
 const cropperVisible = ref(false)
+
 const cropperImageSrc = ref('')
+
 // AI 识图结果预览对话框显隐与预览行
 const recognitionPreviewVisible = ref(false)
+
 const recognitionPreviewRows = ref<ScoreRecognitionPreviewRowType[]>([])
+
 const ignoredRecognitionNames = ref<string[]>([])
+
 // 学生趋势抽屉与报告导出对话框显隐
 const trendDrawerVisible = ref(false)
+
 const reportDialogVisible = ref(false)
+
 /** 当前查看趋势 / 导出报告的学生 */
 const currentStudent = ref<StudentDataType | null>(null)
+
 const router = useRouter()
 
 /** 确保当前录入科目始终指向一个有效单元 */
 const ensureDefaultScoreTab = () => {
-  const hasCurrentScoreTab = scoreColumns.value.some((item) => item.prop === configuration.inputScoreTab)
+  const hasCurrentScoreTab = scoreColumns.value.some(
+    (item) => item.prop === configuration.inputScoreTab
+  )
   if (!hasCurrentScoreTab && scoreColumns.value.length) {
     configuration.inputScoreTab = scoreColumns.value[0].prop
     return
@@ -89,7 +110,9 @@ const ensureDefaultScoreTab = () => {
     configuration.inputScoreTab = null
   }
 }
+
 ensureDefaultScoreTab()
+
 watch(scoreColumns, ensureDefaultScoreTab)
 
 /** 将焦点聚焦到录入视图的姓名输入框 */
@@ -284,7 +307,7 @@ defineExpose({ autoFocus })
       </div>
       <!-- 中栏：录入进度与分数录入 -->
       <div class="panel panel-middle">
-        <input-data-view
+        <score-input-workspace
           ref="inputDataRef"
           :stage="scoreStage"
           @scroll="(studentId) => tableRef?.scroll(studentId)"
@@ -317,7 +340,7 @@ defineExpose({ autoFocus })
       title="学生趋势分析"
       append-to-body
     >
-      <home-student-trend-panel
+      <overview-student-trend-panel
         class="drawer-trend-panel"
         v-model="selectedStudentIds"
         :student-trend="dashboardData.studentTrend"

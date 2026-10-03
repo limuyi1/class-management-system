@@ -1,26 +1,25 @@
 <script setup lang="ts">
-/**
- * 试卷排版工具 — 上传/选择试卷图片，按纸张与版式自动排布，
- * 支持拖拽缩放、草稿存取并导出 PDF。
- */
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
 
+import { ElMessage, ElMessageBox } from 'element-plus'
+
+import { useRouter } from 'vue-router'
+
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
 import AttachmentSelectorDialog from '@/views/tools/components/AttachmentSelectorDialog.vue'
+import PaperLayoutToolbar from './PaperLayoutToolbar.vue'
 import PaperLayoutDraftDialog from '@/views/tools/components/PaperLayoutDraftDialog.vue'
 import {
   createDefaultPaperLayoutSettings,
   getPaperLayoutPreset
 } from '@/views/tools/constants/paperLayout'
-import { PagesEnum } from '@/types/Common'
 import { useToolsStore } from '@/stores/tools'
 import { mmToPixelPrecise } from '@/utils/pageSizeInPixelUtil'
 import { createAttachmentRecordsFromFiles } from '@/views/tools/services/attachmentService'
 import { exportPaperLayoutPdf } from '@/views/tools/services/paperLayoutExportService'
 import { usePaperLayoutCanvas } from '@/views/tools/composables/usePaperLayoutCanvas'
 import { usePaperLayoutDraft } from '@/views/tools/composables/usePaperLayoutDraft'
+
 import type {
   AttachmentRecordType,
   PaperLayoutModeType,
@@ -33,6 +32,7 @@ interface Props {
 }
 
 defineProps<Props>()
+
 /** 对外事件：请求切换全屏 */
 const emit = defineEmits<{
   toggleFullscreen: []
@@ -40,21 +40,30 @@ const emit = defineEmits<{
 
 /** 预览面板与文件输入框的 DOM 引用 */
 const previewPanelRef = ref<HTMLElement | null>(null)
+
 const fileInputRef = ref<HTMLInputElement | null>(null)
+
 /** 导出与上传的进行中状态 */
 const exporting = ref(false)
+
 const uploading = ref(false)
+
 /** 素材选择弹窗与草稿弹窗的显示状态 */
 const selectorVisible = ref(false)
+
 const draftDialogVisible = ref(false)
 
 const router = useRouter()
+
 const toolsStore = useToolsStore()
+
 const settings = toolsStore.paperLayout
+
 // 旧数据可能缺少版式字段，这里补全为默认设置
 if (!settings.layoutMode || !settings.fitMode) {
   Object.assign(settings, createDefaultPaperLayoutSettings())
 }
+
 const {
   activePageIndex,
   autoArrange,
@@ -92,6 +101,7 @@ const {
   settings,
   previewPanelRef
 })
+
 const { draftCount, handleOpenDraft, handleSaveDraft, refreshDraftCount, resetCurrentDraft } =
   usePaperLayoutDraft({
     settings,
@@ -282,141 +292,25 @@ async function exportPdf(): Promise<void> {
     />
 
     <!-- 顶部工具栏：图片添加、自动排版、纸张设置与导出操作 -->
-    <div class="layout-toolbar">
-      <el-dropdown trigger="click" @command="handleAddImageCommand">
-        <el-button type="primary" size="small" :loading="uploading">
-          <template #icon><font-awesome-icon :icon="['solid', 'plus']" /></template>
-          添加图片
-          <font-awesome-icon class="button-caret" :icon="['solid', 'chevron-down']" />
-        </el-button>
-        <template #dropdown>
-          <el-dropdown-menu>
-            <el-dropdown-item command="upload">
-              <font-awesome-icon :icon="['solid', 'cloud-arrow-up']" />
-              直接上传图片
-            </el-dropdown-item>
-            <el-dropdown-item command="library">
-              <font-awesome-icon :icon="['solid', 'images']" />
-              从素材库选择
-            </el-dropdown-item>
-          </el-dropdown-menu>
-        </template>
-      </el-dropdown>
-      <el-button size="small" :disabled="canvasItems.length === 0" @click="autoArrange">
-        <template #icon><font-awesome-icon :icon="['solid', 'wand-magic-sparkles']" /></template>
-        重新自动排版
-      </el-button>
-
-      <el-divider direction="vertical" />
-
-      <el-select v-model="settings.pageType" size="small" class="toolbar-select">
-        <el-option label="A4" :value="PagesEnum.A4" />
-        <el-option label="A3" :value="PagesEnum.A3" />
-        <el-option label="B4" :value="PagesEnum.B4" />
-        <el-option label="B3" :value="PagesEnum.B3" />
-      </el-select>
-      <el-segmented
-        :model-value="settings.orientation"
-        size="small"
-        :options="[
-          { label: '纵向', value: 'portrait' },
-          { label: '横向', value: 'landscape' }
-        ]"
-        @change="handleOrientationChange"
-      />
-      <el-segmented
-        v-model="settings.layoutMode"
-        size="small"
-        :options="[
-          { label: '一页一张', value: 'single' },
-          { label: '一页两张', value: 'double' },
-          { label: '自由', value: 'free' }
-        ]"
-      />
-
-      <template v-if="settings.layoutMode === 'free'">
-        <span class="toolbar-field-label">边距</span>
-        <el-input-number
-          v-model="settings.margin"
-          size="small"
-          class="toolbar-number"
-          :min="0"
-          :max="20"
-          :step="1"
-          controls-position="right"
-        />
-        <span class="toolbar-field-label">间距</span>
-        <el-input-number
-          v-model="settings.gap"
-          size="small"
-          class="toolbar-number"
-          :min="0"
-          :max="10"
-          :step="1"
-          controls-position="right"
-        />
-      </template>
-
-      <el-divider direction="vertical" />
-
-      <!-- 选中项操作：每次按 0.9 / 1.1 倍缩放或删除当前选中图片 -->
-      <el-button
-        class="selected-item-action"
-        size="small"
-        :disabled="!selectedItem"
-        @click="scaleSelectedItem(0.9)"
-      >
-        <template #icon><font-awesome-icon :icon="['solid', 'magnifying-glass-minus']" /></template>
-      </el-button>
-      <el-button
-        class="selected-item-action"
-        size="small"
-        :disabled="!selectedItem"
-        @click="scaleSelectedItem(1.1)"
-      >
-        <template #icon><font-awesome-icon :icon="['solid', 'magnifying-glass-plus']" /></template>
-      </el-button>
-      <el-button
-        class="selected-item-action"
-        size="small"
-        :disabled="!selectedItem"
-        @click="removeSelectedItem"
-      >
-        <template #icon><font-awesome-icon :icon="['solid', 'trash']" /></template>
-      </el-button>
-
-      <div class="toolbar-spacer" />
-
-      <el-button size="small" :disabled="canvasItems.length === 0" @click="clearItems"
-        >清空</el-button
-      >
-      <el-button size="small" :disabled="canvasItems.length === 0" @click="handleSaveDraft">
-        <template #icon><font-awesome-icon :icon="['solid', 'floppy-disk']" /></template>
-        保存草稿
-      </el-button>
-      <el-button v-if="draftCount > 0" size="small" @click="draftDialogVisible = true">
-        <template #icon><font-awesome-icon :icon="['solid', 'folder-open']" /></template>
-        打开草稿
-      </el-button>
-      <el-button
-        type="primary"
-        size="small"
-        :loading="exporting"
-        :disabled="canvasItems.length === 0"
-        @click="exportPdf"
-      >
-        <template #icon><font-awesome-icon :icon="['solid', 'file-pdf']" /></template>
-        导出 PDF
-      </el-button>
-      <el-button size="small" circle @click="emit('toggleFullscreen')">
-        <font-awesome-icon
-          :icon="[
-            'solid',
-            fullscreen ? 'down-left-and-up-right-to-center' : 'up-right-and-down-left-from-center'
-          ]"
-        />
-      </el-button>
-    </div>
+    <PaperLayoutToolbar
+      v-model:settings="toolsStore.paperLayout"
+      :fullscreen="fullscreen"
+      :uploading="uploading"
+      :exporting="exporting"
+      :item-count="canvasItems.length"
+      :has-selection="Boolean(selectedItem)"
+      :draft-count="draftCount"
+      @add-image="handleAddImageCommand"
+      @auto-arrange="autoArrange"
+      @orientation-change="handleOrientationChange"
+      @scale-selected="scaleSelectedItem"
+      @remove-selected="removeSelectedItem"
+      @clear="clearItems"
+      @save-draft="handleSaveDraft"
+      @open-draft="draftDialogVisible = true"
+      @export-pdf="exportPdf"
+      @toggle-fullscreen="emit('toggleFullscreen')"
+    />
 
     <div class="layout-workbench">
       <!-- 左侧页面导航：缩略图列表，点击滚动到对应页 -->
@@ -556,281 +450,4 @@ async function exportPdf(): Promise<void> {
   </div>
 </template>
 
-<style scoped lang="scss">
-.paper-layout-tool {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  flex: 1;
-  gap: 10px;
-}
-
-.file-input {
-  display: none;
-}
-
-.button-caret {
-  margin-left: 2px;
-  font-size: 10px;
-}
-
-.layout-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  padding: 10px 12px;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-}
-
-.toolbar-select {
-  width: 88px;
-}
-
-.toolbar-number {
-  width: 86px;
-}
-
-.toolbar-field-label {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.toolbar-spacer {
-  flex: 1;
-}
-
-.layout-workbench {
-  display: grid;
-  grid-template-columns: 138px minmax(0, 1fr);
-  min-height: 0;
-  flex: 1;
-  gap: 10px;
-}
-
-.page-navigator,
-.preview-panel {
-  min-height: 0;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
-}
-
-.page-navigator {
-  padding: 8px;
-  overflow: auto;
-}
-
-.navigator-title {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.navigator-title strong {
-  color: #1f2937;
-  font-size: 14px;
-}
-
-.navigator-title span {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.navigator-empty {
-  min-height: 180px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 8px;
-  color: #9ca3af;
-  border: 1px dashed #e5e7eb;
-  border-radius: 8px;
-  font-size: 12px;
-}
-
-.page-thumb {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 10px;
-  color: #374151;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.page-thumb__paper {
-  position: relative;
-  width: 100%;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  overflow: hidden;
-}
-
-.page-thumb__item {
-  position: absolute;
-  background: color-mix(in srgb, var(--theme-menu-active) 30%, #ffffff);
-  border: 1px solid var(--theme-menu-active);
-}
-
-.preview-panel {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-toolbar {
-  height: 40px;
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 1px solid #eef2f7;
-}
-
-.preview-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.preview-title strong {
-  color: #111827;
-  font-size: 15px;
-}
-
-.preview-title span,
-.page-count {
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.preview-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.preview-actions :deep(.el-button) {
-  width: 28px;
-  height: 28px;
-}
-
-.zoom-label {
-  min-width: 42px;
-  color: #374151;
-  text-align: center;
-  font-size: 12px;
-}
-
-.preview-scrollbar {
-  flex: 1;
-  min-height: 0;
-  background: #f3f4f6;
-}
-
-.preview-scrollbar :deep(.el-scrollbar__view) {
-  height: 100%;
-}
-
-.preview-empty {
-  height: 100%;
-  min-height: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  gap: 10px;
-  color: #9ca3af;
-  font-size: 13px;
-}
-
-.preview-empty svg {
-  font-size: 28px;
-}
-
-.paper-stack {
-  width: max-content;
-  min-width: 100%;
-  padding: 4px;
-}
-
-.paper-page-wrap {
-  width: max-content;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  margin-right: auto;
-  margin-left: auto;
-  margin-bottom: 8px;
-}
-
-.paper-page-scale {
-  position: relative;
-}
-
-.paper-page {
-  position: relative;
-  box-sizing: border-box;
-  background: #fff;
-  overflow: hidden;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
-  transform-origin: 0 0;
-}
-
-.paper-page::after {
-  content: '';
-  position: absolute;
-  inset: var(--paper-margin, 0);
-  pointer-events: none;
-  border: 1px dashed rgba(20, 184, 166, 0.35);
-}
-
-.paper-image-frame {
-  position: absolute;
-  box-sizing: border-box;
-  cursor: move;
-  user-select: none;
-  border: 1px solid rgba(17, 24, 39, 0.12);
-}
-
-.paper-image-frame.selected {
-  border-color: var(--theme-menu-active);
-  box-shadow: 0 0 0 2px var(--theme-menu-active-bg);
-}
-
-.paper-image {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  pointer-events: none;
-}
-
-.resize-handle {
-  position: absolute;
-  width: 10px;
-  height: 10px;
-  display: none;
-  background: var(--theme-menu-active);
-  border: 2px solid #fff;
-  border-radius: 50%;
-  cursor: nwse-resize;
-}
-
-.paper-image-frame.selected .resize-handle {
-  display: block;
-}
-</style>
+<style scoped lang="scss" src="./styles/paper-layout-tool.scss"></style>

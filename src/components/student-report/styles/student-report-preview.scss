@@ -1,0 +1,311 @@
+.student-report-card {
+  width: 1120px;
+  padding: 32px;
+  color: #31261d;
+  background:
+    radial-gradient(circle at top right, rgba(35, 120, 130, 0.08), transparent 18%),
+    radial-gradient(circle at bottom left, rgba(224, 120, 58, 0.08), transparent 20%),
+    linear-gradient(180deg, #fcf7ee 0%, #f6eddd 100%);
+  border: 1px solid rgba(210, 191, 162, 0.8);
+  border-radius: 24px;
+  box-shadow:
+    0 24px 70px rgba(126, 99, 57, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.68);
+}
+
+.student-report-card__hero,
+.student-report-card__section,
+.student-report-card__stat-card {
+  background: rgba(255, 248, 236, 0.82);
+  border: 1px solid rgba(224, 205, 175, 0.7);
+  box-shadow: 0 10px 24px rgba(129, 97, 56, 0.08);
+}
+
+.student-report-card__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.student-report-card__hero-left {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+}
+
+.student-report-card__stamp {
+  flex: 0 0 auto;
+  width: 132px;
+  height: 132px;
+  object-fit: contain;
+}
+
+.student-report-card__hero-copy {
+  min-width: 0;
+  padding-top: 8px;
+}
+
+.student-report-card__title {
+  margin: 0;
+  color: #5a3a17;
+  font-size: 44px;
+  line-height: 1.1;
+  letter-spacing: 2px;
+  font-weight: 800;
+  text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55);
+}
+
+.student-report-card__lead {
+  margin: 18px 0 0;
+  color: #4e4237;
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.student-report-card__hero-meta {
+  padding-top: 8px;
+  color: #6e6358;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.student-report-card__section {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 251, 245, 0.86);
+  box-shadow: 0 12px 28px rgba(129, 97, 56, 0.08);
+}
+
+.student-report-card__section--scoreboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 428px;
+  gap: 18px;
+}
+
+.student-report-card__section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.student-report-card__heading-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.student-report-card__heading-icon--teal {
+  color: #0f766e;
+  background: rgba(15, 118, 110, 0.12);
+}
+
+.student-report-card__heading-icon--green {
+  color: #2f855a;
+  background: rgba(47, 133, 90, 0.12);
+}
+
+.student-report-card__heading-icon--gold {
+  color: #b7791f;
+  background: rgba(183, 121, 31, 0.14);
+}
+
+.student-report-card__section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.student-report-card__table {
+  overflow: hidden;
+  border: 1px solid rgba(232, 220, 203, 0.9);
+  border-radius: 12px;
+}
+
+.student-report-card__table-row {
+  display: grid;
+  grid-template-columns: 1.4fr 0.78fr 0.8fr 1fr 0.92fr;
+  gap: 10px;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 18px;
+  border-top: 1px solid rgba(239, 228, 214, 0.94);
+  font-size: 13px;
+}
+
+.student-report-card__table-row--head {
+  color: #6c655e;
+  background: rgba(250, 247, 241, 0.92);
+  border-top: 0;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.student-report-card__score {
+  color: #d83b2f;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.student-report-card__delta-up {
+  color: #18794e;
+}
+
+.student-report-card__delta-down {
+  color: #dc2626;
+}
+
+.student-report-card__stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.student-report-card__stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  border-radius: 14px;
+  text-align: center;
+}
+
+.student-report-card__stat-card--teal {
+  background: linear-gradient(180deg, #f7fcf8 0%, #f1f8f2 100%);
+}
+
+.student-report-card__stat-card--blue {
+  background: linear-gradient(180deg, #f7faff 0%, #f1f5fd 100%);
+}
+
+.student-report-card__stat-card--orange {
+  background: linear-gradient(180deg, #fff9f4 0%, #fdf3eb 100%);
+}
+
+.student-report-card__stat-card--purple {
+  background: linear-gradient(180deg, #fbf8ff 0%, #f5effe 100%);
+}
+
+.student-report-card__stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.student-report-card__stat-card--teal .student-report-card__stat-icon {
+  color: #69a864;
+}
+
+.student-report-card__stat-card--blue .student-report-card__stat-icon {
+  color: #7fa7eb;
+}
+
+.student-report-card__stat-card--orange .student-report-card__stat-icon {
+  color: #f19a87;
+}
+
+.student-report-card__stat-card--purple .student-report-card__stat-icon {
+  color: #9f82d9;
+}
+
+.student-report-card__stat-label {
+  margin-top: 12px;
+  color: #466155;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.student-report-card__stat-value {
+  margin-top: 8px;
+  color: #2f2a26;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.student-report-card__stat-hint {
+  margin-top: 8px;
+  color: #665b52;
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.student-report-card__chart {
+  padding-top: 2px;
+  min-height: 188px;
+}
+
+.student-report-card__bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(340px, 1fr);
+  gap: 14px;
+}
+
+.student-report-card__article p {
+  margin: 0;
+  color: #41362d;
+  font-size: 14px;
+  line-height: 2;
+  text-indent: 2em;
+}
+
+.student-report-card__article p + p {
+  margin-top: 8px;
+}
+
+.student-report-card__insight-group {
+  display: grid;
+  gap: 12px;
+}
+
+.student-report-card__insight-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.student-report-card__insight-badge--green {
+  color: #2f855a;
+  background: rgba(47, 133, 90, 0.12);
+}
+
+.student-report-card__insight-badge--red {
+  color: #dc2626;
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.student-report-card__insight-list {
+  margin: 10px 0 0;
+  padding-left: 18px;
+  color: #40352c;
+  font-size: 14px;
+  line-height: 1.85;
+}
+
+.student-report-card__footnote {
+  margin-top: 12px;
+  color: #756a60;
+  font-size: 12px;
+  text-align: center;
+}

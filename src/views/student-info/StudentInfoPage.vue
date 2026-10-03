@@ -1,17 +1,24 @@
 <script setup lang="ts">
 /** 学生信息页 — 学生列表展示、筛选和标签编辑 */
 import { nextTick, ref, watch } from 'vue'
+
 import { useRoute, useRouter } from 'vue-router'
-import StudentInfo from '@/views/setting/components/StudentInfo.vue'
+
+import StudentInfoTable from '@/views/student-info/components/StudentInfoTable.vue'
 
 const route = useRoute()
+
 const router = useRouter()
+
 /** 学生信息子组件实例引用 */
-const studentInfoRef = ref<InstanceType<typeof StudentInfo>>()
+const studentInfoRef = ref<InstanceType<typeof StudentInfoTable>>()
+
 /** 待打开标签编辑器的学生 ID，子组件未就绪时暂存 */
 const pendingTagEditorStudentId = ref('')
+
 /** 标签编辑完成后返回的页面路径 */
 const returnTo = ref('')
+
 /** 返回页面时重新定位的学生 ID */
 const returnStudentId = ref('')
 
@@ -66,7 +73,7 @@ watch(studentInfoRef, async (instance) => {
   <!-- 学生信息面板 -->
   <div class="student-info-page app-page-shell">
     <div class="student-info-page__panel">
-      <student-info
+      <student-info-table
         ref="studentInfoRef"
         :return-to="returnTo"
         :return-student-id="returnStudentId"

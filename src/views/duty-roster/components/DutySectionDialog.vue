@@ -1,7 +1,9 @@
 <script setup lang="ts">
 /** 清洁区域管理弹窗 — 重命名、拖拽排序与删除区域 */
 import { ref, watch } from 'vue'
+
 import { ElMessageBox } from 'element-plus'
+
 import draggable from 'vuedraggable'
 
 import type { DutySectionType } from '@/types/DutyRoster'
@@ -28,6 +30,7 @@ const emit = defineEmits<{
 
 /** 各区域名称编辑草稿 */
 const drafts = ref<Record<string, string>>({})
+
 /** 排序后的区域列表 */
 const orderedSections = ref<DutySectionType[]>([])
 
@@ -58,11 +61,17 @@ function commitName(section: DutySectionType): void {
  * @param section - 区域
  */
 async function removeSection(section: DutySectionType): Promise<void> {
-  await ElMessageBox.confirm(
-    `删除“${section.name}”后，其中已安排的学生将回到未安排区域。是否继续？`,
-    '删除区域',
-    { type: 'warning' }
-  )
+  try {
+    await ElMessageBox.confirm(
+      `删除“${section.name}”后，其中已安排的学生将回到未安排区域。是否继续？`,
+      '删除区域',
+      { type: 'warning' }
+    )
+  } catch (error) {
+    // 用户取消或关闭确认框时，保留区域和已有分配。
+    if (error !== 'cancel' && error !== 'close') console.error('确认删除值日区域失败:', error)
+    return
+  }
   emit('remove', section.id)
 }
 

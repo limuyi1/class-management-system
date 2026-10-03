@@ -1,19 +1,15 @@
 <script setup lang="ts">
-/**
- * 标签维护组件：管理标签字典分类及其下的标签，
- * 支持手动新增/删除、恢复预设、AI 生成分类与标签，并处理跨分类标签冲突。
- */
 import { computed, nextTick, ref, watch } from 'vue'
 
 import { ElMessageBox, ElMessage, type InputInstance } from 'element-plus'
+
 import { storeToRefs } from 'pinia'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 import { useSettingStore } from '@/stores/setting'
-import { useAIConfigStore } from '@/stores/ai-config'
-import { generateTagCategories, generateTags } from '@/ai/aiService'
 import { createDefaultTagCategories, createDefaultTags } from '@/config/defaultTags'
-import { createUniqueTagCategories, createUniqueTagCategory } from '@/utils/tagCategoryUtil'
+import { createUniqueTagCategory } from '@/utils/tagCategoryUtil'
+import { useTagGeneration } from '@/views/setting/composables/useTagGeneration'
 
 import type { TagCategoryType } from '@/types/Setting'
 
@@ -21,11 +17,43 @@ const store = useSettingStore()
 
 const { tagCategories: list, tags } = storeToRefs(store)
 
-const InputRef = ref<InputInstance>() // 标签输入框实例引用
-const inputValue = ref('') // 新标签输入值
-const inputVisible = ref(false) // 标签输入框是否可见
-const isProcessingInput = ref(false) // 输入确认处理中，防止重复触发
-const activeCategory = ref(list.value[0]?.prop || '') // 当前选中的分类 prop
+const InputRef = ref<InputInstance>()
+
+// 标签输入框实例引用
+const inputValue = ref('')
+
+// 新标签输入值
+const inputVisible = ref(false)
+
+// 标签输入框是否可见
+const isProcessingInput = ref(false)
+
+// 输入确认处理中，防止重复触发
+const activeCategory = ref(list.value[0]?.prop || '')
+
+const {
+  aiDialogVisible,
+  generating,
+  generateCount,
+  generateRequirement,
+  generatedTags,
+  selectedTags,
+  categoryAIDialogVisible,
+  categoryGenerating,
+  categoryGenerateCount,
+  categoryGenerateRequirement,
+  generatedCategories,
+  selectedCategories,
+  getAllOtherCategoryTags,
+  openAIGenerateDialog,
+  openAIGenerateCategoryDialog,
+  handleGenerateCategories,
+  handleGenerateTags,
+  handleAddSelectedTags,
+  handleAddSelectedCategories
+} = useTagGeneration(activeCategory)
+
+// 当前选中的分类 prop
 
 // 列表变化后若当前选中分类已不存在，则回退到首个分类
 watch(
@@ -37,23 +65,6 @@ watch(
   },
   { immediate: true }
 )
-
-// AI 生成标签弹窗相关状态
-const aiDialogVisible = ref(false)
-const generating = ref(false)
-const generateCount = ref(10)
-const generateRequirement = ref('')
-const generatedTags = ref<string[]>([])
-const selectedTags = ref<string[]>([])
-// AI 生成字典分类弹窗相关状态
-const categoryAIDialogVisible = ref(false)
-const categoryGenerating = ref(false)
-const categoryGenerateCount = ref(6)
-const categoryGenerateRequirement = ref('')
-const generatedCategories = ref<string[]>([])
-const selectedCategories = ref<string[]>([])
-
-const aiStore = useAIConfigStore()
 
 /** 当前选中分类下的标签列表 */
 const currentTags = computed(() => {
@@ -148,17 +159,6 @@ const showInput = () => {
   })
 }
 
-/** 收集除当前分类外其他所有分类下的标签，用于跨分类重复判断 */
-const getAllOtherCategoryTags = () => {
-  const allTags: string[] = []
-  Object.entries(tags.value).forEach(([prop, tagList]) => {
-    if (prop !== activeCategory.value) {
-      allTags.push(...tagList)
-    }
-  })
-  return allTags
-}
-
 /**
  * 确认输入新标签：处理空值、本分类重复与跨分类重复（询问后移动）。
  */
@@ -216,153 +216,6 @@ const handleInputConfirm = async () => {
   } finally {
     isProcessingInput.value = false
   }
-}
-
-/** 打开 AI 生成标签弹窗，重置生成参数与结果 */
-const openAIGenerateDialog = () => {
-  if (!activeCategory.value) {
-    ElMessage.warning('请先选择一个标签分类')
-    return
-  }
-  aiDialogVisible.value = true
-  generateCount.value = 10
-  generateRequirement.value = '积极正向的学习表现标签，适合小学生使用'
-  generatedTags.value = []
-  selectedTags.value = []
-}
-
-/** 打开 AI 生成字典分类弹窗，重置生成参数与结果 */
-const openAIGenerateCategoryDialog = () => {
-  categoryAIDialogVisible.value = true
-  categoryGenerateCount.value = 6
-  categoryGenerateRequirement.value = '适合小学班主任维护学生表现标签，覆盖学习、行为、情绪和交往等维度'
-  generatedCategories.value = []
-  selectedCategories.value = []
-}
-
-/** 调用 AI 生成分类，过滤空白项与已存在分类后展示 */
-const handleGenerateCategories = async () => {
-  if (!aiStore.apiKey.trim()) {
-    ElMessage.warning('请先在AI配置中设置API Key')
-    return
-  }
-
-  categoryGenerating.value = true
-  try {
-    const newCategories = await generateTagCategories(
-      categoryGenerateCount.value,
-      categoryGenerateRequirement.value,
-      aiStore.prompts.tagCategoryGenerate,
-      {
-        modelType: aiStore.modelType,
-        model: aiStore.model,
-        apiKey: aiStore.apiKey,
-        baseUrl: aiStore.baseUrl
-      }
-    )
-
-    const existingLabels = new Set(list.value.map((item) => item.label))
-    // 去空白、去重，并排除已存在的分类名
-    const uniqueCategories = Array.from(
-      new Set(newCategories.map((item) => item.trim()).filter(Boolean))
-    ).filter((item) => !existingLabels.has(item))
-
-    generatedCategories.value = uniqueCategories
-    ElMessage.success(`生成成功，共 ${uniqueCategories.length} 个新分类`)
-  } catch (error) {
-    console.error('生成分类失败:', error)
-    ElMessage.error('生成分类失败，请检查AI配置')
-  } finally {
-    categoryGenerating.value = false
-  }
-}
-
-/** 调用 AI 为当前分类生成标签，过滤已存在标签后展示 */
-const handleGenerateTags = async () => {
-  if (!aiStore.apiKey.trim()) {
-    ElMessage.warning('请先在AI配置中设置API Key')
-    return
-  }
-
-  generating.value = true
-  try {
-    const category = list.value.find((item) => item.prop === activeCategory.value)?.label || ''
-    const newTags = await generateTags(
-      category,
-      generateCount.value,
-      generateRequirement.value,
-      aiStore.prompts.tagGenerate,
-      {
-        modelType: aiStore.modelType,
-        model: aiStore.model,
-        apiKey: aiStore.apiKey,
-        baseUrl: aiStore.baseUrl
-      }
-    )
-
-    // 过滤掉已存在的标签（当前分类 + 其他分类）
-    const existingTags = tags.value[activeCategory.value] || []
-    const allOtherTags = getAllOtherCategoryTags()
-    const uniqueTags = newTags.filter(
-      (tag) => !existingTags.includes(tag) && !allOtherTags.includes(tag)
-    )
-
-    generatedTags.value = uniqueTags
-    ElMessage.success(`生成成功，共 ${uniqueTags.length} 个新标签`)
-  } catch (error) {
-    console.error('生成标签失败:', error)
-    ElMessage.error('生成标签失败，请检查AI配置')
-  } finally {
-    generating.value = false
-  }
-}
-
-/** 将选中的生成标签加入当前分类，过滤已存在项 */
-const handleAddSelectedTags = () => {
-  if (selectedTags.value.length === 0) {
-    ElMessage.warning('请先选择要添加的标签')
-    return
-  }
-
-  const currentTags = tags.value[activeCategory.value] || []
-  const newTags = selectedTags.value.filter((tag) => !currentTags.includes(tag))
-
-  if (newTags.length === 0) {
-    ElMessage.warning('所选标签均已存在')
-    return
-  }
-
-  if (!tags.value[activeCategory.value]) {
-    tags.value[activeCategory.value] = []
-  }
-
-  tags.value[activeCategory.value].push(...newTags)
-  aiDialogVisible.value = false
-  ElMessage.success(`成功添加 ${newTags.length} 个标签`)
-}
-
-/** 将选中的生成分类加入列表，并切换到首个新分类 */
-const handleAddSelectedCategories = () => {
-  if (selectedCategories.value.length === 0) {
-    ElMessage.warning('请先选择要添加的分类')
-    return
-  }
-
-  const newCategories = createUniqueTagCategories(selectedCategories.value, list.value)
-
-  if (newCategories.length === 0) {
-    ElMessage.warning('所选分类均已存在')
-    return
-  }
-
-  newCategories.forEach((category) => {
-    list.value.push(category)
-    tags.value[category.prop] = []
-  })
-
-  activeCategory.value = newCategories[0].prop
-  categoryAIDialogVisible.value = false
-  ElMessage.success(`成功添加 ${newCategories.length} 个分类`)
 }
 </script>
 
@@ -519,12 +372,7 @@ const handleAddSelectedCategories = () => {
   >
     <el-form label-position="top" class="generate-form">
       <el-form-item label="生成数量">
-        <el-input-number
-          v-model="categoryGenerateCount"
-          :min="1"
-          :max="20"
-          style="width: 100%"
-        />
+        <el-input-number v-model="categoryGenerateCount" :min="1" :max="20" style="width: 100%" />
       </el-form-item>
       <el-form-item label="自定义生成要求（可选）">
         <el-input
@@ -581,136 +429,4 @@ const handleAddSelectedCategories = () => {
   </el-dialog>
 </template>
 
-<style scoped lang="scss">
-.label-maintenance__wrapper {
-  display: flex;
-  height: 100%;
-  width: 100%;
-  background: #ffffff;
-
-  .label-maintenance-aside {
-    height: 100%;
-    width: 240px;
-    border-right: 1px solid #e2e8f0;
-    background: #fcfcfc;
-    border-radius: 0 0 0 8px;
-    padding: 12px;
-
-    .label-maintenance-aside-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .label-maintenance-aside-title {
-      height: 32px;
-      font-size: 18px;
-      font-weight: 700;
-      line-height: 32px;
-      color: rgba(0, 0, 0, 0.85);
-      flex: 1;
-      min-width: 72px;
-      white-space: nowrap;
-    }
-
-    .label-maintenance-aside-actions {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .label-maintenance-aside-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: relative;
-      height: 40px;
-      cursor: pointer;
-      border-bottom: 1px solid rgba(226, 232, 240, 0.85);
-      font-size: 16px;
-      font-weight: 400;
-      color: rgba(0, 0, 0, 0.85);
-      padding: 0 8px;
-
-      .item-label {
-        flex: 1;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .item-icon {
-        margin-left: 8px;
-        outline: none;
-      }
-
-      &:hover {
-        background-color: #f5f5f5;
-        color: var(--el-color-primary);
-      }
-    }
-
-    .label-maintenance-aside-item.active {
-      background-color: #ecf5ff;
-      color: var(--el-color-primary);
-    }
-
-    .label-maintenance-aside-item.active::before {
-      content: '';
-      position: absolute;
-      left: 0;
-      top: 0;
-      width: 3px;
-      height: 100%;
-      background-color: var(--el-color-primary);
-    }
-  }
-
-  .label-maintenance-main {
-    flex: 1;
-    padding: 16px;
-
-    .label-maintenance-main-title {
-      height: 32px;
-      font-size: 18px;
-      font-weight: 700;
-      line-height: 32px;
-      color: rgba(0, 0, 0, 0.85);
-      margin-bottom: 16px;
-    }
-
-    .label-maintenance-main-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .label-maintenance-main-empty {
-      color: #909399;
-      font-size: 14px;
-    }
-  }
-}
-
-.generate-form {
-  .select-all-wrapper {
-    display: flex;
-    gap: 8px;
-    margin-bottom: 8px;
-  }
-
-  .tags-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .tag-checkbox {
-    margin: 0;
-    padding: 6px 12px;
-    border: 1px solid #e2e8f0;
-    border-radius: 4px;
-  }
-}
-</style>
+<style scoped lang="scss" src="./styles/label-maintenance.scss"></style>

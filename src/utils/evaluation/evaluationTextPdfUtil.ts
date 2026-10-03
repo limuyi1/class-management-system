@@ -4,7 +4,6 @@
  */
 import { PDFDocument, PDFFont, PDFPage, rgb } from 'pdf-lib'
 import fontkit from '@pdf-lib/fontkit'
-import type { Font as FontkitFontType } from '@pdf-lib/fontkit'
 
 import {
   buildEvaluationPdfLayout,
@@ -18,6 +17,8 @@ import {
   measureBrowserTextAdvanceWidth
 } from '@/utils/evaluation/evaluationTextLayoutUtil'
 import { getEvaluationHandwriteFontBytes } from '@/utils/evaluation/evaluationHandwriteFontUtil'
+
+import type { Font as FontkitFontType } from '@pdf-lib/fontkit'
 import type {
   EvaluationPdfCellType,
   EvaluationPdfPageType,
@@ -27,30 +28,43 @@ import type {
 
 /** 标签用衬线字体资源地址（仅含标签所需字形子集） */
 const labelSerifFontUrl = new URL(
-  '../assets/font/SourceHanSerifSC-LabelSubset.otf',
+  '../../assets/font/SourceHanSerifSC-LabelSubset.otf',
   import.meta.url
 ).href
+
 /** 毫米转点系数 */
 const PT_PER_MM = 72 / 25.4
+
 /** 像素转点系数 */
 const PX_TO_PT = 72 / 96
+
 /** 评语格虚线边框宽度（点） */
 const BORDER_WIDTH = 0.6
+
 /** 虚线目标实线段长度（点） */
 const TARGET_DASH_PT = 3.4
+
 /** 虚线目标间隔长度（点） */
 const TARGET_GAP_PT = 2.8
+
 // 将像素排版常量统一换算为毫米，供 PDF 绘制使用。
 const layoutConstantsPx = getEvaluationTextLayoutConstantsPx()
+
 const INNER_PADDING_X = layoutConstantsPx.innerPaddingX * layoutConstantsPx.pxToMm
+
 const INNER_PADDING_Y = layoutConstantsPx.innerPaddingY * layoutConstantsPx.pxToMm
+
 const HEADER_GAP = layoutConstantsPx.headerGap * layoutConstantsPx.pxToMm
+
 const BODY_GAP = layoutConstantsPx.bodyGap * layoutConstantsPx.pxToMm
+
 const FOOTER_GAP = layoutConstantsPx.footerGap * layoutConstantsPx.pxToMm
 
 let cachedLabelSerifFontPromise: Promise<Uint8Array> | null = null
+
 /** 字体加载超时时间（毫秒） */
 const FONT_LOAD_TIMEOUT_MS = 10000
+
 /** 标签字体文件的最小合法字节数，用于判断文件是否完整 */
 const MIN_LABEL_FONT_SIZE_BYTES = 1024
 
@@ -119,8 +133,10 @@ const loadLabelSerifFontBytes = async () => {
 
 /** 像素转点 */
 const pxToPt = (px: number) => px * PX_TO_PT
+
 /** 毫米转点 */
 const mmToPt = (mm: number) => mm * PT_PER_MM
+
 /** 像素转毫米 */
 const pxToMm = (px: number) => px * layoutConstantsPx.pxToMm
 
@@ -515,11 +531,7 @@ export const exportEvaluationTextPDF = async (
     }
     const labelSerifPdfFont = await pdfDoc.embedFont(labelSerifFontBytes, { subset: false })
     const [footerLeftAsset, footerRightAsset] = await Promise.all([
-      createFooterLabelAsset(
-        labelSerifPdfFont,
-        '学校：（章）',
-        options.configuration.sealFontSize
-      ),
+      createFooterLabelAsset(labelSerifPdfFont, '学校：（章）', options.configuration.sealFontSize),
       createFooterLabelAsset(
         labelSerifPdfFont,
         '班主任：',

@@ -4,18 +4,18 @@
  * 展示学生期末评语列表，提供编辑、AI 生成、批量导入和 PDF 导出功能
  */
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
+
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
-
 import CommentExcelImportDialog from '@/views/evaluation/components/CommentExcelImportDialog.vue'
 import CommentWorkspaceToolbar from '@/views/evaluation/components/CommentWorkspaceToolbar.vue'
 import EvaluationTableView from '@/views/evaluation/components/EvaluationTableView.vue'
-import ToolPanelView from '@/views/evaluation/components/ToolPanelView.vue'
+import EvaluationToolPanel from '@/views/evaluation/components/EvaluationToolPanel.vue'
 import { useProgress } from '@/hooks/useProgress'
-
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useSettingStore } from '@/stores/setting'
@@ -24,6 +24,7 @@ import { useEvaluationBatchComments } from '@/views/evaluation/composables/useEv
 import { useEvaluationHandwriteFont } from '@/views/evaluation/composables/useEvaluationHandwriteFont'
 import { useEvaluationTextPdfExport } from '@/views/evaluation/composables/useEvaluationTextPdfExport'
 import { useEvaluationCommentSource } from '@/views/evaluation/composables/useEvaluationCommentSource'
+
 import type { PreviewModeType } from '@/types/Configuration'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -34,12 +35,16 @@ import type { StudentDataType } from '@/types/StudentData'
 
 /** 左侧评语表格预览视图的组件引用 */
 const evaluationTableViewRef = ref<InstanceType<typeof EvaluationTableView>>()
+
 /** 右侧工具面板的组件引用 */
-const toolPanelViewRef = ref<InstanceType<typeof ToolPanelView>>()
+const toolPanelViewRef = ref<InstanceType<typeof EvaluationToolPanel>>()
+
 /** 隐藏的手写字体文件输入框引用 */
 const fontFileInputRef = ref<HTMLInputElement | null>(null)
+
 /** 路由与当前路由信息，用于返回工具页与恢复编辑跳转 */
 const route = useRoute()
+
 const router = useRouter()
 
 /** 返回工具页面 */
@@ -49,12 +54,18 @@ const backToTools = (): void => {
 
 // 各全局 store 及响应式引用：学生数据、配置、设置与 AI 配置
 const dataStore = useDataSourceStore()
+
 /** 系统数据源中的已启用学生 */
 const { enabledData: systemStudents } = storeToRefs(dataStore)
+
 const configuration = useConfigurationStore()
+
 const settingStore = useSettingStore()
+
 const { tagCategories: tagCategoryList } = storeToRefs(settingStore)
+
 const aiConfigStore = useAIConfigStore()
+
 const {
   allowTagEditing,
   excelExporting,
@@ -72,19 +83,25 @@ const {
   systemStudents,
   systemTagCategories: tagCategoryList
 })
+
 /** 评语完成度：进度百分比与未完成人数 */
 const { percentage, notCompletedCount } = useProgress({
   data: students,
   getValue: (item: StudentDataType) => item.comment
 })
+
 /** 学生总数 */
 const totalCount = computed(() => students.value.length)
+
 /** 是否已有可处理的学生数据 */
 const hasWorkspaceData = computed(() => totalCount.value > 0)
+
 /** 已完成评语人数（避免出现负数） */
 const completedCount = computed(() => Math.max(0, totalCount.value - notCompletedCount.value))
+
 /** 当前激活的学生 ID，用于左侧预览卡片高亮 */
 const activeStudentId = ref('')
+
 /**
  * 归一化预览缩放模式，非法值统一回退为 100%。
  *
@@ -114,6 +131,7 @@ const { batchGenerating, batchPolishing, handleBatchGenerate, handleBatchPolish 
     tagCategoryList: tagCategories,
     aiConfig: aiConfigStore
   })
+
 const {
   displayHandwriteFontName,
   handwriteFontApplying,
@@ -127,15 +145,18 @@ const {
   configuration,
   fontFileInputRef
 })
+
 const { handleExportTextExcel, handleExportTextPDF, textExcelExporting, textPdfExporting } =
   useEvaluationTextPdfExport({
     enabledStudents: students,
     configuration
   })
+
 /** 是否有任一导出（PDF/Excel）正在进行 */
 const textExporting = computed(
   () => textPdfExporting.value || textExcelExporting.value || excelExporting.value
 )
+
 /** 是否有批量生成或润色正在进行 */
 const batchProcessing = computed(() => batchGenerating.value || batchPolishing.value)
 
@@ -349,7 +370,7 @@ defineExpose({ autoFocus })
       </div>
       <div class="evaluation-page-right">
         <el-scrollbar>
-          <tool-panel-view
+          <evaluation-tool-panel
             ref="toolPanelViewRef"
             :students="students"
             :tag-category-list="tagCategories"

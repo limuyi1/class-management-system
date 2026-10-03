@@ -2,9 +2,9 @@
 /** 学习报告导出弹窗：组织报告数据、管理正文状态流转并提供模板/AI 生成与 PNG 导出 */
 import { computed, nextTick, ref, watch } from 'vue'
 
-import { storeToRefs } from 'pinia'
-
 import { ElMessage } from 'element-plus'
+
+import { storeToRefs } from 'pinia'
 
 import StudentReportExportSidebar from '@/components/student-report/StudentReportExportSidebar.vue'
 import StudentReportPreviewCard from '@/components/student-report/StudentReportPreviewCard.vue'
@@ -17,7 +17,8 @@ import {
   buildStudentReportTemplateText,
   exportStudentReportImage
 } from '@/utils/studentReportUtil'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
+
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -38,6 +39,7 @@ interface Props {
 
 /** 正文状态：idle 未选择 / ready 可用 / dirty 已手动编辑 / stale 已过期 */
 type ContentStatusType = 'idle' | 'ready' | 'dirty' | 'stale'
+
 /** 导出质量档位 */
 type ExportQualityType = 'standard' | 'high' | 'ultra'
 
@@ -50,12 +52,16 @@ const emit = defineEmits<{
 
 /** 数据源 store */
 const dataStore = useDataSourceStore()
+
 /** 设置 store */
 const settingStore = useSettingStore()
+
 /** AI 配置 store */
 const aiConfigStore = useAIConfigStore()
+
 /** 启用的学生数据列表 */
 const { enabledData } = storeToRefs(dataStore)
+
 /** 标签分类列表 */
 const { tagCategories } = storeToRefs(settingStore)
 
@@ -67,20 +73,28 @@ const dialogVisible = computed({
 
 /** 选中的成绩项 prop 列表 */
 const selectedProps = ref<string[]>([])
+
 /** 报告正文内容 */
 const content = ref('')
+
 /** AI 生成进行中标记 */
 const generating = ref(false)
+
 /** 导出进行中标记 */
 const exporting = ref(false)
+
 /** 是否全屏展示 */
 const fullscreen = ref(false)
+
 /** 预览卡片 DOM 引用（导出截图目标） */
 const previewRef = ref<HTMLElement | null>(null)
+
 /** 正文内容状态 */
 const contentStatus = ref<ContentStatusType>('idle')
+
 /** 导出质量档位 */
 const exportQuality = ref<ExportQualityType>('high')
+
 /** 导出分辨率倍率 */
 const exportScale = ref('2')
 
@@ -99,14 +113,18 @@ const report = computed(() => {
 
 /** 已选成绩项数量 */
 const selectedCount = computed(() => selectedProps.value.length)
+
 /** 正文是否有内容 */
 const hasContent = computed(() => Boolean(content.value.trim()))
+
 // 导出需同时满足：已选成绩、有正文、且无进行中的生成/导出任务
 const canExport = computed(() => {
   return selectedCount.value > 0 && hasContent.value && !generating.value && !exporting.value
 })
+
 /** 正文生成来源标签文案 */
 const generatorLabel = computed(() => (aiConfigStore.isConfigured ? '可选 AI 生成' : '模板内容'))
+
 // 预览优先展示手动/生成的正文，未填写时回退到模板文本
 const previewContent = computed(() => {
   if (content.value.trim()) return content.value

@@ -1,0 +1,131 @@
+.label-maintenance__wrapper {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  background: #ffffff;
+
+  .label-maintenance-aside {
+    height: 100%;
+    width: 240px;
+    border-right: 1px solid #e2e8f0;
+    background: #fcfcfc;
+    border-radius: 0 0 0 8px;
+    padding: 12px;
+
+    .label-maintenance-aside-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .label-maintenance-aside-title {
+      height: 32px;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 32px;
+      color: rgba(0, 0, 0, 0.85);
+      flex: 1;
+      min-width: 72px;
+      white-space: nowrap;
+    }
+
+    .label-maintenance-aside-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .label-maintenance-aside-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      height: 40px;
+      cursor: pointer;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+      font-size: 16px;
+      font-weight: 400;
+      color: rgba(0, 0, 0, 0.85);
+      padding: 0 8px;
+
+      .item-label {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .item-icon {
+        margin-left: 8px;
+        outline: none;
+      }
+
+      &:hover {
+        background-color: #f5f5f5;
+        color: var(--el-color-primary);
+      }
+    }
+
+    .label-maintenance-aside-item.active {
+      background-color: #ecf5ff;
+      color: var(--el-color-primary);
+    }
+
+    .label-maintenance-aside-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 3px;
+      height: 100%;
+      background-color: var(--el-color-primary);
+    }
+  }
+
+  .label-maintenance-main {
+    flex: 1;
+    padding: 16px;
+
+    .label-maintenance-main-title {
+      height: 32px;
+      font-size: 18px;
+      font-weight: 700;
+      line-height: 32px;
+      color: rgba(0, 0, 0, 0.85);
+      margin-bottom: 16px;
+    }
+
+    .label-maintenance-main-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .label-maintenance-main-empty {
+      color: #909399;
+      font-size: 14px;
+    }
+  }
+}
+
+.generate-form {
+  .select-all-wrapper {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .tags-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag-checkbox {
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+  }
+}

@@ -7,7 +7,8 @@ import {
   getStudentAverageDisplayScore,
   getStudentTrendTooltipScoreText
 } from '@/views/overview/services/dashboard/trend-chart'
-import type { DashboardStudentTrendType } from '@/types/HomeDashboard'
+
+import type { DashboardStudentTrendType } from '@/types/OverviewDashboard'
 
 /**
  * trend-chart 服务函数测试

@@ -1,9 +1,11 @@
 import { ElMessage } from 'element-plus'
-import { startLoading, stopLoading } from '@/hooks/useLoading'
-import domtoimage from 'dom-to-image'
-import type { ComputedRef, Ref } from 'vue'
 
+import domtoimage from 'dom-to-image'
+
+import { startLoading, stopLoading } from '@/utils/loadingUtil'
 import { NAME_PROP } from '@/constants'
+
+import type { ComputedRef, Ref } from 'vue'
 import type { ScoreStatisticsType, ScoreStudentType } from '@/hooks/useScoreStatistics'
 
 /** 成绩分布操作选项 */

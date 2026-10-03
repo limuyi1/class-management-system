@@ -3,8 +3,8 @@ import type {
   DashboardUnitOverviewType,
   DashboardVolatilityDirectionType,
   DashboardStudentTagType,
-  HomeDashboardConfigType
-} from '@/types/HomeDashboard'
+  OverviewDashboardConfigType
+} from '@/types/OverviewDashboard'
 import type { SettingType } from '@/types/Setting'
 import type { StudentDataType } from '@/types/StudentData'
 
@@ -19,7 +19,7 @@ export interface BuildOverviewDashboardDataOptions {
   /** 是否已配置 AI，用于评语概览的提示 */
   aiConfigured: boolean
   /** 班级总览页配置 */
-  config: HomeDashboardConfigType
+  config: OverviewDashboardConfigType
 }
 
 /** 单个学生在单个单元上的成绩点（含排名与难度偏移） */

@@ -5,9 +5,10 @@
  */
 import { computed, nextTick, onMounted, ref } from 'vue'
 
+import { ElMessageBox, dayjs } from 'element-plus'
+
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
-import { ElMessageBox, dayjs } from 'element-plus'
 
 import router from '@/router'
 import { useDataSourceStore } from '@/stores/data-source'
@@ -15,33 +16,56 @@ import { useConfigurationStore } from '@/stores/configuration'
 import { useStudentDataImport } from '@/hooks/useStudentDataImport'
 import ExcelColumnConflictDialog from '@/components/ExcelColumnConflictDialog.vue'
 import ExcelColumnSelector from '@/components/ExcelColumnSelector.vue'
-import { clearDatabase, exportDatabase, getDaysSinceBackup, importDatabase } from '@/utils/backup'
+import {
+  clearDatabase,
+  exportDatabase,
+  getDaysSinceBackup,
+  importDatabase
+} from '@/utils/databaseBackupUtil'
 import ImportActionMenu from '@/views/setting/components/import/ImportActionMenu.vue'
 import InitialImportDialog from '@/views/setting/components/import/InitialImportDialog.vue'
 import ImportProgress from './ImportProgress.vue'
 
 const route = useRoute()
 
-const exporting = ref(false) // 导出进行中
-const importingBackup = ref(false) // 备份导入进行中
-const backupFileInputRef = ref<HTMLInputElement | null>(null) // .dexie 恢复专用文件入口
-const progressVisible = ref(false) // 进度弹窗显隐
-const progressTitle = ref('') // 进度弹窗标题
-const progressPercent = ref(0) // 进度百分比（0-100）
+const exporting = ref(false)
+
+// 导出进行中
+const importingBackup = ref(false)
+
+// 备份导入进行中
+const backupFileInputRef = ref<HTMLInputElement | null>(null)
+
+// .dexie 恢复专用文件入口
+const progressVisible = ref(false)
+
+// 进度弹窗显隐
+const progressTitle = ref('')
+
+// 进度弹窗标题
+const progressPercent = ref(0)
+
+// 进度百分比（0-100）
 
 const dataSourceStore = useDataSourceStore()
+
 const { students } = storeToRefs(dataSourceStore)
+
 /** 是否已有学生数据，决定导入按钮走初始化还是增量成绩 */
 const hasStudentData = computed(() => students.value.length > 0)
 
 const configurationStore = useConfigurationStore()
+
 const { lastBackupAt } = storeToRefs(configurationStore)
+
 /** 距离上次备份的天数 */
 const daysSinceBackup = computed(() => getDaysSinceBackup(lastBackupAt.value))
+
 /** 从未备份或超过 7 天未备份时视为逾期 */
 const backupOverdue = computed(
   () => lastBackupAt.value === null || (daysSinceBackup.value ?? 0) >= 7
 )
+
 /** 上次备份时间的展示文本 */
 const backupTimeText = computed(() => {
   if (!lastBackupAt.value) return '从未备份'
@@ -188,7 +212,9 @@ const handleClear = async () => {
                 :icon="['solid', backupOverdue ? 'triangle-exclamation' : 'circle-check']"
               />
               <span v-if="lastBackupAt === null">从未备份，建议尽快备份</span>
-              <span v-else-if="backupOverdue">上次备份 {{ daysSinceBackup }} 天前，建议尽快备份</span>
+              <span v-else-if="backupOverdue"
+                >上次备份 {{ daysSinceBackup }} 天前，建议尽快备份</span
+              >
               <span v-else>上次备份：{{ backupTimeText }}</span>
             </div>
           </div>

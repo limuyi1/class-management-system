@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /** 成绩通知单页面 — 等级/分数制通知单导入、预览、评语编辑和导出 */
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
 
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { startLoading, stopLoading, updateLoadingText } from '@/hooks/useLoading'
 
+import { useRouter } from 'vue-router'
+
+import { startLoading, stopLoading, updateLoadingText } from '@/utils/loadingUtil'
 import PageHeader from '@/components/PageHeader.vue'
 import ScoreNoticeControlPanel from '@/views/score-notice/components/ScoreNoticeControlPanel.vue'
 import ScoreNoticeImportDialog from '@/views/score-notice/components/ScoreNoticeImportDialog.vue'
@@ -52,31 +53,53 @@ type BatchGenerateModeType = 'overwrite' | 'skip'
 
 // 页面依赖的各 store 与路由实例
 const store = useScoreNoticeStore()
+
 const router = useRouter()
+
 const aiConfigStore = useAIConfigStore()
+
 const configuration = useConfigurationStore()
+
 const dataStore = useDataSourceStore()
+
 const settingStore = useSettingStore()
+
 const importDialogVisible = ref(false)
+
 const batchGenerating = ref(false)
+
 const batchProcessed = ref(0)
+
 const batchTotal = ref(0)
+
 const stopBatchRequested = ref(false)
+
 const singleGenerating = ref(false)
+
 const exporting = ref(false)
+
 const exportProcessed = ref(0)
+
 const exportStudent = ref<ScoreNoticeStudentType | null>(null)
+
 const previewRef = ref<PreviewExposeType | null>(null)
+
 const exportPreviewRef = ref<PreviewExposeType | null>(null)
+
 const controlPanelRef = ref<ControlPanelExposeType | null>(null)
+
 const fontFileInputRef = ref<HTMLInputElement | null>(null)
+
 const previewViewportRef = ref<HTMLElement | null>(null)
+
 /** 预览缩放比例，依据容器与报告尺寸动态计算 */
 const previewScale = ref(0.68)
+
 // 监听预览容器尺寸变化并重新计算缩放比例
 let resizeObserver: ResizeObserver | undefined
 
 const selectedStudent = computed(() => store.selectedStudent)
+
 const {
   displayHandwriteFontName,
   handwriteFontApplying,

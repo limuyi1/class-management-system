@@ -1,17 +1,19 @@
+import { nextTick } from 'vue'
+
+import ElementPlus from 'element-plus'
+
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import ElementPlus from 'element-plus'
-import { nextTick } from 'vue'
 
-import ConfigurationCard from '../../src/views/evaluation/components/ConfigurationCard.vue'
+import EvaluationPreviewSettings from '../../src/views/evaluation/components/EvaluationPreviewSettings.vue'
 import EvaluationInputCard from '../../src/views/evaluation/components/EvaluationInputCard.vue'
 import CommentWorkspaceToolbar from '../../src/views/evaluation/components/CommentWorkspaceToolbar.vue'
 import { NAME_PROP } from '../../src/constants'
 
 /**
  * 评语工作区控制组件测试
- * 测试目标：ConfigurationCard、CommentWorkspaceToolbar、EvaluationInputCard
+ * 测试目标：EvaluationPreviewSettings、CommentWorkspaceToolbar、EvaluationInputCard
  * 覆盖功能：预览设置的默认折叠、工作区操作按钮的固定集合、编辑器按钮随评语状态切换（生成/润色）
  */
 
@@ -38,7 +40,7 @@ describe('evaluation workspace controls', () => {
   })
 
   it('keeps preview settings collapsed by default', async () => {
-    const wrapper = mount(ConfigurationCard, mountOptions)
+    const wrapper = mount(EvaluationPreviewSettings, mountOptions)
 
     expect(wrapper.get('.config-body--basic').attributes('style')).toContain('display: none')
     expect(wrapper.get('.config-body--advanced').attributes('style')).toContain('display: none')
