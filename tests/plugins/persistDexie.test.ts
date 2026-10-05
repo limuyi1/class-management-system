@@ -7,6 +7,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { bindWorkspaceRevision } from '../../src/utils/workspaceSessionUtil'
 
 type ObserverType<T> = {
   next: (value: T) => void
@@ -33,6 +34,7 @@ const createMockTable = (): MockTableType => {
 
 // 为插件访问的每张数据库表准备独立的 mock 实例，测试间可重置
 const mockTables = {
+  workspaces: createMockTable(),
   studentDataset: createMockTable(),
   scoreSettings: createMockTable(),
   appPreferences: createMockTable(),
@@ -70,6 +72,9 @@ vi.mock('../../src/db', () => {
   return {
     DB_ID: 'main',
     db: {
+      workspaces: mockTables.workspaces,
+      transaction: async (_mode: string, _tables: unknown[], action: () => Promise<void>) =>
+        action(),
       studentDataset: mockTables.studentDataset,
       scoreSettings: mockTables.scoreSettings,
       appPreferences: mockTables.appPreferences,
@@ -93,6 +98,7 @@ vi.mock('../../src/stores/wrong-book', () => ({ useWrongBookStore: vi.fn() }))
 // 目标：验证持久化插件对各类 store 的加载、保存、删除与错误处理流程
 describe('createPersistedStateDexie', () => {
   beforeEach(() => {
+    bindWorkspaceRevision(null)
     // 每个用例前清空观察者并重置所有 mock 表的状态
     observers.length = 0
     for (const table of Object.values(mockTables)) {
@@ -127,9 +133,7 @@ describe('createPersistedStateDexie', () => {
 
     await plugin({ store } as never)
 
-    expect(store.$state.students).toEqual([
-      { studentId: 'student-1', name: '张三', yu3_wen2: 88 }
-    ])
+    expect(store.$state.students).toEqual([{ studentId: 'student-1', name: '张三', yu3_wen2: 88 }])
     expect(store.isDataReady).toBe(true)
 
     store.$state.students = [{ studentId: 'student-2', name: '李四', yu3_wen2: 95 }]
@@ -148,8 +152,31 @@ describe('createPersistedStateDexie', () => {
       students: [{ studentId: 'student-3', name: '王五', yu3_wen2: 76 }],
       updatedAt: '2026-01-01T00:00:00.000Z'
     })
-    expect(store.$state.students).toEqual([
-      { studentId: 'student-3', name: '王五', yu3_wen2: 76 }
+    expect(store.$state.students).toEqual([{ studentId: 'student-3', name: '王五', yu3_wen2: 76 }])
+  })
+
+  it('loads and persists global card templates together with embedded artwork', async () => {
+    const template = {
+      id: 'card',
+      name: '奖状',
+      background: 'data:image/png;base64,test',
+      layers: [{ text: '{{姓名}}' }]
+    }
+    mockTables.toolPreferences.record = { id: 'main', cardTemplates: [template], updatedAt: '' }
+    const subscribers: Array<() => Promise<void>> = []
+    const store = {
+      $id: 'tools',
+      $state: { cardTemplates: [] as Array<Record<string, unknown>> },
+      $patch: (state: Record<string, unknown>) => Object.assign(store.$state, state),
+      $subscribe: (callback: () => Promise<void>) => subscribers.push(callback)
+    }
+    const { createPersistedStateDexie } = await import('../../src/plugins/persistDexie')
+    await createPersistedStateDexie()({ store } as never)
+    expect(store.$state.cardTemplates).toEqual([template])
+    store.$state.cardTemplates[0].name = '已修改奖状'
+    await subscribers[0]()
+    expect(mockTables.toolPreferences.record?.cardTemplates).toEqual([
+      { ...template, name: '已修改奖状' }
     ])
   })
 
@@ -408,5 +435,26 @@ describe('createPersistedStateDexie', () => {
 
     expect(store.$state.students).toEqual([])
     expect(mockTables.studentDataset.put).not.toHaveBeenCalled()
+  })
+  it('refuses stale page writes after another tab switches workspace', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const subscribers: Array<() => Promise<void>> = []
+    const store = {
+      $id: 'dataSource',
+      $state: { students: [{ studentId: 'a', name: '原班学生' }] },
+      isDataReady: false,
+      $patch: vi.fn(),
+      $subscribe: (callback: () => Promise<void>) => subscribers.push(callback)
+    }
+    bindWorkspaceRevision('old-session')
+    mockTables.workspaces.record = { id: 'main', revision: 'new-session' }
+    const { createPersistedStateDexie, flushPersistedStores } =
+      await import('../../src/plugins/persistDexie')
+    await createPersistedStateDexie()({ store } as never)
+    await subscribers[0]()
+    expect(mockTables.studentDataset.put).not.toHaveBeenCalled()
+    await expect(flushPersistedStores()).rejects.toThrow('其他页面')
+    errorSpy.mockRestore()
+    bindWorkspaceRevision(null)
   })
 })

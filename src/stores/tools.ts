@@ -10,6 +10,8 @@ import { createDefaultPaperLayoutSettings } from '@/views/tools/constants/paperL
 export const useToolsStore = defineStore('tools', {
   state: (): ToolsStateType => ({
     /** 纸张布局设置 */
-    paperLayout: createDefaultPaperLayoutSettings()
+    paperLayout: createDefaultPaperLayoutSettings(),
+    /** 各班级共用模板，由全局持久化插件写入 tools 记录 */
+    cardTemplates: []
   })
 })

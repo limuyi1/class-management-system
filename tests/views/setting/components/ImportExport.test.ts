@@ -114,7 +114,10 @@ const mountComponent = () =>
 const waitForDialogClose = () => new Promise((resolve) => setTimeout(resolve, 600))
 
 describe('ImportExport', () => {
+  const reloadMock = vi.spyOn(window.location, 'reload').mockImplementation(() => {})
   beforeEach(() => {
+    reloadMock.mockClear()
+    window.location.hash = '#/setting'
     setActivePinia(createPinia())
     backupMocks.getDaysSinceBackup.mockReset().mockReturnValue(3)
     backupMocks.exportDatabase.mockReset()
@@ -234,7 +237,8 @@ describe('ImportExport', () => {
     expect(progress.props('percent')).toBe(100)
 
     await waitForDialogClose()
-    expect(routerMocks.push).toHaveBeenCalledWith('/overview')
+    expect(window.location.hash).toBe('#/overview')
+    expect(reloadMock).toHaveBeenCalledOnce()
     expect(progress.props('visible')).toBe(false)
   })
 
@@ -286,7 +290,8 @@ describe('ImportExport', () => {
 
     callComplete()
     await flushPromises()
-    expect(routerMocks.push).toHaveBeenCalledWith('/tools')
+    expect(window.location.hash).toBe('#/tools')
+    expect(reloadMock).toHaveBeenCalledOnce()
     expect(progress.props('visible')).toBe(false)
   })
 

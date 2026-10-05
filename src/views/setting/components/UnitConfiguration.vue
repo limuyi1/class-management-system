@@ -3,9 +3,9 @@
  * 单元配置组件：设置全局成绩满分，并维护可拖拽排序的成绩表头。
  * 姓名列固定不可编辑、删除、禁用，其余表头可新增、编辑、删除与启停。
  */
-import { shallowRef } from 'vue'
+import { computed, shallowRef } from 'vue'
 import draggable from 'vuedraggable'
-import { ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 import { storeToRefs } from 'pinia'
 import { pinyin } from 'pinyin-pro'
@@ -14,11 +14,23 @@ import { useSettingStore } from '@/stores/setting'
 import { useConfigurationStore } from '@/stores/configuration'
 import type { SettingType } from '@/types/Setting'
 import { NAME_PROP } from '@/constants'
+import { useWorkspaceStore } from '@/stores/workspace'
 
 const store = useSettingStore()
 const configurationStore = useConfigurationStore()
+const workspace = useWorkspaceStore()
 
-const { scoreColumns: list } = storeToRefs(store)
+const { scoreColumns } = storeToRefs(store)
+// 姓名是基础字段，不作为可配置单元展示；拖动仅调整成绩列顺序。
+const list = computed({
+  get: () => scoreColumns.value.filter((item) => item.prop !== NAME_PROP),
+  set: (columns: SettingType[]) => {
+    scoreColumns.value = [
+      ...scoreColumns.value.filter((item) => item.prop === NAME_PROP),
+      ...columns
+    ]
+  }
+})
 const { scoreFullMark } = storeToRefs(configurationStore)
 
 const text = shallowRef('') // 新增表头的输入内容
@@ -42,9 +54,13 @@ const add = () => {
     return
   }
 
-  list.value.push({
+  const baseProp = pinyin(label, { toneType: 'num', type: 'array' }).join('_')
+  let prop = baseProp
+  let suffix = 2
+  while (list.value.some((item) => item.prop === prop)) prop = `${baseProp}_${suffix++}`
+  scoreColumns.value.push({
     // 拼音数字声调形式拼接下划线，作为数据行的字段键
-    prop: pinyin(label, { toneType: 'num', type: 'array' }).join('_'),
+    prop,
     label,
     disabled: false
   })
@@ -79,7 +95,18 @@ const remove = (item: SettingType) => {
   if (isNameHeader(item)) {
     return
   }
-  list.value.splice(list.value.indexOf(item), 1)
+  if (
+    workspace.catalog?.periods.some((period) =>
+      period.references.some(
+        (reference) =>
+          reference.periodId === workspace.activePeriod?.id && reference.prop === item.prop
+      )
+    )
+  ) {
+    ElMessage.warning('其他学期正在引用这列成绩，请先取消相关历史参照再删除')
+    return
+  }
+  scoreColumns.value.splice(scoreColumns.value.indexOf(item), 1)
 }
 
 /**
@@ -110,16 +137,12 @@ const cancelAdd = () => {
     <div class="fullmark-card">
       <div class="fullmark-card__label">
         <font-awesome-icon :icon="['solid', 'gauge-high']" />
-        <span>成绩满分（全局）</span>
+        <span>本期默认满分</span>
       </div>
-      <el-input-number
-        v-model="scoreFullMark"
-        :min="1"
-        :max="1000"
-        :precision="0"
-        :step="10"
-      />
-      <span class="fullmark-card__hint">用于成绩录入与 AI 识图的分数上限校验</span>
+      <el-input-number v-model="scoreFullMark" :min="1" :max="1000" :precision="0" :step="10" />
+      <span class="fullmark-card__hint"
+        >本班本期默认值；单列可另设满分。总览与趋势按百分制计算。</span
+      >
     </div>
 
     <div class="unit-configuration-grid">
@@ -148,6 +171,19 @@ const cancelAdd = () => {
               <span class="unit-configuration-item__index">{{ index + 1 }}</span>
               <span class="unit-configuration-item__label">{{ element.label }}</span>
             </div>
+            <div v-if="!isNameHeader(element)" class="unit-configuration-item__fullmark">
+              <span>满分</span>
+              <el-input-number
+                :model-value="element.fullMark ?? scoreFullMark"
+                :min="1"
+                :max="1000"
+                :precision="0"
+                size="small"
+                @update:model-value="
+                  (value: number | undefined) => (element.fullMark = value ?? scoreFullMark)
+                "
+              />
+            </div>
             <div class="unit-configuration-item__actions">
               <el-switch
                 :model-value="!element.disabled"
@@ -171,12 +207,7 @@ const cancelAdd = () => {
         </template>
       </draggable>
 
-      <button
-        v-if="!editing"
-        class="unit-configuration-add"
-        type="button"
-        @click="editing = true"
-      >
+      <button v-if="!editing" class="unit-configuration-add" type="button" @click="editing = true">
         <font-awesome-icon :icon="['solid', 'plus']" />
         <span>增加表头</span>
       </button>
@@ -201,6 +232,14 @@ const cancelAdd = () => {
 </template>
 
 <style scoped lang="scss">
+.unit-configuration-item__fullmark {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  color: var(--el-text-color-secondary);
+}
+
 .unit-configuration__wrapper {
   width: 100%;
   padding: 24px 28px;

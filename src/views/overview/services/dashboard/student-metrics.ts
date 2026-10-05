@@ -53,7 +53,8 @@ export const buildStudentMetrics = (
   students: StudentDataType[],
   unitHeaders: SettingType[],
   unitMetrics: UnitMetricType[],
-  config: OverviewDashboardConfigType
+  config: OverviewDashboardConfigType,
+  historicalRanks?: Map<string, Map<string, number>>
 ): StudentMetricType[] => {
   // 预构建班级排名映射，避免在循环中重复计算
   const rankMapByUnit = buildRankMapByUnit(students, unitHeaders)
@@ -76,9 +77,11 @@ export const buildStudentMetrics = (
             label: header.label,
             score,
             rank:
-              rankMapByUnit
-                .find((item) => item.prop === header.prop)
-                ?.rankMap.get(student.studentId) || null,
+              (historicalRanks?.has(header.prop)
+                ? historicalRanks.get(header.prop)?.get(student.studentId)
+                : rankMapByUnit
+                    .find((item) => item.prop === header.prop)
+                    ?.rankMap.get(student.studentId)) || null,
             difficultyShift: unitDifficultyShiftMap.get(header.prop)?.difficultyShift || 'normal'
           } satisfies StudentPointType
         })
@@ -133,6 +136,7 @@ export const buildStudentMetrics = (
       // 稳定前列统计：最近几次中进入班级前 N 名的次数
       const recentRanks = getRecentValues(
         points
+          .filter((point) => !unitHeaders.find((header) => header.prop === point.prop)?.reference)
           .map((point) => point.rank)
           .filter((rank): rank is number => typeof rank === 'number'),
         config.tagRules.tags.stableTop.recentWindow
@@ -372,7 +376,7 @@ export const buildStudentMetrics = (
       // 10. stableTop（高分稳定）：长期处于班级前列
       if (
         tagConfigs.stableTop.enabled &&
-        points.length >= (tagConfigs.stableTop.minValidScores || 3) &&
+        recentRanks.length >= (tagConfigs.stableTop.minValidScores || 3) &&
         stableTopRecentCount >= (tagConfigs.stableTop.minTopRankHits || 2)
       ) {
         matchedTags.push(createTag('stableTop', config))

@@ -34,7 +34,7 @@ export const useDataSourceStore = defineStore('dataSource', {
      * 获取启用状态的学生数据（过滤掉禁用的学生）
      */
     enabledData(): StudentDataType[] {
-      return this.students.filter((item) => item.disabled !== true)
+      return this.students.filter((item) => item.disabled !== true && item.departed !== true)
     },
     /**
      * 获取所有有效成绩（过滤掉 null 和 undefined 和禁用的学生）
@@ -47,10 +47,17 @@ export const useDataSourceStore = defineStore('dataSource', {
         .map((item) => getValidScore(item[scoreTab]))
         .filter((score): score is number => score !== null)
     },
+    /** 百分制成绩仅用于按比例计算优秀率、及格率等；均分保留原始分。 */
+    normalizedScores(): number[] {
+      const fullMark = useConfigurationStore().currentScoreFullMark ?? 100
+      return this.validScores.map((score) => (score / fullMark) * 100)
+    },
     /**
      * 学生总数（启用状态）
      */
-    totalCount: (state) => state.students.filter((item) => item.disabled !== true).length as number,
+    totalCount: (state) =>
+      state.students.filter((item) => item.disabled !== true && item.departed !== true)
+        .length as number,
     /**
      * 有效成绩数量（有分数的学生人数）
      */
@@ -67,31 +74,31 @@ export const useDataSourceStore = defineStore('dataSource', {
      * 及格率
      */
     passRate(): number {
-      return computePassRate(this.validScores)
+      return computePassRate(this.normalizedScores)
     },
     /**
      * 优秀率
      */
     excellentRate(): number {
-      return computeExcellentRate(this.validScores)
+      return computeExcellentRate(this.normalizedScores)
     },
     /**
      * 最高分率
      */
     optimumRate(): number {
-      return computeOptimumRate(this.validScores)
+      return computeOptimumRate(this.normalizedScores)
     },
     /**
      * 低分率
      */
     lowScoreRate(): number {
-      return computeLowScoreRate(this.validScores)
+      return computeLowScoreRate(this.normalizedScores)
     },
     /**
      * 综合评分
      */
     comprehensiveRatingRate(): number {
-      return computeComprehensiveRatingRate(this.validScores)
+      return computeComprehensiveRatingRate(this.normalizedScores)
     },
     /**
      * 是否存在任何成绩数据

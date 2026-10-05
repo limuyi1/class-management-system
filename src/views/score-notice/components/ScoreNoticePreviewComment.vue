@@ -158,26 +158,26 @@ const commentLength = computed(() => (props.student?.comment || '').replace(/\s/
   font-size: 18px;
   line-height: 1.58;
 }
-:global(.score-report--subjects-compact) .score-report__comment {
+:global(.score-report--subjects-compact .score-report__comment) {
   margin-top: 22px;
 }
-:global(.score-report--subjects-dense) .score-report__comment {
+:global(.score-report--subjects-dense .score-report__comment) {
   min-height: 194px;
   margin-top: 16px;
   padding-top: 15px;
   padding-bottom: 15px;
 }
-:global(.score-report--subjects-dense) .score-report__comment--long {
+:global(.score-report--subjects-dense .score-report__comment--long) {
   min-height: 222px;
 }
-:global(.score-report--subjects-dense) .score-report__comment-body {
+:global(.score-report--subjects-dense .score-report__comment-body) {
   min-height: 136px;
 }
-:global(.score-report--subjects-dense) .score-report__comment-body p {
+:global(.score-report--subjects-dense .score-report__comment-body p) {
   font-size: 17px;
   line-height: 1.52;
 }
-:global(.score-report--subjects-dense) .score-report__comment--long .score-report__comment-body p {
+:global(.score-report--subjects-dense .score-report__comment--long .score-report__comment-body p) {
   font-size: 16px;
   line-height: 1.45;
 }

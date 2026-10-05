@@ -248,6 +248,8 @@ export function buildStudentReportData(options: {
   selectedProps: string[]
   tagCategories: TagCategoryType[]
   classLabel?: string
+  historicalScores?: Map<string, number[]>
+  historicalRanks?: Map<string, Map<string, number>>
 }): StudentReportDataType {
   const {
     student,
@@ -262,13 +264,16 @@ export function buildStudentReportData(options: {
   let previousScore: number | null = null
   const scoreItems: StudentReportScoreItemType[] = selectedColumns.map((column) => {
     const score = toScoreValue(student[column.prop])
-    const allScores = students
-      .map((item) => toScoreValue(item[column.prop]))
-      .filter((item): item is number => item !== null)
+    const allScores =
+      options.historicalScores?.get(column.prop) ??
+      students
+        .map((item) => toScoreValue(item[column.prop]))
+        .filter((item): item is number => item !== null)
     const average = allScores.length ? calculateAverage(allScores) : null
     // 名次按成绩降序取第一次出现的下标，未找到时回退为末尾名次。
-    const rank =
-      score !== null && allScores.length
+    const rank = options.historicalRanks?.has(column.prop)
+      ? (options.historicalRanks.get(column.prop)?.get(student.studentId) ?? null)
+      : score !== null && allScores.length
         ? [...allScores].sort((a, b) => b - a).findIndex((item) => item === score) + 1 ||
           allScores.length
         : null
@@ -284,6 +289,7 @@ export function buildStudentReportData(options: {
       score,
       average,
       rank,
+      rankCount: allScores.length,
       delta
     }
   })
@@ -292,12 +298,15 @@ export function buildStudentReportData(options: {
   const scoreValues = validScoreItems.map((item) => item.score)
   const selectedScoreProps = new Set(scoreItems.map((item) => item.prop))
   // 汇总全班在所选科目上的所有有效成绩，用于计算班级均分。
-  const classScoreValues = students.flatMap((studentItem) =>
-    selectedColumns
-      .filter((column) => selectedScoreProps.has(column.prop))
-      .map((column) => toScoreValue(studentItem[column.prop]))
-      .filter((score): score is number => score !== null)
-  )
+  const classScoreValues = selectedColumns
+    .filter((column) => selectedScoreProps.has(column.prop))
+    .flatMap(
+      (column) =>
+        options.historicalScores?.get(column.prop) ??
+        students
+          .map((studentItem) => toScoreValue(studentItem[column.prop]))
+          .filter((score): score is number => score !== null)
+    )
   // 进步次数：相邻变化为正的次数；总变化：末次有效成绩与首次有效成绩之差
   const progressCount = validScoreItems.filter((item) => (item.delta || 0) > 0).length
   const totalDelta =

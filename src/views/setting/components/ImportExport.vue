@@ -10,7 +10,6 @@ import { ElMessageBox, dayjs } from 'element-plus'
 import { storeToRefs } from 'pinia'
 import { useRoute } from 'vue-router'
 
-import router from '@/router'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
 import { useStudentDataImport } from '@/hooks/useStudentDataImport'
@@ -146,7 +145,8 @@ const handleBackupImport = async (file: File) => {
       progressPercent.value = 100
       window.setTimeout(() => {
         progressVisible.value = false
-        void router.push('/overview')
+        window.location.hash = '#/overview'
+        window.location.reload()
       }, 500)
     })
   } catch {
@@ -180,7 +180,8 @@ const handleClear = async () => {
     progressVisible.value = true
     await clearDatabase(updateProgress, () => {
       progressVisible.value = false
-      void router.push('/tools')
+      window.location.hash = '#/tools'
+      window.location.reload()
     })
   } catch {
     progressVisible.value = false

@@ -143,45 +143,45 @@ const titleLengthClass = computed(() => {
 .score-report__title-ornament > img:nth-of-type(1) {
   transform: scaleX(-1);
 }
-:global(.score-report--subjects-compact) .score-report__header {
+:global(.score-report--subjects-compact .score-report__header) {
   min-height: 195px;
   padding: 0 42px;
 }
-:global(.score-report--subjects-compact) .score-report__logo {
+:global(.score-report--subjects-compact .score-report__logo) {
   width: 148px;
   height: 148px;
   margin-right: 25px;
 }
-:global(.score-report--subjects-compact) .score-report__title-wrap h1 {
+:global(.score-report--subjects-compact .score-report__title-wrap h1) {
   font-size: 63px;
 }
-:global(.score-report--subjects-dense) .score-report__header {
+:global(.score-report--subjects-dense .score-report__header) {
   min-height: 165px;
   padding: 0 26px;
 }
-:global(.score-report--subjects-dense) .score-report__logo {
+:global(.score-report--subjects-dense .score-report__logo) {
   width: 124px;
   height: 124px;
   margin-right: 18px;
 }
-:global(.score-report--subjects-dense) .score-report__title-wrap h1 {
+:global(.score-report--subjects-dense .score-report__title-wrap h1) {
   font-size: 54px;
   letter-spacing: 3px;
 }
-:global(.score-report--subjects-dense) .score-report__title-cap {
+:global(.score-report--subjects-dense .score-report__title-cap) {
   display: none;
 }
-:global(.score-report--subjects-dense) .score-report__title-ornament {
+:global(.score-report--subjects-dense .score-report__title-ornament) {
   margin-top: 10px;
 }
-:global(.score-report--subjects-dense) .score-report__title-ornament > span {
+:global(.score-report--subjects-dense .score-report__title-ornament > span) {
   width: 96px;
 }
-:global(.score-report--subjects-dense) .score-report__title-ornament > img {
+:global(.score-report--subjects-dense .score-report__title-ornament > img) {
   width: 57px;
   height: 24px;
 }
-:global(.score-report--subjects-dense) .score-report__title-ornament .score-report__title-star {
+:global(.score-report--subjects-dense .score-report__title-ornament .score-report__title-star) {
   width: 25px;
   height: 25px;
 }

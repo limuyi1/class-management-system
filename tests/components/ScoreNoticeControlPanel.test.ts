@@ -224,7 +224,10 @@ describe('ScoreNoticeControlPanel', () => {
     expect(wrapper.text()).toContain('1 项待确认')
     expect(wrapper.text()).toContain('仍可导出')
 
-    await wrapper.get('.notice-export__actions .el-button--primary').trigger('click')
+    await wrapper
+      .findAll('.notice-export__actions .el-button')
+      .find((button) => button.text().includes('ZIP'))!
+      .trigger('click')
     expect(wrapper.emitted('exportZip')).toHaveLength(1)
   })
 })

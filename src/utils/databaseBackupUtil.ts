@@ -6,7 +6,11 @@ import { dayjs, ElMessage } from 'element-plus'
 
 import 'dexie-export-import'
 
-import { db, DB_ID } from '@/db'
+import { db, DB_ID, SCSDatabase } from '@/db'
+import { flushPersistedStores } from '@/plugins/persistDexie'
+import { checkpointWorkspace, initializeWorkspaces } from '@/utils/workspaceUtil'
+import { bindWorkspaceRevision, getWorkspaceRevision } from '@/utils/workspaceSessionUtil'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { DatabaseTableEnum } from '@/constants'
 import { useAIConfigStore } from '@/stores/ai-config'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -221,6 +225,8 @@ export async function exportDatabase(
   includePaperLayout = true
 ) {
   try {
+    await flushPersistedStores()
+    await checkpointWorkspace()
     const blob = await db.export({
       // 不包含工具表时，过滤掉附件、试卷版式草稿等临时数据。
       filter: (table) => {
@@ -264,31 +270,56 @@ export async function importDatabase(
   try {
     // 复制为独立 Blob，避免文件对象被复用导致读取位置偏移。
     const blob = file.slice(0, file.size, 'application/octet-stream')
+    await flushPersistedStores()
     setDatabaseImporting(true)
-    // 先清空当前版本的全部表，确保旧备份缺失的新表不会残留导入前的数据。
-    await Promise.all(db.tables.map((table) => table.clear()))
-    // 兼容不同版本与缺失表，导入后再统一灌入运行时 Store。
-    await db.import(blob, {
-      acceptVersionDiff: true,
-      acceptMissingTables: true,
-      clearTablesBeforeImport: true,
-      progressCallback: (info) => {
-        if (onProgress && info.totalRows !== undefined && info.totalRows > 0) {
-          const percent = (info.completedRows / info.totalRows) * 100
-          onProgress(Math.round(percent))
+    // 先在临时库完整解析备份，文件读取不占用正式库事务。
+    const staging = new SCSDatabase(`scs-backup-staging-${crypto.randomUUID()}`)
+    try {
+      await staging.import(blob, {
+        acceptNameDiff: true,
+        acceptVersionDiff: true,
+        acceptMissingTables: true,
+        clearTablesBeforeImport: true,
+        progressCallback: (info) => {
+          if (onProgress && info.totalRows !== undefined && info.totalRows > 0) {
+            onProgress(Math.round((info.completedRows / info.totalRows) * 90))
+          }
+          return true
         }
-        return true
-      }
-    })
+      })
+      const records = await Promise.all(staging.tables.map((table) => table.toArray()))
+      // 正式库只执行数据库写入：全部替换和目录迁移统一提交或回滚。
+      await db.transaction('rw', db.tables, async () => {
+        for (let index = 0; index < staging.tables.length; index += 1) {
+          const table = db.table(staging.tables[index].name)
+          await table.clear()
+          if (records[index].length) await table.bulkPut(records[index])
+        }
+        if (getWorkspaceRevision()) {
+          const catalog = await initializeWorkspaces()
+          catalog.revision = crypto.randomUUID()
+          await db.workspaces.put(catalog)
+          bindWorkspaceRevision(catalog.revision)
+        }
+      })
+      onProgress?.(100)
+    } finally {
+      await staging.delete()
+    }
     // 先恢复全部 Store 默认值，旧备份缺失的模块因此保持空状态而不会残留旧内存数据。
     resetRuntimeStores()
     await hydrateRuntimeStores()
     await repairOrphanedSystemStudents()
+    if (getWorkspaceRevision()) {
+      await initializeWorkspaces()
+      await useWorkspaceStore().refresh()
+    }
     ElMessage.success('导入成功')
     complete?.()
   } catch (error) {
     console.error('Import failed:', error)
     try {
+      if (getWorkspaceRevision()) await initializeWorkspaces()
       resetRuntimeStores()
       await hydrateRuntimeStores()
     } catch (hydrateError) {
@@ -308,17 +339,25 @@ export async function importDatabase(
  */
 export async function clearDatabase(onProgress?: (percent: number) => void, complete?: () => void) {
   try {
+    await flushPersistedStores()
+    setDatabaseImporting(true)
     const tables = db.tables
-    for (let index = 0; index < tables.length; index += 1) {
-      await tables[index].clear()
-      onProgress?.(Math.round(((index + 1) / Math.max(1, tables.length)) * 90))
-    }
+    await db.transaction('rw', tables, async () => {
+      for (let index = 0; index < tables.length; index += 1) {
+        await tables[index].clear()
+        onProgress?.(Math.round(((index + 1) / Math.max(1, tables.length)) * 90))
+      }
+      if (getWorkspaceRevision()) await initializeWorkspaces()
+    })
     resetRuntimeStores()
+    if (getWorkspaceRevision()) await useWorkspaceStore().refresh()
     onProgress?.(100)
     ElMessage.success('数据已清空')
     complete?.()
   } catch (error) {
     console.error('Clear failed:', error)
     ElMessage.error('清空失败')
+  } finally {
+    setDatabaseImporting(false)
   }
 }

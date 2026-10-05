@@ -233,7 +233,7 @@ export const buildDashboardKpi = (
   config: OverviewDashboardConfigType,
   totalUnitCount: number
 ): DashboardKpiType => {
-  const allScores = metrics.flatMap((metric) => metric.points.map((point) => point.score))
+  const allScores = unitMetrics.flatMap((unit) => unit.scores)
   const averageScore = averageOf(allScores)
   // 及格人数 = 分数段下限不低于及格线的分段人数之和
   const passRates = unitMetrics.map((unit) => {

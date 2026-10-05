@@ -12,6 +12,7 @@ import StudentSourceSelector from '@/components/student-source/StudentSourceSele
 import UnassignedStudentPanel from '@/views/seating-chart/components/UnassignedStudentPanel.vue'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useDutyRosterStore } from '@/stores/duty-roster'
+import DutyAutoAssignDialog from './components/DutyAutoAssignDialog.vue'
 import DutyNotesPanel from '@/views/duty-roster/components/DutyNotesPanel.vue'
 import DutyPositionContextMenu from '@/views/duty-roster/components/DutyPositionContextMenu.vue'
 import DutyRosterEmptyState from '@/views/duty-roster/components/DutyRosterEmptyState.vue'
@@ -81,6 +82,7 @@ const dutyStore = useDutyRosterStore()
 const { activeStudents, editingRoster, pendingStudentCounts, unassignedStudents } =
   storeToRefs(dutyStore)
 
+const autoAssignVisible = shallowRef(false)
 const exportVisible = shallowRef(false)
 
 const studentRosterVisible = shallowRef(false)
@@ -144,6 +146,7 @@ function saveNotes(): void {
 
 <template>
   <div class="duty-roster-page app-page-shell" :class="{ fullscreen }">
+    <DutyAutoAssignDialog v-model="autoAssignVisible" />
     <PageHeader
       v-if="!fullscreen"
       :icon="['solid', 'broom']"
@@ -187,6 +190,7 @@ function saveNotes(): void {
             @rename="dutyStore.renameRoster(editingRoster.id, $event)"
             @change-mode="changeMode"
             @manage-sections="sectionsVisible = true"
+            @auto-assign="autoAssignVisible = true"
             @export="exportVisible = true"
             @toggle-fullscreen="fullscreen = !fullscreen"
           />

@@ -6,6 +6,7 @@ import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
 import PageHeader from '@/components/PageHeader.vue'
+import WorkspaceReferenceBar from '@/components/workspace/WorkspaceReferenceBar.vue'
 import { StudentReportExportDialog } from '@/components/student-report'
 import OverviewDiagnosisCard from '@/views/overview/components/OverviewDiagnosisCard.vue'
 import OverviewFocusCenter from '@/views/overview/components/OverviewFocusCenter.vue'
@@ -145,6 +146,9 @@ const handleGenerateLearningAnalysis = async () => {
       <template #right>
         <!-- 头部操作区：学生趋势、待写评语、AI 配置入口 -->
         <div class="header-actions">
+          <button class="header-action-pill is-light" @click="router.push('/tools/batch-reports')">
+            批量学习报告
+          </button>
           <button class="header-action-pill" @click="openStudentTrend()">
             <font-awesome-icon :icon="['solid', 'chart-simple']" />
             <span>学生趋势分析</span>
@@ -165,6 +169,7 @@ const handleGenerateLearningAnalysis = async () => {
         </div>
       </template>
     </page-header>
+    <workspace-reference-bar />
 
     <div class="overview-dashboard">
       <!-- 左侧栏：KPI 汇总条 + 单元成绩概览 + 关键学生列表 -->
@@ -214,7 +219,12 @@ const handleGenerateLearningAnalysis = async () => {
         <div class="dashboard-side">
           <overview-focus-center
             :focus-groups="dashboardData.focusGroups"
-            :completed-unit-count="dashboardData.kpi.completedUnitCount"
+            :completed-unit-count="
+              dashboardData.studentTrend?.students.reduce(
+                (max, student) => Math.max(max, student.scoreCount),
+                dashboardData.kpi.completedUnitCount
+              ) ?? dashboardData.kpi.completedUnitCount
+            "
             :stage="overviewStage"
             @select="openStudentTrend"
           />

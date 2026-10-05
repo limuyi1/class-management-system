@@ -14,6 +14,7 @@ const emit = defineEmits<{
   rename: [name: string]
   changeMode: [mode: DutyRosterModeEnum]
   manageSections: []
+  autoAssign: []
   export: []
   toggleFullscreen: []
 }>()
@@ -78,6 +79,7 @@ function handleModeChange(value: string | number | boolean | undefined): void {
     />
 
     <div class="duty-toolbar__actions">
+      <el-button size="small" @click="emit('autoAssign')">自动分配</el-button>
       <el-button size="small" @click="emit('manageSections')">
         <font-awesome-icon :icon="['solid', 'gear']" />
         岗位设置

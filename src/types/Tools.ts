@@ -1,5 +1,6 @@
 /** 工具模块（版纸排版、附件库等）的类型定义 */
 import { PagesEnum } from '@/types/Common'
+import type { CardTemplateType } from '@/types/PrintTools'
 
 /** 版纸方向：纵向 / 横向 */
 export type PaperLayoutOrientationType = 'portrait' | 'landscape'
@@ -30,6 +31,8 @@ export interface PaperLayoutSettingsType {
 
 /** 工具模块 Store 状态 */
 export interface ToolsStateType {
+  /** 全局共用的奖状和卡片模板，素材内嵌保存 */
+  cardTemplates: CardTemplateType[]
   /** 版纸布局设置 */
   paperLayout: PaperLayoutSettingsType
 }

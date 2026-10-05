@@ -84,7 +84,7 @@ export const buildOverviewDashboardData = (
       metrics,
       selectedStudentIds.slice(0, config.studentTrend.maxCompareCount),
       config,
-      unitHeaders,
+      options.trendHeaders ?? unitHeaders,
       kpi
     ),
     evaluationOverview: buildEvaluationOverview(students, aiConfigured)

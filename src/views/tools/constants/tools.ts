@@ -41,6 +41,30 @@ export const toolCategories: ToolCategoryType[] = [
 /** 工具中心的全部工具项 */
 export const toolItems: ToolItemType[] = [
   {
+    id: 'roster-print',
+    name: '名单打印',
+    icon: 'print',
+    path: '/tools/roster-print',
+    description: '精简名册、收交、点名、成绩和签字表，自动分页导出 PDF。',
+    category: 'class-management'
+  },
+  {
+    id: 'batch-reports',
+    name: '批量学习报告',
+    icon: 'file-lines',
+    path: '/tools/batch-reports',
+    description: '统一成绩范围，批量生成学习报告并下载图片或合并 PDF。',
+    category: 'feedback'
+  },
+  {
+    id: 'exam-print',
+    name: '考试分析打印稿',
+    icon: 'chart-line',
+    path: '/tools/exam-print',
+    description: '打印本期测评统计、分数分布和学生明细。',
+    category: 'feedback'
+  },
+  {
     id: 'comments',
     name: '评语处理',
     icon: 'comments',
@@ -50,10 +74,10 @@ export const toolItems: ToolItemType[] = [
   },
   {
     id: 'score-notice',
-    name: '成绩通知',
+    name: '通知与奖状',
     icon: 'file-signature',
-    path: '/tools/score-notice',
-    description: '导入考试等级或分数，生成可编辑、可复制和批量导出的学生成绩报告。',
+    path: '/tools/notice-awards',
+    description: '制作成绩通知、奖状与表扬卡，上传素材并保存模板，逐人预览和批量导出。',
     category: 'feedback'
   },
   {

@@ -113,8 +113,14 @@ vi.mock('../../src/stores/score-notice', () => ({
 
 vi.mock('../../src/db', () => ({
   DB_ID: 'main',
+  SCSDatabase: class {
+    import = importMock
+    tables = [{ name: 'student_dataset', toArray: async () => [] }]
+    delete = vi.fn(async () => undefined)
+  },
   db: {
-    import: importMock,
+    transaction: async (_mode: string, _tables: unknown[], action: () => Promise<void>) => action(),
+    table: () => ({ clear: allTableClearMock }),
     tables: [{ clear: allTableClearMock }],
     studentDataset: { get: tableGetMocks.studentDataset, clear: vi.fn() },
     scoreSettings: { get: tableGetMocks.scoreSettings, clear: vi.fn() },
@@ -165,6 +171,50 @@ describe('importDatabase', () => {
     expect(stores.seatingChart.$reset).toHaveBeenCalledTimes(1)
     expect(stores.dutyRoster.$reset).toHaveBeenCalledTimes(1)
     expect(stores.scoreNotice.$reset).toHaveBeenCalledTimes(1)
+  })
+  it('restores global card templates and their artwork from a full backup', async () => {
+    const template = {
+      id: 'card',
+      name: '奖状',
+      background: 'data:image/png;base64,test',
+      layers: [{ text: '{{姓名}}' }],
+      scene: {
+        version: 1,
+        pixelWidth: 1448,
+        pixelHeight: 1086,
+        assets: { artwork: 'data:image/png;base64,test' },
+        root: {
+          tag: 'div',
+          attributes: {},
+          children: [{ tag: '#text', text: '{{姓名}}', attributes: {}, children: [] }]
+        }
+      }
+    }
+    tableGetMocks.toolPreferences.mockResolvedValueOnce({
+      id: 'main',
+      cardTemplates: [template],
+      updatedAt: ''
+    } as never)
+    const { importDatabase } = await import('../../src/utils/databaseBackupUtil')
+    await importDatabase(new File(['backup'], 'backup.dexie'))
+    const restore = stores.tools.$patch.mock.calls[0]?.[0] as (
+      state: Record<string, unknown>
+    ) => void
+    const state: Record<string, unknown> = { cardTemplates: [] }
+    restore(state)
+    expect(state.cardTemplates).toEqual([template])
+  })
+
+  it('does not clear the live database when parsing a backup fails', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    importMock.mockRejectedValueOnce(new Error('损坏的备份'))
+    const { importDatabase } = await import('../../src/utils/databaseBackupUtil')
+    const complete = vi.fn()
+    await importDatabase(new File(['broken'], 'broken.dexie'), undefined, complete)
+    expect(allTableClearMock).not.toHaveBeenCalled()
+    expect(complete).not.toHaveBeenCalled()
+    expect(errorMock).toHaveBeenCalledWith('导入失败：损坏的备份')
+    log.mockRestore()
   })
 })
 

@@ -39,3 +39,6 @@ coverage
 .github
 
 .zcode
+
+# Local paper drafts and research materials
+/docs/论文/

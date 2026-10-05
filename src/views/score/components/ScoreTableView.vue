@@ -5,9 +5,8 @@
  */
 import { computed, ref } from 'vue'
 
-import { storeToRefs } from 'pinia'
-
 import { useDataSourceStore } from '@/stores/data-source'
+
 import { useConfigurationStore } from '@/stores/configuration'
 import { getScoreColor } from '@/config/score'
 import { delay } from '@/utils/commonUtil'
@@ -40,25 +39,17 @@ const emit = defineEmits<{
 }>()
 
 // 学生数据与应用配置 store
-const store = useDataSourceStore()
 const configuration = useConfigurationStore()
 
 // 启用学生列表作为表格数据源
-const { enabledData: tableData } = storeToRefs(store)
+const dataSource = useDataSourceStore()
+const tableData = computed(() => dataSource.enabledData)
 const props = defineProps<Props>()
 
 // 表格实例、仅未录入开关与当前高亮学生
 const tableRef = ref()
 const showOnlyUnentered = ref(false)
 const activeStudentId = ref<string | null>(null)
-
-/** 当前分数列的展示名称，无科目时回退为“当前分数” */
-const currentColumnLabel = computed(() => {
-  // 录入科目以全局配置为准，scoreTab prop 仅用于受控展示
-  const scoreTab = configuration.inputScoreTab
-  if (!scoreTab) return '当前分数'
-  return props.scoreColumns.find((item) => item.prop === scoreTab)?.label || scoreTab
-})
 
 /**
  * 读取指定学生在当前录入科目下的分数。
@@ -87,19 +78,21 @@ const getRowStyle = ({ row }: { row: StudentDataType }) => {
   }
 }
 
-/**
- * 按当前科目分数排序，未录入的行始终排在最前。
- * @param a 待比较学生
- * @param b 待比较学生
- * @returns 排序差值
- */
-const sortByCurrentScore = (a: StudentDataType, b: StudentDataType) => {
-  const scoreA = getCurrentScore(a)
-  const scoreB = getCurrentScore(b)
+/** 缺失分数排在最前，排序不会改变测评顺序。 */
+function sortByColumn(a: StudentDataType, b: StudentDataType, prop: string): number {
+  const scoreA = getValidScore(a[prop])
+  const scoreB = getValidScore(b[prop])
   if (scoreA === null && scoreB === null) return 0
   if (scoreA === null) return -1
   if (scoreB === null) return 1
   return scoreA - scoreB
+}
+
+/** 点击成绩单元格后选择本期录入列。 */
+function selectColumn(row: StudentDataType, column: { property?: string }): void {
+  if (column.property && props.scoreColumns.some((header) => header.prop === column.property)) {
+    emit('update:scoreTab', column.property)
+  }
 }
 
 /** 为当前定位学生所在行添加高亮类名 */
@@ -168,6 +161,7 @@ const rowBlink = async (index: number) => {
 /** 行点击进入编辑，同时记录当前学生用于高亮 */
 const handleEdit = (data: StudentDataType) => {
   activeStudentId.value = data.studentId
+  // 投影行包含只读参照，编辑使用原学生 ID 由父组件定位。
   emit('edit', data)
 }
 
@@ -235,6 +229,7 @@ defineExpose({
       :row-style="getRowStyle"
       :row-class-name="rowClassName"
       @row-click="handleEdit"
+      @cell-click="selectColumn"
     >
       <el-table-column type="index" label="序号" width="68" align="center" />
       <el-table-column :prop="NAME_PROP" label="姓名" min-width="120">
@@ -245,17 +240,25 @@ defineExpose({
           </button>
         </template>
       </el-table-column>
-      <!-- 当前科目分数列（无单元阶段不展示） -->
+      <!-- 只展示当前选择的录入单元。 -->
       <el-table-column
-        v-if="stage !== 'noUnits'"
-        :prop="configuration.inputScoreTab || ''"
-        :label="currentColumnLabel"
+        v-for="column in stage === 'noUnits'
+          ? []
+          : scoreColumns.filter((column) => column.prop === configuration.inputScoreTab)"
+        :key="column.prop"
+        :prop="column.prop"
+        :label="column.label"
+        :header-class-name="
+          column.prop === configuration.inputScoreTab ? 'score-table__current-column' : ''
+        "
         min-width="120"
         sortable
-        :sort-method="sortByCurrentScore"
+        :sort-method="(a: StudentDataType, b: StudentDataType) => sortByColumn(a, b, column.prop)"
       >
         <template #default="{ row }">
-          <span v-if="getCurrentScore(row) !== null">{{ getCurrentScore(row) }}</span>
+          <span v-if="getValidScore(row[column.prop]) !== null">{{
+            getValidScore(row[column.prop])
+          }}</span>
           <span v-else class="score-empty-text">未录入</span>
         </template>
       </el-table-column>
@@ -364,5 +367,10 @@ defineExpose({
 
 .score-empty-text {
   color: #94a3b8;
+}
+
+:deep(.score-table__current-column) {
+  background: var(--el-color-primary-light-9) !important;
+  color: var(--el-color-primary);
 }
 </style>

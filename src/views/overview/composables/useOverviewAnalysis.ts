@@ -10,6 +10,8 @@ import { useDataSourceStore } from '@/stores/data-source'
 import { useOverviewAnalysisStore } from '@/stores/overview-analysis'
 import { useSettingStore } from '@/stores/setting'
 import { DefaultAIPrompts } from '@/types/AIConfig'
+import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorkspaceScores } from '@/hooks/useWorkspaceScores'
 
 import type { DashboardDataType } from '@/types/OverviewDashboard'
 
@@ -26,6 +28,8 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
   const settingStore = useSettingStore()
   const { analysisText, generatedAt } = storeToRefs(overviewAnalysisStore)
   const loading = ref(false)
+  const workspace = useWorkspaceStore()
+  const { projection } = useWorkspaceScores()
 
   /**
    * 仅提取 AI 提示词真正需要的字段，避免把整个页面状态无差别塞给模型。
@@ -34,6 +38,13 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
     const data = dashboardData.value
 
     return {
+      数据范围: {
+        班级: workspace.activePeriod?.className,
+        学期: workspace.activePeriod?.termName,
+        本期统计口径: '本期测评，分数按满分换算为百分制',
+        历史参照: projection.value.referenceHeaders.map((header) => header.label),
+        趋势说明: '历史参照仅用于连续趋势；跨学期变化仅供参考，不能认定已消除试卷难度差异'
+      },
       指标概览: {
         班级均分: data.kpi.averageScore,
         平均及格率: `${data.kpi.averagePassRate}%`,
@@ -96,6 +107,8 @@ export function useOverviewAnalysis(dashboardData: { value: DashboardDataType })
     JSON.stringify({
       payload: payload.value,
       students: dataStore.enabledData,
+      workspace: workspace.activePeriod,
+      projection: projection.value.normalizedStudents,
       unitHeaders: settingStore.enabledScoreColumns,
       prompt: aiConfigStore.prompts.learningAnalysis
     })

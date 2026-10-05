@@ -1,8 +1,10 @@
 /**
  * IndexedDB 数据库初始化
- * 使用 Dexie 管理版本化 schema，支持 4 个版本的渐进式迁移
+ * 使用 Dexie 管理版本化 schema，支持 5 个版本的渐进式迁移
  */
 import Dexie, { type Table } from 'dexie'
+
+import type { WorkspaceCatalogType, WorkspaceSnapshotType } from '@/types/Workspace'
 
 import { DATABASE_MAIN_RECORD_ID, DATABASE_NAME, DatabaseTableEnum } from '@/constants'
 
@@ -38,8 +40,11 @@ export class SCSDatabase extends Dexie {
   seatingCharts!: Table<SeatingChartStorageRecord>
   dutyRosters!: Table<DutyRosterStorageRecord>
 
-  constructor() {
-    super(DATABASE_NAME)
+  workspaces!: Table<WorkspaceCatalogType>
+  workspaceSnapshots!: Table<WorkspaceSnapshotType>
+
+  constructor(name = DATABASE_NAME) {
+    super(name)
     // 版本 1：初始建表（数据、设置、偏好、AI、错题、概览缓存、工具、附件、试卷草稿）
     this.version(1).stores({
       [DatabaseTableEnum.StudentDataset]: 'id, updatedAt',
@@ -102,6 +107,12 @@ export class SCSDatabase extends Dexie {
       [DatabaseTableEnum.DutyRosters]: 'id, updatedAt'
     })
 
+    // 版本 5：班级学期目录与非当前学期的业务快照；原业务表保留为当前工作区。
+    this.version(5).stores({
+      [DatabaseTableEnum.Workspaces]: 'id, updatedAt',
+      [DatabaseTableEnum.WorkspaceSnapshots]: 'id, updatedAt'
+    })
+
     // 将各表绑定为实例属性，供后续增删改查使用
     this.studentDataset = this.table(DatabaseTableEnum.StudentDataset)
     this.scoreSettings = this.table(DatabaseTableEnum.ScoreSettings)
@@ -116,6 +127,8 @@ export class SCSDatabase extends Dexie {
     this.paperLayoutDrafts = this.table(DatabaseTableEnum.PaperLayoutDrafts)
     this.seatingCharts = this.table(DatabaseTableEnum.SeatingCharts)
     this.dutyRosters = this.table(DatabaseTableEnum.DutyRosters)
+    this.workspaces = this.table(DatabaseTableEnum.Workspaces)
+    this.workspaceSnapshots = this.table(DatabaseTableEnum.WorkspaceSnapshots)
   }
 }
 

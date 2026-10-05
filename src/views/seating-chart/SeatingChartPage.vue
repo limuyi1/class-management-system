@@ -4,6 +4,7 @@ import { ref, shallowRef } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter } from 'vue-router'
 
+import SeatingRotationDialog from './components/SeatingRotationDialog.vue'
 import SeatingChartSidebar from './components/SeatingChartSidebar.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import ExcelStudentRosterDialog from '@/components/student-source/ExcelStudentRosterDialog.vue'
@@ -110,6 +111,7 @@ const dataSourceStore = useDataSourceStore()
 const { activeStudents, editingChart, unassignedStudents, assignedCount, seatCapacity } =
   storeToRefs(seatingStore)
 
+const rotationVisible = ref(false)
 const specialSeatVisible = ref(false)
 
 const exportVisible = shallowRef(false)
@@ -140,6 +142,7 @@ function saveNotes(): void {
 
 <template>
   <div class="seating-chart-page app-page-shell" :class="{ fullscreen }">
+    <SeatingRotationDialog v-model="rotationVisible" />
     <page-header
       v-if="!fullscreen"
       :icon="['solid', 'chair']"
@@ -184,6 +187,7 @@ function saveNotes(): void {
           @manage-roles="roleManagementVisible = true"
           @change-platform-position="seatingStore.setPlatformPosition($event)"
           @randomize="randomize"
+          @rotate="rotationVisible = true"
           @export="exportVisible = true"
           @toggle-fullscreen="toggleFullscreen"
         />

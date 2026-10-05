@@ -12,6 +12,9 @@ export interface StudentDataType {
   [NAME_PROP]: string | null
   /** 是否禁用（禁用后不参与统计和展示） */
   disabled?: boolean
+  /** 本期转出，保留已有成绩与历史记录 */
+  departed?: boolean
+  departedAt?: string
   /** 期末评语 */
   comment?: string
   /** 标签数据，key 为标签分类 prop，value 为该分类下的标签数组 */

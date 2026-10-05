@@ -23,8 +23,11 @@ const props = defineProps<Props>()
 const emit = defineEmits<{
   /** 复制当前图片 */
   copyImage: []
+  downloadImage: []
+  exportPdf: []
   /** 导出全部图片 ZIP */
   exportZip: []
+  stopExport: []
 }>()
 
 const store = useScoreNoticeStore()
@@ -73,7 +76,20 @@ const readinessText = computed(() => {
       </el-tooltip>
     </div>
 
+    <el-button v-if="exporting" type="warning" size="small" @click="emit('stopExport')"
+      >停止并下载已完成结果</el-button
+    >
     <div class="notice-export__actions">
+      <el-button
+        :disabled="!selectedStudent || exporting || processing || hasUnsavedComment"
+        @click="emit('downloadImage')"
+        >当前 PNG</el-button
+      ><el-button
+        type="primary"
+        :disabled="!store.students.length || exporting || processing || hasUnsavedComment"
+        @click="emit('exportPdf')"
+        >合并 PDF / 打印</el-button
+      >
       <el-button
         :disabled="!selectedStudent || exporting || processing || hasUnsavedComment"
         @click="emit('copyImage')"
@@ -92,8 +108,8 @@ const readinessText = computed(() => {
           exporting
             ? `正在导出 ${exportProcessed}/${store.students.length}`
             : issueCount
-              ? `导出全部 · ${issueCount} 项待确认`
-              : '导出全部图片 ZIP'
+              ? `图片 ZIP · ${issueCount} 项待确认`
+              : '全部图片 ZIP'
         }}
       </el-button>
     </div>
@@ -150,11 +166,14 @@ const readinessText = computed(() => {
 }
 .notice-export__actions {
   display: grid;
-  grid-template-columns: 0.9fr 1.45fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 9px;
 }
 .notice-export__actions .el-button {
   margin: 0;
+  padding-right: 8px;
+  padding-left: 8px;
+  font-size: 12px;
 }
 .notice-export__actions svg {
   margin-right: 6px;

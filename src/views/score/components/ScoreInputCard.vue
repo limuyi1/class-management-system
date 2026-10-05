@@ -181,7 +181,7 @@ const addRecentEntry = (studentId: string, score: number) => {
   if (!scoreTab) return
 
   const student = store.getStudentById(studentId)
-  if (!student || student.disabled === true) return
+  if (!student || student.disabled === true || student.departed === true) return
   const name = getStudentName(student)
   const time = dayjs().format('HH:mm:ss')
 
@@ -232,7 +232,7 @@ const saveScore = (mode: 'stay' | 'next' = 'stay') => {
   }
 
   const student = store.getStudentById(selectedStudentId.value)
-  if (!student || student.disabled === true) {
+  if (!student || student.disabled === true || student.departed === true) {
     clearSelectedStudent()
     return
   }
@@ -369,10 +369,10 @@ defineExpose({
         class="score-input"
         size="large"
         :min="0"
-        :max="configuration.scoreFullMark"
+        :max="configuration.currentScoreFullMark"
         :precision="1"
         :controls="false"
-        :placeholder="`0~${configuration.scoreFullMark}分`"
+        :placeholder="`0~${configuration.currentScoreFullMark}分`"
         @keydown.enter="handleScoreKeyDownEnter"
       />
       <div class="score-actions">

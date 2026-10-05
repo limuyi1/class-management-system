@@ -1,3 +1,4 @@
+import type { CardTemplateType } from './PrintTools'
 import type { StudentDataType } from './StudentData'
 import type { WrongFolder, WrongQuestion } from './WrongBook'
 import type { SettingType, TagCategoryType, TagType } from './Setting'
@@ -84,6 +85,8 @@ export interface ConfigurationRecord {
   pageTypeList: string[]
   /** 当前正在录入的成绩列 prop（null 表示未选择） */
   inputScoreTab: string | null
+  /** 本期默认满分，旧备份未提供时使用 100 */
+  scoreFullMark?: number
   /** 最近成绩录入记录，key 为成绩列 prop */
   recentScoreEntries: Record<
     string,
@@ -159,6 +162,8 @@ export interface OverviewAnalysisCacheRecord extends OverviewAnalysisRecord {
 
 /** 工具配置内存记录（不含 updatedAt） */
 export interface ToolsRecord {
+  /** 旧版备份可以没有模板字段 */
+  cardTemplates?: CardTemplateType[]
   /** 记录唯一标识 */
   id: string
   /** 版纸布局设置 */

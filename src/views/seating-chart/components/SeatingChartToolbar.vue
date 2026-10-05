@@ -38,6 +38,7 @@ const emit = defineEmits<{
   changePlatformPosition: [position: SeatingPlatformPositionEnum]
   /** 打开随机排座模式选择 */
   randomize: []
+  rotate: []
   /** 打开导出弹窗 */
   export: []
   /** 切换全屏状态 */
@@ -102,6 +103,7 @@ function changePlatformPosition(value: string | number | boolean | undefined): v
 
       <span class="seating-toolbar__divider" aria-hidden="true"></span>
 
+      <el-button size="small" @click="emit('rotate')">座位轮换</el-button>
       <el-button size="small" @click="emit('manageRoles')">
         <font-awesome-icon :icon="['solid', 'user-tag']" />
         职务管理

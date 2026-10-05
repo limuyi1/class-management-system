@@ -12,6 +12,8 @@ import { useRouter } from 'vue-router'
 import { pinyin } from 'pinyin-pro'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
+import WorkspaceStudentActions from '@/components/workspace/WorkspaceStudentActions.vue'
+import WorkspaceRosterTools from '@/components/workspace/WorkspaceRosterTools.vue'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 import { createStudentId } from '@/utils/studentUtil'
@@ -435,9 +437,10 @@ defineExpose({
     <div class="student-info__toolbar">
       <div>
         <strong>学生名单</strong>
-        <span>共 {{ tableData.length }} 名学生</span>
+        <span>在班 {{ store.enabledData.length }} 人 · 名单共 {{ tableData.length }} 人</span>
       </div>
       <div class="student-info__toolbar-actions">
+        <workspace-roster-tools />
         <el-button size="small" @click="openBatchComments">
           <font-awesome-icon :icon="['solid', 'comments']" />
           批量评语
@@ -503,6 +506,9 @@ defineExpose({
             </div>
           </template>
         </vxe-column>
+        <vxe-column field="departed" title="在班状态" width="100" fixed="right" :resizable="false"
+          ><template #default="{ row }"><workspace-student-actions :student="row" /></template
+        ></vxe-column>
         <vxe-column field="disabled" title="禁用" width="70" fixed="right" :resizable="false">
           <template #default="{ row }">
             <el-switch v-model="row.disabled" size="small" />
@@ -566,6 +572,7 @@ defineExpose({
   <div v-else class="student-info__empty h-full flex items-center justify-center">
     <el-empty description="暂无学生信息，可单个新增或通过 Excel 批量导入">
       <div class="student-info__empty-actions">
+        <workspace-roster-tools />
         <el-button @click="openBatchImport">批量导入学生</el-button>
         <el-button type="primary" @click="openCreateStudent">新增学生</el-button>
       </div>

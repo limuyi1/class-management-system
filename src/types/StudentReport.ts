@@ -12,6 +12,8 @@ export interface StudentReportScoreItemType {
   label: string
   score: number | null
   average: number | null
+  /** 当次测评参与排名人数，历史列使用原学期名单 */
+  rankCount?: number
   rank: number | null
   delta: number | null
 }

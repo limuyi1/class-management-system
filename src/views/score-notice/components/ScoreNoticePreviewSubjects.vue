@@ -316,126 +316,130 @@ const getSubjectIcon = (label: string): string => {
 .score-report__subject--tone-8 {
   --subject-tone: #58723e;
 }
-:global(.score-report--subjects-compact) .score-report__subject-grid {
+:global(.score-report--subjects-compact .score-report__subject-grid) {
   gap: 14px;
 }
-:global(.score-report--subjects-compact) .score-report__subject {
+:global(.score-report--subjects-compact .score-report__subject) {
   min-height: 178px;
   padding: 14px 7px 10px;
 }
-:global(.score-report--subjects-compact) .score-report__subject-name {
+:global(.score-report--subjects-compact .score-report__subject-name) {
   min-height: 28px;
   gap: 6px;
   font-size: 19px;
 }
-:global(.score-report--subjects-compact) .score-report__subject-separator {
+:global(.score-report--subjects-compact .score-report__subject-separator) {
   margin: 1px 18px 0;
 }
-:global(.score-report--subjects-compact) .score-report__grade-medal {
+:global(.score-report--subjects-compact .score-report__grade-medal) {
   width: 118px;
   height: 114px;
   margin: 0 auto -2px;
 }
-:global(.score-report--subjects-compact) .score-report__grade-wreath {
+:global(.score-report--subjects-compact .score-report__grade-wreath) {
   inset: 3px 4px 4px;
   width: 110px;
   height: 110px;
 }
-:global(.score-report--subjects-compact) .score-report__grade-ring {
+:global(.score-report--subjects-compact .score-report__grade-ring) {
   top: 23px;
   left: 30px;
   width: 56px;
   height: 56px;
   border-width: 3px;
 }
-:global(.score-report--subjects-compact) .score-report__grade-ring span {
+:global(.score-report--subjects-compact .score-report__grade-ring span) {
   bottom: 10px;
   font-size: 37px;
 }
-:global(.score-report--subjects-compact) .score-report__grade-ring img {
+:global(.score-report--subjects-compact .score-report__grade-ring img) {
   bottom: 1px;
   width: 10px;
   height: 10px;
 }
-:global(.score-report--subjects-compact) .score-report__grade-ring .score-report__score-value {
+:global(.score-report--subjects-compact .score-report__grade-ring .score-report__score-value) {
   font-size: 30px;
   letter-spacing: -0.5px;
 }
-:global(.score-report--subjects-compact)
-  .score-report__grade-medal--score-length-4
-  .score-report__score-value {
+:global(
+  .score-report--subjects-compact
+    .score-report__grade-medal--score-length-4
+    .score-report__score-value
+) {
   font-size: 27px;
   letter-spacing: -0.5px;
 }
-:global(.score-report--subjects-compact) .score-report__grade-ribbon {
+:global(.score-report--subjects-compact .score-report__grade-ribbon) {
   right: 9px;
   bottom: 0;
   left: 9px;
   height: 36px;
 }
-:global(.score-report--subjects-compact) .score-report__grade-caption {
+:global(.score-report--subjects-compact .score-report__grade-caption) {
   font-size: 17px;
 }
-:global(.score-report--subjects-dense) .score-report__subject-grid {
+:global(.score-report--subjects-dense .score-report__subject-grid) {
   gap: 10px;
 }
-:global(.score-report--subjects-dense) .score-report__subject {
+:global(.score-report--subjects-dense .score-report__subject) {
   min-height: 128px;
   padding: 9px 4px 6px;
 }
-:global(.score-report--subjects-dense) .score-report__subject-corner {
+:global(.score-report--subjects-dense .score-report__subject-corner) {
   width: 25px;
   height: 25px;
 }
-:global(.score-report--subjects-dense) .score-report__subject-name {
+:global(.score-report--subjects-dense .score-report__subject-name) {
   min-height: 22px;
   gap: 4px;
   font-size: 16px;
 }
-:global(.score-report--subjects-dense) .score-report__subject-separator {
+:global(.score-report--subjects-dense .score-report__subject-separator) {
   display: none;
 }
-:global(.score-report--subjects-dense) .score-report__grade-medal {
+:global(.score-report--subjects-dense .score-report__grade-medal) {
   width: 88px;
   height: 82px;
   margin: 0 auto -2px;
 }
-:global(.score-report--subjects-dense) .score-report__grade-wreath {
+:global(.score-report--subjects-dense .score-report__grade-wreath) {
   inset: 2px 3px 3px;
   width: 82px;
   height: 82px;
 }
-:global(.score-report--subjects-dense) .score-report__grade-ring {
+:global(.score-report--subjects-dense .score-report__grade-ring) {
   top: 17px;
   left: 23px;
   width: 39px;
   height: 39px;
   border-width: 2px;
 }
-:global(.score-report--subjects-dense) .score-report__grade-ring span {
+:global(.score-report--subjects-dense .score-report__grade-ring span) {
   bottom: 2px;
   font-size: 28px;
 }
-:global(.score-report--subjects-dense) .score-report__grade-ring img {
+:global(.score-report--subjects-dense .score-report__grade-ring img) {
   display: none;
 }
-:global(.score-report--subjects-dense) .score-report__grade-ring .score-report__score-value {
+:global(.score-report--subjects-dense .score-report__grade-ring .score-report__score-value) {
   font-size: 23px;
   letter-spacing: -0.4px;
 }
-:global(.score-report--subjects-dense)
-  .score-report__grade-medal--score-length-4
-  .score-report__score-value {
+:global(
+  .score-report--subjects-dense
+    .score-report__grade-medal--score-length-4
+    .score-report__score-value
+) {
   font-size: 19px;
   letter-spacing: -0.4px;
 }
-:global(.score-report--subjects-dense) .score-report__grade-ribbon {
+:global(.score-report--subjects-dense .score-report__grade-ribbon) {
   right: 6px;
   bottom: 0;
   left: 6px;
   height: 26px;
 }
-:global(.score-report--subjects-dense) .score-report__grade-caption {
+:global(.score-report--subjects-dense .score-report__grade-caption) {
   font-size: 14px;
 }
 </style>

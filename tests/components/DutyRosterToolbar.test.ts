@@ -8,7 +8,7 @@ import DutyRosterToolbar from '@/views/duty-roster/components/DutyRosterToolbar.
  * DutyRosterToolbar 组件测试
  * 测试目标：值日表工具栏
  * 覆盖功能：名称渲染与双击重命名（回车/失焦提交、Esc 取消、名称未变化不触发）、
- * 模式切换事件、岗位设置/打印预览/全屏按钮的事件转发
+ * 模式切换事件、自动分配/岗位设置/打印预览/全屏按钮的事件转发
  */
 
 const globalStubs = {
@@ -24,7 +24,9 @@ const globalStubs = {
   }
 }
 
-const mountToolbar = (props: Partial<{ rosterName: string; mode: DutyRosterModeEnum; fullscreen: boolean }> = {}) =>
+const mountToolbar = (
+  props: Partial<{ rosterName: string; mode: DutyRosterModeEnum; fullscreen: boolean }> = {}
+) =>
   mount(DutyRosterToolbar, {
     props: {
       rosterName: '班级值日安排',
@@ -110,15 +112,17 @@ describe('DutyRosterToolbar', () => {
     expect(wrapper.emitted('changeMode')).toBeUndefined()
   })
 
-  it('forwards manage sections, export and fullscreen button clicks', async () => {
+  it('forwards auto assign, manage sections, export and fullscreen button clicks', async () => {
     const wrapper = mountToolbar()
     const buttons = wrapper.findAll('button')
 
-    // 按钮顺序：名称、岗位设置、打印预览、全屏
+    // 按钮顺序：名称、自动分配、岗位设置、打印预览、全屏
     await buttons[1].trigger('click')
     await buttons[2].trigger('click')
     await buttons[3].trigger('click')
+    await buttons[4].trigger('click')
 
+    expect(wrapper.emitted('autoAssign')).toHaveLength(1)
     expect(wrapper.emitted('manageSections')).toHaveLength(1)
     expect(wrapper.emitted('export')).toHaveLength(1)
     expect(wrapper.emitted('toggleFullscreen')).toHaveLength(1)

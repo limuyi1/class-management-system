@@ -35,11 +35,14 @@ describe('ToolsPage', () => {
     expect(sections).toHaveLength(3)
     expect(sections[0].find('.tool-section__title').text()).toBe('教学反馈')
     expect(sections[0].findAll('.tool-card__title').map((item) => item.text())).toEqual([
+      '批量学习报告',
+      '考试分析打印稿',
       '评语处理',
-      '成绩通知'
+      '通知与奖状'
     ])
     expect(sections[1].find('.tool-section__title').text()).toBe('班级管理')
     expect(sections[1].findAll('.tool-card__title').map((item) => item.text())).toEqual([
+      '名单打印',
       '座位表',
       '值日表',
       '名单核对'
@@ -57,6 +60,6 @@ describe('ToolsPage', () => {
 
     await wrapper.find('.tool-card').trigger('click')
 
-    expect(push).toHaveBeenCalledWith('/tools/comments')
+    expect(push).toHaveBeenCalledWith('/tools/batch-reports')
   })
 })

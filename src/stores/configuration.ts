@@ -1,5 +1,7 @@
 import { defineStore } from 'pinia'
 
+import { useSettingStore } from '@/stores/setting'
+
 import { PagesEnum } from '@/types/Common'
 import type { ConfigurationType } from '@/types/Configuration'
 
@@ -56,6 +58,15 @@ export const useConfigurationStore = defineStore('configuration', {
       scoreFullMark: 100,
       /** 左侧导航菜单是否折叠 */
       menuCollapsed: false
+    }
+  },
+  getters: {
+    /** 当前成绩列可单独设置满分，未设置时使用本期默认满分。 */
+    currentScoreFullMark(state): number {
+      return (
+        useSettingStore().scoreColumns.find((column) => column.prop === state.inputScoreTab)
+          ?.fullMark ?? state.scoreFullMark
+      )
     }
   },
   actions: {

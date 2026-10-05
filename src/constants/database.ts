@@ -17,5 +17,7 @@ export enum DatabaseTableEnum {
   Attachments = 'attachments',
   PaperLayoutDrafts = 'paper_layout_drafts',
   SeatingCharts = 'seating_charts',
-  DutyRosters = 'duty_rosters'
+  DutyRosters = 'duty_rosters',
+  Workspaces = 'workspaces',
+  WorkspaceSnapshots = 'workspace_snapshots'
 }

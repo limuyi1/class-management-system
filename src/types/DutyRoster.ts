@@ -104,6 +104,8 @@ export interface DutyRosterType {
   weeklyRows: DutyWeeklyRowType[]
   /** 值日分配记录列表 */
   assignments: DutyAssignmentType[]
+  /** 自动分配时每个时段/岗位格的容量 */
+  autoAssignCapacities?: Record<string, number>
   /** 按时段和区域设置的值日组长记录 */
   leaders: DutyLeaderType[]
   /** 复制后覆盖的学生卡片总数；缺省时根据现有安排自动推导 */

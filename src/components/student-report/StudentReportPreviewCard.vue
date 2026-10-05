@@ -14,6 +14,8 @@ import type { StudentReportDataType } from '@/utils/studentReportUtil'
  * 图表配置（含班级均分与个人均分参考线）在此组件内组装。
  */
 interface Props {
+  /** 批量导出时关闭图表动画，确保截图包含完整趋势线 */
+  staticRendering?: boolean
   /** 学习报告数据 */
   report: StudentReportDataType
   /** 报告正文内容 */
@@ -30,7 +32,10 @@ const articleParagraphs = computed(() => {
     .filter(Boolean)
 })
 
-const chartOption = computed(() => buildStudentReportChartOptions(props.report))
+const chartOption = computed(() => ({
+  ...buildStudentReportChartOptions(props.report),
+  ...(props.staticRendering ? { animation: false } : {})
+}))
 </script>
 
 <template>
@@ -81,7 +86,9 @@ const chartOption = computed(() => buildStudentReportChartOptions(props.report))
             <span class="student-report-card__score">{{
               item.score === null ? '—' : item.score
             }}</span>
-            <span>{{ item.rank === null ? '—' : `${item.rank} / ${report.studentCount}` }}</span>
+            <span>{{
+              item.rank === null ? '—' : `${item.rank} / ${item.rankCount ?? report.studentCount}`
+            }}</span>
             <span
               :class="
                 item.score !== null && item.average !== null
@@ -143,7 +150,7 @@ const chartOption = computed(() => buildStudentReportChartOptions(props.report))
       </div>
 
       <div class="student-report-card__chart">
-        <AppEChart height="188px" :option="chartOption" />
+        <AppEChart renderer="svg" height="188px" :option="chartOption" />
       </div>
     </section>
 

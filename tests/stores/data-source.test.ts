@@ -2,6 +2,7 @@ import { describe, expect, it, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { nextTick } from 'vue'
 import { useDataSourceStore } from '../../src/stores/data-source'
+import { useSettingStore } from '../../src/stores/setting'
 import { useConfigurationStore } from '../../src/stores/configuration'
 import type { StudentDataType } from '../../src/types/StudentData'
 
@@ -52,6 +53,35 @@ describe('useDataSourceStore', () => {
     const enabled = store.enabledData
     expect(enabled).toHaveLength(2)
     expect(enabled.map((student) => student.name)).toEqual(['张三', '王五'])
+  })
+
+  it('keeps departed student grades but excludes them from current counts and statistics', () => {
+    const data = useDataSourceStore()
+    useConfigurationStore().inputScoreTab = 'unit'
+    data.students = [
+      { studentId: 'a', name: '甲', unit: 80 },
+      { studentId: 'b', name: '乙', unit: 100, departed: true }
+    ]
+    expect(data.totalCount).toBe(1)
+    expect(data.average).toBe(80)
+    expect(data.getStudentById('b')?.unit).toBe(100)
+  })
+
+  it('keeps raw averages and computes rates using the selected column full mark', () => {
+    const data = useDataSourceStore()
+    const configuration = useConfigurationStore()
+    configuration.inputScoreTab = 'unit'
+    useSettingStore().scoreColumns = [
+      { prop: 'unit', label: '单元', disabled: false, fullMark: 50 }
+    ]
+    data.students = [
+      { studentId: 'a', name: '甲', unit: 40 },
+      { studentId: 'b', name: '乙', unit: 20 }
+    ]
+    expect(configuration.currentScoreFullMark).toBe(50)
+    expect(data.average).toBe(30)
+    expect(data.passRate).toBe(50)
+    expect(data.excellentRate).toBe(50)
   })
 
   it('should return empty enabledData when all disabled', () => {
@@ -244,5 +274,4 @@ describe('useDataSourceStore', () => {
 
     await expect(pending).resolves.toBe(true)
   })
-
 })

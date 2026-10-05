@@ -268,18 +268,20 @@ watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: tru
 
     <div v-show="expanded && !disabled" class="notice-step__body">
       <!-- 按评语状态筛选学生 -->
-      <div class="notice-comments__filters" aria-label="按评语状态筛选学生">
-        <button
-          v-for="filter in filters"
-          :key="filter.key"
-          type="button"
-          :class="{ 'is-active': activeFilter === filter.key }"
-          :aria-pressed="activeFilter === filter.key"
-          @click="handleFilterChange(filter.key)"
-        >
-          {{ filter.label }} <span>{{ filter.count }}</span>
-        </button>
-      </div>
+      <el-scrollbar
+        ><div class="notice-comments__filters" aria-label="按评语状态筛选学生">
+          <button
+            v-for="filter in filters"
+            :key="filter.key"
+            type="button"
+            :class="{ 'is-active': activeFilter === filter.key }"
+            :aria-pressed="activeFilter === filter.key"
+            @click="handleFilterChange(filter.key)"
+          >
+            {{ filter.label }} <span>{{ filter.count }}</span>
+          </button>
+        </div></el-scrollbar
+      >
 
       <!-- 搜索学生与更多批量操作 -->
       <div class="notice-comments__toolbar">
@@ -376,7 +378,7 @@ watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: tru
           ref="commentInputRef"
           v-model="commentDraft"
           type="textarea"
-          :rows="4"
+          :autosize="{ minRows: 4 }"
           maxlength="300"
           show-word-limit
           resize="none"
@@ -492,8 +494,9 @@ watch(hasUnsavedComment, (dirty) => emit('dirtyChange', dirty), { immediate: tru
 .notice-comments__filters {
   display: flex;
   gap: 6px;
-  overflow-x: auto;
-  padding-bottom: 3px;
+  width: max-content;
+  min-width: 100%;
+  padding-bottom: 8px;
 }
 .notice-comments__filters button {
   display: inline-flex;

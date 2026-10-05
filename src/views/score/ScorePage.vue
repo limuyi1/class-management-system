@@ -229,7 +229,7 @@ const handleCropConfirm = async (croppedBase64: string) => {
       results,
       enabledData.value,
       scoreTab,
-      configuration.scoreFullMark
+      configuration.currentScoreFullMark
     )
     ignoredRecognitionNames.value = getIgnoredScoreRecognitionNames(results, enabledData.value)
     recognitionPreviewVisible.value = true
@@ -363,7 +363,7 @@ defineExpose({ autoFocus })
       v-model:visible="recognitionPreviewVisible"
       :rows="recognitionPreviewRows"
       :ignored-names="ignoredRecognitionNames"
-      :full-mark="configuration.scoreFullMark"
+      :full-mark="configuration.currentScoreFullMark"
       @confirm="handleRecognitionConfirm"
     />
   </div>

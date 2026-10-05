@@ -256,6 +256,17 @@ export function buildStudentTrendChartOption(
   }
 
   // 每个学生生成一个数据系列，柱状与折线共用同一份按 X 轴对齐的数据
+  const referenceBoundary = xAxisLabels.findIndex((label) => !label.includes('〔参照〕'))
+  const boundary =
+    referenceBoundary > 0
+      ? {
+          silent: true,
+          symbol: 'none' as const,
+          label: { formatter: '本期', position: 'insideEndTop' as const },
+          lineStyle: { color: '#94a3b8', type: 'dashed' as const },
+          data: [{ xAxis: referenceBoundary - 0.5 }]
+        }
+      : undefined
   const series: Array<LineSeriesOption | BarSeriesOption> = students.map((student, index) => {
     const studentScoreMap = new Map(student.trendPoints.map((point) => [point.label, point.score]))
     const data = xAxisLabels.map((label) => studentScoreMap.get(label) ?? null)
@@ -266,6 +277,7 @@ export function buildStudentTrendChartOption(
         id: student.studentId,
         name: student.name,
         type: 'bar',
+        ...(index === 0 && boundary ? { markLine: boundary } : {}),
         barMaxWidth: 26,
         itemStyle: {
           color,
@@ -287,6 +299,7 @@ export function buildStudentTrendChartOption(
       id: student.studentId,
       name: student.name,
       type: 'line',
+      ...(index === 0 && boundary ? { markLine: boundary } : {}),
       smooth: true,
       smoothMonotone: 'x',
       symbolSize: 8,

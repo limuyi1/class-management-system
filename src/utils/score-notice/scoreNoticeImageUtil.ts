@@ -4,6 +4,7 @@
  */
 import domtoimage from 'dom-to-image'
 
+import { waitForPrintReady } from '@/utils/printDomUtil'
 import { sanitizeExportFileName } from '@/utils/downloadUtil'
 import { getEvaluationHandwriteFontDataUrl } from '@/utils/evaluation/evaluationHandwriteFontUtil'
 
@@ -17,13 +18,13 @@ export const sanitizeFileName = (value: string): string => {
 }
 
 /**
- * 将 DOM 预览渲染为 PNG。
+ * 将原尺寸 DOM 预览转为已内嵌图片和字体的 SVG。
  *
  * 导出前临时注入手写字体，确保图片与页面预览一致；SVG 生成完毕后立即清除样式，避免污染全局 DOM。
  */
-export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Promise<Blob> => {
+export const renderScoreNoticeSvg = async (element: HTMLElement): Promise<string> => {
   // 等待页面字体加载完成，避免截图缺字
-  await document.fonts?.ready
+  await waitForPrintReady(element)
   const width = element.offsetWidth
   const height = element.offsetHeight
   const fontStyle = document.createElement('style')
@@ -42,6 +43,15 @@ export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Pr
     fontStyle.remove()
   }
 
+  return svgDataUrl
+}
+
+/** 直接复用通知的 SVG 资源准备，导出图片仍保持原来的尺寸与倍率。 */
+export const renderScoreNoticeBlob = async (element: HTMLElement, scale = 2): Promise<Blob> => {
+  const width = element.offsetWidth
+  const height = element.offsetHeight
+  if (!width || !height) throw new Error('通知尺寸无效，请等待预览完成')
+  const svgDataUrl = await renderScoreNoticeSvg(element)
   // 将 SVG 加载为位图，再绘制到高分辨率 canvas 上
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const nextImage = new Image()

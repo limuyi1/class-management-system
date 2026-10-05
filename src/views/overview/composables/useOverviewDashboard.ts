@@ -1,11 +1,11 @@
 import { computed, ref, watch } from 'vue'
+import { useWorkspaceScores } from '@/hooks/useWorkspaceScores'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 
 import { overviewDashboardConfig } from '@/views/overview/constants/dashboard'
 import { buildDashboardData } from '@/views/overview/services/dashboard'
 import { useAIConfigStore } from '@/stores/ai-config'
-import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
 
 /** 返回学生选项列表中的首个学生 ID，空列表返回 null */
@@ -22,14 +22,13 @@ const getInitialStudentId = (students: Array<{ value: string }>): string | null 
  * @returns 选中学生、总览数据以及学生聚焦与选择方法
  */
 export function useOverviewDashboard() {
-  const dataStore = useDataSourceStore()
   const settingStore = useSettingStore()
   const aiConfigStore = useAIConfigStore()
 
-  const { enabledData } = storeToRefs(dataStore)
   const { enabledScoreColumns: unitHeaders } = storeToRefs(settingStore)
 
   const selectedStudentIds = ref<string[]>([])
+  const { projection } = useWorkspaceScores()
 
   /**
    * 数据源变化后，重新校验当前选中学生是否仍然有效。
@@ -45,7 +44,10 @@ export function useOverviewDashboard() {
   watch(
     () =>
       buildDashboardData({
-        students: enabledData.value,
+        students: projection.value.normalizedStudents,
+        trendStudents: projection.value.normalizedStudents,
+        trendHeaders: projection.value.normalizedHeaders,
+        rankByProp: projection.value.rankByProp,
         unitHeaders: unitHeaders.value,
         selectedStudentIds: [],
         aiConfigured: aiConfigStore.isConfigured,
@@ -77,7 +79,10 @@ export function useOverviewDashboard() {
    */
   const dashboardData = computed(() =>
     buildDashboardData({
-      students: enabledData.value,
+      students: projection.value.normalizedStudents,
+      trendStudents: projection.value.normalizedStudents,
+      trendHeaders: projection.value.normalizedHeaders,
+      rankByProp: projection.value.rankByProp,
       unitHeaders: unitHeaders.value,
       selectedStudentIds: selectedStudentIds.value,
       aiConfigured: aiConfigStore.isConfigured,
@@ -105,7 +110,9 @@ export function useOverviewDashboard() {
       !selectedStudentIds.value.includes(studentId) &&
       selectedStudentIds.value.length >= overviewDashboardConfig.studentTrend.maxCompareCount
     ) {
-      ElMessage.warning(`最多只能对比 ${overviewDashboardConfig.studentTrend.maxCompareCount} 名学生`)
+      ElMessage.warning(
+        `最多只能对比 ${overviewDashboardConfig.studentTrend.maxCompareCount} 名学生`
+      )
       return
     }
 

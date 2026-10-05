@@ -10,8 +10,9 @@ import StudentReportExportSidebar from '@/components/student-report/StudentRepor
 import StudentReportPreviewCard from '@/components/student-report/StudentReportPreviewCard.vue'
 import { generateStudentReportSummary } from '@/ai/aiService'
 import { useAIConfigStore } from '@/stores/ai-config'
-import { useDataSourceStore } from '@/stores/data-source'
 import { useSettingStore } from '@/stores/setting'
+import { useWorkspaceStore } from '@/stores/workspace'
+import { useWorkspaceScores } from '@/hooks/useWorkspaceScores'
 import {
   buildStudentReportData,
   buildStudentReportTemplateText,
@@ -51,7 +52,6 @@ const emit = defineEmits<{
 }>()
 
 /** 数据源 store */
-const dataStore = useDataSourceStore()
 
 /** 设置 store */
 const settingStore = useSettingStore()
@@ -60,7 +60,8 @@ const settingStore = useSettingStore()
 const aiConfigStore = useAIConfigStore()
 
 /** 启用的学生数据列表 */
-const { enabledData } = storeToRefs(dataStore)
+const { projection } = useWorkspaceScores()
+const workspace = useWorkspaceStore()
 
 /** 标签分类列表 */
 const { tagCategories } = storeToRefs(settingStore)
@@ -102,12 +103,17 @@ const exportScale = ref('2')
 const report = computed(() => {
   if (!props.student) return null
   return buildStudentReportData({
-    student: props.student,
-    students: enabledData.value,
-    scoreColumns: props.scoreColumns,
+    student:
+      projection.value.normalizedStudents.find(
+        (student) => student.studentId === props.student?.studentId
+      ) ?? props.student,
+    students: projection.value.normalizedStudents,
+    scoreColumns: projection.value.normalizedHeaders,
+    historicalScores: projection.value.referenceScores,
+    historicalRanks: projection.value.rankByProp,
     selectedProps: selectedProps.value,
     tagCategories: tagCategories.value,
-    classLabel: '本班'
+    classLabel: `${workspace.activePeriod?.className ?? '本班'} · ${workspace.activePeriod?.termName ?? ''}（百分制）`
   })
 })
 
@@ -136,7 +142,7 @@ const previewContent = computed(() => {
  * 每次打开弹窗时默认选中全部成绩项，保证预览和导出状态可预测。
  */
 const syncDefaultSelection = (): void => {
-  selectedProps.value = props.scoreColumns.map((item) => item.prop)
+  selectedProps.value = projection.value.normalizedHeaders.map((item) => item.prop)
 }
 
 /** 将正文切换为当前报告数据的模板文本 */
@@ -379,7 +385,7 @@ watch(selectedProps, (value, oldValue) => {
       <el-scrollbar class="student-report-export-dialog__sidebar-scrollbar">
         <div class="student-report-export-dialog__sidebar">
           <student-report-export-sidebar
-            :score-columns="scoreColumns"
+            :score-columns="projection.normalizedHeaders"
             :selected-props="selectedProps"
             :content="content"
             :content-status="contentStatus"

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
 import { useResizeObserver } from '@vueuse/core'
 import { BarChart, LineChart } from 'echarts/charts'
 import {
@@ -9,10 +11,10 @@ import {
   TooltipComponent
 } from 'echarts/components'
 import { init, use } from 'echarts/core'
+import { CanvasRenderer, SVGRenderer } from 'echarts/renderers'
+
 import type { EChartsType } from 'echarts/core'
 import type { EChartsOption } from 'echarts'
-import { CanvasRenderer } from 'echarts/renderers'
-import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 /**
  * ECharts 通用封装组件。
@@ -28,7 +30,8 @@ use([
   LegendComponent,
   MarkLineComponent,
   DataZoomComponent,
-  CanvasRenderer
+  CanvasRenderer,
+  SVGRenderer
 ])
 
 interface Props {
@@ -36,10 +39,13 @@ interface Props {
   option: EChartsOption
   /** 图表容器高度 */
   height?: string
+  /** 打印场景使用 SVG，放大时文字和曲线保持清晰 */
+  renderer?: 'canvas' | 'svg'
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  height: '100%'
+  height: '100%',
+  renderer: 'canvas'
 })
 
 /** 图表容器 DOM 引用 */
@@ -56,9 +62,15 @@ const initChart = async () => {
   if (!chartRef.value) return
 
   if (!chartInstance) {
-    chartInstance = init(chartRef.value)
+    chartInstance = init(chartRef.value, undefined, { renderer: props.renderer })
+    chartInstance.on('finished', () => {
+      if (!chartRef.value) return
+      chartRef.value.dataset.printChartReady = 'true'
+      chartRef.value.dispatchEvent(new Event('print-chart-ready'))
+    })
   }
 
+  if (chartRef.value) chartRef.value.dataset.printChartReady = 'false'
   chartInstance.setOption(props.option, true)
 }
 
@@ -70,10 +82,20 @@ watch(
       initChart()
       return
     }
+    if (chartRef.value) chartRef.value.dataset.printChartReady = 'false'
     chartInstance.setOption(props.option, true)
   },
   {
     deep: true
+  }
+)
+
+watch(
+  () => props.renderer,
+  () => {
+    chartInstance?.dispose()
+    chartInstance = null
+    initChart()
   }
 )
 

@@ -1,5 +1,6 @@
 import type { PiniaPluginContext, StateTree, _DeepPartial } from 'pinia'
 import { liveQuery, type Observable } from 'dexie'
+import { getWorkspaceRevision } from '@/utils/workspaceSessionUtil'
 import { db, DB_ID } from '@/db'
 import type { Table } from 'dexie'
 import type {
@@ -78,6 +79,20 @@ const updatingStores = new Set<string>()
 /** 通过 JSON 序列化深拷贝状态，避免持久化数据与内存状态共享引用 */
 const cloneState = <T>(state: T): T => JSON.parse(JSON.stringify(state)) as T
 
+const initializationErrors = new Map<string, string>()
+const pendingLoads = new Set<Promise<void>>()
+const pendingWrites = new Set<Promise<void>>()
+const storeSavers = new Map<string, () => Promise<void>>()
+
+/** 切换、备份前等待初始化和已提交写入，并保存最新内存状态；失败时中止操作。 */
+export async function flushPersistedStores(): Promise<void> {
+  await Promise.all([...pendingLoads])
+  if (initializationErrors.size)
+    throw new Error(`数据尚未完整加载：${[...initializationErrors.keys()].join('、')}，请刷新重试`)
+  await Promise.all([...pendingWrites])
+  for (const save of storeSavers.values()) await save()
+}
+
 /**
  * 创建基于 Dexie 的 Pinia 持久化插件
  * 将指定 store 的状态写入 IndexedDB，并通过 liveQuery 实现多来源数据同步
@@ -144,6 +159,7 @@ export function createPersistedStateDexie() {
     const loadFromDB = async () => {
       try {
         const record = await table.get(DB_ID)
+        initializationErrors.delete(storeId)
         if (record) {
           if (isDataSource) {
             const dataRecord = record as StudentDatasetRecord
@@ -153,6 +169,7 @@ export function createPersistedStateDexie() {
           }
         }
       } catch (error) {
+        initializationErrors.set(storeId, error instanceof Error ? error.message : '加载失败')
         console.error(`[PersistDexie] Failed to load ${storeId} from IndexedDB:`, error)
         if (isDataSource) {
           dataSourceStore.initError = error instanceof Error ? error.message : '数据加载失败'
@@ -163,7 +180,13 @@ export function createPersistedStateDexie() {
     if (isDataSource) {
       dataSourceStore.isDataReady = false
     }
-    await loadFromDB()
+    const loading = loadFromDB()
+    pendingLoads.add(loading)
+    try {
+      await loading
+    } finally {
+      pendingLoads.delete(loading)
+    }
     if (isDataSource && !dataSourceStore.initError) {
       dataSourceStore.isDataReady = true
     }
@@ -173,34 +196,45 @@ export function createPersistedStateDexie() {
       if (updatingStores.has(storeId) || isDatabaseImporting()) {
         return
       }
-      try {
-        if (isDataSource) {
-          const clonableData = cloneState(dataSourceStore.$state.students) as StudentDataType[]
-          await table.put({
+      const revision = getWorkspaceRevision()
+      const record = isDataSource
+        ? {
             id: DB_ID,
-            students: clonableData,
+            students: cloneState(dataSourceStore.$state.students),
             updatedAt: new Date().toISOString()
-          } as StudentDatasetRecord)
-        } else {
-          const rawState = store.$state
-          const clonableState = cloneState(rawState)
-          await table.put({
+          }
+        : {
+            ...cloneState(store.$state),
             id: DB_ID,
-            ...clonableState,
             updatedAt: new Date().toISOString()
-          } as PersistableRecordType)
+          }
+      const write = async () => {
+        if (revision && (await db.workspaces.get(DB_ID))?.revision !== revision) {
+          throw new Error('班级或学期已在其他页面切换，请刷新后继续')
         }
-      } catch (error) {
-        console.error(`[PersistDexie] Failed to save ${storeId} to IndexedDB:`, error)
+        await table.put(record as PersistableRecordType)
+      }
+      if (revision) {
+        await db.transaction('rw', [table, db.workspaces], write)
+      } else {
+        await write()
       }
     }
+    storeSavers.set(storeId, saveToDB)
 
-    // 深度订阅 store 状态变化，任何变更都会触发持久化写入
+    // 同步订阅让 liveQuery 回填期间的保护标记有效，防止延迟订阅把旧状态写回。
     store.$subscribe(
-      async () => {
-        await saveToDB()
+      () => {
+        const writing = saveToDB()
+        pendingWrites.add(writing)
+        const handled = writing
+          .catch((error) => {
+            console.error(`[PersistDexie] Failed to save ${storeId} to IndexedDB:`, error)
+          })
+          .finally(() => pendingWrites.delete(writing))
+        return handled
       },
-      { deep: true }
+      { deep: true, flush: 'sync', detached: true }
     )
 
     const observable$: Observable<PersistableRecordType | undefined> = liveQuery(() =>
@@ -208,6 +242,7 @@ export function createPersistedStateDexie() {
     ) as Observable<PersistableRecordType | undefined>
     observable$.subscribe({
       next: (record) => {
+        if (isDatabaseImporting()) return
         updatingStores.add(storeId)
 
         try {

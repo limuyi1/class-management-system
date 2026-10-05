@@ -4,6 +4,8 @@ import { ref } from 'vue'
 
 import LeftMenu from '@/views/main/components/LeftMenu.vue'
 import ThemeSelector from '@/components/ThemeSelector.vue'
+import WorkspaceSelector from '@/components/workspace/WorkspaceSelector.vue'
+import { useWorkspaceStore } from '@/stores/workspace'
 import { dayjs } from 'element-plus'
 
 import logo from '@/assets/main/logo.png'
@@ -13,6 +15,8 @@ const title = ref(import.meta.env.VITE_GLOB_APP_TITLE)
 const author = ref(import.meta.env.VITE_APP_AUTHOR || '班务管理系统')
 
 // 仅缓存核心工作页，避免工具页切换后残留旧状态、占用内存。
+const workspace = useWorkspaceStore()
+
 const cachedPages = ['OverviewPage', 'ScorePage', 'EvaluationPage']
 </script>
 
@@ -25,6 +29,7 @@ const cachedPages = ['OverviewPage', 'ScorePage', 'EvaluationPage']
         <h1 class="header-title">{{ title }}</h1>
       </div>
       <div class="header-right">
+        <workspace-selector />
         <theme-selector />
       </div>
     </el-header>
@@ -35,7 +40,7 @@ const cachedPages = ['OverviewPage', 'ScorePage', 'EvaluationPage']
       </el-aside>
       <el-main class="main-content">
         <router-view v-slot="{ Component }">
-          <keep-alive :include="cachedPages">
+          <keep-alive :key="workspace.catalog?.revision" :include="cachedPages">
             <component :is="Component" />
           </keep-alive>
         </router-view>

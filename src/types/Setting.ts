@@ -8,6 +8,10 @@ export interface SettingType {
   label: string
   /** 是否禁用该列（禁用后不在视图中展示） */
   disabled: boolean
+  /** 只读历史参照列，仅存在于展示与分析投影中 */
+  reference?: boolean
+  /** 单列满分，未设置时沿用该学期满分 */
+  fullMark?: number
 }
 
 /** 学生标签分类 */

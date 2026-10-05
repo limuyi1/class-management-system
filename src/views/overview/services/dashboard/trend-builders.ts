@@ -67,9 +67,19 @@ export const buildStudentTrend = (
       summaries.push(`当前命中标签：${metric.matchedTags.map((tag) => tag.label).join('、')}`)
     }
 
+    const referenceCount = metric.points.filter(
+      (point) => unitHeaders.find((header) => header.prop === point.prop)?.reference
+    ).length
     summaries.push(
-      `当前已录入 ${metric.points.length} 个单元，均分 ${metric.averageScore.toFixed(1)} 分`
+      referenceCount
+        ? `有效成绩 ${metric.points.length} 次（含 ${referenceCount} 次历史参照），百分制均分 ${metric.averageScore.toFixed(1)} 分`
+        : `当前已录入 ${metric.points.length} 个单元，均分 ${metric.averageScore.toFixed(1)} 分`
     )
+    if (metric.points.length < 3)
+      summaries.unshift(
+        `当前 ${metric.points.length} 次有效成绩，连续趋势尚需 ${3 - metric.points.length} 次；基础统计正常显示`
+      )
+    if (referenceCount) summaries.push('跨学期走势仅供参考，试卷内容和难度可能不同')
   } else {
     // 多人对比模式：分别找出均分最高与波动最大的学生生成摘要
     const highestAverage = [...selectedMetrics].sort((a, b) => b.averageScore - a.averageScore)[0]

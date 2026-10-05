@@ -85,9 +85,12 @@ describe('copyPngBlob', () => {
 
   it('剪贴板可用时返回 true', async () => {
     const write = vi.fn(async () => {})
-    vi.stubGlobal('ClipboardItem', class {
-      constructor(public items: Record<string, Blob>) {}
-    })
+    vi.stubGlobal(
+      'ClipboardItem',
+      class {
+        constructor(public items: Record<string, Blob>) {}
+      }
+    )
     vi.stubGlobal('navigator', { clipboard: { write } })
 
     const blob = new Blob(['x'], { type: 'image/png' })
@@ -148,10 +151,13 @@ describe('renderScoreNoticeBlob', () => {
   })
 
   it('将 DOM 元素渲染为 PNG Blob', async () => {
-    const element = { offsetWidth: 100, offsetHeight: 50 } as unknown as HTMLElement
+    const element = document.createElement('article')
+    Object.defineProperties(element, { offsetWidth: { value: 100 }, offsetHeight: { value: 50 } })
+    document.body.appendChild(element)
 
     const blob = await renderScoreNoticeBlob(element, 2)
 
+    element.remove()
     expect(blob).toBeInstanceOf(Blob)
     expect(blob.type).toBe('image/png')
     expect(domtoimageMocks.toSvg).toHaveBeenCalledWith(element, {

@@ -71,13 +71,62 @@ const router = createRouter({
         },
         {
           path: '/tools/score-notice',
-          name: 'ScoreNotice',
-          component: () => import('@/views/score-notice/ScoreNoticePage.vue')
+          redirect: '/tools/notice-awards/notice'
         },
         {
           path: '/tools/seating-chart',
           name: 'SeatingChart',
           component: () => import('@/views/seating-chart/SeatingChartPage.vue')
+        },
+        {
+          path: '/tools/roster-print',
+          name: 'RosterPrint',
+          component: () => import('@/views/tools/RosterPrintPage.vue')
+        },
+        {
+          path: '/tools/batch-reports',
+          name: 'BatchReports',
+          component: () => import('@/views/tools/BatchReportPage.vue')
+        },
+        {
+          path: '/tools/cards',
+          redirect: '/tools/notice-awards/certificate'
+        },
+        {
+          path: '/tools/notice-awards',
+          component: () => import('@/views/tools/NoticeAwardPage.vue'),
+          redirect: '/tools/notice-awards/notice',
+          children: [
+            {
+              path: 'notice',
+              name: 'ScoreNotice',
+              component: () => import('@/views/score-notice/ScoreNoticePage.vue'),
+              props: { embedded: true }
+            },
+            {
+              path: 'certificate',
+              name: 'CardTemplates',
+              component: () => import('@/views/tools/CardTemplatePage.vue'),
+              props: { embedded: true, initialPreset: 'certificate' }
+            },
+            {
+              path: 'card',
+              name: 'PraiseCards',
+              component: () => import('@/views/tools/CardTemplatePage.vue'),
+              props: { embedded: true, initialPreset: 'card' }
+            },
+            {
+              path: 'custom',
+              name: 'CustomPrintTemplates',
+              component: () => import('@/views/tools/CardTemplatePage.vue'),
+              props: { embedded: true, initialPreset: 'blank' }
+            }
+          ]
+        },
+        {
+          path: '/tools/exam-print',
+          name: 'ExamPrint',
+          component: () => import('@/views/tools/ExamPrintPage.vue')
         },
         {
           path: '/tools/duty-roster',
@@ -121,11 +170,15 @@ export function createDataGuard(
       '/tools/score-notice',
       '/tools/seating-chart',
       '/tools/duty-roster',
+      '/tools/roster-print',
+      '/tools/batch-reports',
+      '/tools/cards',
+      '/tools/exam-print',
       '/student-info',
       '/setting'
     ]
 
-    if (allowedPaths.includes(to.path)) {
+    if (allowedPaths.includes(to.path) || to.path.startsWith('/tools/notice-awards')) {
       next()
       return
     }

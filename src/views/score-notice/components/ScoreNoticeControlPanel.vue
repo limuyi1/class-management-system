@@ -56,8 +56,11 @@ const emit = defineEmits<{
   clearHandwriteFont: []
   /** 复制当前学生评语图片 */
   copyImage: []
+  downloadImage: []
+  exportPdf: []
   /** 导出全部通知 ZIP */
   exportZip: []
+  stopExport: []
 }>()
 
 const store = useScoreNoticeStore()
@@ -89,7 +92,7 @@ const setCommentDraft = (comment: string): void => {
   commentWorkspaceRef.value?.setCommentDraft(comment)
 }
 
-defineExpose({ setCommentDraft })
+defineExpose({ setCommentDraft, hasUnsavedComment })
 
 watch(
   () => [store.sourceFileName, store.students.length] as const,
@@ -111,7 +114,7 @@ watch(
       <small>按步骤完成，预览会实时更新</small>
     </div>
 
-    <el-scrollbar class="notice-panel__scrollbar">
+    <el-scrollbar class="notice-panel__scrollbar" :inert="exporting || undefined">
       <div class="notice-panel__scroll-content">
         <!-- 三大制作步骤：导入成绩、通知设置、生成并检查评语 -->
         <score-notice-import-step
@@ -154,10 +157,13 @@ watch(
     <score-notice-export-bar
       :exporting="exporting"
       :export-processed="exportProcessed"
-      :processing="batchGenerating"
+      :processing="batchGenerating || singleGenerating || handwriteFontApplying"
       :has-unsaved-comment="hasUnsavedComment"
       @copy-image="emit('copyImage')"
+      @download-image="emit('downloadImage')"
+      @export-pdf="emit('exportPdf')"
       @export-zip="emit('exportZip')"
+      @stop-export="emit('stopExport')"
     />
   </aside>
 </template>

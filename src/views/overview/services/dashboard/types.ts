@@ -14,6 +14,10 @@ export interface BuildOverviewDashboardDataOptions {
   students: StudentDataType[]
   /** 启用的单元表头（即单元列表） */
   unitHeaders: SettingType[]
+  /** 连续趋势允许使用历史参照；基础统计仍只使用本期列。 */
+  trendStudents?: StudentDataType[]
+  trendHeaders?: SettingType[]
+  rankByProp?: Map<string, Map<string, number>>
   /** 趋势分析中选中的学生 ID 列表 */
   selectedStudentIds: string[]
   /** 是否已配置 AI，用于评语概览的提示 */

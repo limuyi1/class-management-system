@@ -181,3 +181,12 @@ tests/               # 测试文件
 | `useThemeStore`         | `stores/theme.ts`         | 主题初始化与管理                 |
 
 表头以 `scoreColumns: Array<SettingType>` 存储在 `setting.ts` 中。第一列始终是姓名列（prop 为 `name`，来自 `NAME_PROP`），且不可删除。每一行数据都有 `name`（学生姓名）、`studentId`、与表头 prop 对应的动态键，以及可选的 `comment`。
+
+## V5.0 班级与学期工作区
+
+- 顶部班级、学期目录在 `stores/workspace.ts`，事务服务在 `utils/workspaceUtil.ts`。
+- Dexie schema v5 新增 `workspaces` 与 `workspace_snapshots`；原 `main` 业务表是当前工作区，离开时保存快照，切换成功后整页刷新以清理缓存和临时状态。
+- 新增跟随班级/学期的业务数据时，同时更新快照类型、捕获、恢复和备份测试；AI、主题、字体、导出版式、错题与附件仍共用。
+- 历史参照按学生 ID 连接，禁止复制参照分数到本期学生对象。使用 `useWorkspaceScores()` 获取只读展示/分析投影。
+- 总览本期统计不能包含历史参照；连续趋势可以包含。缺失成绩保持空值，历史排名按原名单计算。
+- 完整设计及操作说明见 `docs/development/v5-class-workspaces.md`。

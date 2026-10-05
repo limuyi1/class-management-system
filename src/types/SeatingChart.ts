@@ -93,6 +93,8 @@ export interface SeatingChartType {
   platformPosition: SeatingPlatformPositionEnum
   /** 普通座位列表 */
   seats: SeatPositionType[]
+  /** 轮换时固定的学生，跟随当前方案保存 */
+  rotationFixedStudentIds?: string[]
   /** 特殊座位配置列表 */
   specialSeats: SeatingSpecialSeatType[]
   /** 可用职务定义 */
