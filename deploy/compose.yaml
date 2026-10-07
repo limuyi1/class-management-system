@@ -1,0 +1,38 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    env_file: .env
+    environment:
+      TRUST_PROXY: 172.30.70.2
+    networks:
+      cms:
+        ipv4_address: 172.30.70.3
+    volumes:
+      - cms-data:/data
+    restart: unless-stopped
+    expose: ['3000']
+    # 始终单个 API 写实例，不使用 replicas 扩容。
+  proxy:
+    image: caddy:2
+    environment:
+      CMS_DOMAIN: ${CMS_DOMAIN}
+    ports: ['80:80', '443:443']
+    networks:
+      cms:
+        ipv4_address: 172.30.70.2
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    depends_on: [api]
+    restart: unless-stopped
+volumes:
+  cms-data:
+  caddy-data:
+
+networks:
+  cms:
+    ipam:
+      config:
+        - subnet: 172.30.70.0/24

@@ -1,0 +1,88 @@
+.login-page {
+  min-height: 100vh;
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  padding: clamp(20px, 4vh, 36px) 20px;
+  background: var(--surface-page-gradient);
+  color: var(--text-primary);
+  &__card {
+    // 随窗口宽度收放，桌面卡片保持适中比例，不随大屏无限扩张。
+    width: clamp(380px, 34vw, 440px);
+    max-width: 100%;
+    padding: clamp(24px, 4vh, 36px) clamp(28px, 3vw, 36px);
+    border: 1px solid var(--border-muted);
+    border-radius: 20px;
+    background: var(--surface-card);
+    box-shadow: var(--shadow-card);
+  }
+  &__logo {
+    display: block;
+    width: clamp(52px, 7vh, 64px);
+    height: clamp(52px, 7vh, 64px);
+    object-fit: contain;
+    margin: 0 auto;
+  }
+  h1 {
+    text-align: center;
+    font-size: clamp(26px, 2.2vw, 28px);
+    font-weight: 600;
+    letter-spacing: 2px;
+    margin: 18px 0 8px;
+  }
+  &__intro,
+  &__help,
+  &__verifying {
+    text-align: center;
+    color: var(--text-secondary);
+  }
+  &__intro {
+    font-size: 14px;
+    margin: 0 0 clamp(20px, 3vh, 28px);
+  }
+  :deep(.el-form-item) {
+    margin-bottom: 18px;
+  }
+  :deep(.el-form-item__label) {
+    font-size: 15px;
+    margin-bottom: 8px;
+  }
+  :deep(.el-input__wrapper) {
+    min-height: clamp(44px, 5.5vh, 50px);
+    padding: 0 14px;
+    border-radius: 12px;
+  }
+  :deep(.el-input__inner) {
+    font-size: 16px;
+  }
+  &__help {
+    font-size: 13px;
+    line-height: 1.7;
+    margin: 20px 0 0;
+  }
+  &__submit {
+    width: 100%;
+    height: clamp(44px, 5.5vh, 50px);
+    margin-top: 8px;
+    border-radius: 12px;
+    font-size: 16px;
+    letter-spacing: 4px;
+  }
+  &__error {
+    color: var(--el-color-danger);
+    font-size: 14px;
+    margin: 0 0 16px;
+  }
+  &__verifying {
+    margin: 16px 0 0;
+  }
+  @media (max-width: 560px), (max-height: 680px) {
+    padding: 24px 16px;
+    &__card {
+      padding: 24px;
+    }
+    h1 {
+      font-size: 24px;
+    }
+  }
+}

@@ -36,6 +36,18 @@ coverage
 
 /output/
 
+# 正式数据库与附件配套入库；备份、迁移资料与 SQLite 临时文件继续忽略
+/data/*
+!/data/class-management.sqlite
+!/data/attachments/
+/data/attachments/**/*.tmp
+
+# 密钥和本地启动状态
+/server/.env
+/ui/.env
+/.launcher/
+__pycache__/
+
 .github
 
 .zcode
