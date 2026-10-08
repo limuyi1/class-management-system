@@ -32,12 +32,25 @@ export function validateResource(
   if (input.kind === 'tags') {
     if (
       !input.workspaceId ||
-      Object.keys(content).some((key) => !['categories', 'tags', 'assignments'].includes(key))
+      Object.keys(content).some(
+        (key) => !['categories', 'categoryLabels', 'tags', 'assignments'].includes(key)
+      )
     )
       invalid()
     const categories = strings(content.categories, 100),
       tags = record(content.tags),
       assignments = record(content.assignments)
+    if (content.categoryLabels !== undefined) {
+      for (const [category, label] of Object.entries(record(content.categoryLabels))) {
+        if (
+          !categories.includes(category) ||
+          typeof label !== 'string' ||
+          !label.trim() ||
+          label.length > 120
+        )
+          invalid()
+      }
+    }
     for (const [category, values] of Object.entries(tags)) {
       if (!categories.includes(category)) invalid()
       strings(values, 200)
@@ -149,7 +162,15 @@ export function validateResource(
       input.workspaceId ||
       Object.keys(content).some(
         (key) =>
-          !['theme', 'fontFamily', 'fontSize', 'paperType', 'templates', 'prompts', 'layout'].includes(key)
+          ![
+            'theme',
+            'fontFamily',
+            'fontSize',
+            'paperType',
+            'templates',
+            'prompts',
+            'layout'
+          ].includes(key)
       )
     )
       invalid()
@@ -163,7 +184,11 @@ export function validateResource(
       (!Array.isArray(content.templates) || content.templates.length > 100)
     )
       invalid()
-    if (content.theme !== undefined && !['green', 'orange', 'purple', 'bluepink'].includes(String(content.theme))) invalid()
+    if (
+      content.theme !== undefined &&
+      !['green', 'orange', 'purple', 'bluepink'].includes(String(content.theme))
+    )
+      invalid()
     if (content.layout !== undefined) record(content.layout)
     if (
       content.fontSize !== undefined &&

@@ -7,6 +7,83 @@ import { fixture } from './helpers/scores.mjs'
 import { readV5State } from '../dist/services/v5/state.js'
 import { writeV5State } from '../dist/services/v5/write.js'
 import { buildApp } from '../dist/app.js'
+import { saveResource } from '../dist/services/resources.js'
+
+test('旧字典恢复中文预设，自定义名称独立持久化，非法描述拒绝', () => {
+  const f = fixture()
+  try {
+    const prop = 'xue2_xi2_xi2_guan4'
+    const resource = {
+      id: randomUUID(),
+      kind: 'tags',
+      workspaceId: f.workspace.id,
+      name: '评语标签',
+      version: 0,
+      content: {
+        categories: [prop, 'custom'],
+        tags: { [prop]: ['认真'], custom: [] },
+        assignments: {}
+      }
+    }
+    saveResource(f.db, f.context, resource, randomUUID(), 'legacy-tags')
+    let state = readV5State(f.db, f.context, f.workspace.id)
+    assert.deepEqual(state.stores.setting.tagCategories, [
+      { prop, label: '学习习惯' },
+      { prop: 'custom', label: 'custom' }
+    ])
+    state = writeV5State(
+      f.db,
+      f.context,
+      f.workspace.id,
+      {
+        fingerprint: state.fingerprint,
+        stores: {
+          setting: {
+            ...state.stores.setting,
+            tagCategories: [
+              { prop, label: '我的学习分类' },
+              { prop: 'custom', label: '自定义分类' }
+            ]
+          }
+        }
+      },
+      randomUUID(),
+      'labels'
+    )
+    const saved = JSON.parse(
+      f.db.prepare('SELECT contentJson FROM business_resources WHERE id=?').get(resource.id)
+        .contentJson
+    )
+    assert.deepEqual(saved.categoryLabels, { [prop]: '我的学习分类', custom: '自定义分类' })
+    // 页面文档缺失时，规范资源仍能恢复完整分类名称。
+    f.db
+      .prepare("DELETE FROM workspace_documents WHERE workspaceId=? AND type='v5-ui'")
+      .run(f.workspace.id)
+    assert.deepEqual(
+      readV5State(f.db, f.context, f.workspace.id).stores.setting.tagCategories,
+      state.stores.setting.tagCategories
+    )
+    for (const categoryLabels of [{ custom: '' }, { custom: 123 }, { foreign: '未知分类' }]) {
+      assert.throws(
+        () =>
+          saveResource(
+            f.db,
+            f.context,
+            {
+              ...resource,
+              version: 2,
+              content: { ...saved, categoryLabels }
+            },
+            randomUUID(),
+            'invalid-label'
+          ),
+        (error) => error.code === 'INVALID_RESOURCE'
+      )
+    }
+  } finally {
+    f.db.close()
+  }
+})
 
 test('原页面状态写入规范表，零分空值/标签/评语保留，旧指纹及非法状态整批拒绝', () => {
   const f = fixture()

@@ -5,6 +5,7 @@ import { listComments } from '../../repositories/teaching.js'
 import { getWorkspace } from '../../repositories/workspaces.js'
 import { validateContext } from '../mutations.js'
 import { requireTeachingOwner } from '../../policies/access.js'
+import { resolveTagCategories } from '../tagCategories.js'
 import type { AccessContextType, DatabaseType } from '../../types/Account.js'
 import type { V5StateType } from '../../../../packages/shared/src/V5.js'
 
@@ -48,6 +49,7 @@ export function v5StateInTransaction(
   const tags = tagsRow
     ? (JSON.parse(tagsRow.contentJson) as {
         categories: string[]
+        categoryLabels?: Record<string, string>
         tags: Record<string, string[]>
         assignments: Record<string, string[]>
       })
@@ -121,13 +123,11 @@ export function v5StateInTransaction(
       ...(tags
         ? {
             tags: tags.tags,
-            tagCategories: tags.categories.map((prop) => ({
-              prop,
-              label:
-                (
-                  extras.setting?.tagCategories as { prop: string; label: string }[] | undefined
-                )?.find((row) => row.prop === prop)?.label || prop
-            }))
+            tagCategories: resolveTagCategories(
+              tags.categories,
+              tags.categoryLabels,
+              extras.setting?.tagCategories as { prop: string; label: string }[] | undefined
+            )
           }
         : {})
     },

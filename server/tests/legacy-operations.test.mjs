@@ -27,6 +27,8 @@ function backup(score = 0) {
           rows: [
             {
               id: 'main',
+              tagCategories: [{ prop: 'custom', label: '自定义中文分类' }],
+              tags: { custom: ['认真'], xue2_xi2_xi2_guan4: [] },
               scoreColumns: [
                 { prop: 'name', label: '姓名' },
                 { prop: 'unit1', label: '第一单元' }
@@ -57,6 +59,15 @@ test('V4 Typeson 备份预览、导入和损坏数据回滚', () => {
     )
     const report = importLegacy(f.db, context.ownerId, backup(), directory)
     assert.equal(report.scores, 1)
+    const tags = JSON.parse(
+      f.db
+        .prepare("SELECT contentJson FROM business_resources WHERE ownerId=? AND kind='tags'")
+        .get(context.ownerId).contentJson
+    )
+    assert.deepEqual(tags.categoryLabels, {
+      custom: '自定义中文分类',
+      xue2_xi2_xi2_guan4: '学习习惯'
+    })
     assert.equal(
       f.db.prepare('SELECT value FROM scores WHERE ownerId=?').get(context.ownerId).value,
       0

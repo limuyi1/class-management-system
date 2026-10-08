@@ -4,6 +4,7 @@ import { audit } from '../services/accounts.js'
 import { transaction } from '../db/migrate.js'
 import { inspectAttachment, storeAttachment } from '../services/attachmentFiles.js'
 import { parseLegacyBackup, migrationId, legacyImage } from './legacyBackup.js'
+import { resolveTagCategories } from '../services/tagCategories.js'
 import type { LegacyRowType } from './legacyBackup.js'
 import type { DatabaseType } from '../types/Account.js'
 /** 运维一次性迁入空账号，所有 SQL 同事务；异常不留半份名单和成绩。 */
@@ -183,6 +184,14 @@ export function importLegacy(
       }
       if (setting.tags) {
         const tags = setting.tags as Record<string, string[]>
+        const categories = Object.keys(tags)
+        const categoryLabels = Object.fromEntries(
+          resolveTagCategories(
+            categories,
+            {},
+            setting.tagCategories as { prop: string; label: string }[] | undefined
+          ).map(({ prop, label }) => [prop, label])
+        )
         database
           .prepare("INSERT INTO business_resources VALUES(?,'tags',?,?,?, ?,1,NULL,?)")
           .run(
@@ -190,7 +199,7 @@ export function importLegacy(
             id,
             id,
             '评语标签',
-            JSON.stringify({ categories: Object.keys(tags), tags, assignments }),
+            JSON.stringify({ categories, categoryLabels, tags, assignments }),
             now
           )
       }

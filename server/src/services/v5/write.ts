@@ -209,6 +209,12 @@ export function writeV5State(
     if (input.stores.setting || input.stores.dataSource) {
       const setting = extras.setting || before.stores.setting
       const categories = rows(setting.tagCategories || [], 100).map((row) => String(row.prop))
+      const categoryLabels = Object.fromEntries(
+        rows(setting.tagCategories || [], 100).map((row) => [
+          String(row.prop),
+          String(row.label || row.prop)
+        ])
+      )
       const tags = setting.tags || {}
       const assignments = Object.fromEntries(
         students.map((row) => [
@@ -233,7 +239,7 @@ export function writeV5State(
           kind: 'tags',
           workspaceId: id,
           name: '评语标签',
-          content: { categories, tags, assignments },
+          content: { categories, categoryLabels, tags, assignments },
           version: old?.version || 0
         },
         childKey(),
