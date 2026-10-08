@@ -6,7 +6,7 @@ import { ElMessage } from 'element-plus'
 import { hasPendingAccountWrites } from '@/api/client'
 import { useApiAccountSession } from '@/hooks/api/useApiAccountSession'
 import { useWorkbenchNavigation } from '@/hooks/api/useWorkbenchNavigation'
-import ThemeSelector from '@/components/ThemeSelector.vue'
+import ThemeMenu from '@/components/ThemeMenu.vue'
 import UserAccountMenu from '@/components/UserAccountMenu.vue'
 import PageHeader from '@/components/PageHeader.vue'
 import logo from '@/assets/main/logo.png'
@@ -16,6 +16,7 @@ import ProfileSettings from '@/views/auth/ProfileSettings.vue'
 import AccountManagement from '@/views/auth/AccountManagement.vue'
 import ServerTeachingWorkbench from '@/views/main/ServerTeachingWorkbench.vue'
 import WorkspaceSelector from '@/components/workspace/WorkspaceSelector.vue'
+import WorkbenchSidebar from '@/components/WorkbenchSidebar.vue'
 import LeftMenu from '@/views/main/components/LeftMenu.vue'
 import ManagedAccountSelect from '@/views/workspace-api/ManagedAccountSelect.vue'
 import DeviceSessions from '@/views/auth/DeviceSessions.vue'
@@ -65,6 +66,7 @@ const {
   () => switching.value
 )
 
+const menuCollapsed = ref(false)
 const business = ref<InstanceType<typeof ServerTeachingWorkbench>>()
 const adminAISettings = ref<InstanceType<typeof AdminAISettings>>()
 const accountManagement = ref<InstanceType<typeof AccountManagement>>()
@@ -116,7 +118,15 @@ async function beforeLeave(all = false): Promise<boolean> {
       <div class="api-app__brand"><img :src="logo" alt="" /><strong>班务管理系统</strong></div>
       <div class="api-app__identity">
         <WorkspaceSelector v-if="user.role === 'USER' && !user.mustChangePassword" />
-        <ThemeSelector />
+        <div v-if="managed" class="api-app__managed" role="status">
+          <span class="api-app__managed-name" :title="`正在代管 ${user.nickname}`"
+            >代管：{{ user.nickname }}</span
+          >
+          <el-button class="api-app__return" text :disabled="switching" @click="returnAdmin(false)"
+            >返回管理员</el-button
+          >
+        </div>
+        <ThemeMenu />
         <UserAccountMenu
           :user="user"
           :can-switch="!managed && Boolean(actor?.superVip) && !user.mustChangePassword"
@@ -127,33 +137,17 @@ async function beforeLeave(all = false): Promise<boolean> {
         />
       </div>
     </header>
-    <div v-if="managed" class="api-app__managed" role="status">
-      <span>正在代管 {{ user.nickname }}</span>
-      <el-button text :disabled="switching" @click="returnAdmin(false)">返回管理员</el-button>
-    </div>
     <div :key="contextKey" class="api-app__body">
       <aside class="api-app__aside">
-        <p v-if="user.role === 'ADMIN'" class="api-app__menu-label">
-          {{ user.role === 'ADMIN' ? '管理工作台' : '教学工作台' }}
-        </p>
-        <el-scrollbar class="api-app__menu-scroll">
-          <LeftMenu v-if="user.role === 'USER' && !user.mustChangePassword" />
-          <nav v-else aria-label="工作台菜单">
-            <button
-              v-for="item in menuItems"
-              :key="item.key"
-              type="button"
-              class="api-app__menu-item"
-              :class="{ 'is-active': tab === item.key }"
-              :aria-current="tab === item.key ? 'page' : undefined"
-              :disabled="navigating"
-              @click="selectPage(item.key)"
-            >
-              <font-awesome-icon :icon="['solid', item.icon]" /><span>{{ item.label }}</span>
-            </button>
-          </nav>
-        </el-scrollbar>
-        <div v-if="user.role === 'ADMIN'" class="api-app__aside-footer">让班务管理更轻松</div>
+        <LeftMenu v-if="user.role === 'USER' && !user.mustChangePassword" />
+        <WorkbenchSidebar
+          v-else
+          v-model:collapsed="menuCollapsed"
+          :items="menuItems"
+          :active-key="tab"
+          :navigating="navigating"
+          @select="selectPage"
+        />
       </aside>
       <el-scrollbar
         ref="contentScroll"
@@ -200,9 +194,7 @@ async function beforeLeave(all = false): Promise<boolean> {
         </div>
       </el-scrollbar>
     </div>
-    <footer v-if="user.role === 'USER'" class="api-app__footer">
-      &copy; {{ new Date().getFullYear() }} 班务管理系统
-    </footer>
+    <footer class="api-app__footer">&copy; {{ new Date().getFullYear() }} 班务管理系统</footer>
     <el-dialog
       v-model="switchDialog"
       title="切换到老师工作台"
@@ -242,8 +234,9 @@ async function beforeLeave(all = false): Promise<boolean> {
   background: var(--surface-page);
   color: var(--text-primary);
   &__header {
-    min-height: 60px;
-    padding: 10px 24px;
+    height: 60px;
+    flex-shrink: 0;
+    padding: 0 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -256,10 +249,12 @@ async function beforeLeave(all = false): Promise<boolean> {
     display: flex;
     align-items: center;
     gap: 16px;
+    min-width: 0;
   }
   &__brand {
     font-size: 20px;
     white-space: nowrap;
+    flex-shrink: 0;
     img {
       width: 40px;
       height: 40px;
@@ -267,19 +262,28 @@ async function beforeLeave(all = false): Promise<boolean> {
   }
   &__identity {
     font-size: 13px;
-    flex-wrap: wrap;
-    :deep(.el-button) {
-      color: #fff;
-    }
   }
   &__managed {
-    padding: 6px 24px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 4px;
+    min-width: 0;
+    padding: 0 8px 0 12px;
+    height: 34px;
+    border: 1px solid var(--el-color-warning-light-5);
+    border-radius: 6px;
     background: var(--el-color-warning-light-9);
     color: var(--el-color-warning-dark-2);
-    font-size: 13px;
+  }
+  &__managed-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__return {
+    flex-shrink: 0;
+    color: var(--el-color-warning-dark-2);
   }
   &__body {
     display: flex;
@@ -287,59 +291,10 @@ async function beforeLeave(all = false): Promise<boolean> {
     min-height: 0;
   }
   &__aside {
-    width: 210px;
+    width: auto;
     flex-shrink: 0;
-    background: var(--surface-card);
-    border-right: 1px solid var(--border-muted);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
-  &__menu-scroll {
-    flex: 1;
     min-height: 0;
-  }
-  &__menu-label {
-    padding: 20px 20px 8px;
-    font-size: 12px;
-    color: var(--text-secondary);
-  }
-  &__menu-item {
-    width: 100%;
-    border: 0;
-    border-left: 3px solid transparent;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 20px;
-    text-align: left;
-    font: inherit;
-    font-size: 14px;
-    color: var(--text-primary);
-    cursor: pointer;
-    &:hover {
-      background: var(--surface-page);
-    }
-    &.is-active {
-      background: var(--theme-menu-active-bg);
-      color: var(--theme-menu-active);
-      border-left-color: var(--theme-primary);
-      font-weight: 600;
-    }
-    &:focus-visible {
-      outline: 2px solid var(--theme-primary);
-      outline-offset: -3px;
-    }
-    svg {
-      width: 20px;
-    }
-  }
-  &__aside-footer {
-    margin-top: auto;
-    padding: 24px 20px;
-    color: var(--text-secondary);
-    font-size: 12px;
+    overflow: visible;
   }
   &__content {
     flex: 1;
@@ -363,15 +318,6 @@ async function beforeLeave(all = false): Promise<boolean> {
     font-size: 14px;
   }
   &--teacher {
-    .api-app__header {
-      padding: 0 20px;
-      height: 60px;
-    }
-    .api-app__aside {
-      width: auto;
-      overflow: visible;
-      border: 0;
-    }
     .api-app__content :deep(.api-app__content-view) {
       padding: 0;
       height: 100%;
@@ -385,59 +331,46 @@ async function beforeLeave(all = false): Promise<boolean> {
     place-items: center;
     min-height: 100vh;
   }
-  @media (max-width: 760px) {
+  @media (max-width: 1000px) {
     &__header {
-      padding: 12px;
-      flex-wrap: wrap;
+      padding: 0 12px;
+      gap: 10px;
+    }
+    &__identity {
+      gap: 10px;
     }
     &__brand {
       font-size: 17px;
-    }
-    &__aside {
-      width: 150px;
-    }
-    &__menu-item {
-      padding: 14px 10px;
       gap: 8px;
-      font-size: 13px;
     }
-    &__menu-label,
-    &__aside-footer {
-      padding: 16px 10px;
+    &__managed-name {
+      max-width: 80px;
     }
-    &__content :deep(.api-app__content-view) {
-      padding: 10px;
+  }
+  @media (max-width: 760px) {
+    &__brand strong {
+      display: none;
+    }
+    &__identity {
+      flex: 1;
+      justify-content: flex-end;
+    }
+    &__managed-name {
+      max-width: 60px;
     }
   }
   @media (max-width: 480px) {
-    &__managed {
-      padding: 6px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--el-color-warning-light-9);
-      color: var(--el-color-warning-dark-2);
-      font-size: 13px;
-    }
-    &__body {
-      flex-direction: column;
-    }
-    &__aside {
-      width: 100%;
-      max-height: 150px;
-      border-right: 0;
-      border-bottom: 1px solid var(--border-muted);
-    }
-    &__menu-label,
-    &__aside-footer {
+    &__brand {
       display: none;
     }
-    nav {
-      display: flex;
-      flex-wrap: wrap;
+    &__identity {
+      gap: 6px;
     }
-    &__menu-item {
-      width: 50%;
+    &__managed {
+      padding: 0 4px;
+    }
+    &__managed-name {
+      max-width: 48px;
     }
   }
 }

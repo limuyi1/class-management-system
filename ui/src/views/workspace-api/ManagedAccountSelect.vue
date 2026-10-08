@@ -40,8 +40,9 @@ async function search(value: string): Promise<void> {
   }
 }
 function select(id: string): void {
-  const item = items.value.find((account) => account.id === id)
-  emit('select', id, item ? `${item.nickname}（尾号 ${item.phoneSuffix}）` : '我的账号')
+  const item = known.get(id)
+  if (!item || item.id === props.actorId || item.status !== 'ACTIVE') return
+  emit('select', id, `${item.nickname}（尾号 ${item.phoneSuffix}）`)
 }
 function visibleChange(visible: boolean): void {
   if (visible) void search('')
@@ -60,11 +61,10 @@ onBeforeUnmount(() => {
       remote
       :remote-method="search"
       :loading="loading"
-      placeholder="选择代管账号"
+      placeholder="搜索老师手机号或昵称"
       @visible-change="visibleChange"
       @change="select"
     >
-      <el-option label="我的账号" :value="props.actorId" />
       <el-option
         v-for="item in options"
         :key="item.id"
@@ -80,7 +80,7 @@ onBeforeUnmount(() => {
 <style scoped lang="scss">
 .managed-account-select {
   .el-select {
-    width: 240px;
+    width: 100%;
   }
   span {
     display: block;

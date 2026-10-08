@@ -143,6 +143,9 @@ const handleGenerateLearningAnalysis = async () => {
 <template>
   <div class="home-page app-page-shell">
     <page-header :icon="['solid', 'chart-line']" title="班级总览">
+      <template #title-after>
+        <WorkspaceReferenceBar />
+      </template>
       <template #right>
         <!-- 头部操作区：学生趋势、待写评语、AI 配置入口 -->
         <div class="header-actions">
@@ -169,7 +172,6 @@ const handleGenerateLearningAnalysis = async () => {
         </div>
       </template>
     </page-header>
-    <workspace-reference-bar />
 
     <div class="overview-dashboard">
       <!-- 左侧栏：KPI 汇总条 + 单元成绩概览 + 关键学生列表 -->

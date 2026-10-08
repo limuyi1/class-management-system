@@ -6,8 +6,13 @@ import {
   saveAIMode,
   validateAIAdmin
 } from '../services/ai/settings.js'
+import { listAIModels } from '../services/ai/models.js'
 import { adjustAIQuota, quotaFor, listAIQuotas } from '../services/ai/quota.js'
-import type { AIConfigInputType, AISettingsType } from '../../../packages/shared/src/AI.js'
+import type {
+  AIConfigInputType,
+  AISettingsType,
+  AIModelQueryType
+} from '../../../packages/shared/src/AI.js'
 import type { DatabaseType } from '../types/Account.js'
 import type { FastifyInstance, FastifyRequest } from 'fastify'
 
@@ -37,7 +42,7 @@ export function registerAISettings(app: FastifyInstance, database: DatabaseType)
   }
   app.get('/me/ai', async (request, reply) => {
     reply.header('Cache-Control', 'no-store')
-    return readAISettings(database, context(request))
+    return readAISettings(database, context(request), true)
   })
   app.put<{ Body: AIConfigInputType }>(
     '/me/ai/config',
@@ -69,7 +74,7 @@ export function registerAISettings(app: FastifyInstance, database: DatabaseType)
     const ctx = context(request)
     validateAIAdmin(database, ctx)
     reply.header('Cache-Control', 'no-store')
-    return configFor(database, 'platform')
+    return configFor(database, 'platform', true)
   })
   app.put<{ Body: AIConfigInputType }>(
     '/admin/ai/config',
@@ -80,6 +85,27 @@ export function registerAISettings(app: FastifyInstance, database: DatabaseType)
       return saveAIConfig(database, ctx, request.body, true, mutationKey(request), request.id)
     }
   )
+  for (const platform of [true, false]) {
+    app.post<{ Body: AIModelQueryType }>(
+      platform ? '/admin/ai/models' : '/me/ai/models',
+      {
+        schema: {
+          body: objectSchema(
+            {
+              provider: { type: 'string', enum: ['OPENAI', 'GEMINI'] },
+              baseUrl: { type: 'string', minLength: 1, maxLength: 500 },
+              apiKey: { type: 'string', minLength: 1, maxLength: 2000 }
+            },
+            ['provider', 'baseUrl']
+          )
+        }
+      },
+      async (request, reply) => {
+        reply.header('Cache-Control', 'no-store')
+        return { items: await listAIModels(database, context(request), request.body, platform) }
+      }
+    )
+  }
   app.get<{ Querystring: { page?: number; pageSize?: number; search?: string; status?: string } }>(
     '/admin/ai/quotas',
     {

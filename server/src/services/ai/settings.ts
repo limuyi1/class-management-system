@@ -1,7 +1,7 @@
 import { requireAdmin, requireTeachingOwner } from '../../policies/access.js'
 import { mutate, validateContext } from '../mutations.js'
 import { BusinessError } from '../errors.js'
-import { encryptAIKey } from './secrets.js'
+import { decryptAIKey, encryptAIKey } from './secrets.js'
 import { quotaFor } from './quota.js'
 import type {
   AIConfigType,
@@ -10,7 +10,7 @@ import type {
 } from '../../../../packages/shared/src/AI.js'
 import type { AccessContextType, AccountRecordType, DatabaseType } from '../../types/Account.js'
 
-interface ConfigRecordType extends Omit<AIConfigType, 'configured' | 'enabled'> {
+interface ConfigRecordType extends Omit<AIConfigType, 'apiKey' | 'configured' | 'enabled'> {
   secret: string | null
   enabled: number
 }
@@ -27,8 +27,8 @@ const emptyConfig = (): AIConfigType => ({
   enabled: false,
   version: 0
 })
-/** 查询仅投影公开配置，密文不会进入 DTO、幂等回执或前端。 */
-export function configFor(database: DatabaseType, id: string): AIConfigType {
+/** 默认读取配置摘要；已授权的编辑接口可显式读取密钥，幂等回执仍只保存摘要。 */
+export function configFor(database: DatabaseType, id: string, includeKey = false): AIConfigType {
   const row = database.prepare('SELECT * FROM ai_configs WHERE id=?').get(id) as
     | ConfigRecordType
     | undefined
@@ -37,11 +37,12 @@ export function configFor(database: DatabaseType, id: string): AIConfigType {
         provider: row.provider,
         baseUrl: row.baseUrl,
         model: row.model,
+        ...(includeKey ? { apiKey: row.secret ? decryptAIKey(row.secret) : '' } : {}),
         configured: Boolean(row.secret),
         enabled: Boolean(row.enabled),
         version: row.version
       }
-    : emptyConfig()
+    : { ...emptyConfig(), ...(includeKey ? { apiKey: '' } : {}) }
 }
 /** 平台管理在提交时校验有效身份，完整代管期间拒绝管理员能力。 */
 export function validateAIAdmin(database: DatabaseType, context: AccessContextType): void {
@@ -52,7 +53,11 @@ export function validateAIAdmin(database: DatabaseType, context: AccessContextTy
   )
 }
 /** 默认采用平台额度；个人配置保留，显式切换后才使用自己的 Key。 */
-export function readAISettings(database: DatabaseType, context: AccessContextType): AISettingsType {
+export function readAISettings(
+  database: DatabaseType,
+  context: AccessContextType,
+  includeKey = false
+): AISettingsType {
   validateIdentity(database, context)
   requireTeachingOwner(database, context.ownerId)
   const preference = database
@@ -62,7 +67,7 @@ export function readAISettings(database: DatabaseType, context: AccessContextTyp
   return {
     mode: preference?.mode || 'PLATFORM',
     version: preference?.version || 0,
-    personal: configFor(database, context.ownerId),
+    personal: configFor(database, context.ownerId, includeKey),
     platform: {
       model: platform.model,
       baseUrl: platform.baseUrl,
@@ -73,26 +78,18 @@ export function readAISettings(database: DatabaseType, context: AccessContextTyp
     quota: quotaFor(database, context.ownerId)
   }
 }
-function endpoint(value: string): string {
+/** 规范化 HTTP/HTTPS 基础地址，支持域名、IP、内网地址和自定义端口。 */
+export function normalizeAIEndpoint(value: string): string {
   let url: URL
   try {
-    url = new URL(value)
+    url = new URL(value.trim())
   } catch {
     throw new BusinessError(400, 'INVALID_AI_URL', '模型地址无效')
   }
-  // 此处只保存配置；实际网络调用还必须校验 DNS、禁用重定向，不能单靠此检查防 SSRF。
-  if (
-    url.protocol !== 'https:' ||
-    url.username ||
-    url.password ||
-    url.search ||
-    url.hash ||
-    url.hostname === 'localhost' ||
-    url.hostname.endsWith('.local') ||
-    /^[\d.]+$/.test(url.hostname) ||
-    url.hostname.includes(':')
-  )
-    throw new BusinessError(400, 'INVALID_AI_URL', '模型地址须使用公网域名的 HTTPS 地址')
+  if (!['http:', 'https:'].includes(url.protocol))
+    throw new BusinessError(400, 'INVALID_AI_URL', '模型地址须使用 HTTP 或 HTTPS')
+  if (url.username || url.password || url.search || url.hash)
+    throw new BusinessError(400, 'INVALID_AI_URL', '请填写不含凭据、查询参数和片段的 API 基础地址')
   return url.toString().replace(/\/$/, '')
 }
 /** 个人只能使用管理员已允许的服务地址，可自选模型和个人 Key，不开放任意代理地址。 */
@@ -105,7 +102,7 @@ export function saveAIConfig(
   requestId: string
 ): AIConfigType {
   validateIdentity(database, context)
-  const baseUrl = endpoint(input.baseUrl)
+  const baseUrl = normalizeAIEndpoint(input.baseUrl)
   const model = input.model.trim()
   if (!model || model.length > 120 || !/^[\w.\-/:]+$/.test(model))
     throw new BusinessError(400, 'INVALID_AI_MODEL', '模型名称无效')

@@ -1,8 +1,10 @@
-/** 平台统一模型或个人 Key；响应永远不包含明文或密文密钥。 */
+/** 平台统一模型或个人 Key；配置编辑接口可返回有权编辑的密钥。 */
 export interface AIConfigType {
   provider: 'OPENAI' | 'GEMINI'
   baseUrl: string
   model: string
+  /** 仅配置编辑接口提供，用于密码框回填。 */
+  apiKey?: string
   configured: boolean
   enabled: boolean
   version: number
@@ -42,4 +44,11 @@ export interface AIQuotaListType {
   total: number
   page: number
   pageSize: number
+}
+
+/** 模型目录查询使用表单中的服务地址和可选新密钥，不保存配置。 */
+export interface AIModelQueryType {
+  provider: AIConfigType['provider']
+  baseUrl: string
+  apiKey?: string
 }

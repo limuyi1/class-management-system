@@ -1,6 +1,7 @@
 export type {
   AIConfigType,
   AIConfigInputType,
+  AIModelQueryType,
   AIQuotaType,
   AIQuotaAccountType,
   AIQuotaListType,

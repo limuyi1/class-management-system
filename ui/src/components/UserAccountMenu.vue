@@ -15,7 +15,14 @@ function handleCommand(command: string): void {
 </script>
 
 <template>
-  <el-dropdown :trigger="['hover', 'click']" placement="bottom-end" @command="handleCommand">
+  <el-dropdown
+    trigger="hover"
+    placement="bottom-end"
+    :show-timeout="100"
+    :hide-timeout="250"
+    :popper-options="{ modifiers: [{ name: 'offset', options: { offset: [0, 4] } }] }"
+    @command="handleCommand"
+  >
     <button
       type="button"
       class="user-account-menu__trigger"
@@ -39,7 +46,7 @@ function handleCommand(command: string): void {
           <el-dropdown-item v-if="!user.mustChangePassword" command="devices"
             >登录设备</el-dropdown-item
           >
-          <el-dropdown-item v-if="canSwitch" command="switch">切换用户</el-dropdown-item>
+          <el-dropdown-item v-if="canSwitch" command="switch">切换到老师工作台</el-dropdown-item>
           <el-dropdown-item command="logout" divided>退出登录</el-dropdown-item>
         </el-dropdown-menu>
       </div>

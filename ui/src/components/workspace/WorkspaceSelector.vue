@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { confirmWorkspaceLeave } from '@/utils/workspaceSessionUtil'
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { serverMode, serverState } from '@/repositories/v5StateRepository'
 
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 
 import { liveQuery } from 'dexie'
 
 import { db, DB_ID } from '@/db'
+import { serverMode, serverState } from '@/repositories/v5StateRepository'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { getWorkspaceRevision } from '@/utils/workspaceSessionUtil'
+import { sortWorkspacePeriods } from '@/utils/workspacePeriodSortUtil'
+import { confirmWorkspaceLeave, getWorkspaceRevision } from '@/utils/workspaceSessionUtil'
 import { isDatabaseImporting } from '@/utils/persistDexieImportState'
 import {
   createWorkspace,
@@ -29,7 +29,9 @@ const editingId = ref('')
 const scheduleVisible = ref(false)
 const scheduleSource = ref('')
 const scheduleSources = computed(() =>
-  workspace.activeClassPeriods.filter((period) => period.id !== current.value?.id)
+  sortWorkspacePeriods(
+    workspace.activeClassPeriods.filter((period) => period.id !== current.value?.id)
+  )
 )
 const form = ref({
   className: '',
@@ -40,15 +42,20 @@ const form = ref({
   useReference: true
 })
 
-const classes = computed(
-  () =>
-    workspace.catalog?.classes.map((item) => ({
-      ...item,
-      period: workspace.catalog?.periods.find((period) => period.id === item.lastPeriodId)
-    })) ?? []
+const classGroups = computed(() =>
+  (workspace.catalog?.classes ?? []).map((item) => {
+    const periods = sortWorkspacePeriods(
+      (workspace.catalog?.periods ?? []).filter((period) => period.classId === item.id)
+    )
+    return {
+      id: item.id,
+      label: periods.find((period) => period.id === item.lastPeriodId)?.className ?? '班级',
+      periods
+    }
+  })
 )
-const periods = computed(() => [...workspace.activeClassPeriods].reverse())
 const current = computed(() => workspace.activePeriod)
+const sortedPeriods = computed(() => sortWorkspacePeriods(workspace.catalog?.periods ?? []))
 
 /** 加载期间锁定操作；切换成功刷新页面，完整销毁旧班级临时状态。 */
 async function run(
@@ -84,9 +91,10 @@ async function selectPeriod(id: string): Promise<void> {
   await run(() => switchWorkspace(id), true)
 }
 
-async function selectClass(id: string): Promise<void> {
-  const target = workspace.catalog?.classes.find((item) => item.id === id)
-  if (target) await selectPeriod(target.lastPeriodId)
+/** 工作区菜单直接切换学期，管理操作统一进入管理弹窗。 */
+function handleWorkspaceCommand(command: string): void {
+  if (command === 'manage') managerVisible.value = true
+  else void selectPeriod(command)
 }
 
 function openCreate(newClass: boolean): void {
@@ -169,35 +177,41 @@ onUnmounted(() => unsubscribe?.())
 
 <template>
   <div class="workspace-selector">
-    <el-select
-      :model-value="current?.classId"
-      aria-label="班级"
-      class="workspace-selector__class"
+    <el-dropdown
+      trigger="click"
+      placement="bottom-end"
       :disabled="busy"
-      @change="selectClass"
+      @command="handleWorkspaceCommand"
     >
-      <el-option
-        v-for="item in classes"
-        :key="item.id"
-        :value="item.id"
-        :label="item.id === current?.classId ? current.className : item.period?.className || '班级'"
-      />
-    </el-select>
-    <el-select
-      :model-value="current?.id"
-      aria-label="学期"
-      class="workspace-selector__period"
-      :disabled="busy"
-      @change="selectPeriod"
-    >
-      <el-option
-        v-for="period in periods"
-        :key="period.id"
-        :value="period.id"
-        :label="`${period.termName} · ${period.className}`"
-      />
-    </el-select>
-    <el-button @click="managerVisible = true">管理</el-button>
+      <button
+        type="button"
+        class="workspace-selector__trigger"
+        :disabled="busy"
+        aria-label="切换班级与学期"
+      >
+        <span class="workspace-selector__current">{{
+          current ? `${current.className} · ${current.termName}` : '选择班级与学期'
+        }}</span>
+        <font-awesome-icon :icon="['solid', 'chevron-down']" />
+      </button>
+      <template #dropdown>
+        <el-dropdown-menu class="workspace-selector__menu">
+          <template v-for="group in classGroups" :key="group.id">
+            <li class="workspace-selector__group" role="presentation">{{ group.label }}</li>
+            <el-dropdown-item
+              v-for="period in group.periods"
+              :key="period.id"
+              :command="period.id"
+              :disabled="period.id === current?.id"
+            >
+              <span class="workspace-selector__term">{{ period.termName }}</span>
+              <el-tag v-if="period.id === current?.id" size="small">当前</el-tag>
+            </el-dropdown-item>
+          </template>
+          <el-dropdown-item command="manage" divided>班级与学期管理</el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
 
     <el-dialog v-model="managerVisible" title="班级与学期管理" width="760px" append-to-body>
       <div class="workspace-selector__actions">
@@ -211,7 +225,7 @@ onUnmounted(() => unsubscribe?.())
         当前：{{ current?.className }} ·
         {{ current?.termName }}。旧学期可以随时打开，修改当期班名不会影响往期。
       </p>
-      <el-table :data="workspace.catalog?.periods || []" max-height="400">
+      <el-table :data="sortedPeriods" max-height="400">
         <el-table-column prop="className" label="当期班名" width="120" />
         <el-table-column prop="termName" label="学期" min-width="170" />
         <el-table-column label="操作" width="210">
@@ -305,11 +319,67 @@ onUnmounted(() => unsubscribe?.())
   display: flex;
   align-items: center;
   gap: 8px;
-  &__class {
-    width: 130px;
+  min-width: 0;
+  &__trigger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 34px;
+    max-width: 300px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.12);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+    &:hover {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    &:focus-visible {
+      outline: 2px solid #fff;
+      outline-offset: 2px;
+    }
+    &:disabled {
+      cursor: wait;
+      opacity: 0.7;
+    }
+    svg {
+      flex-shrink: 0;
+    }
   }
-  &__period {
-    width: 250px;
+  &__current {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  &__menu {
+    max-height: min(480px, 70vh);
+    overflow-y: auto;
+    min-width: 240px;
+    max-width: min(400px, 90vw);
+  }
+  &__group {
+    padding: 10px 16px 4px;
+    color: var(--el-text-color-secondary);
+    font-size: 12px;
+  }
+  &__term {
+    flex: 1;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    margin-right: 12px;
+  }
+  @media (max-width: 1000px) {
+    &__trigger {
+      max-width: 220px;
+    }
+  }
+  @media (max-width: 480px) {
+    &__trigger {
+      max-width: 130px;
+      padding: 0 8px;
+    }
   }
   &__actions {
     display: flex;
