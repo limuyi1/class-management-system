@@ -19,7 +19,7 @@ pnpm import:legacy --file /absolute/path/backup.dexie --owner 目标账号UUID -
 
 ## 离线成对备份和恢复
 
-SQLite 和附件必须成对备份；不能仅复制仍有 WAL 的主库文件。`scripts/maintenance.py` 使用 SQLite Online Backup、复制不可变附件、校验数据库完整性/外键及所有历史附件大小/摘要，再原子发布备份目录。拒绝符号链接和重叠路径。AI_ENCRYPTION_KEY 不放进备份，独立保管。
+SQLite 和附件必须成对备份；不能仅复制仍有 WAL 的主库文件。`scripts/maintenance.py` 使用 SQLite Online Backup、复制不可变附件、校验数据库完整性/外键及所有历史附件大小/摘要，再原子发布备份目录。拒绝符号链接和重叠路径。AI_ENCRYPTION_KEY 或自动生成的 `.ai-encryption-key` 文件不放进业务备份，须独立保管。
 
 ```bash
 # 服务已经停止；路径必须对应当前配置，备份目录不能位于源附件树内
@@ -32,7 +32,7 @@ python3 scripts/maintenance.py restore --database /absolute/data/database.sqlite
 
 ## Docker 部署
 
-`deploy/Dockerfile` 构建 ui/server，`deploy/compose.yaml` 仅一个 API 写实例，Caddy 提供同域 HTTPS，SQLite 与附件位于持久卷 `/data`。先复制 `deploy/.env.example` 为 `deploy/.env`，填写域名、WEB_ORIGIN 和随机 AI 主密钥。
+`deploy/Dockerfile` 构建 ui/server，`deploy/compose.yaml` 仅一个 API 写实例，Caddy 提供同域 HTTPS，SQLite 与附件位于持久卷 `/data`。先复制 `deploy/.env.example` 为 `deploy/.env`，填写域名和 WEB_ORIGIN。AI 主密钥留空时首次启动自动生成 `/data/.ai-encryption-key` 并在持久卷中复用；须单独备份该文件，恢复已有数据库时使用原主密钥。
 
 ```bash
 docker compose --env-file deploy/.env -f deploy/compose.yaml build

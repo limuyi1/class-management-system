@@ -343,3 +343,50 @@ test('配置编辑接口回填有权编辑的 Key，清空后停用；平台摘�
     else process.env.AI_ENCRYPTION_KEY = old
   }
 })
+
+test('旧密钥无法解密仍可读取配置并重新保存，读取不改写密文', async () => {
+  const f = fixture(),
+    old = process.env.AI_ENCRYPTION_KEY
+  const app = await buildApp(f.db, 'http://localhost:5173')
+  try {
+    const admin = f.actor('ADMIN')
+    process.env.AI_ENCRYPTION_KEY = randomBytes(32).toString('base64')
+    saveAIConfig(f.db, admin, config, true, randomUUID(), 'old-config')
+    saveAIConfig(f.db, f.context, config, false, randomUUID(), 'old-personal')
+    const secret = f.db.prepare("SELECT secret FROM ai_configs WHERE id='platform'").get().secret
+    process.env.AI_ENCRYPTION_KEY = randomBytes(32).toString('base64')
+    const headers = { authorization: `Bearer ${admin.token}` }
+    const result = await app.inject({ method: 'GET', url: '/api/v1/admin/ai/config', headers })
+    assert.equal(result.statusCode, 200)
+    assert.equal(result.json().keyUnavailable, true)
+    assert.equal(result.json().apiKey, '')
+    assert.equal(result.json().baseUrl, config.baseUrl)
+    assert.equal(result.json().version, 1)
+    assert.equal(
+      f.db.prepare("SELECT secret FROM ai_configs WHERE id='platform'").get().secret,
+      secret
+    )
+    const personal = await app.inject({
+      method: 'GET',
+      url: '/api/v1/me/ai',
+      headers: { authorization: `Bearer ${f.context.token}` }
+    })
+    assert.equal(personal.statusCode, 200)
+    assert.equal(personal.json().personal.keyUnavailable, true)
+    const saved = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/admin/ai/config',
+      headers: { ...headers, 'idempotency-key': randomUUID() },
+      payload: { ...config, version: 1, apiKey: 'replacement-key' }
+    })
+    assert.equal(saved.statusCode, 200)
+    const restored = await app.inject({ method: 'GET', url: '/api/v1/admin/ai/config', headers })
+    assert.equal(restored.json().apiKey, 'replacement-key')
+    assert.equal(restored.json().keyUnavailable, undefined)
+  } finally {
+    await app.close()
+    f.db.close()
+    if (old === undefined) delete process.env.AI_ENCRYPTION_KEY
+    else process.env.AI_ENCRYPTION_KEY = old
+  }
+})

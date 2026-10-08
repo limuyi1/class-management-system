@@ -32,17 +32,25 @@ export function configFor(database: DatabaseType, id: string, includeKey = false
   const row = database.prepare('SELECT * FROM ai_configs WHERE id=?').get(id) as
     | ConfigRecordType
     | undefined
-  return row
-    ? {
-        provider: row.provider,
-        baseUrl: row.baseUrl,
-        model: row.model,
-        ...(includeKey ? { apiKey: row.secret ? decryptAIKey(row.secret) : '' } : {}),
-        configured: Boolean(row.secret),
-        enabled: Boolean(row.enabled),
-        version: row.version
-      }
-    : { ...emptyConfig(), ...(includeKey ? { apiKey: '' } : {}) }
+  if (!row) return { ...emptyConfig(), ...(includeKey ? { apiKey: '' } : {}) }
+  let key: Pick<AIConfigType, 'apiKey' | 'keyUnavailable'> = {}
+  if (includeKey) {
+    try {
+      key = { apiKey: row.secret ? decryptAIKey(row.secret) : '' }
+    } catch (error) {
+      if (!(error instanceof BusinessError) || error.code !== 'AI_KEY_UNAVAILABLE') throw error
+      key = { apiKey: '', keyUnavailable: true }
+    }
+  }
+  return {
+    provider: row.provider,
+    baseUrl: row.baseUrl,
+    model: row.model,
+    ...key,
+    configured: Boolean(row.secret),
+    enabled: Boolean(row.enabled),
+    version: row.version
+  }
 }
 /** 平台管理在提交时校验有效身份，完整代管期间拒绝管理员能力。 */
 export function validateAIAdmin(database: DatabaseType, context: AccessContextType): void {

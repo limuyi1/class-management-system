@@ -4,21 +4,22 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import ManagementCard from '@/components/ManagementCard.vue'
 
 import { apiRequest } from '@/api/client'
+import type { AICallRecordType } from '@/types/ApiAI'
 const props = defineProps<{ disabled?: boolean }>(),
   emit = defineEmits<{ busy: [boolean]; settled: [] }>()
-const items = ref<
-    {
-      id: string
-      actorId: string
-      ownerId: string
-      mode: string
-      status: string
-      inputTokens: number | null
-      outputTokens: number | null
-      createdAt: number
-    }[]
-  >([]),
+const items = ref<AICallRecordType[]>([]),
   busy = ref(false)
+/** 优先显示可识别的账号资料，历史账号缺失时保留 ID 便于核对。 */
+function accountLabel(nickname: string | null, phone: string | null, id: string): string {
+  return [nickname, phone].filter(Boolean).join(' · ') || id
+}
+/** 调用时间使用浏览器本地时区，包含日期和秒。 */
+function callTime(timestamp: number): string {
+  const date = new Date(timestamp)
+  return Number.isFinite(date.getTime())
+    ? date.toLocaleString('zh-CN', { hour12: false })
+    : '时间未知'
+}
 /** 显示可读调用状态，未知状态保留服务端原值。 */
 function callStatus(status: string): string {
   const labels: Record<string, string> = {
@@ -100,12 +101,17 @@ onBeforeUnmount(() => {
         label="调用 ID"
         min-width="180"
         show-overflow-tooltip
-      /><el-table-column
-        prop="actorId"
-        label="实际调用账号"
-        min-width="180"
-        show-overflow-tooltip
-      /><el-table-column label="状态" min-width="120"
+      /><el-table-column label="实际调用账号" min-width="220" show-overflow-tooltip
+        ><template #default="{ row }">{{
+          accountLabel(row.actorNickname, row.actorPhone, row.actorId)
+        }}</template></el-table-column
+      ><el-table-column label="数据归属账号" min-width="220" show-overflow-tooltip
+        ><template #default="{ row }">{{
+          accountLabel(row.ownerNickname, row.ownerPhone, row.ownerId)
+        }}</template></el-table-column
+      ><el-table-column label="调用时间" min-width="190"
+        ><template #default="{ row }">{{ callTime(row.createdAt) }}</template></el-table-column
+      ><el-table-column label="状态" min-width="120"
         ><template #default="{ row }"
           ><el-tag :type="row.status === 'UNCERTAIN' ? 'warning' : 'info'">{{
             callStatus(row.status)

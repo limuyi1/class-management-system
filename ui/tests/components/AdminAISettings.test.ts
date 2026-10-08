@@ -83,3 +83,27 @@ it('刷新期间锁定表单，刷新失败后保留原配置和 Key', async () 
   wrapper.unmount()
   log.mockRestore()
 })
+
+it('旧 Key 无法读取时仍显示配置，阻止空白覆盖并允许填写新 Key 保存', async () => {
+  vi.mocked(apiRequest).mockResolvedValue({ ...config, apiKey: '', keyUnavailable: true })
+  const wrapper = mount(AdminAISettings, { global: { plugins: [ElementPlus] } })
+  await flushPromises()
+  expect(wrapper.text()).toContain('原 API Key 无法读取，请重新填写并保存')
+  expect(wrapper.findAllComponents(ElInput)[0].props('modelValue')).toBe(config.baseUrl)
+  const save = wrapper.findAll('button').find((button) => button.text() === '保存配置')!
+  await save.trigger('click')
+  await flushPromises()
+  expect(apiRequest).toHaveBeenCalledTimes(1)
+  wrapper.findAllComponents(ElInput)[1].vm.$emit('update:modelValue', 'replacement-key')
+  await flushPromises()
+  await save.trigger('click')
+  await flushPromises()
+  expect(apiRequest).toHaveBeenCalledWith(
+    '/admin/ai/config',
+    expect.objectContaining({
+      method: 'PUT',
+      body: expect.objectContaining({ apiKey: 'replacement-key', version: 1 })
+    })
+  )
+  wrapper.unmount()
+})

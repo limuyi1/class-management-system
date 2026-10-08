@@ -44,6 +44,10 @@ watch(() => props.config, reset, { immediate: true })
 /** 按密码框当前值保存密钥；清空输入同时停用配置。 */
 async function save(): Promise<void> {
   if (busy.value || props.disabled) return
+  if (props.config.keyUnavailable && !apiKey.value.trim()) {
+    ElMessage.warning('原 API Key 无法读取，请重新填写后保存')
+    return
+  }
   const body: AIConfigInputType = {
     provider: draft.provider,
     baseUrl: draft.baseUrl,
@@ -109,6 +113,13 @@ async function refreshModels(): Promise<void> {
 </script>
 <template>
   <el-form label-position="top" class="ai-provider-form" :disabled="busy || disabled">
+    <el-alert
+      v-if="config.keyUnavailable"
+      class="ai-provider-form__key-warning"
+      title="原 API Key 无法读取，请重新填写并保存。若需恢复原配置，请由服务器维护人员恢复原主密钥。"
+      type="warning"
+      :closable="false"
+    />
     <el-form-item label="接口类型"
       ><el-select v-model="draft.provider"
         ><el-option label="OpenAI 兼容接口" value="OPENAI" /><el-option
@@ -174,6 +185,10 @@ async function refreshModels(): Promise<void> {
   :deep(.el-select) {
     width: 100%;
     min-width: 0;
+  }
+  &__key-warning {
+    grid-column: 1 / -1;
+    margin-bottom: 16px;
   }
   &__actions {
     grid-column: 1 / -1;

@@ -1,12 +1,19 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'node:crypto'
 import { BusinessError } from '../errors.js'
 
-function masterKey(): Buffer {
-  const value = process.env.AI_ENCRYPTION_KEY || ''
+/** 校验主密钥格式，禁止使用弱密钥或静默替换错误配置。 */
+export function validateAIMasterKey(value: string): Buffer {
   const key = Buffer.from(value, 'base64')
   if (key.length !== 32 || key.toString('base64') !== value)
-    throw new BusinessError(503, 'AI_KEY_UNAVAILABLE', '请先配置服务器 AI 加密主密钥')
+    throw new BusinessError(
+      503,
+      'AI_KEY_UNAVAILABLE',
+      '服务器 AI 加密配置异常，请联系服务器维护人员'
+    )
   return key
+}
+function masterKey(): Buffer {
+  return validateAIMasterKey(process.env.AI_ENCRYPTION_KEY || '')
 }
 /** AES-256-GCM 随机 nonce；主密钥放服务器环境中，并与数据库备份分开保管。 */
 export function encryptAIKey(value: string): string {
@@ -25,6 +32,10 @@ export function decryptAIKey(value: string): string {
     decipher.setAuthTag(parts[1]!)
     return Buffer.concat([decipher.update(parts[2]!), decipher.final()]).toString('utf8')
   } catch {
-    throw new BusinessError(503, 'AI_KEY_UNAVAILABLE', 'AI 密钥无法读取，请联系管理员')
+    throw new BusinessError(
+      503,
+      'AI_KEY_UNAVAILABLE',
+      'AI 密钥无法读取，请在 AI 配置中重新填写 API Key 或联系管理员'
+    )
   }
 }

@@ -1,4 +1,5 @@
 export type {
+  AICallRecordType,
   AIConfigType,
   AIConfigInputType,
   AIModelQueryType,

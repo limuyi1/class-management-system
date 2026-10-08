@@ -5,6 +5,8 @@ export interface AIConfigType {
   model: string
   /** 仅配置编辑接口提供，用于密码框回填。 */
   apiKey?: string
+  /** 编辑接口无法解密旧密钥时提示重新填写，原密文仍保留。 */
+  keyUnavailable?: boolean
   configured: boolean
   enabled: boolean
   version: number
@@ -51,4 +53,20 @@ export interface AIModelQueryType {
   provider: AIConfigType['provider']
   baseUrl: string
   apiKey?: string
+}
+
+/** 管理员调用记录保留真实操作者与数据归属，账号摘要不包含身份凭据。 */
+export interface AICallRecordType {
+  id: string
+  actorId: string
+  ownerId: string
+  actorNickname: string | null
+  actorPhone: string | null
+  ownerNickname: string | null
+  ownerPhone: string | null
+  mode: string
+  status: string
+  inputTokens: number | null
+  outputTokens: number | null
+  createdAt: number
 }

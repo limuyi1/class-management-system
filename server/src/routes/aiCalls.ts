@@ -107,7 +107,13 @@ export function registerAICalls(
     return {
       items: database
         .prepare(
-          'SELECT id,actorId,ownerId,mode,status,inputTokens,outputTokens,createdAt FROM ai_calls ORDER BY createdAt DESC LIMIT 100'
+          `SELECT c.id,c.actorId,c.ownerId,c.mode,c.status,c.inputTokens,c.outputTokens,c.createdAt,
+          actor.nickname AS actorNickname,actor.phone AS actorPhone,
+          owner.nickname AS ownerNickname,owner.phone AS ownerPhone
+          FROM ai_calls c
+          LEFT JOIN users actor ON actor.id=c.actorId
+          LEFT JOIN users owner ON owner.id=c.ownerId
+          ORDER BY c.createdAt DESC,c.id DESC LIMIT 100`
         )
         .all()
     }

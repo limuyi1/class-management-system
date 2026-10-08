@@ -6,13 +6,13 @@
 
 ## 配置和身份
 
-支持 OpenAI 兼容 Chat Completions 及 Gemini REST。个人服务地址/接口类型首版须与管理员平台配置相同，个人可指定模型和 Key。Key 在服务器使用 AES-256-GCM 加密，不返回密文或明文；响应只展示是否已配置。`AI_ENCRYPTION_KEY` 为 32 字节随机值的标准 Base64，与数据库备份分开保存，恢复原库须使用匹配密钥。生成方法：
+支持 OpenAI 兼容 Chat Completions 及 Gemini REST。个人服务地址/接口类型首版须与管理员平台配置相同，个人可指定模型和 Key。Key 在服务器使用 AES-256-GCM 加密，不返回密文或明文；响应只展示是否已配置。`AI_ENCRYPTION_KEY` 为 32 字节随机值的标准 Base64，与数据库备份分开保存，恢复原库须使用匹配密钥。也可手动生成：
 
 ```bash
 python3 -c 'import secrets,base64; print(base64.b64encode(secrets.token_bytes(32)).decode())'
 ```
 
-保存到 `server/.env` 后由服务读取，不提交 Git。已有密文时不能直接替换主密钥；本版本不提供在线密钥轮换。未配置主密钥时保存 Key 明确报错。
+服务器首次启动在未设置 `AI_ENCRYPTION_KEY` 时，自动生成数据库同目录下的 `.ai-encryption-key` 文件（仅当前用户读写），重启复用。可通过 `AI_ENCRYPTION_KEY_FILE` 指定独立持久路径；请单独备份此文件，不提交 Git。环境变量 `AI_ENCRYPTION_KEY` 优先，可保存到 `server/.env`。已有密文但找不到原主密钥时生成新主密钥并记录提示，原密文不变，后端继续启动。配置编辑页显示密钥无法读取，可重新填写 API Key 保存；也可恢复原主密钥后重启读取旧配置。本版本不提供在线密钥轮换。管理员只需在页面配置模型 API Key。
 
 完整代管使用 `X-Managed-Session`，成绩、标签、默认生成要求、个人模型配置和额度均取目标有效用户，审计保留真实 actor。代管期间拒绝平台配置和额度分配等管理员能力。旧 `X-Managed-Account-Id` 仍不能用于个人身份/密钥接口。此前“始终使用真实 actor 的 AI 与额度”已由完整代管实现替代。
 
@@ -44,7 +44,7 @@ python3 -c 'import secrets,base64; print(base64.b64encode(secrets.token_bytes(32
 | POST `/ai/calls`，GET `/ai/calls/:id`            | 创建/重试及查询本人调用                |
 | POST `/ai/calls/cancel`                          | 按原请求键取消本人在该 owner 下的调用  |
 | POST `/ai/calls/:id/score-preview`               | 人工审核识别值，服务端捕获版本不可提升 |
-| GET `/admin/ai/calls`                            | 最近 100 笔调用状态及用量              |
+| GET `/admin/ai/calls`                            | 最近 100 笔调用时间、真实调用/数据归属账号及状态用量              |
 | POST `/admin/ai/calls/:id/reconcile`             | 待核对调用结算，实际用量及原因         |
 
 所有路径以 `/api/v1` 为前缀。真实供应商连接、模型兼容性与实际账单口径需要部署后的实测；自动测试使用假模型，不消费真实额度。

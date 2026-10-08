@@ -202,3 +202,52 @@ test('管理员核对未知账单支持幂等并拒绝普通账号', async () =>
     else process.env.AI_ENCRYPTION_KEY = old
   }
 })
+
+test('管理员记录返回真实调用及归属账号和时间；保留软删除账号且不泄露凭据', async () => {
+  const { buildApp } = await import('../dist/app.js')
+  const f = fixture(),
+    admin = f.actor('ADMIN'),
+    owner = f.actor()
+  const app = await buildApp(f.db, 'http://localhost:5173')
+  try {
+    const id = randomUUID(),
+      createdAt = Date.UTC(2026, 9, 9, 2, 3, 4)
+    f.db
+      .prepare("UPDATE users SET nickname='已删除老师',status='DELETED' WHERE id=?")
+      .run(owner.ownerId)
+    f.db
+      .prepare(
+        `INSERT INTO ai_calls(id,actorId,ownerId,requestKey,requestHash,mode,status,createdAt)
+      VALUES(?,?,?,?,?,'PLATFORM','DONE',?)`
+      )
+      .run(id, f.context.actor.id, owner.ownerId, randomUUID(), 'hash', createdAt)
+    const result = await app.inject({
+      method: 'GET',
+      url: '/api/v1/admin/ai/calls',
+      headers: { authorization: `Bearer ${admin.token}` }
+    })
+    assert.equal(result.statusCode, 200)
+    const row = result.json().items[0]
+    assert.equal(row.id, id)
+    assert.equal(row.actorId, f.context.actor.id)
+    assert.equal(row.actorPhone, f.context.actor.phone)
+    assert.equal(row.actorNickname, f.context.actor.nickname)
+    assert.equal(row.ownerId, owner.ownerId)
+    assert.equal(row.ownerNickname, '已删除老师')
+    assert.equal(row.createdAt, createdAt)
+    assert.equal(row.passwordHash, undefined)
+    assert.equal(
+      (
+        await app.inject({
+          method: 'GET',
+          url: '/api/v1/admin/ai/calls',
+          headers: { authorization: `Bearer ${f.context.token}` }
+        })
+      ).statusCode,
+      403
+    )
+  } finally {
+    await app.close()
+    f.db.close()
+  }
+})
