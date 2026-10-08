@@ -330,7 +330,8 @@ test('代管 AI 使用老师 Key 与额度，管理员 Key 与余额不变；审
     assert.deepEqual(audit, { actorId: f.admin.ownerId, ownerId: teacher.ownerId })
     const publicSettings = await f.request('/me/ai')
     assert.equal(publicSettings.statusCode, 200)
-    assert.ok(!publicSettings.body.includes('test-key'))
+    assert.equal(publicSettings.json().personal.apiKey, 'teacher-test-key')
+    assert.ok(!publicSettings.body.includes('platform-test-key'))
   } finally {
     await f.close()
     if (previous === undefined) delete process.env.AI_ENCRYPTION_KEY

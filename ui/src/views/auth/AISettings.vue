@@ -10,6 +10,11 @@ import type { AISettingsType } from '@/types/ApiAI'
 
 const emit = defineEmits<{ configured: [boolean] }>()
 const activeTab = ref('mode')
+const changingSection = ref(false)
+const sections = [
+  { label: '使用方式与额度', value: 'mode' },
+  { label: '个人密钥配置', value: 'key' }
+]
 const providerForm = ref<{ hasDraft: boolean; reset: () => void }>()
 const settings = ref<AISettingsType | null>(null),
   busy = ref(false),
@@ -71,6 +76,7 @@ async function saveMode(): Promise<void> {
       idempotencyKey: pending.key
     })
     pending = undefined
+    await load()
     ElMessage.success('AI 使用方式已保存')
   } catch (error) {
     console.error('切换 AI 使用方式失败:', error)
@@ -95,67 +101,91 @@ async function testConnection(): Promise<void> {
     busy.value = false
   }
 }
+/** 分段切换仍执行草稿保护，用户取消时保持原分段与表单。 */
+async function selectSection(value: string | number | boolean): Promise<void> {
+  if (typeof value !== 'string' || value === activeTab.value || busy.value || changingSection.value)
+    return
+  changingSection.value = true
+  try {
+    if (await canLeave()) activeTab.value = value
+  } finally {
+    changingSection.value = false
+  }
+}
 onMounted(load)
 </script>
 <template>
   <section>
     <el-alert v-if="errorMessage" :title="errorMessage" type="error" :closable="false" />
-    <el-tabs v-model="activeTab" class="management-tabs" :before-leave="canLeave">
-      <el-tab-pane label="使用方式与额度" name="mode">
-        <ManagementCard title="AI 使用方式" description="使用平台额度或个人密钥进行调用。">
-          <template #actions
-            ><el-button :disabled="busy" @click="load">刷新配置与额度</el-button></template
-          >
-          <template v-if="settings">
-            <p>
-              平台模型：{{ settings.platform.model || '未配置' }}；{{
-                settings.platform.enabled && settings.platform.configured ? '已启用' : '暂不可用'
-              }}
-            </p>
-            <div class="ai-settings__quota">
-              <div>
-                <span>可用额度</span
-                ><strong>{{ settings.quota.available.toLocaleString() }}</strong>
-              </div>
-              <div>
-                <span>预占额度</span><strong>{{ settings.quota.reserved.toLocaleString() }}</strong>
-              </div>
-              <div>
-                <span>累计消耗</span><strong>{{ settings.quota.used.toLocaleString() }}</strong>
-              </div>
-            </div>
-            <div class="ai-settings__mode">
-              <el-radio-group v-model="mode" :disabled="busy"
-                ><el-radio value="PLATFORM">平台额度（无需个人 Key）</el-radio
-                ><el-radio value="PERSONAL">个人 Key</el-radio></el-radio-group
-              >
-              <el-button :disabled="busy" @click="saveMode">保存使用方式</el-button>
-              <el-button :disabled="busy" @click="testConnection"
-                >测试所选模式连接（消耗少量 Token）</el-button
-              >
-            </div>
-          </template>
-        </ManagementCard>
-      </el-tab-pane>
-      <el-tab-pane label="个人密钥配置" name="key">
-        <ManagementCard
-          v-if="settings"
-          title="个人 Key 配置（可选）"
-          description="密钥加密保存；留空时保留已保存的密钥。"
+    <el-segmented
+      class="ai-settings__sections"
+      :model-value="activeTab"
+      :options="sections"
+      :disabled="busy || changingSection"
+      aria-label="AI 设置分区"
+      @change="selectSection"
+    />
+    <div v-show="activeTab === 'mode'">
+      <ManagementCard title="AI 使用方式" description="使用平台额度或个人密钥进行调用。">
+        <template #actions
+          ><el-button :disabled="busy" @click="load">刷新配置与额度</el-button></template
         >
-          <AIProviderForm
-            ref="providerForm"
-            :config="personalConfig!"
-            @saved="load"
-            @busy="busy = $event"
-          />
-        </ManagementCard>
-      </el-tab-pane>
-    </el-tabs>
+        <template v-if="settings">
+          <p>
+            平台模型：{{ settings.platform.model || '未配置' }}；{{
+              settings.platform.enabled && settings.platform.configured ? '已启用' : '暂不可用'
+            }}
+          </p>
+          <div class="ai-settings__quota">
+            <div>
+              <span>可用额度</span><strong>{{ settings.quota.available.toLocaleString() }}</strong>
+            </div>
+            <div>
+              <span>预占额度</span><strong>{{ settings.quota.reserved.toLocaleString() }}</strong>
+            </div>
+            <div>
+              <span>累计消耗</span><strong>{{ settings.quota.used.toLocaleString() }}</strong>
+            </div>
+          </div>
+          <div class="ai-settings__mode">
+            <el-radio-group v-model="mode" :disabled="busy"
+              ><el-radio value="PLATFORM">平台额度（无需个人 Key）</el-radio
+              ><el-radio value="PERSONAL">个人 Key</el-radio></el-radio-group
+            >
+            <el-button :disabled="busy" @click="saveMode">保存使用方式</el-button>
+            <el-button :disabled="busy" @click="testConnection"
+              >测试所选模式连接（消耗少量 Token）</el-button
+            >
+          </div>
+        </template>
+      </ManagementCard>
+    </div>
+    <div v-show="activeTab === 'key'">
+      <ManagementCard
+        v-if="settings"
+        title="个人 Key 配置（可选）"
+        description="填写或修改个人 API Key，可通过小眼睛查看。"
+      >
+        <AIProviderForm
+          ref="providerForm"
+          :config="personalConfig!"
+          @saved="load"
+          @busy="busy = $event"
+        />
+      </ManagementCard>
+    </div>
   </section>
 </template>
 
 <style scoped lang="scss">
+.ai-settings__sections {
+  margin-bottom: 16px;
+  padding: 4px;
+  --el-segmented-item-selected-color: var(--el-color-primary);
+  --el-segmented-item-selected-bg-color: var(--el-bg-color);
+  --el-border-radius-base: 8px;
+}
+
 .ai-settings__quota {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

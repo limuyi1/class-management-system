@@ -35,7 +35,7 @@ function withMasterKey(action) {
     else process.env.AI_ENCRYPTION_KEY = old
   }
 }
-test('默认平台模式，统一/个人配置加密、版本保护及幂等；密钥不回传', () =>
+test('默认平台模式，统一/个人配置加密、版本保护及幂等；写入回执不含密钥', () =>
   withMasterKey(() => {
     const f = fixture()
     try {
@@ -286,5 +286,60 @@ test('额度前置配置、老师状态与额度列表筛选均由服务器约�
     assert.equal(listAIQuotas(f.db, {}).total, 1)
   } finally {
     f.db.close()
+  }
+})
+
+test('配置编辑接口回填有权编辑的 Key，清空后停用；平台摘要和幂等回执不含 Key', async () => {
+  const f = fixture(),
+    old = process.env.AI_ENCRYPTION_KEY
+  process.env.AI_ENCRYPTION_KEY = randomBytes(32).toString('base64')
+  const app = await buildApp(f.db, 'http://localhost:5173')
+  try {
+    const admin = f.actor('ADMIN')
+    saveAIConfig(f.db, admin, config, true, randomUUID(), 'platform')
+    saveAIConfig(
+      f.db,
+      f.context,
+      { ...config, apiKey: 'personal-editor-key' },
+      false,
+      randomUUID(),
+      'personal'
+    )
+    const get = (url, token) =>
+      app.inject({
+        method: 'GET',
+        url: `/api/v1${url}`,
+        headers: { authorization: `Bearer ${token}` }
+      })
+    const platform = await get('/admin/ai/config', admin.token)
+    assert.equal(platform.statusCode, 200)
+    assert.equal(platform.json().apiKey, config.apiKey)
+    assert.equal(platform.headers['cache-control'], 'no-store')
+    assert.equal((await get('/admin/ai/config', f.context.token)).statusCode, 403)
+    const personal = await get('/me/ai', f.context.token)
+    assert.equal(personal.json().personal.apiKey, 'personal-editor-key')
+    assert.equal(personal.json().platform.apiKey, undefined)
+    assert.ok(!personal.body.includes(config.apiKey))
+    saveAIMode(f.db, f.context, { mode: 'PERSONAL', version: 0 }, randomUUID(), 'mode')
+    const receipts = JSON.stringify(f.db.prepare('SELECT resultJson FROM mutation_receipts').all())
+    assert.ok(!receipts.includes('personal-editor-key'))
+    assert.ok(!receipts.includes(config.apiKey))
+    saveAIConfig(
+      f.db,
+      f.context,
+      { ...config, version: 1, apiKey: null, enabled: false },
+      false,
+      randomUUID(),
+      'clear'
+    )
+    const cleared = (await get('/me/ai', f.context.token)).json().personal
+    assert.equal(cleared.apiKey, '')
+    assert.equal(cleared.configured, false)
+    assert.equal(cleared.enabled, false)
+  } finally {
+    await app.close()
+    f.db.close()
+    if (old === undefined) delete process.env.AI_ENCRYPTION_KEY
+    else process.env.AI_ENCRYPTION_KEY = old
   }
 })

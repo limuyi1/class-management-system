@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { ElMessage } from 'element-plus'
 
+import WorkbenchSidebar from '@/components/WorkbenchSidebar.vue'
 import data from '@/config/menu'
 import { useDataSourceStore } from '@/stores/data-source'
 import { useConfigurationStore } from '@/stores/configuration'
@@ -103,161 +104,29 @@ const handleMenuClick = (item: MenuItemType) => {
     router.push(targetPath)
   }
 }
+/** 将业务菜单映射为共用侧栏的展示数据。 */
+const sidebarItems = computed(() =>
+  menuData.value.map((item) => ({
+    key: item.path,
+    label: item.name,
+    icon: item.icon,
+    disabled: item.disabled,
+    title: getMenuItemTitle(item)
+  }))
+)
+
+/** 共用侧栏只发送导航目标，业务层负责可用性检查与跳转。 */
+function selectMenu(key: string): void {
+  const item = menuData.value.find((item) => item.path === key)
+  if (item) handleMenuClick(item)
+}
 </script>
 
 <template>
-  <div class="left-menu" :class="{ collapsed: isCollapse }">
-    <!-- 菜单项列表 -->
-    <div
-      v-for="item in menuData"
-      :key="item.name"
-      class="menu-item"
-      :class="{
-        active: activePath === item.path,
-        disabled: item.disabled
-      }"
-      :title="getMenuItemTitle(item)"
-      @click="handleMenuClick(item)"
-    >
-      <div class="menu-icon">
-        <font-awesome-icon :icon="['solid', item.icon]" />
-      </div>
-      <span class="menu-title">{{ item.name }}</span>
-    </div>
-
-    <!-- 折叠/展开按钮 -->
-    <div
-      class="collapse-button"
-      role="button"
-      :aria-label="isCollapse ? '展开菜单' : '折叠菜单'"
-      tabindex="0"
-      @click="isCollapse = !isCollapse"
-      @keydown.enter.prevent="isCollapse = !isCollapse"
-      @keydown.space.prevent="isCollapse = !isCollapse"
-    >
-      <font-awesome-icon :icon="['solid', isCollapse ? 'chevron-right' : 'chevron-left']" />
-    </div>
-  </div>
+  <WorkbenchSidebar
+    v-model:collapsed="isCollapse"
+    :items="sidebarItems"
+    :active-key="activePath"
+    @select="selectMenu"
+  />
 </template>
-
-<style scoped lang="scss">
-.left-menu {
-  width: 150px;
-  height: 100%;
-  background-color: #fff;
-  border-right: 1px solid #e6e6e6;
-  transition: width 0.3s ease;
-  position: relative;
-}
-
-.left-menu.collapsed {
-  width: 64px;
-}
-
-.menu-item {
-  position: relative;
-  display: flex;
-  align-items: center;
-  height: 56px;
-  padding-left: 16px;
-  cursor: pointer;
-  color: #333;
-  transition:
-    background-color 0.2s,
-    color 0.2s,
-    padding-left 0.3s ease;
-  white-space: nowrap;
-  line-height: 56px;
-}
-
-.left-menu.collapsed .menu-item {
-  padding-left: 20px; /* 折叠时图标居中 */
-}
-
-.menu-item:hover {
-  background-color: #f5f5f5;
-}
-
-.menu-item.active {
-  background-color: var(--theme-menu-active-bg);
-  color: var(--theme-menu-active);
-}
-
-.menu-item.active:before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 3px;
-  height: 100%;
-  background-color: var(--theme-menu-active);
-}
-
-.menu-item.disabled {
-  color: #c0c4cc;
-  cursor: not-allowed;
-}
-
-.menu-item.disabled:hover {
-  background-color: transparent;
-}
-
-.menu-icon {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  font-size: 18px;
-  flex-shrink: 0;
-  transition: margin-right 0.3s ease;
-}
-
-.left-menu.collapsed .menu-icon {
-  margin-right: 0;
-}
-
-.menu-title {
-  font-size: 14px;
-  overflow: hidden;
-  white-space: nowrap;
-  max-width: 200px; /* 足够大以便过渡 */
-  opacity: 1;
-  transition:
-    max-width 0.3s ease,
-    opacity 0.2s ease;
-}
-
-.left-menu.collapsed .menu-title {
-  max-width: 0;
-  opacity: 0;
-}
-
-.collapse-button {
-  position: absolute;
-  z-index: 11;
-  right: -12px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 24px;
-  height: 24px;
-  font-size: 15px;
-  background-color: #fff;
-  border: 1px solid #e6e6e6;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: rgba(24, 26, 27, 0.2);
-  cursor: pointer;
-  transition:
-    color 0.2s,
-    background-color 0.2s;
-}
-
-.collapse-button:hover {
-  color: rgba(24, 26, 27, 0.55);
-  background-color: #f5f5f5;
-}
-</style>

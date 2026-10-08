@@ -5,9 +5,8 @@ import { fixture } from './helpers/scores.mjs'
 import { saveResource, listResources, deleteResource } from '../dist/services/resources.js'
 import { storeImportRows, previewImport, commitImport } from '../dist/services/imports.js'
 import { runAICall, readAICall } from '../dist/services/ai/calls.js'
-import { saveAIConfig } from '../dist/services/ai/settings.js'
+import { saveAIConfig, normalizeAIEndpoint } from '../dist/services/ai/settings.js'
 import { adjustAIQuota, quotaFor, reconcileAITokens } from '../dist/services/ai/quota.js'
-import { isPublicAddress } from '../dist/services/ai/transport.js'
 
 /** 覆盖文档的归属、版本和软删除，避免跨账号文档引用和旧版本覆盖。 */
 test('业务文档隔离、幂等和软删除', () => {
@@ -90,23 +89,20 @@ test('Excel 预览保留零与空值，冲突整批回滚，身份隔离及重�
   }
 })
 
-test('公网模型连接策略拒绝私网、映射及保留地址', () => {
-  for (const ip of [
-    '127.0.0.1',
-    '10.2.3.4',
-    '172.16.1.1',
-    '169.254.169.254',
-    '100.64.0.1',
-    '192.168.1.1',
-    '198.18.0.1',
-    '203.0.113.1',
-    '::1',
-    '::ffff:8.8.8.8',
-    '2001:db8::1'
+test('模型服务支持 HTTP、内网域名、IP 和自定义端口', () => {
+  for (const address of [
+    'http://localhost:11434/v1',
+    'http://127.0.0.1:8080/v1',
+    'http://192.168.1.2:3000/v1',
+    'http://model.local:8000/v1',
+    'http://[::1]:11434/v1',
+    'https://models.example.test:8443/v1'
   ])
-    assert.equal(isPublicAddress(ip), false, ip)
-  assert.equal(isPublicAddress('8.8.8.8'), true)
-  assert.equal(isPublicAddress('2606:4700:4700::1111'), true)
+    assert.equal(normalizeAIEndpoint(`${address}/`), address)
+  assert.throws(
+    () => normalizeAIEndpoint('not-a-url'),
+    (error) => error.code === 'INVALID_AI_URL'
+  )
 })
 
 test('模型调用仅一次、累计结算、异常保留预占，管理员超预算核对记录原因', async () => {

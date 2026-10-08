@@ -7,6 +7,7 @@ import { useWorkspaceStore } from '@/stores/workspace'
 import { useWorkspaceScores } from '@/hooks/useWorkspaceScores'
 import { setWorkspaceReferences, switchWorkspace } from '@/utils/workspaceUtil'
 import { getValidScore } from '@/utils/scoreValueUtil'
+import { sortWorkspacePeriods } from '@/utils/workspacePeriodSortUtil'
 
 const workspace = useWorkspaceStore()
 const { projection } = useWorkspaceScores()
@@ -14,8 +15,7 @@ const visible = ref(false)
 const selected = ref<string[]>([])
 const busy = ref(false)
 const groups = computed(() =>
-  [...workspace.activeClassPeriods]
-    .reverse()
+  sortWorkspacePeriods(workspace.activeClassPeriods)
     .filter((period) => period.id !== workspace.activePeriod?.id)
     .map((period) => {
       const snapshot = workspace.snapshots.find((item) => item.id === period.id)
@@ -40,6 +40,16 @@ const readyCount = computed(
         ).length >= 3
     ).length
 )
+
+const referenceLabel = computed(() =>
+  projection.value.referenceHeaders.length
+    ? `参照：${projection.value.referenceHeaders.length}项`
+    : '参照：未使用'
+)
+const summaryHint = computed(() => {
+  const references = projection.value.referenceHeaders.map((column) => column.label).join('、')
+  return `${references ? `历史参照：${references}。` : ''}${readyCount.value}/${projection.value.normalizedStudents.length} 人已有至少三次有效成绩。总览按百分制计算，跨学期趋势仅供参考。点击参照可更换。`
+})
 
 function open(): void {
   selected.value = (workspace.activePeriod?.references ?? []).map((reference) =>
@@ -84,22 +94,17 @@ async function openSource(periodId: string): Promise<void> {
 
 <template>
   <div class="workspace-reference-bar">
-    <span
-      >历史参照：{{
-        projection.referenceHeaders.length
-          ? projection.referenceHeaders.map((column) => column.label).join('、')
-          : '未使用'
-      }}</span
-    >
-    <el-button link type="primary" @click="open">更换参照</el-button>
-    <span class="workspace-reference-bar__hint"
-      >{{ readyCount }} /
-      {{ projection.normalizedStudents.length }}
-      人已有三次有效成绩。总览按百分制计算，跨学期趋势仅供参考。</span
-    >
-    <span v-if="projection.missingReferences" class="workspace-reference-bar__warning"
-      >{{ projection.missingReferences }} 项参照已失效，请重新选择。</span
-    >
+    <el-tooltip :content="summaryHint" placement="bottom">
+      <span class="workspace-reference-bar__summary">
+        <el-button link type="primary" @click="open">{{ referenceLabel }}</el-button>
+        <span class="workspace-reference-bar__hint"
+          >≥3次成绩：{{ readyCount }}/{{ projection.normalizedStudents.length }}人</span
+        >
+        <span v-if="projection.missingReferences" class="workspace-reference-bar__warning"
+          >{{ projection.missingReferences }}项参照失效</span
+        >
+      </span>
+    </el-tooltip>
     <el-dialog
       v-model="visible"
       title="历史参照"
@@ -172,18 +177,18 @@ async function openSource(periodId: string): Promise<void> {
 
 <style scoped lang="scss">
 .workspace-reference-bar {
-  flex-shrink: 0;
-  display: flex;
-  flex-wrap: wrap;
+  display: inline-flex;
   align-items: center;
-  gap: 6px 12px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
   font-size: 12px;
-  background: var(--el-fill-color-light);
-  border-radius: 8px;
+  &__summary {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 10px;
+  }
   &__hint {
     color: var(--el-text-color-secondary);
+    white-space: nowrap;
   }
   &__warning {
     color: var(--el-color-warning);

@@ -104,14 +104,12 @@ defineExpose({ canLeave })
       <el-button v-if="serverState.dirty" @click="save">重试保存</el-button
       ><el-button v-else @click="load">重新加载</el-button>
     </el-alert>
-    <div v-if="ready" class="server-teaching-workbench__status" role="status">
-      <span>{{
-        serverState.saving
-          ? '正在保存到服务器…'
-          : serverState.dirty
-            ? '有未保存的修改'
-            : '服务器数据已同步'
-      }}</span
+    <div
+      v-if="ready && (serverState.saving || serverState.dirty)"
+      class="server-teaching-workbench__status"
+      role="status"
+    >
+      <span>{{ serverState.saving ? '正在保存到服务器…' : '有未保存的修改' }}</span
       ><el-button text :disabled="serverState.saving || !serverState.dirty" @click="save"
         >保存修改</el-button
       >

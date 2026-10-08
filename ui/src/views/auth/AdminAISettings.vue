@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+
+import { ElMessage } from 'element-plus'
+
 import ManagementCard from '@/components/ManagementCard.vue'
 import { apiRequest } from '@/api/client'
 import { useAISettingsLeave } from '@/hooks/api/useAISettingsLeave'
@@ -10,12 +13,13 @@ import type { AIConfigType } from '@/types/ApiAI'
 const activeTab = ref('model'),
   monitorBusy = ref(false),
   busy = ref(false),
-  errorMessage = ref('')
+  errorMessage = ref(''),
+  loadingConfig = ref(false)
 const providerForm = ref<{ hasDraft: boolean; reset: () => void }>()
 const quotaManager = ref<InstanceType<typeof AIQuotaManager>>()
 const config = ref<AIConfigType | null>(null)
 const leave = useAISettingsLeave(
-  () => busy.value || monitorBusy.value,
+  () => busy.value || monitorBusy.value || loadingConfig.value,
   () => Boolean(providerForm.value?.hasDraft),
   () => providerForm.value?.reset()
 )
@@ -24,14 +28,26 @@ async function canLeave(): Promise<boolean> {
 }
 defineExpose({ canLeave })
 async function loadConfig(): Promise<void> {
+  if (loadingConfig.value) return
+  loadingConfig.value = true
   try {
     config.value = await apiRequest<AIConfigType>('/admin/ai/config')
     errorMessage.value = ''
   } catch (error) {
-    config.value = null
     console.error('读取平台 AI 配置失败:', error)
     errorMessage.value = error instanceof Error ? error.message : '读取失败'
+  } finally {
+    loadingConfig.value = false
   }
+}
+/** 刷新仅作用于已保存表单，避免覆盖用户当前正在填写的配置。 */
+async function refreshConfig(): Promise<void> {
+  if (busy.value || monitorBusy.value || loadingConfig.value) return
+  if (providerForm.value?.hasDraft) {
+    ElMessage.warning('请先保存当前修改，再刷新平台配置')
+    return
+  }
+  await loadConfig()
 }
 onMounted(() => void loadConfig())
 </script>
@@ -41,17 +57,18 @@ onMounted(() => void loadConfig())
     <el-alert v-if="errorMessage" :title="errorMessage" type="error" :closable="false" />
     <el-tabs v-model="activeTab" class="management-tabs" :before-leave="canLeave">
       <el-tab-pane label="模型配置" name="model">
-        <ManagementCard
-          title="统一模型配置"
-          description="配置老师共用的模型服务，密钥保存后不会回传浏览器。"
-        >
+        <ManagementCard title="统一模型配置" description="配置老师共用的模型服务与 API Key。">
           <template #actions>
-            <el-button :disabled="busy || monitorBusy" @click="loadConfig"
+            <el-button
+              :loading="loadingConfig"
+              :disabled="busy || monitorBusy || Boolean(providerForm?.hasDraft)"
+              :title="providerForm?.hasDraft ? '请先保存当前修改，再刷新平台配置' : undefined"
+              @click="refreshConfig"
               >刷新平台配置</el-button
             ></template
           >
           <AIProviderForm
-            :disabled="monitorBusy"
+            :disabled="monitorBusy || loadingConfig"
             ref="providerForm"
             v-if="config"
             :config="config"
@@ -65,14 +82,14 @@ onMounted(() => void loadConfig())
         <AIQuotaManager
           ref="quotaManager"
           :config="config"
-          :disabled="busy || monitorBusy"
+          :disabled="busy || monitorBusy || loadingConfig"
           @busy="busy = $event"
           @configure="activeTab = 'model'"
         />
       </el-tab-pane>
       <el-tab-pane label="调用记录" name="calls">
         <AICallMonitor
-          :disabled="busy"
+          :disabled="busy || loadingConfig"
           @busy="monitorBusy = $event"
           @settled="quotaManager?.load()"
         />

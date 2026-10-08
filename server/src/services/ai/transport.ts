@@ -1,68 +1,33 @@
-import { lookup } from 'node:dns/promises'
-import { request } from 'node:https'
-import { isIP } from 'node:net'
+import { request as requestHttp } from 'node:http'
+import { request as requestHttps } from 'node:https'
 import { BusinessError } from '../errors.js'
 
-/** 拒绝私网、保留地址及 IPv4 映射；IPv6 仅允许普通全球单播。 */
-export function isPublicAddress(address: string): boolean {
-  if (isIP(address) === 6) {
-    address = new URL(`http://[${address}]/`).hostname.slice(1, -1)
-    return (
-      /^[23][0-9a-f]{3}:/i.test(address) &&
-      !/^2001:(db8|0?|10|20):/i.test(address) &&
-      !/^2002:/i.test(address)
-    )
-  }
-  if (isIP(address) !== 4) return false
-  const [a, b, c] = address.split('.').map(Number) as [number, number, number]
-  return !(
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    a >= 224 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && (b === 168 || b === 0 || (b === 88 && c === 99))) ||
-    (a === 198 && (b === 18 || b === 19 || (b === 51 && c === 100))) ||
-    (a === 203 && b === 0 && c === 113)
-  )
-}
-/** DNS 一次解析并固定连接 IP，保留原域名 TLS 校验；拒绝重定向与过大响应。 */
+/** 通过 HTTP/HTTPS 请求模型，支持内网及自定义端口；限制超时和响应大小，无请求体时使用 GET。 */
 export async function requestAIJson(
   url: URL,
   headers: Record<string, string>,
   body: unknown,
   signal?: AbortSignal
 ): Promise<unknown> {
-  if (url.protocol !== 'https:' || url.username || url.password || (url.port && url.port !== '443'))
-    throw new BusinessError(400, 'AI_ENDPOINT_NOT_ALLOWED', '模型仅允许 HTTPS 443 服务')
-  let dnsTimer: ReturnType<typeof setTimeout> | undefined
-  const addresses = await Promise.race([
-    lookup(url.hostname, { all: true }),
-    new Promise<never>((_resolve, reject) => {
-      dnsTimer = setTimeout(
-        () => reject(new BusinessError(502, 'AI_DNS_TIMEOUT', '模型域名解析超时')),
-        15000
-      )
-    })
-  ]).finally(() => clearTimeout(dnsTimer))
-  if (!addresses.length || addresses.some((item) => !isPublicAddress(item.address)))
-    throw new BusinessError(400, 'AI_ENDPOINT_NOT_ALLOWED', '模型域名解析到非公网地址')
-  const address = addresses[0]!
+  const listing = body === undefined
+  const incomplete = () =>
+    new BusinessError(
+      502,
+      listing ? 'AI_MODELS_UNAVAILABLE' : 'AI_CALL_UNCERTAIN',
+      listing ? '模型列表请求失败，请稍后重试' : '模型请求未完成，用量需核对'
+    )
+  if (!['http:', 'https:'].includes(url.protocol))
+    throw new BusinessError(400, 'INVALID_AI_URL', '模型地址须使用 HTTP 或 HTTPS')
+  const request = url.protocol === 'http:' ? requestHttp : requestHttps
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => req.destroy(new Error('timeout')), 120000)
+    const timer = setTimeout(() => req.destroy(new Error('timeout')), listing ? 30000 : 120000)
     const req = request(
       url,
       {
-        method: 'POST',
+        method: listing ? 'GET' : 'POST',
         agent: false,
         signal,
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        lookup: (_hostname, options, callback) => {
-          if (options.all) callback(null, [address])
-          else callback(null, address.address, address.family)
-        }
+        headers: { ...headers, 'Content-Type': 'application/json' }
       },
       (response) => {
         const chunks: Buffer[] = []
@@ -77,7 +42,7 @@ export async function requestAIJson(
         })
         response.on('error', () => {
           clearTimeout(timer)
-          reject(new BusinessError(502, 'AI_CALL_UNCERTAIN', '模型响应中断，用量需核对'))
+          reject(incomplete())
         })
         response.on('end', () => {
           clearTimeout(timer)
@@ -95,8 +60,8 @@ export async function requestAIJson(
     )
     req.on('error', () => {
       clearTimeout(timer)
-      reject(new BusinessError(502, 'AI_CALL_UNCERTAIN', '模型请求未完成，用量需核对'))
+      reject(incomplete())
     })
-    req.end(JSON.stringify(body))
+    req.end(listing ? undefined : JSON.stringify(body))
   })
 }

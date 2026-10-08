@@ -34,10 +34,20 @@ export default defineConfig(({ mode, command, isPreview }): UserConfig => {
       tailwindcss()
     ],
     resolve: {
+      // Vxe 包未声明 xe-utils 依赖，pnpm 隔离目录下统一从前端根目录解析
+      dedupe: ['xe-utils'],
       // 配置 @ 别名指向 src 目录
       alias: {
+        // 渲染插件使用 require('vue')，统一到 ESM 运行时以避免混合入口的初始化顺序错误
+        vue: fileURLToPath(
+          new URL('./node_modules/vue/dist/vue.runtime.esm-bundler.js', import.meta.url)
+        ),
         '@': fileURLToPath(new URL('./src', import.meta.url))
       }
+    },
+    optimizeDeps: {
+      // Vxe 间接引用 CommonJS 格式的 xe-utils，显式预构建以提供浏览器可用的默认导出
+      include: ['xe-utils']
     },
     // 构建与生产预览使用相同的项目子路径，开发环境使用根路径
     base: command === 'build' || isPreview ? env.VITE_BASE_PATH || '/' : '/',

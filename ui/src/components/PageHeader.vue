@@ -25,7 +25,10 @@ defineProps<Props>()
         <font-awesome-icon :icon="icon" />
       </div>
       <div class="header-text">
-        <h2>{{ title }}</h2>
+        <div class="header-title">
+          <h2>{{ title }}</h2>
+          <slot name="title-after"></slot>
+        </div>
         <p v-if="subtitle">{{ subtitle }}</p>
       </div>
     </div>
@@ -54,7 +57,7 @@ defineProps<Props>()
     align-items: center;
     gap: 10px;
 
-    :deep(.el-button) {
+    :deep(.el-button:not(.is-link)) {
       background: #fff;
       border-color: var(--border-muted);
       color: var(--el-text-color-primary);
@@ -99,6 +102,13 @@ defineProps<Props>()
     border-radius: 9px;
     color: var(--el-color-primary);
     font-size: 16px;
+  }
+
+  .header-title {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 12px;
   }
 
   .header-text {

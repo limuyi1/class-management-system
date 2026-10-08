@@ -40,7 +40,7 @@ export function useWorkbenchNavigation(
             },
             {
               key: 'admin-ai',
-              label: '平台 AI 与额度',
+              label: '平台智能',
               icon: 'star',
               subtitle: '统一模型配置、额度分配与调用核对'
             },
